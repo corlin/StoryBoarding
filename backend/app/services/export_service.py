@@ -4,12 +4,13 @@ import zipfile
 from typing import List
 from PIL import Image, ImageDraw, ImageFont
 from app.models.entities import Project, Shot
-from app.providers.image.openai_dalle import OpenAIImageProvider, get_font
+from app.providers.image.openai_dalle import get_font
+from app.services.storyboard_renderer import render_shot_storyboard_image
 
 class ExportService:
     @staticmethod
     def export_storyboard_page_image(project: Project, shots: List[Shot]) -> bytes:
-        """Stitches shots with real visual storyboards into a 3x4 (12-frame) Contact Sheet with Chinese typography"""
+        """Stitches shots into a 3x4 (12-frame) Storyboard Contact Sheet matching UI 1-to-1"""
         cols = 3
         rows = 4
         cell_w, cell_h = 560, 315 # 16:9 ratio
@@ -24,8 +25,6 @@ class ExportService:
 
         font_title = get_font(28)
         font_sub = get_font(16)
-        font_badge = get_font(14)
-        font_action = get_font(13)
 
         # Header Title Area
         draw.rectangle([0, 0, total_w, header_h - 15], fill=(15, 23, 42))
@@ -40,8 +39,6 @@ class ExportService:
             font=font_sub
         )
 
-        image_provider = OpenAIImageProvider()
-
         # Render 3x4 cells
         for idx, shot in enumerate(shots[:12]):
             r = idx // cols
@@ -49,28 +46,19 @@ class ExportService:
             x = margin + c * (cell_w + margin)
             y = header_h + r * (cell_h + margin)
 
-            # Generate or render the 16:9 storyboard image for this shot
-            shot_dict = {
-                "order": shot.order,
-                "shot_size": shot.shot_size,
-                "camera_angle": shot.camera_angle,
-                "camera_movement": shot.camera_movement if isinstance(shot.camera_movement, dict) else {},
-                "action": shot.action
-            }
-            raw_image_bytes = image_provider._generate_cinematic_mock_image(
-                shot.image_prompt or shot.action,
-                shot_dict
+            # Render exact 1-to-1 visual storyboard frame matching UI
+            cell_img = render_shot_storyboard_image(
+                order=shot.order,
+                shot_size=shot.shot_size,
+                camera_angle=shot.camera_angle,
+                camera_movement=shot.camera_movement if isinstance(shot.camera_movement, dict) else {},
+                action=shot.action,
+                width=cell_w,
+                height=cell_h
             )
 
-            try:
-                cell_img = Image.open(io.BytesIO(raw_image_bytes))
-                cell_img = cell_img.resize((cell_w, cell_h), Image.Resampling.LANCZOS)
-                canvas.paste(cell_img, (x, y))
-            except Exception as e:
-                print(f"Error pasting cell image for shot {shot.order}: {e}")
-                draw.rectangle([x, y, x + cell_w, y + cell_h], outline=(45, 55, 72), fill=(24, 29, 39), width=2)
-
-            # Outer border highlight
+            canvas.paste(cell_img, (x, y))
+            # Outer cell border
             draw.rectangle([x, y, x + cell_w, y + cell_h], outline=(51, 65, 85), width=2)
 
         out = io.BytesIO()
