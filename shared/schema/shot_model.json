@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ShotModel",
+  "type": "object",
+  "required": [
+    "id",
+    "sequence_id",
+    "order",
+    "duration",
+    "shot_size",
+    "camera_angle",
+    "subject",
+    "action"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "sequence_id": { "type": "string", "format": "uuid" },
+    "order": { "type": "integer", "minimum": 1 },
+    "duration": { "type": "number", "minimum": 0.1 },
+    "shot_size": {
+      "type": "string",
+      "enum": ["extreme_wide_shot", "wide_shot", "full_shot", "medium_shot", "medium_close_up", "close_up", "extreme_close_up"]
+    },
+    "camera_angle": {
+      "type": "string",
+      "enum": ["eye_level", "low_angle", "high_angle", "dutch_angle", "birds_eye", "worms_eye"]
+    },
+    "camera_movement": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["static", "pan_left", "pan_right", "tilt_up", "tilt_down", "tracking_left", "tracking_right", "push_in", "pull_out", "crane", "handheld"] },
+        "speed": { "type": "string", "enum": ["slow", "medium", "fast", "sudden"] },
+        "secondary": { "type": "string" }
+      }
+    },
+    "subject": { "type": "string" },
+    "action": { "type": "string" },
+    "dialogue": { "type": "string" },
+    "composition": {
+      "type": "object",
+      "properties": {
+        "subject_position": { "type": "string" },
+        "focal_point": { "type": "string" },
+        "depth_elements": { "type": "array", "items": { "type": "string" } },
+        "annotations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "color"],
+            "properties": {
+              "type": { "type": "string", "enum": ["motion_arrow", "camera_arrow", "focal_marker", "text_label"] },
+              "color": { "type": "string" },
+              "from": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+              "to": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+              "position": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+              "text": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "character_direction": {
+      "type": "string",
+      "enum": ["left_to_right", "right_to_left", "toward_camera", "away_from_camera", "static"]
+    },
+    "narrative_function": { "type": "string" },
+    "lighting": { "type": "string" },
+    "audio": {
+      "type": "object",
+      "properties": {
+        "music": { "type": "string" },
+        "sfx": { "type": "array", "items": { "type": "string" } },
+        "ambient": { "type": "string" }
+      }
+    },
+    "emotion": { "type": "string" },
+    "transition": { "type": "string", "default": "cut" },
+    "notes": { "type": "string" },
+    "storyboard_image_url": { "type": "string" },
+    "image_prompt": { "type": "string" },
+    "video_prompt": { "type": "string" },
+    "continuity_data": {
+      "type": "object",
+      "properties": {
+        "screen_direction": { "type": "string" },
+        "character_positions": { "type": "object" },
+        "props": { "type": "array", "items": { "type": "string" } },
+        "eyeline": { "type": "string" }
+      }
+    },
+    "is_dirty": { "type": "boolean", "default": false },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
