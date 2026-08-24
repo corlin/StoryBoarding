@@ -24,15 +24,15 @@ class UserProviderConfig(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
-    llm_provider = Column(String(50), default="openai_compatible") # openai_compatible, anthropic_compatible
-    llm_api_base = Column(String(512), default="https://api.openai.com/v1")
+    llm_provider = Column(String(50), default="openrouter") # openrouter, openai_compatible, anthropic_compatible
+    llm_api_base = Column(String(512), default="https://openrouter.ai/api/v1")
     llm_api_key = Column(String(512), nullable=True)
-    llm_model = Column(String(100), default="gpt-4o")
+    llm_model = Column(String(100), default="openai/gpt-5.6-sol")
     
-    image_provider = Column(String(50), default="openai_dalle") # openai_dalle, stability, flux
-    image_api_base = Column(String(512), nullable=True)
+    image_provider = Column(String(50), default="openrouter") # openrouter, openai_dalle, flux
+    image_api_base = Column(String(512), default="https://openrouter.ai/api/v1")
     image_api_key = Column(String(512), nullable=True)
-    image_model = Column(String(100), default="dall-e-3")
+    image_model = Column(String(100), default="google/gemini-3.1-flash-image")
 
     user = relationship("User", back_populates="providers_config")
 

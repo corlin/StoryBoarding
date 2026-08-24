@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon } from "lucide-react";
+import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface SettingsModalProps {
@@ -8,15 +8,16 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const [llmProvider, setLlmProvider] = useState("openai_compatible");
-  const [llmApiBase, setLlmApiBase] = useState("https://api.openai.com/v1");
+  const [llmProvider, setLlmProvider] = useState("openrouter");
+  const [llmApiBase, setLlmApiBase] = useState("https://openrouter.ai/api/v1");
   const [llmApiKey, setLlmApiKey] = useState("");
-  const [llmModel, setLlmModel] = useState("gpt-4o");
+  const [llmModel, setLlmModel] = useState("openai/gpt-5.6-sol");
 
-  const [imageProvider, setImageProvider] = useState("openai_dalle");
-  const [imageApiBase, setImageApiBase] = useState("");
+  const [imageProvider, setImageProvider] = useState("openrouter");
+  const [imageApiBase, setImageApiBase] = useState("https://openrouter.ai/api/v1");
   const [imageApiKey, setImageApiKey] = useState("");
-  const [imageModel, setImageModel] = useState("dall-e-3");
+  const [imageModel, setImageModel] = useState("google/gemini-3.1-flash-image");
+  const [syncApiKey, setSyncApiKey] = useState(true);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -27,14 +28,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       api.getProviderConfig()
         .then((config) => {
           if (config) {
-            setLlmProvider(config.llm_provider || "openai_compatible");
-            setLlmApiBase(config.llm_api_base || "https://api.openai.com/v1");
+            setLlmProvider(config.llm_provider || "openrouter");
+            setLlmApiBase(config.llm_api_base || "https://openrouter.ai/api/v1");
             setLlmApiKey(config.llm_api_key || "");
-            setLlmModel(config.llm_model || "gpt-4o");
-            setImageProvider(config.image_provider || "openai_dalle");
-            setImageApiBase(config.image_api_base || "");
+            setLlmModel(config.llm_model || "openai/gpt-5.6-sol");
+            setImageProvider(config.image_provider || "openrouter");
+            setImageApiBase(config.image_api_base || "https://openrouter.ai/api/v1");
             setImageApiKey(config.image_api_key || "");
-            setImageModel(config.image_model || "dall-e-3");
+            setImageModel(config.image_model || "google/gemini-3.1-flash-image");
           }
         })
         .catch(console.error);
@@ -43,9 +44,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   if (!isOpen) return null;
 
+  const applyOpenRouterPreset = () => {
+    setLlmProvider("openrouter");
+    setLlmApiBase("https://openrouter.ai/api/v1");
+    setLlmModel("openai/gpt-5.6-sol");
+    setImageProvider("openrouter");
+    setImageApiBase("https://openrouter.ai/api/v1");
+    setImageModel("google/gemini-3.1-flash-image");
+    setSyncApiKey(true);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    const finalImageKey = syncApiKey && llmApiKey ? llmApiKey : imageApiKey;
     try {
       await api.updateProviderConfig({
         llm_provider: llmProvider,
@@ -54,7 +66,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         llm_model: llmModel,
         image_provider: imageProvider,
         image_api_base: imageApiBase,
-        image_api_key: imageApiKey,
+        image_api_key: finalImageKey,
         image_model: imageModel,
       });
       setIsSaved(true);
@@ -72,42 +84,72 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-xl p-6 max-w-xl w-full shadow-2xl overflow-y-auto max-h-[90vh]">
-        <div className="flex items-center gap-2 mb-2">
-          <Settings className="w-5 h-5 text-primary" />
-          <h2 className="text-base font-semibold">AI 模型与 Provider 设置</h2>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Settings className="w-5 h-5 text-primary" />
+            <h2 className="text-base font-semibold">AI 模型与 Provider 设置</h2>
+          </div>
+          <button
+            type="button"
+            onClick={applyOpenRouterPreset}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors"
+            title="预设 OpenRouter 推荐模型"
+          >
+            <Zap className="w-3 h-3 fill-current" />
+            <span>应用 OpenRouter 推荐预设</span>
+          </button>
         </div>
-        <p className="text-xs text-muted-foreground mb-5">
-          配置自定义的大语言模型（LLM）与图像生成 API 秘钥。支持兼容 OpenAI、Anthropic、DeepSeek、Flux 等服务。
+        <p className="text-xs text-muted-foreground mb-4">
+          默认已预设 <strong>OpenRouter</strong> 统一网关：文生文使用 <code>openai/gpt-5.6-sol</code>，文生图使用 <code>google/gemini-3.1-flash-image</code>。
         </p>
 
-        <form onSubmit={handleSave} className="space-y-5">
+        <form onSubmit={handleSave} className="space-y-4">
           {/* Section 1: LLM Settings */}
           <div className="p-4 rounded-lg border border-border/70 bg-background/50 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span>Director Agent (LLM 语言模型)</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span>文生文 / Director Agent (LLM 语言模型)</span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-400/90 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                默认: openai/gpt-5.6-sol
+              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">接口协议</label>
+                <label className="text-[11px] text-muted-foreground block mb-1">接口网关 / 协议</label>
                 <select
                   value={llmProvider}
-                  onChange={(e) => setLlmProvider(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setLlmProvider(val);
+                    if (val === "openrouter") {
+                      setLlmApiBase("https://openrouter.ai/api/v1");
+                      setLlmModel("openai/gpt-5.6-sol");
+                    } else if (val === "openai_compatible") {
+                      setLlmApiBase("https://api.openai.com/v1");
+                      setLlmModel("gpt-4o");
+                    } else if (val === "anthropic_compatible") {
+                      setLlmApiBase("https://api.anthropic.com/v1");
+                      setLlmModel("claude-3-5-sonnet-20241022");
+                    }
+                  }}
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
                 >
-                  <option value="openai_compatible">OpenAI Compatible (GPT/DeepSeek/vLLM)</option>
-                  <option value="anthropic_compatible">Anthropic (Claude)</option>
+                  <option value="openrouter">OpenRouter (推荐)</option>
+                  <option value="openai_compatible">OpenAI Compatible (Direct)</option>
+                  <option value="anthropic_compatible">Anthropic (Direct)</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">模型名称 (Model)</label>
+                <label className="text-[11px] text-muted-foreground block mb-1">模型名称 (Model ID)</label>
                 <input
                   type="text"
                   value={llmModel}
                   onChange={(e) => setLlmModel(e.target.value)}
-                  placeholder="gpt-4o / claude-3-5-sonnet / deepseek-chat"
+                  placeholder="openai/gpt-5.6-sol"
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
                 />
               </div>
@@ -119,19 +161,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 type="text"
                 value={llmApiBase}
                 onChange={(e) => setLlmApiBase(e.target.value)}
-                placeholder="https://api.openai.com/v1"
+                placeholder="https://openrouter.ai/api/v1"
                 className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
               />
             </div>
 
             <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">API Key</label>
+              <label className="text-[11px] text-muted-foreground block mb-1">
+                API Key (OpenRouter / Provider 秘钥)
+              </label>
               <div className="relative">
                 <input
                   type="password"
                   value={llmApiKey}
                   onChange={(e) => setLlmApiKey(e.target.value)}
-                  placeholder="sk-..."
+                  placeholder="sk-or-v1-..."
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
                 />
                 <Key className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-muted-foreground pointer-events-none" />
@@ -141,9 +185,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
           {/* Section 2: Image Provider Settings */}
           <div className="p-4 rounded-lg border border-border/70 bg-background/50 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <ImageIcon className="w-4 h-4 text-primary" />
-              <span>Storyboard 图像生成模型</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <ImageIcon className="w-4 h-4 text-sky-400" />
+                <span>文生图 / Storyboard 视觉生成模型</span>
+              </div>
+              <span className="text-[10px] font-mono text-sky-400/90 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
+                默认: google/gemini-3.1-flash-image
+              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -154,36 +203,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   onChange={(e) => setImageProvider(e.target.value)}
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
                 >
-                  <option value="openai_dalle">OpenAI DALL·E 3 / Compatible</option>
-                  <option value="flux">Flux / Replicate / Stable Diffusion</option>
+                  <option value="openrouter">OpenRouter (推荐)</option>
+                  <option value="openai_dalle">OpenAI DALL·E 3</option>
+                  <option value="flux">Flux / Replicate</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">模型名称</label>
+                <label className="text-[11px] text-muted-foreground block mb-1">模型名称 (Model ID)</label>
                 <input
                   type="text"
                   value={imageModel}
                   onChange={(e) => setImageModel(e.target.value)}
-                  placeholder="dall-e-3 / flux-schnell"
+                  placeholder="google/gemini-3.1-flash-image"
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">Image API Key (留空使用内置电影草图引擎)</label>
-              <div className="relative">
-                <input
-                  type="password"
-                  value={imageApiKey}
-                  onChange={(e) => setImageApiKey(e.target.value)}
-                  placeholder="可选：自定义绘图 API Key"
-                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
-                />
-                <Key className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-muted-foreground pointer-events-none" />
-              </div>
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="syncApiKey"
+                checked={syncApiKey}
+                onChange={(e) => setSyncApiKey(e.target.checked)}
+                className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+              />
+              <label htmlFor="syncApiKey" className="text-xs text-muted-foreground cursor-pointer select-none">
+                共用文生文 OpenRouter API Key (无需重复填写)
+              </label>
             </div>
+
+            {!syncApiKey && (
+              <div>
+                <label className="text-[11px] text-muted-foreground block mb-1">独立 Image API Key</label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={imageApiKey}
+                    onChange={(e) => setImageApiKey(e.target.value)}
+                    placeholder="可选：单独绘图 API Key"
+                    className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
+                  />
+                  <Key className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
@@ -211,7 +276,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   <span>已保存设置</span>
                 </>
               ) : (
-                <span>保存设置</span>
+                <span>保存预设配置</span>
               )}
             </button>
           </div>

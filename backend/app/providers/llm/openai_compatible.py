@@ -4,14 +4,29 @@ from typing import Dict, Any, Optional
 from app.providers.llm.base import BaseLLMProvider
 
 class OpenAICompatibleProvider(BaseLLMProvider):
-    def __init__(self, api_key: Optional[str] = None, api_base: Optional[str] = None, model: str = "gpt-4o"):
-        super().__init__(api_key=api_key, api_base=api_base or "https://api.openai.com/v1", model=model)
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        api_base: Optional[str] = None,
+        model: str = "openai/gpt-5.6-sol"
+    ):
+        super().__init__(
+            api_key=api_key,
+            api_base=api_base or "https://openrouter.ai/api/v1",
+            model=model or "openai/gpt-5.6-sol"
+        )
 
-    async def generate_json(self, system_prompt: str, user_prompt: str, schema: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _get_headers(self) -> Dict[str, str]:
         headers = {
             "Authorization": f"Bearer {self.api_key or 'mock-key'}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "AI Director Workspace"
         }
+        return headers
+
+    async def generate_json(self, system_prompt: str, user_prompt: str, schema: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        headers = self._get_headers()
         
         payload: Dict[str, Any] = {
             "model": self.model,
@@ -27,18 +42,19 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         if not self.api_key or self.api_key == "mock-key":
             return self._mock_fallback(user_prompt)
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(f"{self.api_base}/chat/completions", headers=headers, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            content = data["choices"][0]["message"]["content"]
-            return json.loads(content)
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(f"{self.api_base}/chat/completions", headers=headers, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                content = data["choices"][0]["message"]["content"]
+                return json.loads(content)
+        except Exception as e:
+            print(f"OpenRouter LLM generate_json fallback: {e}")
+            return self._mock_fallback(user_prompt)
 
     async def generate_text(self, system_prompt: str, user_prompt: str) -> str:
-        headers = {
-            "Authorization": f"Bearer {self.api_key or 'mock-key'}",
-            "Content-Type": "application/json"
-        }
+        headers = self._get_headers()
         payload = {
             "model": self.model,
             "messages": [
@@ -51,11 +67,15 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         if not self.api_key or self.api_key == "mock-key":
             return "Mock generation text response."
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(f"{self.api_base}/chat/completions", headers=headers, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            return data["choices"][0]["message"]["content"]
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(f"{self.api_base}/chat/completions", headers=headers, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                return data["choices"][0]["message"]["content"]
+        except Exception as e:
+            print(f"OpenRouter LLM generate_text fallback: {e}")
+            return "Fallback mock generation response."
 
     def _mock_fallback(self, user_prompt: str) -> Dict[str, Any]:
         """Provides high-quality realistic Director Mock responses when API key is unset"""

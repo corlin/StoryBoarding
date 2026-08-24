@@ -12,14 +12,14 @@ from app.api.projects import get_current_user
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 class ProviderConfigSchema(BaseModel):
-    llm_provider: str = "openai_compatible"
-    llm_api_base: str = "https://api.openai.com/v1"
+    llm_provider: str = "openrouter"
+    llm_api_base: str = "https://openrouter.ai/api/v1"
     llm_api_key: Optional[str] = None
-    llm_model: str = "gpt-4o"
-    image_provider: str = "openai_dalle"
-    image_api_base: Optional[str] = None
+    llm_model: str = "openai/gpt-5.6-sol"
+    image_provider: str = "openrouter"
+    image_api_base: Optional[str] = "https://openrouter.ai/api/v1"
     image_api_key: Optional[str] = None
-    image_model: str = "dall-e-3"
+    image_model: str = "google/gemini-3.1-flash-image"
 
 @router.get("/providers", response_model=ProviderConfigSchema)
 async def get_user_provider_config(
