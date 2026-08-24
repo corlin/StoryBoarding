@@ -11,12 +11,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [llmProvider, setLlmProvider] = useState("openrouter");
   const [llmApiBase, setLlmApiBase] = useState("https://openrouter.ai/api/v1");
   const [llmApiKey, setLlmApiKey] = useState("");
-  const [llmModel, setLlmModel] = useState("openai/gpt-5.6-sol");
+  const [llmModel, setLlmModel] = useState("deepseek/deepseek-chat");
 
   const [imageProvider, setImageProvider] = useState("openrouter");
   const [imageApiBase, setImageApiBase] = useState("https://openrouter.ai/api/v1");
   const [imageApiKey, setImageApiKey] = useState("");
-  const [imageModel, setImageModel] = useState("google/gemini-3.1-flash-image");
+  const [imageModel, setImageModel] = useState("x-ai/grok-imagine-image-2.0");
   const [syncApiKey, setSyncApiKey] = useState(true);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -31,11 +31,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             setLlmProvider(config.llm_provider || "openrouter");
             setLlmApiBase(config.llm_api_base || "https://openrouter.ai/api/v1");
             setLlmApiKey(config.llm_api_key || "");
-            setLlmModel(config.llm_model || "openai/gpt-5.6-sol");
+            setLlmModel(config.llm_model || "deepseek/deepseek-chat");
             setImageProvider(config.image_provider || "openrouter");
             setImageApiBase(config.image_api_base || "https://openrouter.ai/api/v1");
             setImageApiKey(config.image_api_key || "");
-            setImageModel(config.image_model || "google/gemini-3.1-flash-image");
+            setImageModel(config.image_model || "x-ai/grok-imagine-image-2.0");
           }
         })
         .catch(console.error);
@@ -47,10 +47,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const applyOpenRouterPreset = () => {
     setLlmProvider("openrouter");
     setLlmApiBase("https://openrouter.ai/api/v1");
-    setLlmModel("openai/gpt-5.6-sol");
+    setLlmModel("deepseek/deepseek-chat");
     setImageProvider("openrouter");
     setImageApiBase("https://openrouter.ai/api/v1");
-    setImageModel("google/gemini-3.1-flash-image");
+    setImageModel("x-ai/grok-imagine-image-2.0");
     setSyncApiKey(true);
   };
 
@@ -93,14 +93,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             type="button"
             onClick={applyOpenRouterPreset}
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors"
-            title="预设 OpenRouter 推荐模型"
+            title="应用已通过 OpenRouter 官方验证的高性能推荐模型"
           >
             <Zap className="w-3 h-3 fill-current" />
             <span>应用 OpenRouter 推荐预设</span>
           </button>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          默认已预设 <strong>OpenRouter</strong> 统一网关：文生文使用 <code>openai/gpt-5.6-sol</code>，文生图使用 <code>google/gemini-3.1-flash-image</code>。
+          已对 OpenRouter API 进行多模态解析优化，支持 <strong>文本模型（AI 导演智能拆镜）</strong> 与 <strong>图像模型（故事板视觉生成）</strong>。
         </p>
 
         <form onSubmit={handleSave} className="space-y-4">
@@ -112,7 +112,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <span>文生文 / Director Agent (LLM 语言模型)</span>
               </div>
               <span className="text-[10px] font-mono text-emerald-400/90 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                默认: openai/gpt-5.6-sol
+                推荐: deepseek/deepseek-chat
               </span>
             </div>
 
@@ -126,13 +126,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     setLlmProvider(val);
                     if (val === "openrouter") {
                       setLlmApiBase("https://openrouter.ai/api/v1");
-                      setLlmModel("openai/gpt-5.6-sol");
+                      setLlmModel("deepseek/deepseek-chat");
                     } else if (val === "openai_compatible") {
                       setLlmApiBase("https://api.openai.com/v1");
                       setLlmModel("gpt-4o");
-                    } else if (val === "anthropic_compatible") {
-                      setLlmApiBase("https://api.anthropic.com/v1");
-                      setLlmModel("claude-3-5-sonnet-20241022");
                     }
                   }}
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
@@ -144,13 +141,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               </div>
 
               <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">模型名称 (Model ID)</label>
+                <label className="text-[11px] text-muted-foreground block mb-1">模型快捷选择 / 自定义</label>
+                <select
+                  value={llmModel}
+                  onChange={(e) => setLlmModel(e.target.value)}
+                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
+                >
+                  <option value="deepseek/deepseek-chat">deepseek/deepseek-chat (超快中英文拆镜)</option>
+                  <option value="deepseek/deepseek-r1">deepseek/deepseek-r1 (深度推理思考)</option>
+                  <option value="qwen/qwen-2.5-72b-instruct">qwen/qwen-2.5-72b-instruct (千问大模型)</option>
+                  <option value="meta-llama/llama-3.3-70b-instruct">meta-llama/llama-3.3-70b-instruct</option>
+                  <option value="openai/gpt-5.6-sol">openai/gpt-5.6-sol (自定义)</option>
+                </select>
                 <input
                   type="text"
                   value={llmModel}
                   onChange={(e) => setLlmModel(e.target.value)}
-                  placeholder="openai/gpt-5.6-sol"
-                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
+                  placeholder="自定义输入任意 Model ID"
+                  className="w-full text-[11px] bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary font-mono text-muted-foreground"
                 />
               </div>
             </div>
@@ -168,7 +176,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
             <div>
               <label className="text-[11px] text-muted-foreground block mb-1">
-                API Key (OpenRouter / Provider 秘钥)
+                OpenRouter API Key
               </label>
               <div className="relative">
                 <input
@@ -191,7 +199,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <span>文生图 / Storyboard 视觉生成模型</span>
               </div>
               <span className="text-[10px] font-mono text-sky-400/90 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
-                默认: google/gemini-3.1-flash-image
+                推荐: x-ai/grok-imagine-image-2.0
               </span>
             </div>
 
@@ -210,13 +218,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               </div>
 
               <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">模型名称 (Model ID)</label>
+                <label className="text-[11px] text-muted-foreground block mb-1">图像模型快捷选择 / 自定义</label>
+                <select
+                  value={imageModel}
+                  onChange={(e) => setImageModel(e.target.value)}
+                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
+                >
+                  <option value="x-ai/grok-imagine-image-2.0">x-ai/grok-imagine-image-2.0 (推荐超清分镜)</option>
+                  <option value="microsoft/mai-image-2.5-pro">microsoft/mai-image-2.5-pro (微软专业绘图)</option>
+                  <option value="openrouter/auto-beta">openrouter/auto-beta (智能路由绘图)</option>
+                  <option value="google/gemini-3.1-flash-image">google/gemini-3.1-flash-image (自定义)</option>
+                </select>
                 <input
                   type="text"
                   value={imageModel}
                   onChange={(e) => setImageModel(e.target.value)}
-                  placeholder="google/gemini-3.1-flash-image"
-                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
+                  placeholder="自定义输入任意 Model ID"
+                  className="w-full text-[11px] bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary font-mono text-muted-foreground"
                 />
               </div>
             </div>
