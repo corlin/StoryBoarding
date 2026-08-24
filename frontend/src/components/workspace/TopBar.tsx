@@ -13,6 +13,7 @@ import {
   Check,
   Copy,
   Terminal,
+  Images,
 } from "lucide-react";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { BibleModal } from "@/components/modals/BibleModal";
@@ -242,13 +243,13 @@ export const TopBar: React.FC<TopBarProps> = ({
               <span className="text-xs font-mono text-muted-foreground">30.0s Previz Spec</span>
             </div>
 
-            <div className="space-y-3 pt-2">
+            <div className="space-y-2.5 pt-2 max-h-[60vh] overflow-y-auto pr-1">
               {/* Deliverable 1: Storyboard Page PNG */}
               <a
                 href={project ? api.getExportSheetUrl(project.id) : "#"}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-between p-3.5 rounded-lg border border-border bg-background/60 hover:bg-accent/40 hover:border-primary/50 transition-all group"
+                className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/60 hover:bg-accent/40 hover:border-primary/50 transition-all group"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded bg-primary/10 text-primary">
@@ -262,12 +263,31 @@ export const TopBar: React.FC<TopBarProps> = ({
                 <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
               </a>
 
+              {/* Deliverable 5: Storyboard Images Pack (ZIP) */}
+              <a
+                href={project ? api.getExportImagesZipUrl(project.id) : "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/60 hover:bg-accent/40 hover:border-primary/50 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded bg-emerald-500/10 text-emerald-400">
+                    <Images className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold group-hover:text-emerald-400 transition-colors">5. Storyboard Images Pack (ZIP)</h4>
+                    <p className="text-[11px] text-muted-foreground">包含每个镜头的 1080P 高清原图（有序规则命名）</p>
+                  </div>
+                </div>
+                <Download className="w-4 h-4 text-muted-foreground group-hover:text-emerald-400" />
+              </a>
+
               {/* Deliverable 2: Shot Script Markdown */}
               <a
                 href={project ? api.getExportScriptUrl(project.id) : "#"}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-between p-3.5 rounded-lg border border-border bg-background/60 hover:bg-accent/40 hover:border-primary/50 transition-all group"
+                className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/60 hover:bg-accent/40 hover:border-primary/50 transition-all group"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded bg-primary/10 text-primary">
@@ -282,14 +302,14 @@ export const TopBar: React.FC<TopBarProps> = ({
               </a>
 
               {/* Deliverable 4: Professional Director's Storyboard Global Prompt */}
-              <div className="flex items-center justify-between p-3.5 rounded-lg border border-primary/40 bg-primary/5 hover:bg-primary/10 transition-all group">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-primary/40 bg-primary/5 hover:bg-primary/10 transition-all group">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded bg-sky-500/20 text-sky-400">
                     <Terminal className="w-4 h-4" />
                   </div>
                   <div>
                     <h4 className="text-xs font-semibold text-sky-300">4. Professional Director's Global Prompt</h4>
-                    <p className="text-[11px] text-muted-foreground">好莱坞 12 格总控 Prompt（支持 Midjourney / Grok 单图整版）</p>
+                    <p className="text-[11px] text-muted-foreground">好莱坞 12 格总控 Prompt（支持 Midjourney 单图整版）</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -300,7 +320,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                     title="一键复制完整 12 格 Prompt 到剪贴板"
                   >
                     {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{isCopied ? "已复制" : "复制 Prompt"}</span>
+                    <span>{isCopied ? "已复制" : "复制"}</span>
                   </button>
                   <a
                     href={project ? api.getExportDirectorGlobalPromptUrl(project.id) : "#"}
@@ -319,7 +339,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 href={project ? api.getExportPackageUrl(project.id) : "#"}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-between p-3.5 rounded-lg border border-border bg-background/60 hover:bg-accent/40 hover:border-primary/50 transition-all group"
+                className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/60 hover:bg-accent/40 hover:border-primary/50 transition-all group"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded bg-primary/10 text-primary">
@@ -327,14 +347,14 @@ export const TopBar: React.FC<TopBarProps> = ({
                   </div>
                   <div>
                     <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">3. Shot Generation Package (ZIP)</h4>
-                    <p className="text-[11px] text-muted-foreground">包含 JSON Spec、提示词包、打样图与全套素材</p>
+                    <p className="text-[11px] text-muted-foreground">包含 JSON Spec、提示词包、打样图与全部 1080P 单图</p>
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
               </a>
             </div>
 
-            <div className="flex justify-end pt-5 mt-4 border-t border-border">
+            <div className="flex justify-end pt-4 mt-2 border-t border-border">
               <button
                 onClick={() => setIsOpenExportModal(false)}
                 className="px-4 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80"

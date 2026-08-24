@@ -5,6 +5,7 @@ import base64
 import zipfile
 import math
 import httpx
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from PIL import Image, ImageDraw, ImageFont
 from app.models.entities import Project, Shot
@@ -39,6 +40,30 @@ def _wrap_text(text: str, max_chars: int = 34, max_lines: int = 2) -> List[str]:
             current = current[:-1] + "…"
         lines.append(current)
     return lines[:max_lines]
+
+def _sanitize_filename(text: str, max_len: int = 14) -> str:
+    """Sanitizes text for cross-platform safe filenames (Windows/Mac/Linux)"""
+    if not text:
+        return "action"
+    cleaned = re.sub(r'[\\/*?:"<>| \n\t\r,，。！!？"\'“”]', '_', text)
+    cleaned = re.sub(r'_+', '_', cleaned).strip('_')
+    return cleaned[:max_len] if cleaned else "action"
+
+def _get_shot_filename(shot: Shot) -> str:
+    """Generates standard industrial ordered filename for single shot"""
+    size_abbr = SHOT_SIZE_ABBR.get(shot.shot_size, (shot.shot_size or "MS")[:3].upper())
+    mov = shot.camera_movement if isinstance(shot.camera_movement, dict) else {}
+    mov_type = mov.get("type", "static")
+    clean_act = _sanitize_filename(shot.action, max_len=14)
+    return f"SHOT_{shot.order:02d}_{size_abbr}_{mov_type}_{clean_act}.png"
+
+def _write_zip_entry(zf: zipfile.ZipFile, path_str: str, data: bytes):
+    """Writes ZIP entry with explicit UTF-8 encoding flag bit (0x800) for cross-platform compatibility"""
+    now = datetime.now().timetuple()[:6]
+    zinfo = zipfile.ZipInfo(filename=path_str, date_time=now)
+    zinfo.flag_bits |= 0x800  # Set UTF-8 filename flag
+    zinfo.compress_type = zipfile.ZIP_DEFLATED
+    zf.writestr(zinfo, data)
 
 def _load_or_render_shot_image(shot: Shot, width: int = 560, height: int = 315) -> Image.Image:
     """Attempts to load shot's real AI generated image, falling back to 1-to-1 visual vector drawing"""
@@ -80,6 +105,75 @@ def _load_or_render_shot_image(shot: Shot, width: int = 560, height: int = 315) 
     )
 
 class ExportService:
+    @staticmethod
+    def export_single_shot_frame_image(shot: Shot, width: int = 1920, height: int = 1080) -> bytes:
+        """Renders 1080P Full HD Director's Framed Previz image for a single shot"""
+        canvas = Image.new("RGB", (width, height), color=(10, 14, 23))
+        draw = ImageDraw.Draw(canvas)
+
+        # 1. Base Storyboard Artwork
+        bg_img = _load_or_render_shot_image(shot, width=width, height=height)
+        canvas.paste(bg_img, (0, 0))
+
+        # Fonts for 1080P
+        font_badge_num = get_font(28)
+        font_badge_meta = get_font(24)
+        font_mov = get_font(20)
+        font_caption = get_font(28)
+        font_dialogue = get_font(22)
+
+        # 2. Top-Left Badge: [01 · WS · 5.0s]
+        shot_no = f"{shot.order:02d}"
+        size_abbr = SHOT_SIZE_ABBR.get(shot.shot_size, (shot.shot_size or "MS")[:3].upper())
+        dur_str = f"{shot.duration:.1f}s" if isinstance(shot.duration, (int, float)) else "2.5s"
+        
+        badge_x, badge_y = 36, 36
+        badge_w, badge_h = 240, 52
+
+        # Translucent badge background
+        draw.rectangle(
+            [badge_x, badge_y, badge_x + badge_w, badge_y + badge_h],
+            fill=(10, 14, 23),
+            outline=(51, 65, 85),
+            width=2
+        )
+        draw.text((badge_x + 16, badge_y + 10), shot_no, fill=(56, 189, 248), font=font_badge_num)
+        draw.text((badge_x + 60, badge_y + 12), f"· {size_abbr} · {dur_str}", fill=(203, 213, 225), font=font_badge_meta)
+
+        # 3. Top-Right / Bottom-Left Camera Movement Badge
+        mov = shot.camera_movement if isinstance(shot.camera_movement, dict) else {}
+        mov_type = mov.get("type", "static")
+        if mov_type and mov_type != "static":
+            mov_text = f"🎥 {mov_type}"
+            mov_x = 36
+            mov_y = height - 190
+            mov_w = 170
+            mov_h = 44
+            draw.rectangle(
+                [mov_x, mov_y, mov_x + mov_w, mov_y + mov_h],
+                fill=(10, 14, 23),
+                outline=(51, 65, 85),
+                width=2
+            )
+            draw.text((mov_x + 14, mov_y + 8), mov_text, fill=(148, 163, 184), font=font_mov)
+
+        # 4. Bottom Action & Dialogue Subtitle Bar
+        caption_bar_h = 125
+        bar_y = height - caption_bar_h
+        draw.rectangle([0, bar_y, width, height], fill=(10, 14, 23))
+        draw.line([(0, bar_y), (width, bar_y)], fill=(30, 41, 59), width=2)
+
+        action_lines = _wrap_text(shot.action, max_chars=48, max_lines=2)
+        for l_idx, line_str in enumerate(action_lines):
+            draw.text((40, bar_y + 18 + l_idx * 34), line_str, fill=(241, 245, 249), font=font_caption)
+
+        if shot.dialogue:
+            draw.text((width - 450, bar_y + 24), f"台词: {shot.dialogue[:18]}", fill=(251, 191, 36), font=font_dialogue)
+
+        out = io.BytesIO()
+        canvas.save(out, format="PNG", quality=95)
+        return out.getvalue()
+
     @staticmethod
     def export_storyboard_page_image(project: Project, shots: List[Shot]) -> bytes:
         """Stitches shots into a dynamic Contact Sheet matching UI 1-to-1 (card layout, badges, captions)"""
@@ -183,6 +277,17 @@ class ExportService:
         out = io.BytesIO()
         canvas.save(out, format="PNG")
         return out.getvalue()
+
+    @staticmethod
+    def export_storyboard_images_zip(project: Project, shots: List[Shot]) -> bytes:
+        """Packages all individual 1080P storyboard images into a dedicated ZIP with standard ordered UTF-8 filenames"""
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            for shot in shots:
+                filename = _get_shot_filename(shot)
+                img_bytes = ExportService.export_single_shot_frame_image(shot, width=1920, height=1080)
+                _write_zip_entry(zf, f"storyboard_images/{filename}", img_bytes)
+        return buf.getvalue()
 
     @staticmethod
     def export_shot_script_markdown(project: Project, shots: List[Shot]) -> str:
@@ -308,9 +413,9 @@ Do not create:
 
     @staticmethod
     def export_generation_package_zip(project: Project, shots: List[Shot]) -> bytes:
-        """Zips full Production Generation Package with JSON specs, markdown, global prompt, and storyboard image"""
+        """Zips full Production Generation Package with JSON specs, markdown, global prompt, contact sheet, and individual 1080P images"""
         buf = io.BytesIO()
-        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        with zipfile.ZipFile(buf, "w") as zf:
             # 1. Project metadata JSON
             meta = {
                 "project_id": str(project.id),
@@ -332,18 +437,24 @@ Do not create:
                     for s in shots
                 ]
             }
-            zf.writestr("shot_spec_package.json", json.dumps(meta, ensure_ascii=False, indent=2))
+            _write_zip_entry(zf, "shot_spec_package.json", json.dumps(meta, ensure_ascii=False, indent=2).encode("utf-8"))
 
             # 2. Shot Script Markdown
             script_md = ExportService.export_shot_script_markdown(project, shots)
-            zf.writestr("SHOT_SCRIPT.md", script_md)
+            _write_zip_entry(zf, "SHOT_SCRIPT.md", script_md.encode("utf-8"))
 
             # 3. Professional Director's Storyboard Global Prompt
             global_prompt_md = ExportService.export_director_global_prompt(project, shots)
-            zf.writestr("PROFESSIONAL_DIRECTOR_GLOBAL_PROMPT.md", global_prompt_md)
+            _write_zip_entry(zf, "PROFESSIONAL_DIRECTOR_GLOBAL_PROMPT.md", global_prompt_md.encode("utf-8"))
 
-            # 4. Storyboard Sheet Image
+            # 4. Master Storyboard Contact Sheet Image
             sheet_bytes = ExportService.export_storyboard_page_image(project, shots)
-            zf.writestr("STORYBOARD_PAGE_EXPORT.png", sheet_bytes)
+            _write_zip_entry(zf, "STORYBOARD_PAGE_EXPORT.png", sheet_bytes)
+
+            # 5. Individual Ordered 1080P Shot Images Folder
+            for shot in shots:
+                filename = _get_shot_filename(shot)
+                img_bytes = ExportService.export_single_shot_frame_image(shot, width=1920, height=1080)
+                _write_zip_entry(zf, f"storyboard_images/{filename}", img_bytes)
 
         return buf.getvalue()

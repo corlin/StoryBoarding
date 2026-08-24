@@ -53,7 +53,6 @@ def _create_demo_project_and_shots() -> Tuple[Project, List[Shot]]:
 async def _get_project_and_shots(project_id: str, db: AsyncSession) -> Tuple[Project, List[Shot]]:
     # Support demo project exporting
     if project_id.startswith("demo") or project_id == "demo":
-        # Check if project with title exists in DB first to get full real images
         p_res = await db.execute(
             select(Project)
             .where(Project.title.like("%矩阵·赛博宗师%"))
@@ -130,12 +129,26 @@ async def export_director_global_prompt(
         headers={"Content-Disposition": f"attachment; filename=director_global_prompt_{project_id}.md"}
     )
 
+@router.get("/images-zip/{project_id}")
+async def export_storyboard_images_zip(
+    project_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Deliverable 5: Export Ordered 1080P Storyboard Images ZIP"""
+    project, shots = await _get_project_and_shots(project_id, db)
+    zip_bytes = ExportService.export_storyboard_images_zip(project, shots)
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename=storyboard_images_{project_id}.zip"}
+    )
+
 @router.get("/package-zip/{project_id}")
 async def export_package_zip(
     project_id: str,
     db: AsyncSession = Depends(get_db)
 ):
-    """Deliverable 3: Export Shot Generation Package ZIP"""
+    """Deliverable 3: Export Full Shot Generation Package ZIP (Includes Markdown, Spec, Sheet, and Images)"""
     project, shots = await _get_project_and_shots(project_id, db)
     zip_bytes = ExportService.export_generation_package_zip(project, shots)
     return Response(
