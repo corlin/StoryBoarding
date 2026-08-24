@@ -49,20 +49,43 @@ SHOT_PLANNING_SYSTEM_PROMPT = """
 """
 
 SHOT_DETAILER_SYSTEM_PROMPT = """
-你是一位精通视听语言的导演与分镜画师。
-根据给定的前序镜头（Sliding Window Context）以及当前 Shot 的大纲，补齐极其详尽的 Shot Model 参数。
+你是一位精通视听语言的好莱坞导演与分镜画师。
+请根据给定的故事背景、角色外貌、场景设定以及分镜头大纲列表，为每一个镜头补齐极其详尽的专业视听参数。
 
-参数要求：
-- camera_angle: eye_level / low_angle / high_angle / dutch_angle / birds_eye
-- camera_movement: { "type": "static" | "tracking_right" | "push_in" | "pan_left" 等, "speed": "slow" | "medium" | "fast" }
-- composition: { "subject_position": "left_foreground", "focal_point": "right_background", "depth_elements": ["table_legs"] }
-- character_direction: left_to_right / right_to_left / toward_camera / away_from_camera / static
-- lighting: 光影基调
-- audio: { "music": "...", "sfx": ["..."], "ambient": "..." }
-- image_prompt: 用于直接喂给绘图模型的英文提示词，必须将全局角色与风格前缀拼接在最前，并精准描述构图与主体位置。
-- video_prompt: 用于视频生成的精准运动描述（包含摄影机运镜与角色动作向量）。
-
-请输出单个完整的 Shot JSON 对象。
+严格要求：
+1. 保持镜头之间的 180° 视线轴线与连续性（character_direction 与 screen_direction）。
+2. 为每个镜头生成高品质的 image_prompt（英文绘图提示词，必须融合全局视觉风格前缀、景别、构图、光影及细节）和 video_prompt（视频运镜描述）。
+3. 严格输出符合以下 JSON 结构的列表：
+{
+  "shots": [
+    {
+      "order": 1,
+      "duration": 2.5,
+      "shot_size": "wide_shot / full_shot / medium_shot / medium_close_up / close_up / extreme_close_up",
+      "camera_angle": "eye_level / low_angle / high_angle / dutch_angle / birds_eye",
+      "camera_movement": {"type": "tracking_right / push_in / static / pan_left", "speed": "medium"},
+      "subject": "主体名称",
+      "action": "镜头发生的具体画面动作",
+      "dialogue": null,
+      "composition": {
+        "subject_position": "left / center / right",
+        "focal_point": "center",
+        "depth_elements": ["foreground_rain"]
+      },
+      "character_direction": "left_to_right / right_to_left / toward_camera / away_from_camera / static",
+      "narrative_function": "叙事功能",
+      "lighting": "光影基调描述",
+      "audio": {"ambient": "环境音", "sfx": ["音效"]},
+      "transition": "cut",
+      "image_prompt": "16:9 cinematic storyboard sketch, high contrast, clean line art, ...",
+      "video_prompt": "Camera tracking ...",
+      "continuity_data": {
+        "screen_direction": "left_to_right",
+        "eyeline_vector": [1, 0]
+      }
+    }
+  ]
+}
 """
 
 SCRIPT_PARSER_SYSTEM_PROMPT = """

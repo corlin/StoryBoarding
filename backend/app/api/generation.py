@@ -250,7 +250,7 @@ async def generate_project_images(
     project_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
-    """Batch generate images for all shots in project"""
+    """Batch generate images for all shots in project with concurrency"""
     p_res = await db.execute(select(Project).where(Project.id == project_id))
     project = p_res.scalars().first()
     if not project:
@@ -267,16 +267,25 @@ async def generate_project_images(
     img_provider = await _get_user_image_provider(project.user_id, db)
     storage = S3StorageProvider()
 
-    updated = []
-    for shot in shots:
-        prompt = shot.image_prompt or f"Cinematic storyboard, Shot #{shot.order}: {shot.action}"
-        shot_info = {"order": shot.order, "shot_size": shot.shot_size, "action": shot.action}
-        img_bytes = await img_provider.generate_image(prompt, shot_info)
-        obj_name = f"shots/{shot.id}.png"
-        img_url = storage.upload_image(obj_name, img_bytes)
-        shot.storyboard_image_url = img_url
-        shot.is_dirty = False
-        updated.append(shot)
+    sem = asyncio.Semaphore(3)
+
+    async def _render_single(shot: Shot):
+        async with sem:
+            prompt = shot.image_prompt or f"Cinematic storyboard, Shot #{shot.order}: {shot.action}"
+            shot_info = {"order": shot.order, "shot_size": shot.shot_size, "action": shot.action}
+            try:
+                img_bytes = await img_provider.generate_image(prompt, shot_info)
+                obj_name = f"shots/{shot.id}.png"
+                img_url = storage.upload_image(obj_name, img_bytes)
+                shot.storyboard_image_url = img_url
+                shot.is_dirty = False
+                return shot
+            except Exception as e:
+                print(f"Error rendering shot {shot.order}: {e}")
+                return shot
+
+    tasks = [_render_single(s) for s in shots]
+    updated = await asyncio.gather(*tasks)
 
     await db.commit()
     return {
