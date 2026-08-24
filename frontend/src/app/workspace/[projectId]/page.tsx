@@ -7,6 +7,8 @@ import { TopBar } from "@/components/workspace/TopBar";
 import { ScriptPanel } from "@/components/script-view/ScriptPanel";
 import { StoryboardPanel } from "@/components/storyboard-view/StoryboardPanel";
 import { TimelineBar } from "@/components/timeline/TimelineBar";
+import { CinemaTheaterModal } from "@/components/modals/CinemaTheaterModal";
+import { ShotDetailDrawer } from "@/components/drawers/ShotDetailDrawer";
 import { api } from "@/lib/api";
 import { generateStoryboardSvgUrl } from "@/lib/storyboardGraphics";
 import { createDemoMatrixProject } from "@/lib/demoMatrixScene";
@@ -20,6 +22,10 @@ interface WorkspacePageProps {
 export default function WorkspacePage({ params }: WorkspacePageProps) {
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isTheaterOpen, setIsTheaterOpen] = useState(false);
+  const [theaterShotId, setTheaterShotId] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drawerShotId, setDrawerShotId] = useState<string | null>(null);
 
   const {
     currentProject,
@@ -46,7 +52,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
   const activeSequence = currentProject?.sequences[0];
   const shots = activeSequence?.shots || [];
-  const totalDuration = shots.reduce((acc, s) => acc + s.duration, 0);
+  const totalDuration = shots.reduce((acc, s) => acc + (s.duration || 2.5), 0);
 
   const handleGenerateFromStory = async (story: string) => {
     setIsGenerating(true);
@@ -152,6 +158,21 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     await regenerateShotImage(shotId);
   };
 
+  const handleOpenTheater = (shotId?: string) => {
+    const targetId = shotId || selectedShotId || shots[0]?.id;
+    setTheaterShotId(targetId);
+    selectShot(targetId);
+    setIsTheaterOpen(true);
+  };
+
+  const handleOpenDrawer = (shotId: string) => {
+    setDrawerShotId(shotId);
+    selectShot(shotId);
+    setIsDrawerOpen(true);
+  };
+
+  const activeDrawerShot = shots.find((s) => s.id === drawerShotId) || shots.find((s) => s.id === selectedShotId) || null;
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Top Bar */}
@@ -181,6 +202,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           onUpdateShot={saveShotRemote}
           onAddShot={addShot}
           onDeleteShot={deleteShot}
+          onOpenDrawer={handleOpenDrawer}
         />
 
         {/* Right: Storyboard View */}
@@ -190,6 +212,8 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           onSelectShot={selectShot}
           onRegenerateDirty={handleRegenerateDirty}
           onRegenerateShotImage={handleRegenerateSingleShot}
+          onOpenTheater={handleOpenTheater}
+          onOpenDrawer={handleOpenDrawer}
         />
       </div>
 
@@ -199,6 +223,27 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
         targetDuration={currentProject?.target_duration || 30}
         selectedShotId={selectedShotId}
         onSelectShot={selectShot}
+      />
+
+      {/* Cinema Theater Modal (Animatic Dynamic Timeline Playback) */}
+      <CinemaTheaterModal
+        isOpen={isTheaterOpen}
+        onClose={() => setIsTheaterOpen(false)}
+        shots={shots}
+        initialShotId={theaterShotId}
+        targetDuration={currentProject?.target_duration || 30}
+        onSelectShot={selectShot}
+      />
+
+      {/* Slide-out Shot Detail Drawer */}
+      <ShotDetailDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        shot={activeDrawerShot}
+        onUpdateShot={async (shotId, updates) => {
+          await saveShotRemote(shotId, updates);
+        }}
+        onRegenerateImage={handleRegenerateSingleShot}
       />
     </div>
   );
