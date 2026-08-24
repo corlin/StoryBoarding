@@ -5,14 +5,12 @@ import { api } from "@/lib/api";
 interface WorkspaceState {
   currentProject: ProjectModel | null;
   selectedShotId: string | null;
-  hoveredShotId: string | null;
   isLoading: boolean;
   error: string | null;
 
   // Actions
   setProject: (project: ProjectModel) => void;
   selectShot: (shotId: string | null) => void;
-  hoverShot: (shotId: string | null) => void;
   fetchProject: (projectId: string) => Promise<void>;
   updateShotLocal: (shotId: string, updates: Partial<ShotModel>) => void;
   saveShotRemote: (shotId: string, updates: Partial<ShotModel>) => Promise<void>;
@@ -24,15 +22,12 @@ interface WorkspaceState {
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   currentProject: null,
   selectedShotId: null,
-  hoveredShotId: null,
   isLoading: false,
   error: null,
 
   setProject: (project) => set({ currentProject: project }),
 
   selectShot: (shotId) => set({ selectedShotId: shotId }),
-
-  hoverShot: (shotId) => set({ hoveredShotId: shotId }),
 
   fetchProject: async (projectId) => {
     set({ isLoading: true, error: null });
@@ -135,7 +130,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   deleteShot: async (shotId) => {
-    const { currentProject, selectedShotId, hoveredShotId } = get();
+    const { currentProject, selectedShotId } = get();
     if (!currentProject) return;
 
     try {
@@ -148,7 +143,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       set({
         currentProject: { ...currentProject, sequences: updatedSequences },
         selectedShotId: selectedShotId === shotId ? null : selectedShotId,
-        hoveredShotId: hoveredShotId === shotId ? null : hoveredShotId,
       });
     } catch (err: any) {
       set({ error: err?.message || "Failed to delete shot" });

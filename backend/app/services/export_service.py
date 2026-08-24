@@ -4,8 +4,7 @@ import zipfile
 from typing import List
 from PIL import Image, ImageDraw, ImageFont
 from app.models.entities import Project, Shot
-from app.providers.image.openai_dalle import get_font
-from app.services.storyboard_renderer import render_shot_storyboard_image
+from app.services.storyboard_renderer import get_font, render_shot_storyboard_image
 
 class ExportService:
     @staticmethod

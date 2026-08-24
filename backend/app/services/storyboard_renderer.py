@@ -1,8 +1,26 @@
 import io
+import os
 import math
 from typing import Optional, Dict, Any
 from PIL import Image, ImageDraw, ImageFont
-from app.providers.image.openai_dalle import get_font
+
+FONT_PATHS = [
+    "app/assets/fonts/chinese_font.ttc",
+    "backend/app/assets/fonts/chinese_font.ttc",
+    "/System/Library/Fonts/STHeiti Medium.ttc",
+    "/System/Library/Fonts/PingFang.ttc",
+    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc"
+]
+
+def get_font(size: int = 16) -> ImageFont.ImageFont:
+    """Safely retrieves a CJK TrueType font or falls back to Pillow default"""
+    for fp in FONT_PATHS:
+        if os.path.exists(fp):
+            try:
+                return ImageFont.truetype(fp, size=size)
+            except Exception:
+                pass
+    return ImageFont.load_default()
 
 def render_shot_storyboard_image(
     order: int,
