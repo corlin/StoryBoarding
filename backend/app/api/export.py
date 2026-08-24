@@ -43,7 +43,7 @@ def _create_demo_project_and_shots() -> Tuple[Project, List[Shot]]:
             narrative_function="叙事推进",
             lighting="暗红霓虹与绿色数据流反光",
             audio={},
-            image_prompt=f"Cinematic 2D storyboard sketch, {size} {angle}, {act}",
+            image_prompt=f"Professional pre-production director's storyboard sketch, 16:9 cinematic frame, rough graphite and dark pencil lines, bold gestural strokes, selective grayscale wash, clear silhouette staging, directional movement arrows, {size}, {act} --no speech balloons, comic panels, 3d render",
             video_prompt=f"Camera {mov} {act}",
             continuity_data={"screen_direction": "left_to_right"}
         )
@@ -114,6 +114,20 @@ async def export_script_markdown(
         content=md_content,
         media_type="text/markdown",
         headers={"Content-Disposition": f"attachment; filename=shot_script_{project_id}.md"}
+    )
+
+@router.get("/director-global-prompt/{project_id}")
+async def export_director_global_prompt(
+    project_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Deliverable 4: Export Full Professional Director's Storyboard Global Prompt Markdown"""
+    project, shots = await _get_project_and_shots(project_id, db)
+    prompt_md = ExportService.export_director_global_prompt(project, shots)
+    return PlainTextResponse(
+        content=prompt_md,
+        media_type="text/markdown",
+        headers={"Content-Disposition": f"attachment; filename=director_global_prompt_{project_id}.md"}
     )
 
 @router.get("/package-zip/{project_id}")

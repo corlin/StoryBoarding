@@ -5,7 +5,7 @@ import base64
 import zipfile
 import math
 import httpx
-from typing import List
+from typing import List, Dict, Any, Optional
 from PIL import Image, ImageDraw, ImageFont
 from app.models.entities import Project, Shot
 from app.services.storyboard_renderer import get_font, render_shot_storyboard_image
@@ -211,8 +211,104 @@ class ExportService:
         return "\n".join(lines)
 
     @staticmethod
+    def export_director_global_prompt(project: Project, shots: List[Shot], char_ref: Optional[Dict] = None, env_ref: Optional[Dict] = None) -> str:
+        """Generates 100% compliant PROFESSIONAL DIRECTOR'S STORYBOARD — GLOBAL PROMPT Markdown"""
+        shots_summary = []
+        for s in shots:
+            mov = s.camera_movement.get('type', 'static') if isinstance(s.camera_movement, dict) else 'static'
+            size_abbr = SHOT_SIZE_ABBR.get(s.shot_size, s.shot_size.upper())
+            shots_summary.append(f"* **SHOT {s.order:02d}** [{size_abbr} · {s.camera_angle} · {mov}]: {s.action}")
+
+        shots_text = "\n".join(shots_summary)
+
+        char_desc = char_ref.get("visual_anchors", "Protagonist in iconic dark trench coat and sunglasses, fixed facial structure, hair and costume.") if char_ref else "Protagonist master in black changshan coat and dark glasses, athletic martial arts physique, immutable facial structure, costume and accessories."
+        env_desc = env_ref.get("spatial_anchors", "Cyberpunk ancient Chinese tea house with neon red lanterns, wooden architecture, wet reflective rain alleyways, green matrix code sky.") if env_ref else "Cyberpunk ancient Chinese tea house in heavy rain, red holographic lanterns, wet reflective stone alleyway, consistent architectural geometry and lighting."
+
+        return f"""## PROFESSIONAL DIRECTOR’S STORYBOARD — GLOBAL PROMPT
+
+Create **one complete professional director’s storyboard sheet** for the following short scene:
+
+**Story / Scene:**
+{project.title}
+{project.story or 'A cinematic narrative scene directed with rigorous visual grammar and rhythm.'}
+
+### 1. Final Output Format
+
+* Generate **one single 16:9 horizontal storyboard page**.
+* The page must contain **exactly {len(shots)} separate cinematic panels**, arranged in a clean **4 × 3 grid** (or balanced multi-panel grid).
+* Show the entire storyboard sheet in one image.
+* Do not generate a single enlarged frame, isolated illustration, film still, concept artwork, key visual, poster, or finished comic page.
+* Every panel must have a clearly defined border and sufficient spacing from adjacent panels.
+* The reading order must be unambiguous: **left to right, top to bottom**.
+
+### 2. Panel Labels and Production Notes
+
+Every panel must include:
+
+* A clearly visible shot number: **SHOT 01–SHOT {len(shots):02d}**
+* A concise shot description
+* The shot size where appropriate: **EWS, WS, FS, MS, MCU, CU, ECU**
+* A camera angle or movement note when relevant
+* Simple directional arrows for camera movement, character movement, or eye-line direction when helpful
+
+Keep all annotations short, clean, legible, and production-oriented. They must not obscure the main action.
+
+### 3. Narrative Structure and Timing (~30s Continuous Sequence)
+
+The {len(shots)} panels form **one complete, continuous short-film sequence lasting approximately {project.target_duration} seconds**:
+
+{shots_text}
+
+### 4. Cinematic Shot Design
+
+Design the sequence as a director’s visual plan rather than a collection of attractive images:
+* Preserve the **180-degree rule** unless an intentional transition clearly establishes a new axis.
+* Maintain consistent eye lines and screen direction across all cuts.
+* Use match-on-action and preserve momentum between consecutive panels.
+* Avoid unexplained jump cuts, random camera positions, or sudden spatial reversals.
+
+### 5. Character Reference Rules (Reference Image 1)
+
+**Reference Image 1 is the mandatory character continuity reference.**
+* Character Anchor: {char_desc}
+* Lock facial structure, hairstyle, body proportions, apparent age, costume, and handheld props.
+* Strict negative: No face drift, no costume changes, no hairstyle changes, no age drift.
+
+### 6. Environment Reference Rules (Reference Image 2)
+
+**Reference Image 2 is the mandatory environment and visual-world reference.**
+* Environment Anchor: {env_desc}
+* Lock overall location, architectural structure, landmarks, spatial relationships, perspective logic, and lighting atmosphere.
+* Strict negative: Do not relocate landmarks or break established spatial perspective.
+
+### 7. Storyboard Drawing Style
+
+Render the entire sheet as a **professional pre-production storyboard drawn for a film director**:
+* Black, white, and restrained grayscale only.
+* Rough graphite or dark pencil lines with bold, confident construction strokes.
+* Fast gestural drawing with simplified but readable anatomy.
+* Clear silhouettes and staging with directional movement arrows.
+* Selective grayscale shading for depth and focus with unfinished previsualization quality.
+
+### 8. Continuity Requirements
+
+* Maintain strict character, costume, prop, handedness, spatial geography, and lighting continuity across all {len(shots)} panels.
+
+### 9. Negative Constraints
+
+Do not create:
+* A single enlarged illustration, poster, or key visual.
+* A comic-book page, manga page, speech balloons, or long dialogue paragraphs.
+* Finished 3D render, saturated color painting, or photorealistic film still.
+* Duplicate panels, character drift, or abrupt drawing style changes.
+
+### 10. Final Quality Check
+* Entire 16:9 storyboard page visible, clearly separated panels with numbered tags (SHOT 01–{len(shots):02d}), reads naturally left-to-right, feels like ~30 seconds of one continuous short film.
+"""
+
+    @staticmethod
     def export_generation_package_zip(project: Project, shots: List[Shot]) -> bytes:
-        """Zips full Production Generation Package with JSON specs, markdown, and prompt assets"""
+        """Zips full Production Generation Package with JSON specs, markdown, global prompt, and storyboard image"""
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
             # 1. Project metadata JSON
@@ -242,7 +338,11 @@ class ExportService:
             script_md = ExportService.export_shot_script_markdown(project, shots)
             zf.writestr("SHOT_SCRIPT.md", script_md)
 
-            # 3. Storyboard Sheet Image
+            # 3. Professional Director's Storyboard Global Prompt
+            global_prompt_md = ExportService.export_director_global_prompt(project, shots)
+            zf.writestr("PROFESSIONAL_DIRECTOR_GLOBAL_PROMPT.md", global_prompt_md)
+
+            # 4. Storyboard Sheet Image
             sheet_bytes = ExportService.export_storyboard_page_image(project, shots)
             zf.writestr("STORYBOARD_PAGE_EXPORT.png", sheet_bytes)
 

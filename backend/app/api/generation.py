@@ -20,6 +20,24 @@ from app.providers.storage.s3_compatible import S3StorageProvider
 
 router = APIRouter(prefix="/generate", tags=["generation"])
 
+def _format_director_storyboard_prompt(raw_prompt: Optional[str], shot: Shot) -> str:
+    """Enforces Professional Director's Storyboard graphite sketch syntax and negative constraints"""
+    if raw_prompt and "storyboard sketch" in raw_prompt.lower():
+        return raw_prompt
+
+    size = (shot.shot_size or "medium_shot").replace("_", " ")
+    angle = (shot.camera_angle or "eye_level").replace("_", " ")
+    mov = shot.camera_movement.get("type", "static") if isinstance(shot.camera_movement, dict) else "static"
+    act = shot.action or "Cinematic scene action"
+
+    return (
+        f"Professional pre-production director's storyboard sketch, 16:9 cinematic frame, "
+        f"rough graphite and dark pencil construction lines, bold confident gestural strokes, "
+        f"selective grayscale wash shading, clear silhouette staging, directional movement arrows, "
+        f"Shot #{shot.order}: {size}, {angle}, camera {mov}, {act} "
+        f"--no speech balloons, comic panels, manga screentones, finished 3D render, saturated color painting, photorealistic film still, text paragraphs"
+    )
+
 async def _get_user_llm_provider(user_id: Optional[UUID], db: AsyncSession) -> BaseLLMProvider:
     """Instantiates the LLM Provider configured by the user or preset environment"""
     config = None
@@ -70,14 +88,12 @@ async def generate_from_story(
     req: GenerateStoryRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    """Start Point A: AI Director Story Analyzer & Shot Planner"""
-    # Verify project
+    """Start Point A: AI Director Story Analyzer & Shot Planner (6-stage 30s arc)"""
     res = await db.execute(select(Project).where(Project.id == req.project_id))
     project = res.scalars().first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Get default sequence
     seq_res = await db.execute(select(Sequence).where(Sequence.project_id == project.id))
     seq = seq_res.scalars().first()
     if not seq:
@@ -90,7 +106,7 @@ async def generate_from_story(
 
     state = await executor.execute_from_story(req.story, req.target_duration)
 
-    # Persist generated detailed shots into database
+    # Clear existing shots
     existing_shots = await db.execute(select(Shot).where(Shot.sequence_id == seq.id))
     for s in existing_shots.scalars().all():
         await db.delete(s)
@@ -121,7 +137,6 @@ async def generate_from_story(
         db.add(shot)
         created_shots.append(shot)
 
-    # Update project story and target_duration
     project.story = req.story
     project.target_duration = req.target_duration
     await db.commit()
@@ -130,6 +145,7 @@ async def generate_from_story(
         "status": "success",
         "theme": state.get("theme"),
         "shots_count": len(created_shots),
+        "target_duration": project.target_duration,
         "continuity_issues": state.get("continuity_issues", [])
     }
 
@@ -142,7 +158,7 @@ async def generate_from_script(
     req: GenerateScriptRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    """Start Point B: Fuzzy Shot Parser imports existing script and creates Shot models"""
+    """Start Point B: Fuzzy Script Reverse Parser"""
     res = await db.execute(select(Project).where(Project.id == req.project_id))
     project = res.scalars().first()
     if not project:
@@ -160,7 +176,6 @@ async def generate_from_script(
 
     state = await executor.execute_from_script(req.script_text)
 
-    # Clear old shots
     existing_shots = await db.execute(select(Shot).where(Shot.sequence_id == seq.id))
     for s in existing_shots.scalars().all():
         await db.delete(s)
@@ -177,13 +192,12 @@ async def generate_from_script(
             camera_movement=s_data["camera_movement"],
             subject=s_data["subject"],
             action=s_data["action"],
-            dialogue=s_data.get("dialogue"),
-            composition=s_data["composition"],
-            character_direction=s_data["character_direction"],
-            narrative_function=s_data["narrative_function"],
-            lighting=s_data["lighting"],
-            audio=s_data["audio"],
-            transition=s_data["transition"],
+            composition=s_data.get("composition", {}),
+            character_direction=s_data.get("character_direction", "left_to_right"),
+            narrative_function=s_data.get("narrative_function", "叙事推进"),
+            lighting=s_data.get("lighting", "natural lighting"),
+            audio=s_data.get("audio", {}),
+            transition=s_data.get("transition", "cut"),
             image_prompt=s_data.get("image_prompt"),
             video_prompt=s_data.get("video_prompt"),
             continuity_data=s_data.get("continuity_data", {}),
@@ -192,7 +206,8 @@ async def generate_from_script(
         db.add(shot)
         created_shots.append(shot)
 
-    project.target_duration = state.get("target_duration", 30.0)
+    if state.get("theme"):
+        project.title = state.get("project_title") or project.title
     await db.commit()
 
     return {
@@ -208,13 +223,12 @@ async def generate_shot_image(
     shot_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
-    """Generate or regenerate image for a single Shot"""
+    """Generate or regenerate image for a single Shot with Professional Director Storyboard syntax"""
     res = await db.execute(select(Shot).where(Shot.id == shot_id))
     shot = res.scalars().first()
     if not shot:
         raise HTTPException(status_code=404, detail="Shot not found")
 
-    # Get project user_id
     seq_res = await db.execute(select(Sequence).where(Sequence.id == shot.sequence_id))
     seq = seq_res.scalars().first()
     proj_user_id = None
@@ -227,7 +241,7 @@ async def generate_shot_image(
     img_provider = await _get_user_image_provider(proj_user_id, db)
     storage = S3StorageProvider()
 
-    prompt = shot.image_prompt or f"Cinematic storyboard, Shot #{shot.order}: {shot.action}"
+    prompt = _format_director_storyboard_prompt(shot.image_prompt, shot)
     shot_info = {"order": shot.order, "shot_size": shot.shot_size, "action": shot.action}
 
     img_bytes = await img_provider.generate_image(prompt, shot_info)
@@ -250,7 +264,7 @@ async def generate_project_images(
     project_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
-    """Batch generate images for all shots in project with concurrency"""
+    """Batch generate images for all shots in project with concurrency and director sketch style"""
     p_res = await db.execute(select(Project).where(Project.id == project_id))
     project = p_res.scalars().first()
     if not project:
@@ -271,7 +285,7 @@ async def generate_project_images(
 
     async def _render_single(shot: Shot):
         async with sem:
-            prompt = shot.image_prompt or f"Cinematic storyboard, Shot #{shot.order}: {shot.action}"
+            prompt = _format_director_storyboard_prompt(shot.image_prompt, shot)
             shot_info = {"order": shot.order, "shot_size": shot.shot_size, "action": shot.action}
             try:
                 img_bytes = await img_provider.generate_image(prompt, shot_info)
@@ -298,11 +312,11 @@ async def stream_generation_progress(project_id: UUID):
     """SSE Stream endpoint for live LangGraph node progress updates"""
     async def event_generator():
         steps = [
-            {"step": "story_analyzer", "progress": 25, "message": "正在解析剧本节拍与角色空间设定..."},
-            {"step": "shot_planner", "progress": 50, "message": "正在规划镜头节奏与分镜景别..."},
-            {"step": "shot_detailer", "progress": 75, "message": "正在注入全局风格前缀与提示词参数..."},
-            {"step": "continuity_checker", "progress": 95, "message": "正在校验视线轴线与连续性..."},
-            {"step": "completed", "progress": 100, "message": "生成完毕！"}
+            {"step": "story_analyzer", "progress": 25, "message": "正在解析戏剧节拍与角色/场景基准参考锁..."},
+            {"step": "shot_planner", "progress": 50, "message": "正在规划 12 镜起承转合与视听尺度韵律..."},
+            {"step": "shot_detailer", "progress": 75, "message": "正在注入石墨素描规范、运镜箭头与 Prompt..."},
+            {"step": "continuity_checker", "progress": 95, "message": "正在校验 180° 视线与动量连续性..."},
+            {"step": "completed", "progress": 100, "message": "好莱坞导演分镜规划完毕！"}
         ]
         for s in steps:
             await asyncio.sleep(0.5)
