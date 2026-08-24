@@ -1,3 +1,5 @@
+import io
+import os
 import json
 import asyncio
 from uuid import UUID
@@ -9,11 +11,54 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 
 from app.db.session import get_db
-from app.models.entities import Project, Sequence, Shot
+from app.models.entities import Project, Sequence, Shot, UserProviderConfig
 from app.agents.director.graph import DirectorGraphExecutor
+from app.providers.llm.base import BaseLLMProvider
 from app.providers.llm.openai_compatible import OpenAICompatibleProvider
+from app.providers.image.openai_dalle import OpenAIImageProvider, BaseImageProvider
+from app.providers.storage.s3_compatible import S3StorageProvider
 
 router = APIRouter(prefix="/generate", tags=["generation"])
+
+async def _get_user_llm_provider(user_id: Optional[UUID], db: AsyncSession) -> BaseLLMProvider:
+    """Instantiates the LLM Provider configured by the user or preset environment"""
+    config = None
+    if user_id:
+        res = await db.execute(select(UserProviderConfig).where(UserProviderConfig.user_id == user_id))
+        config = res.scalars().first()
+
+    api_key = None
+    if config and config.llm_api_key and config.llm_api_key != "******":
+        api_key = config.llm_api_key
+    elif os.getenv("OPENROUTER_API_KEY"):
+        api_key = os.getenv("OPENROUTER_API_KEY")
+
+    api_base = (config.llm_api_base if config and config.llm_api_base else None) or os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+    model = (config.llm_model if config and config.llm_model else None) or os.getenv("DEFAULT_LLM_MODEL", "openai/gpt-5.6-sol")
+
+    print(f"[Director Agent] Using LLM: model={model}, base={api_base}, has_key={bool(api_key)}")
+    return OpenAICompatibleProvider(api_key=api_key, api_base=api_base, model=model)
+
+async def _get_user_image_provider(user_id: Optional[UUID], db: AsyncSession) -> BaseImageProvider:
+    """Instantiates the Image Provider configured by the user or preset environment"""
+    config = None
+    if user_id:
+        res = await db.execute(select(UserProviderConfig).where(UserProviderConfig.user_id == user_id))
+        config = res.scalars().first()
+
+    api_key = None
+    if config and config.image_api_key and config.image_api_key != "******":
+        api_key = config.image_api_key
+    elif config and config.llm_api_key and config.llm_api_key != "******":
+        api_key = config.llm_api_key
+    elif os.getenv("OPENROUTER_API_KEY"):
+        api_key = os.getenv("OPENROUTER_API_KEY")
+
+    api_base = (config.image_api_base if config and config.image_api_base else None) or os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+    model = (config.image_model if config and config.image_model else None) or os.getenv("DEFAULT_IMAGE_MODEL", "google/gemini-3.1-flash-image")
+
+    print(f"[Director Agent] Using Image Generator: model={model}, base={api_base}, has_key={bool(api_key)}")
+    return OpenAIImageProvider(api_key=api_key, api_base=api_base, model=model)
 
 class GenerateStoryRequest(BaseModel):
     project_id: UUID
@@ -25,6 +70,7 @@ async def generate_from_story(
     req: GenerateStoryRequest,
     db: AsyncSession = Depends(get_db)
 ):
+    """Start Point A: AI Director Story Analyzer & Shot Planner"""
     # Verify project
     res = await db.execute(select(Project).where(Project.id == req.project_id))
     project = res.scalars().first()
@@ -39,13 +85,12 @@ async def generate_from_story(
         db.add(seq)
         await db.flush()
 
-    provider = OpenAICompatibleProvider() # Auto-fallbacks to structured mock if unconfigured
+    provider = await _get_user_llm_provider(project.user_id, db)
     executor = DirectorGraphExecutor(provider)
 
     state = await executor.execute_from_story(req.story, req.target_duration)
 
     # Persist generated detailed shots into database
-    # First clear existing mock shots if any
     existing_shots = await db.execute(select(Shot).where(Shot.sequence_id == seq.id))
     for s in existing_shots.scalars().all():
         await db.delete(s)
@@ -110,7 +155,7 @@ async def generate_from_script(
         db.add(seq)
         await db.flush()
 
-    provider = OpenAICompatibleProvider()
+    provider = await _get_user_llm_provider(project.user_id, db)
     executor = DirectorGraphExecutor(provider)
 
     state = await executor.execute_from_script(req.script_text)
@@ -169,10 +214,17 @@ async def generate_shot_image(
     if not shot:
         raise HTTPException(status_code=404, detail="Shot not found")
 
-    from app.providers.image.openai_dalle import OpenAIImageProvider
-    from app.providers.storage.s3_compatible import S3StorageProvider
+    # Get project user_id
+    seq_res = await db.execute(select(Sequence).where(Sequence.id == shot.sequence_id))
+    seq = seq_res.scalars().first()
+    proj_user_id = None
+    if seq:
+        p_res = await db.execute(select(Project).where(Project.id == seq.project_id))
+        proj = p_res.scalars().first()
+        if proj:
+            proj_user_id = proj.user_id
 
-    img_provider = OpenAIImageProvider()
+    img_provider = await _get_user_image_provider(proj_user_id, db)
     storage = S3StorageProvider()
 
     prompt = shot.image_prompt or f"Cinematic storyboard, Shot #{shot.order}: {shot.action}"
@@ -199,6 +251,11 @@ async def generate_project_images(
     db: AsyncSession = Depends(get_db)
 ):
     """Batch generate images for all shots in project"""
+    p_res = await db.execute(select(Project).where(Project.id == project_id))
+    project = p_res.scalars().first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
     seq_res = await db.execute(select(Sequence).where(Sequence.project_id == project_id))
     seq = seq_res.scalars().first()
     if not seq:
@@ -207,10 +264,7 @@ async def generate_project_images(
     shot_res = await db.execute(select(Shot).where(Shot.sequence_id == seq.id).order_by(Shot.order.asc()))
     shots = shot_res.scalars().all()
 
-    from app.providers.image.openai_dalle import OpenAIImageProvider
-    from app.providers.storage.s3_compatible import S3StorageProvider
-
-    img_provider = OpenAIImageProvider()
+    img_provider = await _get_user_image_provider(project.user_id, db)
     storage = S3StorageProvider()
 
     updated = []

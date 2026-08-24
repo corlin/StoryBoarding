@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { TopBar } from "@/components/workspace/TopBar";
 import { ScriptPanel } from "@/components/script-view/ScriptPanel";
@@ -17,6 +18,9 @@ interface WorkspacePageProps {
 }
 
 export default function WorkspacePage({ params }: WorkspacePageProps) {
+  const router = useRouter();
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const {
     currentProject,
     selectedShotId,
@@ -45,23 +49,63 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const totalDuration = shots.reduce((acc, s) => acc + s.duration, 0);
 
   const handleGenerateFromStory = async (story: string) => {
-    if (!currentProject) return;
-    if (params.projectId === "demo") {
-      alert("AI 导演已完成拆镜规划！");
-      return;
+    setIsGenerating(true);
+    try {
+      let targetProjectId = currentProject?.id;
+      if (params.projectId === "demo" || !targetProjectId || targetProjectId === "demo-matrix-cyber-master") {
+        const newProj = await api.createProject({
+          title: story.slice(0, 24) || "新建 AI 分镜项目",
+          story: story,
+          target_duration: currentProject?.target_duration || 30.0,
+        });
+        targetProjectId = newProj.id;
+        router.push(`/workspace/${targetProjectId}`);
+      }
+
+      await api.generateFromStory({
+        project_id: targetProjectId,
+        story: story,
+        target_duration: currentProject?.target_duration || 30.0,
+      });
+      await fetchProject(targetProjectId);
+    } catch (err: any) {
+      console.error("AI拆镜失败:", err);
+      alert(err?.message || "AI 导演智能拆镜失败，请检查网络或在右上角「设置」中配置 OpenRouter API Key");
+    } finally {
+      setIsGenerating(false);
     }
-    await api.generateFromStory({
-      project_id: currentProject.id,
-      story: story,
-      target_duration: currentProject.target_duration,
-    });
-    await fetchProject(currentProject.id);
+  };
+
+  const handleImportScript = async (scriptText: string) => {
+    setIsGenerating(true);
+    try {
+      let targetProjectId = currentProject?.id;
+      if (params.projectId === "demo" || !targetProjectId || targetProjectId === "demo-matrix-cyber-master") {
+        const newProj = await api.createProject({
+          title: "导入剧本工程",
+          story: scriptText.slice(0, 100),
+          target_duration: currentProject?.target_duration || 30.0,
+        });
+        targetProjectId = newProj.id;
+        router.push(`/workspace/${targetProjectId}`);
+      }
+
+      await api.generateFromScript({
+        project_id: targetProjectId,
+        script_text: scriptText,
+      });
+      await fetchProject(targetProjectId);
+    } catch (err: any) {
+      console.error("导入剧本解析失败:", err);
+      alert(err?.message || "剧本逆向解析失败，请检查网络或在右上角「设置」中配置 OpenRouter API Key");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleRegenerateDirty = async () => {
     if (!currentProject) return;
     if (params.projectId === "demo") {
-      // Regenerate all demo graphics locally
       const updated = shots.map((s) => ({
         ...s,
         is_dirty: false,
@@ -108,19 +152,6 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     await regenerateShotImage(shotId);
   };
 
-  const handleImportScript = async (scriptText: string) => {
-    if (!currentProject) return;
-    if (params.projectId === "demo") {
-      alert("演示模式：已完成剧本逆向解析！");
-      return;
-    }
-    await api.generateFromScript({
-      project_id: currentProject.id,
-      script_text: scriptText,
-    });
-    await fetchProject(currentProject.id);
-  };
-
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Top Bar */}
@@ -132,7 +163,15 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       />
 
       {/* Main Dual-View Workspace Area */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 overflow-hidden">
+      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 overflow-hidden relative">
+        {isGenerating && (
+          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-3">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-medium text-foreground">AI 导演智能拆镜中，正在规划节拍与视听语言...</p>
+            <p className="text-xs text-muted-foreground">调用模型: openai/gpt-5.6-sol</p>
+          </div>
+        )}
+
         {/* Left: Shot Script View */}
         <ScriptPanel
           shots={shots}
