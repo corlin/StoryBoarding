@@ -3,9 +3,10 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Film, Clock, Sparkles, Clapperboard, ArrowRight, Settings, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, Film, Clock, Sparkles, Clapperboard, ArrowRight, Settings, AlertCircle, RefreshCw, Trash2 } from "lucide-react";
 import { api, ProjectListItem } from "@/lib/api";
 import { SettingsModal } from "@/components/modals/SettingsModal";
+import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -14,6 +15,9 @@ export default function DashboardPage() {
   const [hasError, setHasError] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<ProjectListItem | null>(null);
+
   const [newTitle, setNewTitle] = useState("");
   const [newStory, setNewStory] = useState("");
   const [targetDuration, setTargetDuration] = useState(30);
@@ -51,6 +55,11 @@ export default function DashboardPage() {
       console.error("Failed to create project", e);
       alert("创建项目失败，请点击右上角「设置」检查后端 Worker API 服务连接地址");
     }
+  };
+
+  const handleConfirmDelete = async (projectId: string) => {
+    await api.deleteProject(projectId);
+    await loadProjects();
   };
 
   return (
@@ -213,38 +222,73 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {projects.map((proj) => (
-              <Link
-                key={proj.id}
-                href={`/workspace?id=${proj.id}`}
-                className="group p-5 rounded-xl border border-border/70 bg-card/60 hover:bg-card hover:border-primary/50 transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
-                      <Film className="w-4 h-4" />
-                    </span>
-                    <span className="text-xs font-mono text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      {proj.target_duration}s
+            {projects.map((proj) => {
+              const isBuiltIn = proj.id === "demo" || proj.id === "demo-matrix-cyber-master";
+              return (
+                <Link
+                  key={proj.id}
+                  href={`/workspace?id=${proj.id}`}
+                  className="group p-5 rounded-xl border border-border/70 bg-card/60 hover:bg-card hover:border-primary/50 transition-all flex flex-col justify-between relative"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
+                        <Film className="w-4 h-4" />
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {isBuiltIn ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+                            系统内置
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setProjectToDelete(proj);
+                              setIsDeleteOpen(true);
+                            }}
+                            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="删除项目"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <span className="text-xs font-mono text-muted-foreground flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {proj.target_duration}s
+                        </span>
+                      </div>
+                    </div>
+                    <h3 className="font-semibold text-base mb-1 group-hover:text-primary transition-colors">
+                      {proj.title}
+                    </h3>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{proj.shot_count || 0} 个镜头</span>
+                    <span className="group-hover:translate-x-1 transition-transform text-primary flex items-center gap-1">
+                      打开工作台 <ArrowRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
-                  <h3 className="font-semibold text-base mb-1 group-hover:text-primary transition-colors">
-                    {proj.title}
-                  </h3>
-                </div>
-
-                <div className="pt-4 mt-4 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{proj.shot_count || 0} 个镜头</span>
-                  <span className="group-hover:translate-x-1 transition-transform text-primary flex items-center gap-1">
-                    打开工作台 <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
       </main>
+
+      {/* Delete Project Confirmation Modal */}
+      <DeleteProjectModal
+        isOpen={isDeleteOpen}
+        onClose={() => {
+          setIsDeleteOpen(false);
+          setProjectToDelete(null);
+        }}
+        project={projectToDelete}
+        onConfirmDelete={handleConfirmDelete}
+      />
 
       {/* Settings Modal */}
       <SettingsModal isOpen={isSettingsOpen} onClose={() => {

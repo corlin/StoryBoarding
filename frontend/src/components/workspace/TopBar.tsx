@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ProjectModel } from "@/types/shot";
 import {
   Sparkles,
@@ -14,10 +16,13 @@ import {
   Copy,
   Terminal,
   Images,
+  Trash2,
+  ChevronLeft,
 } from "lucide-react";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { BibleModal } from "@/components/modals/BibleModal";
 import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
+import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { api } from "@/lib/api";
 
 interface TopBarProps {
@@ -33,16 +38,20 @@ export const TopBar: React.FC<TopBarProps> = ({
   onGenerateFromStory,
   onImportScript,
 }) => {
+  const router = useRouter();
   const [isOpenModal, setIsOpenModal] = useState(false);
   const [isOpenSettingsModal, setIsOpenSettingsModal] = useState(false);
   const [isOpenBibleModal, setIsOpenBibleModal] = useState(false);
   const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
   const [isOpenExportModal, setIsOpenExportModal] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [bibleMode, setBibleMode] = useState<"bible" | "style">("bible");
   const [storyText, setStoryText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCopyingPrompt, setIsCopyingPrompt] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+
+  const isBuiltIn = !project || project.id === "demo" || project.id === "demo-matrix-cyber-master";
 
   const handleGenerate = async () => {
     if (!storyText.trim()) return;
@@ -70,6 +79,11 @@ export const TopBar: React.FC<TopBarProps> = ({
     }
   };
 
+  const handleConfirmDelete = async (projectId: string) => {
+    await api.deleteProject(projectId);
+    router.push("/dashboard");
+  };
+
   const isOverDuration = totalDuration > (project?.target_duration || 30);
 
   return (
@@ -77,21 +91,15 @@ export const TopBar: React.FC<TopBarProps> = ({
       <header className="h-14 border-b border-border bg-card/80 backdrop-blur px-4 flex items-center justify-between shrink-0 select-none z-20">
         {/* Left: Project Title & Stats */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"
-              />
-            </svg>
-          </div>
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-1.5 p-1.5 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            title="返回项目列表"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span className="text-xs font-medium hidden sm:inline">看板</span>
+          </Link>
+
           <div className="flex items-baseline gap-2 min-w-0">
             <h1 className="font-semibold text-sm truncate max-w-[200px] md:max-w-md">
               {project?.title || "AI 导演分镜工作台"}
@@ -175,6 +183,17 @@ export const TopBar: React.FC<TopBarProps> = ({
           >
             <Settings className="w-4 h-4" />
           </button>
+
+          {/* Delete Project (Non-demo) */}
+          {!isBuiltIn && (
+            <button
+              onClick={() => setIsDeleteOpen(true)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/60 transition-colors"
+              title="删除此项目"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </header>
 
@@ -198,53 +217,50 @@ export const TopBar: React.FC<TopBarProps> = ({
                 value={storyText}
                 onChange={(e) => setStoryText(e.target.value)}
                 placeholder="例如：赛博雨夜，青瓦飞檐的古典茶楼中，黑客武术大师墨客与特工银狐展开近身对决，经历了拔枪、子弹时间下腰闪避、凌空飞踢，最终击退特工，墨客收势伫立在雨中..."
-                className="w-full h-36 bg-background border border-border rounded-lg p-3 text-sm focus:outline-none focus:border-primary resize-none"
+                rows={5}
+                className="w-full text-xs bg-background border border-border rounded-lg p-3 resize-none focus:outline-none focus:border-primary"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setIsOpenModal(false)}
-                className="px-4 py-2 rounded-md text-xs font-medium text-muted-foreground hover:bg-accent"
-              >
-                取消
-              </button>
-              <button
-                disabled={isSubmitting || !storyText.trim()}
-                onClick={handleGenerate}
-                className="px-4 py-2 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                    <span>规划中...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>开始智能拆镜</span>
-                  </>
-                )}
-              </button>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>预计耗时: ~3-5 秒 (调用当前配置模型)</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => setIsOpenModal(false)}
+                  className="px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmitting || !storyText.trim()}
+                  onClick={handleGenerate}
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{isSubmitting ? "正在拆镜中..." : "开始规划分镜"}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Export Delivery Modal */}
+      {/* Export Deliverables Modal */}
       {isOpenExportModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl w-full max-w-lg p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div className="bg-card border border-border rounded-xl w-full max-w-xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
                 <Download className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold text-base">导出导演制作交付物 (Production Deliverables)</h3>
+                <h3 className="font-semibold text-base">工业级分镜全套交付物导出</h3>
               </div>
-              <span className="text-xs font-mono text-muted-foreground">30.0s Previz Spec</span>
             </div>
 
-            <div className="space-y-2.5 pt-2 max-h-[60vh] overflow-y-auto pr-1">
-              {/* Deliverable 1: Storyboard Page PNG */}
+            <div className="space-y-3 pt-1">
+              {/* Deliverable 1: Storyboard Sheet (1:1 Multi-Panel Grid) */}
               <a
                 href={project ? api.getExportSheetUrl(project.id) : "#"}
                 target="_blank"
@@ -257,7 +273,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                   </div>
                   <div>
                     <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">1. Storyboard Page (PNG)</h4>
-                    <p className="text-[11px] text-muted-foreground">动态 1:1 像素对齐视觉故事板打样单</p>
+                    <p className="text-[11px] text-muted-foreground">1:1 像素级对齐完整故事板打样单（包含景别角标与动作描述）</p>
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
@@ -268,18 +284,18 @@ export const TopBar: React.FC<TopBarProps> = ({
                 href={project ? api.getExportImagesZipUrl(project.id) : "#"}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/60 hover:bg-accent/40 hover:border-primary/50 transition-all group"
+                className="flex items-center justify-between p-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded bg-emerald-500/10 text-emerald-400">
+                  <div className="p-2 rounded bg-emerald-500/20 text-emerald-400">
                     <Images className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold group-hover:text-emerald-400 transition-colors">5. Storyboard Images Pack (ZIP)</h4>
-                    <p className="text-[11px] text-muted-foreground">包含每个镜头的 1080P 高清原图（有序规则命名）</p>
+                    <h4 className="text-xs font-semibold text-emerald-400">5. Storyboard Images Pack (ZIP)</h4>
+                    <p className="text-[11px] text-muted-foreground">每个镜头的 1080P 高清原图（按 SHOT_01_WS_... 严格规则命名打包）</p>
                   </div>
                 </div>
-                <Download className="w-4 h-4 text-muted-foreground group-hover:text-emerald-400" />
+                <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
               </a>
 
               {/* Deliverable 2: Shot Script Markdown */}
@@ -295,7 +311,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                   </div>
                   <div>
                     <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">2. Shot Script (Markdown)</h4>
-                    <p className="text-[11px] text-muted-foreground">包含机位、动作调度与音效设计的剧本文档</p>
+                    <p className="text-[11px] text-muted-foreground">标准好莱坞分镜头台本（包含视听语言、机位运动与对白列表）</p>
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
@@ -365,6 +381,14 @@ export const TopBar: React.FC<TopBarProps> = ({
           </div>
         </div>
       )}
+
+      {/* Delete Project Confirmation Modal */}
+      <DeleteProjectModal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        project={project}
+        onConfirmDelete={handleConfirmDelete}
+      />
 
       {/* Settings Modal */}
       <SettingsModal

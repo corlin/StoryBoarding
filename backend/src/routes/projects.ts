@@ -218,8 +218,44 @@ router.put("/:id", async (c) => {
 router.delete("/:id", async (c) => {
   const db = getDb(c.env.DB);
   const id = c.req.param("id");
+
+  // Prevent deleting built-in demo project
+  if (id === "demo") {
+    return c.json({ error: "Built-in demo project cannot be deleted" }, 400);
+  }
+
+  // 1. Fetch all sequences for this project
+  const seqs = await db.select().from(sequences).where(eq(sequences.projectId, id)).all();
+
+  // 2. Cascade delete all shots and clean up R2 storage assets
+  for (const seq of seqs) {
+    const shotList = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).all();
+    
+    if (c.env.STORAGE) {
+      for (const s of shotList) {
+        if (s.storyboardImageUrl && s.storyboardImageUrl.includes("/storage/")) {
+          const key = s.storyboardImageUrl.split("/storage/")[1];
+          if (key) {
+            try {
+              await c.env.STORAGE.delete(key);
+            } catch (e) {
+              console.error(`Failed to delete R2 asset ${key}:`, e);
+            }
+          }
+        }
+      }
+    }
+
+    await db.delete(shots).where(eq(shots.sequenceId, seq.id));
+  }
+
+  // 3. Delete sequences
+  await db.delete(sequences).where(eq(sequences.projectId, id));
+
+  // 4. Delete project
   await db.delete(projects).where(eq(projects.id, id));
-  return c.json({ success: true });
+
+  return c.json({ success: true, deleted_id: id });
 });
 
 export default router;
