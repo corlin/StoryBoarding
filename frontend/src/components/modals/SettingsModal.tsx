@@ -166,17 +166,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         image_model: imageModel,
       });
       setIsSaved(true);
+      notify.success("系统与 AI 模型配置已成功同步更新至云端 D1 数据库");
       setTimeout(() => {
         setIsSaved(false);
         onClose();
       }, 800);
-    } catch (err) {
-      console.error(err);
-      setIsSaved(true);
-      setTimeout(() => {
-        setIsSaved(false);
-        onClose();
-      }, 800);
+    } catch (err: any) {
+      console.error("Failed to save settings:", err);
+      const errMsg = err?.response?.data?.error || err?.message || "网络异常，无法更新配置";
+      notify.error(`配置保存失败: ${errMsg}`);
     } finally {
       setIsLoading(false);
     }

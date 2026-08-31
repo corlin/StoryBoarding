@@ -41,18 +41,18 @@ router.get("/providers", async (c) => {
   });
 });
 
-// POST /api/settings/providers (Update Provider Settings)
-router.post("/providers", async (c) => {
+// POST & PUT /api/settings/providers (Update Provider Settings)
+const handleUpdateProviders = async (c: any) => {
   const db = getDb(c.env.DB);
   const body = await c.req.json();
 
   const updateData = {
     llmProvider: body.llm_provider || "openrouter",
-    llmApiKey: (body.llm_api_key || "").trim(),
+    llmApiKey: (body.llm_api_key !== undefined ? body.llm_api_key : "").trim(),
     llmApiBase: (body.llm_api_base || "https://openrouter.ai/api/v1").trim(),
     llmModel: (body.llm_model || "deepseek/deepseek-chat").trim(),
     imageProvider: body.image_provider || "openrouter",
-    imageApiKey: (body.image_api_key || "").trim(),
+    imageApiKey: (body.image_api_key !== undefined ? body.image_api_key : "").trim(),
     imageApiBase: (body.image_api_base || "https://openrouter.ai/api/v1").trim(),
     imageModel: (body.image_model || "openai/gpt-image-2").trim(),
     updatedAt: new Date().toISOString(),
@@ -67,7 +67,10 @@ router.post("/providers", async (c) => {
     });
 
   return c.json({ status: "success", settings: updateData });
-});
+};
+
+router.post("/providers", handleUpdateProviders);
+router.put("/providers", handleUpdateProviders);
 
 // POST /api/settings/test-llm (Real-time LLM Model Probe)
 router.post("/test-llm", async (c) => {

@@ -148,7 +148,7 @@ export const api = {
   },
 
   async updateProviderConfig(payload: any) {
-    const { data } = await apiClient.put("/settings/providers", payload);
+    const { data } = await apiClient.post("/settings/providers", payload);
     return data;
   },
 
