@@ -27,67 +27,79 @@ export interface DirectorGenerationResult {
   shots: ShotPlan[];
 }
 
-export const DIRECTOR_SYSTEM_PROMPT = `你是一位好莱坞顶级电影视觉导演与分镜师智能体 (AI Visual Director & Storyboard Artist)。
-你的核心能力是将人类导演输入的故事、剧本场次或创意概念，转化为符合好莱坞工业规范的标准 6 阶段 30 秒分镜头脚本与视觉提示词包。
+export function getDirectorSystemPrompt(targetDuration: number = 30.0): string {
+  let pacingGuidance = "";
+  let expectedShots = 12;
 
-【好莱坞工业级 6 阶段分镜规范】：
-1. 阶段一：环境建立 (Establishing/World-building) - 远景/大远景，确立空间几何、时间与视觉基调；
-2. 阶段二：人物入场 (Subject Introduction) - 中景/全景，引入核心角色与即时动作；
-3. 阶段三：张力升级 (Tension Escalation) - 近景/特写，展示关键道具、微表情或局部冲突；
-4. 阶段四：核心交锋 (Core Conflict/Action Beat) - 动作镜头，动态机位推进核心冲突；
-5. 阶段五：高潮爆发 (Climax / Visual Spectacle) - 荷兰角/极速特写/子弹时间等高张力视觉奇观；
-6. 阶段六：余韵收尾 (Resolution / Iconic Ending) - 全景拉远或标志性定格，留白与情绪沉淀。
+  if (targetDuration <= 8.0) {
+    expectedShots = 3;
+    pacingGuidance = `
+【5秒极速短片 / 广告黄金钩子 3 节拍规范 (目标生成 3 个镜头)】：
+- 第 1 镜 (1.5s): 视觉奇观/核心悬念特写 (Hook，直接切入高潮，牢牢抓住眼球)；
+- 第 2 镜 (2.0s): 核心动作爆发/动态冲撞 (Impact，最高能量推进)；
+- 第 3 镜 (1.5s): 标志性定格/反转留白 (Payoff/Punchline，品牌或故事收尾)。`;
+  } else if (targetDuration <= 20.0) {
+    expectedShots = 6;
+    pacingGuidance = `
+【15秒标准商业微短片 3 幕 6 节拍规范 (目标生成 6 个镜头)】：
+- 阶段一 (0~4s, 镜1-2): 空间与主角建立 (环境全景 ➔ 人物出场动机)；
+- 阶段二 (4~10s, 镜3-4): 动作对峙与升级 (近景张力 ➔ 核心动态交锋)；
+- 阶段三 (10~15s, 镜5-6): 高潮爆发与定格 (局部特写 ➔ 标志性收官定格)。`;
+  } else {
+    expectedShots = 12;
+    pacingGuidance = `
+【30秒好莱坞叙事大片 4 篇章 12 节拍规范 (目标生成 10~12 个镜头)】：
+- 第一篇章 (0~6s, 镜1-3): 起 · 世界观建立与主角登场；
+- 第二篇章 (6~15s, 镜4-6): 承 · 危机逼近与连环动作攻防；
+- 第三篇章 (15~24s, 镜7-9): 转 · 子弹时间/慢动作视觉奇观与终极对抗；
+- 第四篇章 (24~30s, 镜10-12): 合 · 胜负裁决与电影感余韵定格。`;
+  }
 
-你必须为每个镜头规划：
-- order: 镜头序号 (1..12)
-- duration: 镜头时长 (秒，通常 1.5 - 5.0)
+  return `你是一位好莱坞顶级电影视觉导演与分镜师智能体 (AI Visual Director & Storyboard Artist)。
+你的核心任务是将人类导演输入的故事或剧本，转化为符合影视工业标准的结构化分镜脚本。
+${pacingGuidance}
+
+目标时长: ${targetDuration} 秒，请规划生成恰好 ${expectedShots} 个节奏紧凑、上下动作高度连贯的电影镜头。
+
+每个镜头必须包含：
+- order: 镜头序号 (1..${expectedShots})
+- duration: 镜头时长 (秒)
 - shot_size: 景别 ('extreme_wide_shot' | 'wide_shot' | 'full_shot' | 'medium_shot' | 'medium_close_up' | 'close_up' | 'extreme_close_up')
 - camera_angle: 角度 ('eye_level' | 'low_angle' | 'high_angle' | 'dutch_angle' | 'birds_eye' | 'worms_eye')
 - camera_movement: 运镜 (如 { "type": "crane", "speed": "slow" } 或 { "type": "push_in" })
 - subject: 镜头主体描述
-- action: 镜头具体动作与画面叙事
+- action: 镜头具体动作与画面叙事 (必须承接上一镜头动势)
 - dialogue: 角色对白 (可选)
 - narrative_function: 视听叙事功能
-- lighting: 光影基调与色调
-- audio: 音效 (sfx) 与音乐情绪 (music)
+- lighting: 光影基调 (统一黑白灰石墨手绘光影)
+- audio: 音效 (sfx) 与音乐 (music)
 - image_prompt: 专业的 2D 分镜概念草图提示词 (English)
 - video_prompt: 专业的 AI 视频生成运镜提示词 (English)
-- continuity_data: 空间与视线连贯性数据 ({ "screen_direction": "left_to_right", "character_position": "left" })
+- continuity_data: 空间与视线连贯性数据 ({ "screen_direction": "left_to_right" })
 `;
+}
 
-export const SHOT_PARSER_JSON_PROMPT = `请严格输出符合以下 JSON 格式的数据，不要包含任何 markdown 代码块外部的多余废话：
-{
-  "theme": "故事核心主题",
-  "target_duration": 30.0,
-  "shots": [
-    {
-      "order": 1,
-      "duration": 2.5,
-      "shot_size": "extreme_wide_shot",
-      "camera_angle": "high_angle",
-      "camera_movement": { "type": "crane", "speed": "slow" },
-      "subject": "场景主体",
-      "action": "镜头具体动作描述",
-      "dialogue": "",
-      "narrative_function": "环境建立",
-      "lighting": "冷色调暗部高对比",
-      "audio": { "sfx": "环境音", "music": "背景音乐" },
-      "image_prompt": "Cinematic 2D storyboard sketch, extreme wide shot high angle, ...",
-      "video_prompt": "Camera crane slowly over scene ...",
-      "continuity_data": { "screen_direction": "left_to_right" }
-    }
-  ]
-}`;
-
-export function formatDirectorImagePrompt(action: string, size: string, angle: string, mov: string): string {
+export function formatDirectorImagePrompt(
+  action: string,
+  size: string,
+  angle: string,
+  mov: string,
+  context?: {
+    storyContext?: string;
+    subject?: string;
+    prevShot?: { order: number; action: string; shotSize?: string };
+    screenDirection?: string;
+    order?: number;
+  }
+): string {
   const sizeMap: Record<string, string> = {
-    extreme_wide_shot: "extreme wide shot",
-    wide_shot: "wide shot",
-    full_shot: "full shot",
-    medium_shot: "medium shot",
-    medium_close_up: "medium close up",
-    close_up: "close up",
-    extreme_close_up: "extreme close up",
+    extreme_wide_shot: "extreme wide shot (EWS)",
+    wide_shot: "wide shot (WS)",
+    full_shot: "full shot (FS)",
+    medium_shot: "medium shot (MS)",
+    medium_close_up: "medium close up (MCU)",
+    close_up: "close up (CU)",
+    extreme_close_up: "extreme close up (ECU)",
   };
   const angleMap: Record<string, string> = {
     eye_level: "eye level",
@@ -100,8 +112,16 @@ export function formatDirectorImagePrompt(action: string, size: string, angle: s
 
   const readableSize = sizeMap[size] || size;
   const readableAngle = angleMap[angle] || angle;
+  const shotNo = context?.order ? `SHOT ${String(context.order).padStart(2, "0")}` : "SHOT";
+  const dir = context?.screenDirection || "left_to_right";
 
-  return `Cinematic 2D storyboard sketch, ${readableSize}, ${readableAngle}, ${action}, professional graphite line art, dynamic visual composition, film lighting, 16:9 aspect ratio.`;
+  let continuityClause = "";
+  if (context?.prevShot) {
+    const cleanPrev = context.prevShot.action.slice(0, 45).replace(/"/g, "'");
+    continuityClause = `Continuing from SHOT ${String(context.prevShot.order).padStart(2, "0")} where ${cleanPrev}, `;
+  }
+
+  return `Monochrome grayscale rough graphite storyboard sketch, ${readableSize}, ${readableAngle}, camera ${mov}. ${continuityClause}${shotNo} action: ${action}. Screen direction: ${dir}, maintaining 180-degree action axis. Clean gestural pencil linework, unfinished pre-viz aesthetic, standard 16:9 draft, no color, no comic bubbles.`;
 }
 
 // Generate story-adaptive fallback storyboard based on user's actual story text
@@ -112,202 +132,162 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
     .map((s) => s.trim())
     .filter(Boolean);
 
-  const durPerShot = Number((targetDuration / 6).toFixed(1)) || 5.0;
+  let targetCount = 12;
+  if (targetDuration <= 8.0) targetCount = 3;
+  else if (targetDuration <= 20.0) targetCount = 6;
 
-  // Extract core topic/subject
+  const durPerShot = Number((targetDuration / targetCount).toFixed(1)) || 2.5;
   const topic = cleanStory.slice(0, 30);
-  const s1 = sentences[0] || `${topic}：广角空间与宏观全景展开`;
-  const s2 = sentences[1] || `${topic}：核心人物与主体步入场景`;
-  const s3 = sentences[2] || `${topic}：关键细节发现与悬念特写`;
-  const s4 = sentences[3] || `${topic}：核心动作展开与冲突升级`;
-  const s5 = sentences[4] || `${topic}：冲突达到最高潮峰值`;
-  const s6 = sentences[5] || sentences[sentences.length - 1] || `${topic}：故事收尾，镜头拉远留白`;
 
-  return [
-    {
-      order: 1,
-      duration: durPerShot,
-      shot_size: "extreme_wide_shot",
-      camera_angle: "high_angle",
-      camera_movement: { type: "crane", speed: "slow" },
-      subject: `${topic} - 环境空间`,
-      action: `【空间建立】：${s1}。确立整体空间格局与戏剧光影氛围。`,
-      narrative_function: "建立世界观、空间几何与光影氛围",
-      lighting: "戏剧性明暗对比与环境光晕",
-      audio: { sfx: "环境氛围底噪", music: "低沉开篇铺垫旋律" },
-      image_prompt: formatDirectorImagePrompt(s1, "extreme_wide_shot", "high_angle", "crane"),
-      video_prompt: `Camera crane slowly over scene: ${s1}`,
-      continuity_data: { character_position: "center", screen_direction: "left_to_right", lighting_axis: "ambient" },
-    },
-    {
-      order: 2,
-      duration: durPerShot,
-      shot_size: "medium_shot",
-      camera_angle: "low_angle",
-      camera_movement: { type: "push_in", speed: "medium" },
-      subject: `${topic} - 主角登场`,
-      action: `【主体入场】：${s2}。引入核心角色与即时行动意图。`,
-      narrative_function: "引入主体人物与即时动机",
-      lighting: "侧逆光突出人物轮廓与质感",
-      audio: { sfx: "脚步声、动作摩擦声", music: "节奏逐渐加剧" },
-      image_prompt: formatDirectorImagePrompt(s2, "medium_shot", "low_angle", "push_in"),
-      video_prompt: `Camera push in towards subject: ${s2}`,
-      continuity_data: { character_position: "left", screen_direction: "left_to_right", lighting_axis: "side_light" },
-    },
-    {
-      order: 3,
-      duration: durPerShot,
-      shot_size: "close_up",
-      camera_angle: "eye_level",
-      camera_movement: { type: "static", speed: "slow" },
-      subject: `${topic} - 细节特写`,
-      action: `【细节张力】：${s3}。特写镜头聚焦关键道具与微小动作。`,
-      narrative_function: "聚焦核心道具、眼神与局部张力",
-      lighting: "定向聚焦高光",
-      audio: { sfx: "特写动作音效、呼吸声", music: "短促悬念停顿" },
-      image_prompt: formatDirectorImagePrompt(s3, "close_up", "eye_level", "static"),
-      video_prompt: `Close up static shot: ${s3}`,
-      continuity_data: { character_position: "center", screen_direction: "left_to_right", lighting_axis: "key_light" },
-    },
-    {
-      order: 4,
-      duration: durPerShot,
-      shot_size: "medium_close_up",
-      camera_angle: "dutch_angle",
-      camera_movement: { type: "pan_right", speed: "fast" },
-      subject: `${topic} - 冲突推进`,
-      action: `【动作推进】：${s4}。动作节拍加快，冲突进入白热化阶段。`,
-      narrative_function: "冲突激化与动态节拍加速",
-      lighting: "动态扫光与剧烈明暗变化",
-      audio: { sfx: "剧烈碰撞与破风音效", music: "快节奏打击乐交织" },
-      image_prompt: formatDirectorImagePrompt(s4, "medium_close_up", "dutch_angle", "pan_right"),
-      video_prompt: `Camera pan right fast tracking action: ${s4}`,
-      continuity_data: { character_position: "right", screen_direction: "right_to_left", lighting_axis: "cross_light" },
-    },
-    {
-      order: 5,
-      duration: durPerShot,
-      shot_size: "full_shot",
-      camera_angle: "low_angle",
-      camera_movement: { type: "tracking_shot", speed: "fast" },
-      subject: `${topic} - 高潮爆发`,
-      action: `【高潮奇观】：${s5}。戏剧冲突与视觉张力达到最高峰值。`,
-      narrative_function: "叙事与视觉力量达到最高峰值",
-      lighting: "强烈逆光与剪影效果",
-      audio: { sfx: "高潮震颤低音与冲击声", music: "宏大乐章达到顶点" },
-      image_prompt: formatDirectorImagePrompt(s5, "full_shot", "low_angle", "tracking_shot"),
-      video_prompt: `Dynamic tracking full shot at climax: ${s5}`,
-      continuity_data: { character_position: "center", screen_direction: "left_to_right", lighting_axis: "backlight" },
-    },
-    {
-      order: 6,
-      duration: durPerShot,
-      shot_size: "wide_shot",
-      camera_angle: "eye_level",
-      camera_movement: { type: "tracking_back", speed: "slow" },
-      subject: `${topic} - 结局定格`,
-      action: `【意境收尾】：${s6}。余韵留白，镜头缓缓拉远完成落幕。`,
-      narrative_function: "沉淀情绪、镜头拉远与开放式余味",
-      lighting: "柔和漫射余晖",
-      audio: { sfx: "环境渐隐音效", music: "悠扬收尾旋律渐渐淡出" },
-      image_prompt: formatDirectorImagePrompt(s6, "wide_shot", "eye_level", "tracking_back"),
-      video_prompt: `Camera tracking back slowly for peaceful ending: ${s6}`,
-      continuity_data: { character_position: "center", screen_direction: "center", lighting_axis: "ambient" },
-    },
+  const fallbackPatterns = [
+    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "环境建立", act: `${topic}：全景建立空间与视觉基调` },
+    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "人物出场", act: `主角步入雨夜场景，动作沉稳，带出环境细节` },
+    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "动机显现", act: `对立角色现身，气氛骤然紧张，双方视线锁定` },
+    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "起手对峙", act: `主角单手摆出起手架势，特写专注微表情` },
+    { size: "close_up", angle: "low_angle", mov: "push_in", func: "危机爆发", act: `对手瞬间突进，攻击破空而至` },
+    { size: "full_shot", angle: "eye_level", mov: "tracking_left", func: "核心交锋", act: `两人在暴雨中激烈交锋，拳风激荡带起水雾` },
+    { size: "medium_shot", angle: "dutch_angle", mov: "pan_right", func: "连环攻防", act: `倾斜机位快速摇移，沉桥封手化解攻势` },
+    { size: "extreme_close_up", angle: "eye_level", mov: "push_in", func: "局部受创", act: `关键部位受到重击，视觉冲击力拉满` },
+    { size: "medium_close_up", angle: "eye_level", mov: "arc_rotate", func: "子弹时间", act: `360度子弹时间慢动作，主角侧身避开致命攻击` },
+    { size: "full_shot", angle: "low_angle", mov: "tilt_up", func: "终极一击", act: `凌空飞踏重重轰中对手，将其击退` },
+    { size: "wide_shot", angle: "high_angle", mov: "pull_out", func: "局势落幕", act: `对手倒地化为数据消散，雨水逐渐平息` },
+    { size: "extreme_wide_shot", angle: "eye_level", mov: "crane", func: "余韵定格", act: `镜头缓缓升起拉远，主角独立于雨夜，定格收尾` },
   ];
+
+  const shots: ShotPlan[] = [];
+
+  for (let i = 1; i <= targetCount; i++) {
+    const pattern = fallbackPatterns[(i - 1) % fallbackPatterns.length];
+    const sentenceAct = sentences[i - 1] ? `${sentences[i - 1]}` : pattern.act;
+    const prevShot = i > 1 ? { order: i - 1, action: shots[i - 2].action } : undefined;
+
+    const imgPrompt = formatDirectorImagePrompt(sentenceAct, pattern.size, pattern.angle, pattern.mov, {
+      order: i,
+      prevShot,
+      screenDirection: i % 2 === 0 ? "right_to_left" : "left_to_right",
+      storyContext: topic,
+    });
+
+    shots.push({
+      order: i,
+      duration: durPerShot,
+      shot_size: pattern.size,
+      camera_angle: pattern.angle,
+      camera_movement: { type: pattern.mov, speed: "medium" },
+      subject: topic,
+      action: sentenceAct,
+      dialogue: "",
+      narrative_function: pattern.func,
+      lighting: "黑白灰石墨光影",
+      audio: { sfx: "雨声、脚步声" },
+      image_prompt: imgPrompt,
+      video_prompt: `Cinematic movie camera ${pattern.mov}, ${sentenceAct}, 16:9 film still`,
+      continuity_data: { screen_direction: i % 2 === 0 ? "right_to_left" : "left_to_right" },
+    });
+  }
+
+  return shots;
 }
 
 export async function runDirectorPipeline(
-  story: string,
+  storyText: string,
   targetDuration: number = 30.0,
-  settings?: {
+  options: {
     apiKey?: string;
     apiBase?: string;
     model?: string;
-  }
+  } = {}
 ): Promise<DirectorGenerationResult> {
-  const apiKey = settings?.apiKey;
-  const apiBase = settings?.apiBase || "https://openrouter.ai/api/v1";
-  const model = settings?.model || "deepseek/deepseek-chat";
+  const apiKey = options.apiKey?.trim();
+  const apiBase = options.apiBase?.trim() || "https://openrouter.ai/api/v1";
+  const model = options.model?.trim() || "deepseek/deepseek-chat";
 
-  // If no API key provided, generate dynamic story-adaptive storyboard based on the actual input story
-  if (!apiKey || !apiKey.trim()) {
-    return {
-      theme: story ? story.slice(0, 20) : "AI 导演分镜规划",
-      target_duration: targetDuration,
-      shots: generateAdaptiveStoryShots(story, targetDuration),
-    };
-  }
+  let expectedCount = 12;
+  if (targetDuration <= 8.0) expectedCount = 3;
+  else if (targetDuration <= 20.0) expectedCount = 6;
 
-  const promptMessage = `
-【故事内容与导演意图】：
-${story}
+  if (apiKey) {
+    try {
+      const systemPrompt = getDirectorSystemPrompt(targetDuration);
+      const userMessage = `【故事剧本内容】：\n${storyText}\n\n【目标时长】：${targetDuration} 秒（请严格规划 ${expectedCount} 个分镜头）。请严格输出 JSON 格式。`;
 
-【目标短片时长】：${targetDuration} 秒
+      const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          "HTTP-Referer": "https://storyboarding.caifu.social",
+          "X-Title": "AI StoryBoarding",
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          temperature: 0.7,
+          response_format: { type: "json_object" },
+        }),
+      });
 
-请严格遵循 6 阶段好莱坞工业分镜规范，完成完整的分镜规划，并直接输出合法 JSON。
-`;
+      if (resp.ok) {
+        const data = (await resp.json()) as any;
+        const content = data.choices?.[0]?.message?.content;
+        if (content) {
+          const parsed = JSON.parse(content);
+          if (parsed.shots && Array.isArray(parsed.shots) && parsed.shots.length > 0) {
+            // Post-process with 4-pillar continuity prompt builder
+            const enrichedShots: ShotPlan[] = parsed.shots.map((s: any, idx: number) => {
+              const prev = idx > 0 ? { order: idx, action: parsed.shots[idx - 1].action } : undefined;
+              const imgPrompt = formatDirectorImagePrompt(
+                s.action || "",
+                s.shot_size || "medium_shot",
+                s.camera_angle || "eye_level",
+                s.camera_movement?.type || "static",
+                {
+                  order: s.order || idx + 1,
+                  prevShot: prev,
+                  screenDirection: s.continuity_data?.screen_direction || (idx % 2 === 0 ? "left_to_right" : "right_to_left"),
+                  storyContext: storyText.slice(0, 80),
+                }
+              );
 
-  try {
-    const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: "system", content: `${DIRECTOR_SYSTEM_PROMPT}\n${SHOT_PARSER_JSON_PROMPT}` },
-          { role: "user", content: promptMessage },
-        ],
-        temperature: 0.7,
-        response_format: { type: "json_object" },
-      }),
-    });
+              return {
+                order: s.order || idx + 1,
+                duration: Number(s.duration) || Number((targetDuration / parsed.shots.length).toFixed(1)) || 2.5,
+                shot_size: s.shot_size || "medium_shot",
+                camera_angle: s.camera_angle || "eye_level",
+                camera_movement: typeof s.camera_movement === "object" ? s.camera_movement : { type: "static" },
+                subject: s.subject || "",
+                action: s.action || "",
+                dialogue: s.dialogue || "",
+                narrative_function: s.narrative_function || "动作推进",
+                lighting: s.lighting || "黑白灰石墨光影",
+                audio: typeof s.audio === "object" ? s.audio : { sfx: "环境音" },
+                image_prompt: imgPrompt,
+                video_prompt: s.video_prompt || `Cinematic camera, ${s.action}`,
+                continuity_data: typeof s.continuity_data === "object" ? s.continuity_data : { screen_direction: "left_to_right" },
+              };
+            });
 
-    if (!resp.ok) {
-      console.error(`LLM Error ${resp.status}:`, await resp.text());
-      return {
-        theme: story ? story.slice(0, 20) : "AI 导演分镜规划",
-        target_duration: targetDuration,
-        shots: generateAdaptiveStoryShots(story, targetDuration),
-      };
+            return {
+              theme: parsed.theme || storyText.slice(0, 20),
+              target_duration: targetDuration,
+              shots: enrichedShots,
+            };
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Director pipeline LLM call fallback:", e);
     }
-
-    const data = (await resp.json()) as any;
-    const content = data.choices?.[0]?.message?.content || "{}";
-    const parsed = JSON.parse(content);
-
-    const rawShots = Array.isArray(parsed.shots) ? parsed.shots : [];
-    const shots: ShotPlan[] = rawShots.map((s: any, idx: number) => ({
-      order: s.order || idx + 1,
-      duration: Number(s.duration) || 2.5,
-      shot_size: s.shot_size || "medium_shot",
-      camera_angle: s.camera_angle || "eye_level",
-      camera_movement: typeof s.camera_movement === "object" ? s.camera_movement : { type: "static" },
-      subject: s.subject || "",
-      action: s.action || "",
-      dialogue: s.dialogue || "",
-      narrative_function: s.narrative_function || "动作推进",
-      lighting: s.lighting || "自然光影",
-      audio: typeof s.audio === "object" ? s.audio : { sfx: "", music: "" },
-      image_prompt: s.image_prompt || formatDirectorImagePrompt(s.action, s.shot_size || "MS", s.camera_angle || "eye_level", s.camera_movement?.type || "static"),
-      video_prompt: s.video_prompt || `Camera ${s.camera_movement?.type || "static"} ${s.action}`,
-      continuity_data: s.continuity_data || { screen_direction: "left_to_right" },
-    }));
-
-    return {
-      theme: parsed.theme || (story ? story.slice(0, 20) : "AI 导演分镜规划"),
-      target_duration: Number(parsed.target_duration) || targetDuration,
-      shots: shots.length > 0 ? shots : generateAdaptiveStoryShots(story, targetDuration),
-    };
-  } catch (error) {
-    console.error("Director pipeline execution error:", error);
-    return {
-      theme: story ? story.slice(0, 20) : "AI 导演分镜规划 (自适应模式)",
-      target_duration: targetDuration,
-      shots: generateAdaptiveStoryShots(story, targetDuration),
-    };
   }
+
+  // Fallback to intelligent story-adaptive breakdown
+  const fallbackShots = generateAdaptiveStoryShots(storyText, targetDuration);
+  return {
+    theme: storyText.slice(0, 20) || "好莱坞智能分镜",
+    target_duration: targetDuration,
+    shots: fallbackShots,
+  };
 }

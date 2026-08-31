@@ -31,6 +31,16 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
+// Compute deterministic project base seed from string
+export function getProjectBaseSeed(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) - hash) + id.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 800000 + 10000;
+}
+
 // Save image stream or URL to Cloudflare R2
 async function saveImageToR2(
   imageSource: string,
@@ -73,7 +83,7 @@ async function saveImageToR2(
   return null;
 }
 
-// Robust Universal Multimodal Storyboard Image Generator with 20s Timeout & FLUX Fallback
+// Robust Universal Multimodal Storyboard Image Generator with 512x288 Low-Res & 20s Timeout
 export async function generateCinematicStoryboardImage(
   prompt: string,
   shotId: string,
@@ -115,7 +125,7 @@ export async function generateCinematicStoryboardImage(
             messages: [
               {
                 role: "user",
-                content: `Cinematic movie production storyboard drawing, 16:9 widescreen: ${prompt}`,
+                content: `Monochrome pre-production director storyboard draft (512x288, 16:9 widescreen, graphite lines): ${prompt}`,
               },
             ],
             modalities: ["image", "text"],
@@ -167,7 +177,7 @@ export async function generateCinematicStoryboardImage(
             model: model,
             prompt: prompt,
             n: 1,
-            size: "1024x1024",
+            size: "512x512",
             response_format: "url",
           }),
           signal: controller.signal,
@@ -187,12 +197,12 @@ export async function generateCinematicStoryboardImage(
     }
   }
 
-  // 2. High-speed cinematic 16:9 FLUX engine fallback if no API key or upstream failed/timed out
+  // 2. High-speed cinematic 512x288 FLUX engine fallback if no API key or upstream failed/timed out
   if (!rawImageUrl) {
     const cleanPrompt = prompt.replace(/[^\w\s,\.\-]/g, " ").trim();
     rawImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      `cinematic 2d film storyboard illustration, 16:9 widescreen, ${cleanPrompt}, movie concept art, dynamic lighting, masterpiece`
-    )}?width=1024&height=576&seed=${seed}&model=flux&nologo=true`;
+      `cinematic 2d monochrome graphite film storyboard illustration, 16:9 widescreen, ${cleanPrompt}, draft line art`
+    )}?width=512&height=288&seed=${seed}&model=flux&nologo=true`;
   }
 
   // 3. Persist image to Cloudflare R2 object storage
@@ -231,7 +241,7 @@ export async function runConcurrentTasks<T, R>(
   return results;
 }
 
-// POST /api/generate/from-story (Real AI breakdown with 3-worker concurrent image generation)
+// POST /api/generate/from-story (Real AI breakdown with 3-worker concurrent image generation & 4-pillar continuity)
 router.post("/from-story", async (c) => {
   const db = getDb(c.env.DB);
   const body = await c.req.json();
@@ -279,6 +289,8 @@ router.post("/from-story", async (c) => {
     model: settings.llmModel,
   });
 
+  const baseSeed = getProjectBaseSeed(projectId);
+
   // 2. Check for locked shots
   const existingShots = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).all();
   const lockedShots = existingShots.filter((s) => s.isLocked);
@@ -292,7 +304,7 @@ router.post("/from-story", async (c) => {
 
     const availableSlots: { slot: number; planShot: any }[] = [];
     let aiIndex = 0;
-    for (let slot = 1; slot <= Math.max(6, result.shots.length); slot++) {
+    for (let slot = 1; slot <= Math.max(3, result.shots.length); slot++) {
       if (lockedOrders.has(slot)) continue;
       const s = result.shots[aiIndex];
       if (!s) break;
@@ -300,10 +312,10 @@ router.post("/from-story", async (c) => {
       availableSlots.push({ slot, planShot: s });
     }
 
-    // 3-Worker concurrent real AI image generation
+    // 3-Worker concurrent real AI image generation with deterministic seed chain
     await runConcurrentTasks(availableSlots, 3, async ({ slot, planShot }) => {
       const shotId = crypto.randomUUID();
-      const seed = Math.floor(Math.random() * 900000) + slot * 1000;
+      const seed = baseSeed + slot * 1000;
       const imageUrl = await generateCinematicStoryboardImage(planShot.image_prompt, shotId, settings, c.env.STORAGE, seed);
 
       await db.insert(shots).values({
@@ -331,10 +343,10 @@ router.post("/from-story", async (c) => {
   } else {
     await db.delete(shots).where(eq(shots.sequenceId, seq.id));
 
-    // 3-Worker concurrent real AI image generation
+    // 3-Worker concurrent real AI image generation with deterministic seed chain
     await runConcurrentTasks(result.shots, 3, async (s) => {
       const shotId = crypto.randomUUID();
-      const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
+      const seed = baseSeed + s.order * 1000;
       const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
 
       await db.insert(shots).values({
@@ -413,6 +425,7 @@ router.post("/from-script", async (c) => {
     model: settings.llmModel,
   });
 
+  const baseSeed = getProjectBaseSeed(projectId);
   const existingShots = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).all();
   const lockedShots = existingShots.filter((s) => s.isLocked);
 
@@ -425,7 +438,7 @@ router.post("/from-script", async (c) => {
 
     const availableSlots: { slot: number; planShot: any }[] = [];
     let aiIndex = 0;
-    for (let slot = 1; slot <= Math.max(6, result.shots.length); slot++) {
+    for (let slot = 1; slot <= Math.max(3, result.shots.length); slot++) {
       if (lockedOrders.has(slot)) continue;
       const s = result.shots[aiIndex];
       if (!s) break;
@@ -435,7 +448,7 @@ router.post("/from-script", async (c) => {
 
     await runConcurrentTasks(availableSlots, 3, async ({ slot, planShot }) => {
       const shotId = crypto.randomUUID();
-      const seed = Math.floor(Math.random() * 900000) + slot * 1000;
+      const seed = baseSeed + slot * 1000;
       const imageUrl = await generateCinematicStoryboardImage(planShot.image_prompt, shotId, settings, c.env.STORAGE, seed);
 
       await db.insert(shots).values({
@@ -465,7 +478,7 @@ router.post("/from-script", async (c) => {
 
     await runConcurrentTasks(result.shots, 3, async (s) => {
       const shotId = crypto.randomUUID();
-      const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
+      const seed = baseSeed + s.order * 1000;
       const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
 
       await db.insert(shots).values({
@@ -500,7 +513,7 @@ router.post("/from-script", async (c) => {
   });
 });
 
-// POST /api/generate/images/:shotId (Dedicated single-shot real AI regeneration)
+// POST /api/generate/images/:shotId (Dedicated single-shot real AI regeneration with project seed offset)
 router.post("/images/:shotId", async (c) => {
   const db = getDb(c.env.DB);
   const shotId = c.req.param("shotId");

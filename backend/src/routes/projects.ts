@@ -3,7 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
 import { projects, sequences, shots, systemSettings } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt } from "../agents/director/pipeline";
-import { generateCinematicStoryboardImage, runConcurrentTasks } from "./generation";
+import { generateCinematicStoryboardImage, runConcurrentTasks, getProjectBaseSeed } from "./generation";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -65,8 +65,8 @@ async function ensureDemoProject(db: any) {
     for (const item of FULL_DEMO_SHOTS) {
       const cleanPrompt = item.act.replace(/[^\w\s,\.\-]/g, " ").trim();
       const demoImgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-        `cinematic 2d film storyboard illustration, 16:9 widescreen, ${cleanPrompt}, cyberpunk tea house martial arts matrix aesthetic`
-      )}?width=1024&height=576&seed=${item.order * 1000 + 42}&model=flux&nologo=true`;
+        `cinematic 2d monochrome graphite film storyboard illustration, 16:9 widescreen, ${cleanPrompt}, cyberpunk tea house martial arts matrix aesthetic`
+      )}?width=512&height=288&seed=${item.order * 1000 + 42}&model=flux&nologo=true`;
 
       await db.insert(shots).values({
         id: `shot-demo-${String(item.order).padStart(2, "0")}`,
@@ -80,7 +80,7 @@ async function ensureDemoProject(db: any) {
         action: item.act,
         dialogue: "",
         narrativeFunction: item.order <= 4 ? "空间与人物建立" : item.order <= 8 ? "动作交锋与升级" : "子弹时间高潮与终局",
-        lighting: "霓虹绿与暗红光影",
+        lighting: "黑白灰石墨手绘光影",
         audio: JSON.stringify({ sfx: "暴雨声、机械充能" }),
         imagePrompt: formatDirectorImagePrompt(item.act, item.size, item.angle, item.mov),
         videoPrompt: `Cinematic movie camera ${item.mov}, ${item.act}, 4k film still`,
@@ -185,7 +185,7 @@ router.get("/:id", async (c) => {
   });
 });
 
-// POST /api/projects (Auto-generate real AI visual storyboards concurrently)
+// POST /api/projects (Auto-generate real AI visual storyboards concurrently with seed chain)
 router.post("/", async (c) => {
   const db = getDb(c.env.DB);
   const body = await c.req.json();
@@ -214,6 +214,8 @@ router.post("/", async (c) => {
   });
 
   const effectiveStory = story.trim() || title.trim();
+  const baseSeed = getProjectBaseSeed(id);
+
   try {
     const settings = await getActiveSettings(db, c.env);
     const plan = await runDirectorPipeline(effectiveStory, targetDuration, {
@@ -222,10 +224,10 @@ router.post("/", async (c) => {
       model: settings.llmModel,
     });
 
-    // 3-Worker safe concurrent real AI image generation
+    // 3-Worker safe concurrent real AI image generation with deterministic seed chain
     await runConcurrentTasks(plan.shots, 3, async (s) => {
       const shotId = crypto.randomUUID();
-      const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
+      const seed = baseSeed + s.order * 1000;
       const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
 
       await db.insert(shots).values({
@@ -240,7 +242,7 @@ router.post("/", async (c) => {
         action: s.action,
         dialogue: s.dialogue || "",
         narrativeFunction: s.narrative_function || "动作推进",
-        lighting: s.lighting || "自然光影",
+        lighting: s.lighting || "黑白灰石墨光影",
         audio: JSON.stringify(s.audio || {}),
         imagePrompt: s.image_prompt,
         videoPrompt: s.video_prompt,

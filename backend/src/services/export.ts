@@ -22,7 +22,7 @@ export function extractShotMeta(shot: Shot) {
   const sizeAbbr = SHOT_SIZE_ABBR[shot.shotSize] || (shot.shotSize || "MS").slice(0, 3).toUpperCase();
   const durVal = typeof shot.duration === "number" ? shot.duration : 2.5;
   const durStr = `${durVal.toFixed(1)}s`;
-  
+
   let movType = "static";
   try {
     const mov = typeof shot.cameraMovement === "string" ? JSON.parse(shot.cameraMovement) : shot.cameraMovement;
@@ -46,7 +46,7 @@ export function extractShotMeta(shot: Shot) {
 export function generateShotScriptMarkdown(project: Project, shots: Shot[]): string {
   const lines = [
     `# ${project.title} — 导演分镜头脚本文档`,
-    `\n> **目标时长**: ${project.targetDuration} 秒 | **镜头总数**: ${shots.length} | **生成平台**: Cloudflare Edge Storyboard\n`,
+    `\n> **目标时长**: ${project.targetDuration} 秒 | **镜头总数**: ${shots.length} | **标准画幅**: 16:9\n`,
     `## 故事梗概\n${project.story || "未提供故事梗概"}\n`,
     "---\n",
     "## 分镜头详细列表\n",
@@ -59,7 +59,7 @@ export function generateShotScriptMarkdown(project: Project, shots: Shot[]): str
     lines.push(`- **运镜方式**: ${meta.movType}`);
     lines.push(`- **动作调度**: ${s.action}`);
     lines.push(`- **叙事功能**: ${s.narrativeFunction || "主动作推进"}`);
-    lines.push(`- **环境光影**: ${s.lighting || "自然光"}`);
+    lines.push(`- **环境光影**: ${s.lighting || "黑白灰石墨光影"}`);
     lines.push(`- **声音设计**: ${s.audio}`);
     lines.push(`- **图像 Prompt**: \`${s.imagePrompt}\``);
     lines.push(`- **视频 Prompt**: \`${s.videoPrompt}\``);
@@ -69,92 +69,69 @@ export function generateShotScriptMarkdown(project: Project, shots: Shot[]): str
   return lines.join("\n");
 }
 
+export function calculateOptimalGridLayout(shotCount: number): { layoutDesc: string; gridName: string } {
+  if (shotCount <= 3) {
+    return { layoutDesc: `1 × ${shotCount} horizontal strip`, gridName: `${shotCount}-panel horizontal strip (1x${shotCount} grid)` };
+  }
+  if (shotCount === 4) {
+    return { layoutDesc: "2 × 2 grid (2 rows, 2 columns)", gridName: "4-panel contact sheet (2x2 grid)" };
+  }
+  if (shotCount <= 6) {
+    return { layoutDesc: "2 × 3 grid (2 rows, 3 columns)", gridName: `${shotCount}-panel contact sheet (2x3 grid)` };
+  }
+  if (shotCount <= 8) {
+    return { layoutDesc: "2 × 4 grid (2 rows, 4 columns)", gridName: `${shotCount}-panel contact sheet (2x4 grid)` };
+  }
+  if (shotCount <= 9) {
+    return { layoutDesc: "3 × 3 grid (3 rows, 3 columns)", gridName: `${shotCount}-panel contact sheet (3x3 grid)` };
+  }
+  return { layoutDesc: "3 × 4 grid (3 rows, 4 columns)", gridName: `${shotCount}-panel contact sheet (3x4 grid)` };
+}
+
 export function generateDirectorGlobalPrompt(project: Project, shots: Shot[]): string {
+  const count = shots.length;
+  const { gridName, layoutDesc } = calculateOptimalGridLayout(count);
+  const dur = project.targetDuration || 30.0;
+
   const shotsSummary = shots.map((s) => {
     const meta = extractShotMeta(s);
     return `* **SHOT ${meta.shotNo}** [${meta.sizeAbbr} · ${s.cameraAngle} · ${meta.movType}]: ${s.action}`;
   });
 
-  return `## PROFESSIONAL DIRECTOR’S STORYBOARD — GLOBAL PROMPT
+  return `# SYSTEM DIRECTIVE: PROFESSIONAL CINEMATIC STORYBOARD SHEET (PREVIZ CONTACT SHEET)
 
-Create **one complete professional director’s storyboard sheet** for the following short scene:
+Generate ONE single 16:9 widescreen director's storyboard page containing a complete sequential panel grid (${count} panels, ${gridName}). 
+This is a functional pre-production previsualization drawing, NOT a finished color illustration, NOT a promotional poster, and NOT a standalone comic book page.
 
-**Story / Scene:**
-${project.title}
-${project.story || "A cinematic narrative scene directed with rigorous visual grammar and rhythm."}
+## 1. CANVAS SPECIFICATIONS & LAYOUT
+- Canvas Format: Single 16:9 horizontal storyboard contact sheet.
+- Grid Structure: Exactly ${count} rectangular panels arranged in a clean, balanced ${layoutDesc} with distinct panel borders, outer margins, and letterbox frame.
+- Sequence Flow: Strict chronological reading order (Panel 01 to Panel ${String(count).padStart(2, "0")}, left-to-right, top-to-bottom) forming a continuous ~${dur}-second film sequence.
+- Panel Header: Each panel clearly displays an unobtrusive top badge: "SHOT 01" to "SHOT ${String(count).padStart(2, "0")}" with camera abbreviations.
 
-### 1. Final Output Format
+## 2. ART STYLE & MEDIUM (STORYBOARD PREVIZ)
+- Medium: Monochrome grayscale rough graphite pencil linework with selective light ink wash shading.
+- Aesthetic: Fast gestural director's sketch, readable structural anatomy, clean loose contours, lightweight unfinished previsualization draft quality.
+- Value Hierarchy: Grayscale tonal contrast (black, white, mid-gray) defining primary light source, cast shadows, depth planes, and subject silhouettes.
+- Explicit Exclusion: NO full-color rendering, NO digital airbrush gloss, NO colorful comic-book effects, NO dialogue speech balloons.
 
-* Generate **one single 16:9 horizontal storyboard page**.
-* The page must contain **exactly ${shots.length} separate cinematic panels**, arranged in a clean **4 × 3 grid** (or balanced multi-panel grid).
-* Show the entire storyboard sheet in one image.
-* Do not generate a single enlarged frame, isolated illustration, film still, concept artwork, key visual, poster, or finished comic page.
-* Every panel must have a clearly defined border and sufficient spacing from adjacent panels.
-* The reading order must be unambiguous: **left to right, top to bottom**.
+## 3. DUAL-REFERENCE ANCHOR RULES (ZERO DRIFT)
+- Character Continuity ([Reference Image 1]): Strictly preserve the exact character design, facial silhouette, proportions, hairstyle, and signature wardrobe across ALL panels. Zero character face/clothing drift.
+- Spatial Geography ([Reference Image 2]): Strictly preserve the environment architecture, perspective vanishing points, spatial landmarks, and set geometry across ALL panels. Zero set jumping.
+- Cinematic Grammar: Strict continuity of screen direction (180-degree axis), eyeline match, and kinetic momentum between consecutive panels.
 
-### 2. Panel Labels and Production Notes
-
-Every panel must include:
-
-* A clearly visible shot number: **SHOT 01–SHOT ${String(shots.length).padStart(2, "0")}**
-* A concise shot description
-* The shot size where appropriate: **EWS, WS, FS, MS, MCU, CU, ECU**
-* A camera angle or movement note when relevant
-* Simple directional arrows for camera movement, character movement, or eye-line direction when helpful
-
-Keep all annotations short, clean, legible, and production-oriented. They must not obscure the main action.
-
-### 3. Narrative Structure and Timing (~30s Continuous Sequence)
-
-The ${shots.length} panels form **one complete, continuous short-film sequence lasting approximately ${project.targetDuration} seconds**:
+## 4. SCENE NARRATIVE & BEAT BREAKDOWN (~${dur}s Scene)
+**Title / Scene:** ${project.title}
+**Story Context:** ${project.story || "A cinematic narrative scene directed with rigorous visual grammar and rhythm."}
 
 ${shotsSummary.join("\n")}
 
-### 4. Cinematic Shot Design
+## 5. RESOLUTION & TOKEN CONSTRAINTS
+- Standard 16:9 pre-production contact sheet draft resolution.
+- Low-resolution structural line art (512x288 per panel feel). No wasteful micro-textures or 4K/8K clutter.
 
-Design the sequence as a director’s visual plan rather than a collection of attractive images:
-* Preserve the **180-degree rule** unless an intentional transition clearly establishes a new axis.
-* Maintain consistent eye lines and screen direction across all cuts.
-* Use match-on-action and preserve momentum between consecutive panels.
-* Avoid unexplained jump cuts, random camera positions, or sudden spatial reversals.
-
-### 5. Character Reference Rules (Reference Image 1)
-
-**Reference Image 1 is the mandatory character continuity reference.**
-* Character Anchor: Protagonist master in black changshan coat and dark glasses, athletic martial arts physique, immutable facial structure, costume and accessories.
-* Lock facial structure, hairstyle, body proportions, apparent age, costume, and handheld props.
-* Strict negative: No face drift, no costume changes, no hairstyle changes, no age drift.
-
-### 6. Environment Reference Rules (Reference Image 2)
-
-**Reference Image 2 is the mandatory environment and visual-world reference.**
-* Environment Anchor: Cyberpunk ancient Chinese tea house in heavy rain, red holographic lanterns, wet reflective stone alleyway, consistent architectural geometry and lighting.
-* Lock overall location, architectural structure, landmarks, spatial relationships, perspective logic, and lighting atmosphere.
-* Strict negative: Do not relocate landmarks or break established spatial perspective.
-
-### 7. Storyboard Drawing Style
-
-Render the entire sheet as a **professional pre-production storyboard drawn for a film director**:
-* Black, white, and restrained grayscale only.
-* Rough graphite or dark pencil lines with bold, confident construction strokes.
-* Fast gestural drawing with simplified but readable anatomy.
-* Clear silhouettes and staging with directional movement arrows.
-* Selective grayscale shading for depth and focus with unfinished previsualization quality.
-
-### 8. Continuity Requirements
-
-* Maintain strict character, costume, prop, handedness, spatial geography, and lighting continuity across all ${shots.length} panels.
-
-### 9. Negative Constraints
-
-Do not create:
-* A single enlarged illustration, poster, or key visual.
-* A comic-book page, manga page, speech balloons, or long dialogue paragraphs.
-* Finished 3D render, saturated color painting, or photorealistic film still.
-* Duplicate panels, character drift, or abrupt drawing style changes.
-
-### 10. Final Quality Check
-* Entire 16:9 storyboard page visible, clearly separated panels with numbered tags (SHOT 01–${String(shots.length).padStart(2, "0")}), reads naturally left-to-right, feels like ~30 seconds of one continuous short film.
+## 6. NEGATIVE CONSTRAINTS
+Avoid: Full color, saturated colors, 4k, 8k, photorealistic CGI, comic book speech bubbles, stylized sound effect texts (SFX), single enlarged hero frame, messy unreadable scribbles, deformed hands/anatomy, character drift, discontinuous background.
 `;
 }
 
