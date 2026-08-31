@@ -281,8 +281,13 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       return;
     }
     if (!currentProject) return;
-    const dirtyShots = shots.filter((s) => s.is_dirty);
-    if (dirtyShots.length === 0) return;
+    const previzShots = shots.filter(
+      (s) => s.is_dirty || !s.storyboard_image_url || s.storyboard_image_url.startsWith("data:image/svg")
+    );
+    if (previzShots.length === 0) {
+      notify.info("当前所有镜头均已是高精成片状态");
+      return;
+    }
 
     if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") {
       const updated = shots.map((s) => ({
@@ -310,23 +315,23 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     }
 
     setIsBatchRendering(true);
-    setBatchProgress({ current: 0, total: dirtyShots.length });
+    setBatchProgress({ current: 0, total: previzShots.length });
 
     try {
       let done = 0;
-      for (const s of dirtyShots) {
+      for (const s of previzShots) {
         try {
           await regenerateShotImage(s.id);
         } catch (e) {
-          console.error(`Failed to generate image for shot ${s.id}`, e);
+          console.error(`Failed to develop image for shot ${s.id}`, e);
         }
         done += 1;
-        setBatchProgress({ current: done, total: dirtyShots.length });
+        setBatchProgress({ current: done, total: previzShots.length });
       }
       await fetchProject(currentProject.id);
-      notify.success(`🎨 全部 ${dirtyShots.length} 个待重绘镜头渲染完成！`);
+      notify.success(`🎨 全部 ${previzShots.length} 个 Previz 草图冲印完成！已升级为高精成片`);
     } catch (err: any) {
-      notify.error("批量渲染出现异常");
+      notify.error("批量冲印队列出现异常");
     } finally {
       setIsBatchRendering(false);
     }
