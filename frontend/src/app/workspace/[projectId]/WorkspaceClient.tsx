@@ -50,7 +50,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   } = useWorkspaceStore();
 
   useEffect(() => {
-    if (effectiveProjectId === "demo") {
+    if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") {
       const demoProj = createDemoMatrixProject();
       setProject(demoProj);
       selectShot(demoProj.sequences[0]?.shots[0]?.id || null);
@@ -66,8 +66,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const handleGenerateFromStory = async (story: string) => {
     setIsGenerating(true);
     try {
-      let targetProjectId = currentProject?.id;
-      if (effectiveProjectId === "demo" || !targetProjectId || targetProjectId === "demo-matrix-cyber-master") {
+      let targetProjectId = effectiveProjectId;
+      if (targetProjectId === "demo" || targetProjectId === "demo-matrix-cyber-master") {
         const newProj = await api.createProject({
           title: story.slice(0, 24) || "新建 AI 分镜项目",
           story: story,
@@ -91,27 +91,11 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     }
   };
 
-  // Auto-generate shots if an existing project has 0 shots and story/title exists
-  useEffect(() => {
-    if (
-      currentProject &&
-      effectiveProjectId !== "demo" &&
-      effectiveProjectId !== "demo-matrix-cyber-master" &&
-      shots.length === 0 &&
-      !isGenerating
-    ) {
-      const promptStory = currentProject.story?.trim() || currentProject.title;
-      if (promptStory) {
-        handleGenerateFromStory(promptStory);
-      }
-    }
-  }, [currentProject?.id, shots.length]);
-
   const handleImportScript = async (scriptText: string) => {
     setIsGenerating(true);
     try {
-      let targetProjectId = currentProject?.id;
-      if (effectiveProjectId === "demo" || !targetProjectId || targetProjectId === "demo-matrix-cyber-master") {
+      let targetProjectId = effectiveProjectId;
+      if (targetProjectId === "demo" || targetProjectId === "demo-matrix-cyber-master") {
         const newProj = await api.createProject({
           title: "导入剧本工程",
           story: scriptText.slice(0, 100),
@@ -136,7 +120,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   const handleRegenerateDirty = async () => {
     if (!currentProject) return;
-    if (effectiveProjectId === "demo") {
+    if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") {
       const updated = shots.map((s) => ({
         ...s,
         is_dirty: false,
@@ -164,7 +148,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   };
 
   const handleRegenerateSingleShot = async (shotId: string) => {
-    if (effectiveProjectId === "demo") {
+    if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") {
       const shot = shots.find((s) => s.id === shotId);
       if (shot) {
         updateShotLocal(shotId, {
@@ -214,7 +198,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           <div className="absolute inset-0 bg-background/70 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-3">
             <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             <p className="text-sm font-medium text-foreground">AI 导演智能拆镜中，正在规划节拍与视听语言...</p>
-            <p className="text-xs text-muted-foreground">调用模型: deepseek/deepseek-chat</p>
+            <p className="text-xs text-muted-foreground">调用好莱坞 6 阶段视觉导演状态机</p>
           </div>
         )}
 

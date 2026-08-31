@@ -126,20 +126,44 @@ router.get("/:id", async (c) => {
   for (const seq of seqs) {
     const shotList = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).orderBy(shots.order).all();
     resultSeqs.push({
-      ...seq,
+      id: seq.id,
+      project_id: seq.projectId,
+      title: seq.title,
+      order: seq.order,
+      created_at: seq.createdAt,
+      updated_at: seq.updatedAt,
       shots: shotList.map((s) => ({
-        ...s,
+        id: s.id,
+        sequence_id: s.sequenceId,
+        order: s.order,
+        duration: s.duration,
+        shot_size: s.shotSize,
+        camera_angle: s.cameraAngle,
         camera_movement: typeof s.cameraMovement === "string" ? JSON.parse(s.cameraMovement) : s.cameraMovement,
+        subject: s.subject || "",
+        action: s.action || "",
+        dialogue: s.dialogue || "",
+        narrative_function: s.narrativeFunction || "动作推进",
+        lighting: s.lighting || "自然光影",
         audio: typeof s.audio === "string" ? JSON.parse(s.audio) : s.audio,
+        image_prompt: s.imagePrompt || "",
+        video_prompt: s.videoPrompt || "",
         continuity_data: typeof s.continuityData === "string" ? JSON.parse(s.continuityData) : s.continuityData,
-        target_duration: proj.targetDuration,
+        storyboard_image_url: s.storyboardImageUrl || null,
+        is_dirty: s.isDirty || false,
+        created_at: s.createdAt,
+        updated_at: s.updatedAt,
       })),
     });
   }
 
   return c.json({
-    ...proj,
+    id: proj.id,
+    title: proj.title,
+    story: proj.story,
     target_duration: proj.targetDuration,
+    created_at: proj.createdAt,
+    updated_at: proj.updatedAt,
     sequences: resultSeqs,
   });
 });

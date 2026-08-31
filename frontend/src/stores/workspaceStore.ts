@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ProjectModel, ShotModel } from "@/types/shot";
+import { ProjectModel, ShotModel, SequenceModel } from "@/types/shot";
 import { api } from "@/lib/api";
 import { generateStoryboardSvgUrl } from "@/lib/storyboardGraphics";
 
@@ -35,24 +35,65 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     try {
       const project = await api.getProject(projectId);
       
-      const enrichedSequences = (project.sequences || []).map((seq) => ({
-        ...seq,
-        shots: (seq.shots || []).map((shot) => ({
-          ...shot,
-          storyboard_image_url:
-            shot.storyboard_image_url ||
-            generateStoryboardSvgUrl({
-              order: shot.order,
-              shot_size: shot.shot_size,
-              camera_angle: shot.camera_angle,
-              action: shot.action,
-              subject: shot.subject,
-            }),
-        })),
+      const enrichedSequences: SequenceModel[] = (project.sequences || []).map((seq: any) => ({
+        id: seq.id,
+        project_id: seq.project_id || seq.projectId || project.id,
+        name: seq.name || seq.title || "主场次",
+        order: Number(seq.order) || 1,
+        shots: (seq.shots || []).map((shot: any): ShotModel => {
+          const size = shot.shot_size || shot.shotSize || "medium_shot";
+          const angle = shot.camera_angle || shot.cameraAngle || "eye_level";
+          const action = shot.action || "";
+          const subject = shot.subject || "";
+          const order = Number(shot.order) || 1;
+
+          return {
+            id: shot.id,
+            sequence_id: shot.sequence_id || shot.sequenceId || seq.id,
+            order,
+            duration: Number(shot.duration) || 2.5,
+            shot_size: size,
+            camera_angle: angle,
+            camera_movement: typeof shot.camera_movement === "object" ? shot.camera_movement : (typeof shot.cameraMovement === "object" ? shot.cameraMovement : { type: "static" }),
+            subject,
+            action,
+            dialogue: shot.dialogue || "",
+            composition: typeof shot.composition === "object" ? shot.composition : {},
+            character_direction: shot.character_direction || "facing_camera",
+            narrative_function: shot.narrative_function || shot.narrativeFunction || "动作推进",
+            lighting: shot.lighting || "自然光影",
+            audio: typeof shot.audio === "object" ? shot.audio : {},
+            transition: shot.transition || "cut",
+            image_prompt: shot.image_prompt || shot.imagePrompt || "",
+            video_prompt: shot.video_prompt || shot.videoPrompt || "",
+            continuity_data: typeof shot.continuity_data === "object" ? shot.continuity_data : (typeof shot.continuityData === "object" ? shot.continuityData : {}),
+            storyboard_image_url:
+              shot.storyboard_image_url ||
+              shot.storyboardImageUrl ||
+              generateStoryboardSvgUrl({
+                order,
+                shot_size: size,
+                camera_angle: angle,
+                action,
+                subject,
+              }),
+            is_dirty: typeof shot.is_dirty === "boolean" ? shot.is_dirty : (typeof shot.isDirty === "boolean" ? shot.isDirty : false),
+            created_at: shot.created_at || shot.createdAt || new Date().toISOString(),
+            updated_at: shot.updated_at || shot.updatedAt || new Date().toISOString(),
+          };
+        }),
       }));
 
-      const enrichedProject = {
-        ...project,
+      const enrichedProject: ProjectModel = {
+        id: project.id,
+        user_id: (project as any).user_id || "default",
+        title: project.title,
+        story: project.story || "",
+        style_config: (project as any).style_config || {},
+        target_duration: Number(project.target_duration || (project as any).targetDuration) || 30.0,
+        shot_count: (project as any).shot_count || enrichedSequences.reduce((acc, s) => acc + s.shots.length, 0),
+        created_at: project.created_at || (project as any).createdAt || new Date().toISOString(),
+        updated_at: project.updated_at || (project as any).updatedAt || new Date().toISOString(),
         sequences: enrichedSequences,
       };
 
