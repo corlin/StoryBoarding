@@ -130,8 +130,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             <span>应用 OpenRouter 推荐预设</span>
           </button>
         </div>
+
+        {/* Server-Side D1 Persistence Badge */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono text-emerald-400 mb-3">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>☁️ 服务端统一持久化 (Cloudflare D1 · 跨设备多端实时同步)</span>
+        </div>
+
         <p className="text-xs text-muted-foreground mb-4">
-          配置 Cloudflare Worker 后端连接地址及 OpenRouter / OpenAI 模型 API 密钥。
+          所有 API 密钥与模型参数均权威存储于云端 D1 数据库中，更换设备或使用无痕模式均可自动无缝读取。
         </p>
 
         <form onSubmit={handleSave} className="space-y-4">

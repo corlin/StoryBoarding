@@ -30,6 +30,22 @@ export async function ensureSchema(d1: D1Database) {
       );
     `).run();
 
+    // Ensure system_settings table exists
+    await d1.prepare(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        id TEXT PRIMARY KEY,
+        llm_provider TEXT DEFAULT 'openrouter',
+        llm_api_key TEXT,
+        llm_api_base TEXT,
+        llm_model TEXT,
+        image_provider TEXT DEFAULT 'openrouter',
+        image_api_key TEXT,
+        image_api_base TEXT,
+        image_model TEXT,
+        updated_at TEXT DEFAULT (CURRENT_TIMESTAMP)
+      );
+    `).run();
+
     // Check and add is_locked column to shots if not exists
     try {
       await d1.prepare(`ALTER TABLE shots ADD COLUMN is_locked INTEGER NOT NULL DEFAULT 0;`).run();
