@@ -3,14 +3,17 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Film, Clock, Sparkles, Clapperboard, ArrowRight } from "lucide-react";
+import { Plus, Film, Clock, Sparkles, Clapperboard, ArrowRight, Settings, AlertCircle, RefreshCw } from "lucide-react";
 import { api, ProjectListItem } from "@/lib/api";
+import { SettingsModal } from "@/components/modals/SettingsModal";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newStory, setNewStory] = useState("");
   const [targetDuration, setTargetDuration] = useState(30);
@@ -18,10 +21,12 @@ export default function DashboardPage() {
   const loadProjects = async () => {
     try {
       setIsLoading(true);
+      setHasError(false);
       const data = await api.getProjects();
       setProjects(data);
     } catch (e) {
       console.error(e);
+      setHasError(true);
     } finally {
       setIsLoading(false);
     }
@@ -44,6 +49,7 @@ export default function DashboardPage() {
       router.push(`/workspace/${created.id}`);
     } catch (e) {
       console.error("Failed to create project", e);
+      alert("创建项目失败，请点击右上角「设置」检查后端 Worker API 服务连接地址");
     }
   };
 
@@ -58,13 +64,22 @@ export default function DashboardPage() {
           <span className="font-bold text-lg tracking-tight">AI Director Workspace</span>
         </Link>
 
-        <button
-          onClick={() => setIsCreating(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          <span>创建新项目</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-2 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            title="后端连接与 AI 模型设置"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setIsCreating(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span>创建新项目</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Content Area */}
@@ -75,6 +90,36 @@ export default function DashboardPage() {
             <p className="text-sm text-muted-foreground mt-1">管理你的故事板脚本与双向协同工程</p>
           </div>
         </div>
+
+        {/* Backend Connection Error Banner */}
+        {hasError && (
+          <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-semibold text-amber-500">无法连接到后端 Cloudflare Worker 服务</h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  请点击右上角「<strong>设置 ⚙️</strong>」按钮，填入你在 Cloudflare 控制台中已部署的 Worker 真实域名（例如：<code>https://storyboard-backend.xxxx.workers.dev</code>）。
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500 text-black hover:bg-amber-400 transition-colors shrink-0"
+              >
+                配置后端地址
+              </button>
+              <button
+                onClick={loadProjects}
+                className="p-1.5 rounded-lg border border-amber-500/30 text-amber-500 hover:bg-amber-500/20 transition-colors"
+                title="重新连接"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Create Modal */}
         {isCreating && (
@@ -190,7 +235,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="pt-4 mt-4 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{proj.shot_count} 个镜头</span>
+                  <span>{proj.shot_count || 0} 个镜头</span>
                   <span className="group-hover:translate-x-1 transition-transform text-primary flex items-center gap-1">
                     打开工作台 <ArrowRight className="w-3.5 h-3.5" />
                   </span>
@@ -200,6 +245,12 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Settings Modal */}
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => {
+        setIsSettingsOpen(false);
+        loadProjects();
+      }} />
     </div>
   );
 }

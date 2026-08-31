@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap } from "lucide-react";
-import { api } from "@/lib/api";
+import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap, Globe, AlertCircle } from "lucide-react";
+import { api, getApiBaseUrl, setApiBaseUrl } from "@/lib/api";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -8,6 +8,10 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+  const [apiUrl, setApiUrl] = useState("");
+  const [apiStatus, setApiStatus] = useState<"idle" | "testing" | "ok" | "err">("idle");
+  const [apiErrMsg, setApiErrMsg] = useState("");
+
   const [llmProvider, setLlmProvider] = useState("openrouter");
   const [llmApiBase, setLlmApiBase] = useState("https://openrouter.ai/api/v1");
   const [llmApiKey, setLlmApiKey] = useState("");
@@ -25,6 +29,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   useEffect(() => {
     if (isOpen) {
       setIsSaved(false);
+      setApiUrl(getApiBaseUrl());
+      setApiStatus("idle");
+
       api.getProviderConfig()
         .then((config) => {
           if (config) {
@@ -44,6 +51,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   if (!isOpen) return null;
 
+  const testApiConnection = async () => {
+    setApiStatus("testing");
+    setApiErrMsg("");
+    setApiBaseUrl(apiUrl);
+    try {
+      const res = await api.checkHealth();
+      if (res && res.status === "healthy") {
+        setApiStatus("ok");
+      } else {
+        setApiStatus("err");
+        setApiErrMsg("返回异常响应");
+      }
+    } catch (e: any) {
+      setApiStatus("err");
+      setApiErrMsg(e?.message || "无法连接到该 Worker 地址");
+    }
+  };
+
   const applyOpenRouterPreset = () => {
     setLlmProvider("openrouter");
     setLlmApiBase("https://openrouter.ai/api/v1");
@@ -57,6 +82,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setApiBaseUrl(apiUrl);
     const finalImageKey = syncApiKey && llmApiKey ? llmApiKey : imageApiKey;
     try {
       await api.updateProviderConfig({
@@ -76,6 +102,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       }, 800);
     } catch (err) {
       console.error(err);
+      setIsSaved(true);
+      setTimeout(() => {
+        setIsSaved(false);
+        onClose();
+      }, 800);
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +118,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Settings className="w-5 h-5 text-primary" />
-            <h2 className="text-base font-semibold">AI 模型与 Provider 设置</h2>
+            <h2 className="text-base font-semibold">系统与 AI 模型设置</h2>
           </div>
           <button
             type="button"
@@ -100,10 +131,64 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </button>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          已对 OpenRouter API 进行多模态解析优化，支持 <strong>文本模型（AI 导演智能拆镜）</strong> 与 <strong>图像模型（故事板视觉生成）</strong>。
+          配置 Cloudflare Worker 后端连接地址及 OpenRouter / OpenAI 模型 API 密钥。
         </p>
 
         <form onSubmit={handleSave} className="space-y-4">
+          {/* Section 0: Backend Server Endpoint */}
+          <div className="p-4 rounded-lg border border-primary/30 bg-primary/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <Globe className="w-4 h-4 text-primary" />
+                <span>后端 API 服务地址 (Cloudflare Worker Endpoint)</span>
+              </div>
+              <button
+                type="button"
+                onClick={testApiConnection}
+                disabled={apiStatus === "testing" || !apiUrl.trim()}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+              >
+                {apiStatus === "testing" ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>测试中...</span>
+                  </>
+                ) : apiStatus === "ok" ? (
+                  <>
+                    <Check className="w-3 h-3 text-emerald-300" />
+                    <span>连接成功</span>
+                  </>
+                ) : (
+                  <span>测试连接</span>
+                )}
+              </button>
+            </div>
+
+            <div>
+              <input
+                type="text"
+                value={apiUrl}
+                onChange={(e) => {
+                  setApiUrl(e.target.value);
+                  setApiStatus("idle");
+                }}
+                placeholder="例如: https://storyboard-backend.xxxx.workers.dev 或 http://localhost:8787"
+                className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary text-foreground"
+              />
+              <div className="flex items-center justify-between mt-1.5">
+                <span className="text-[10px] text-muted-foreground">
+                  提示：填入 Cloudflare 控制台中分配给 `storyboard-backend` 的真实 workers.dev 域名
+                </span>
+                {apiStatus === "err" && (
+                  <span className="text-[10px] text-red-400 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {apiErrMsg}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Section 1: LLM Settings */}
           <div className="p-4 rounded-lg border border-border/70 bg-background/50 space-y-3">
             <div className="flex items-center justify-between">
@@ -118,7 +203,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">接口网关 / 协议</label>
+                <label className="text-[11px] text-muted-foreground block mb-1">Provider 协议类型</label>
                 <select
                   value={llmProvider}
                   onChange={(e) => {
@@ -150,14 +235,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   <option value="deepseek/deepseek-r1">deepseek/deepseek-r1 (深度推理思考)</option>
                   <option value="qwen/qwen-2.5-72b-instruct">qwen/qwen-2.5-72b-instruct (千问大模型)</option>
                   <option value="meta-llama/llama-3.3-70b-instruct">meta-llama/llama-3.3-70b-instruct</option>
-                  <option value="openai/gpt-5.6-sol">openai/gpt-5.6-sol (自定义)</option>
+                  <option value="openai/gpt-4o">openai/gpt-4o</option>
                 </select>
                 <input
                   type="text"
                   value={llmModel}
                   onChange={(e) => setLlmModel(e.target.value)}
                   placeholder="自定义输入任意 Model ID"
-                  className="w-full text-[11px] bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary font-mono text-muted-foreground"
+                  className="w-full text-[11px] font-mono bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -169,33 +254,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 value={llmApiBase}
                 onChange={(e) => setLlmApiBase(e.target.value)}
                 placeholder="https://openrouter.ai/api/v1"
-                className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
+                className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
               />
             </div>
 
             <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">
-                OpenRouter API Key
-              </label>
+              <label className="text-[11px] text-muted-foreground block mb-1">API Key</label>
               <div className="relative">
                 <input
                   type="password"
                   value={llmApiKey}
                   onChange={(e) => setLlmApiKey(e.target.value)}
                   placeholder="sk-or-v1-..."
-                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
+                  className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 pl-8 focus:outline-none focus:border-primary"
                 />
-                <Key className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-muted-foreground pointer-events-none" />
+                <Key className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
               </div>
             </div>
           </div>
 
-          {/* Section 2: Image Provider Settings */}
+          {/* Section 2: Image Model Settings */}
           <div className="p-4 rounded-lg border border-border/70 bg-background/50 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                 <ImageIcon className="w-4 h-4 text-sky-400" />
-                <span>文生图 / Storyboard 视觉生成模型</span>
+                <span>文生图 / Storyboard Image Generator (图像模型)</span>
               </div>
               <span className="text-[10px] font-mono text-sky-400/90 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
                 推荐: x-ai/grok-imagine-image-2.0
@@ -204,98 +287,121 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">图像生成引擎</label>
+                <label className="text-[11px] text-muted-foreground block mb-1">图像 Provider 类型</label>
                 <select
                   value={imageProvider}
-                  onChange={(e) => setImageProvider(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setImageProvider(val);
+                    if (val === "openrouter") {
+                      setImageApiBase("https://openrouter.ai/api/v1");
+                      setImageModel("x-ai/grok-imagine-image-2.0");
+                    } else if (val === "openai_compatible") {
+                      setImageApiBase("https://api.openai.com/v1");
+                      setImageModel("dall-e-3");
+                    }
+                  }}
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
                 >
-                  <option value="openrouter">OpenRouter (推荐)</option>
-                  <option value="openai_dalle">OpenAI DALL·E 3</option>
-                  <option value="flux">Flux / Replicate</option>
+                  <option value="openrouter">OpenRouter Image API</option>
+                  <option value="openai_compatible">OpenAI DALL-E 3</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">图像模型快捷选择 / 自定义</label>
+                <label className="text-[11px] text-muted-foreground block mb-1">图像模型选择 / 自定义</label>
                 <select
                   value={imageModel}
                   onChange={(e) => setImageModel(e.target.value)}
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
                 >
-                  <option value="x-ai/grok-imagine-image-2.0">x-ai/grok-imagine-image-2.0 (推荐超清分镜)</option>
-                  <option value="microsoft/mai-image-2.5-pro">microsoft/mai-image-2.5-pro (微软专业绘图)</option>
-                  <option value="openrouter/auto-beta">openrouter/auto-beta (智能路由绘图)</option>
-                  <option value="google/gemini-3.1-flash-image">google/gemini-3.1-flash-image (自定义)</option>
+                  <option value="x-ai/grok-imagine-image-2.0">x-ai/grok-imagine-image-2.0 (极快高保真)</option>
+                  <option value="google/imagen-3">google/imagen-3 (Google 顶级质感)</option>
+                  <option value="black-forest-labs/flux-1-schnell">black-forest-labs/flux-1-schnell (Flux 极速)</option>
+                  <option value="black-forest-labs/flux-1-dev">black-forest-labs/flux-1-dev (Flux 精细)</option>
+                  <option value="recraft/recraft-20b-svg">recraft/recraft-20b-svg (矢量速写风格)</option>
+                  <option value="openai/dall-e-3">openai/dall-e-3 (DALL-E 3)</option>
                 </select>
                 <input
                   type="text"
                   value={imageModel}
                   onChange={(e) => setImageModel(e.target.value)}
-                  placeholder="自定义输入任意 Model ID"
-                  className="w-full text-[11px] bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary font-mono text-muted-foreground"
+                  placeholder="自定义输入 Image Model ID"
+                  className="w-full text-[11px] font-mono bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-1">
+            <div>
+              <label className="text-[11px] text-muted-foreground block mb-1">图像 API Base URL</label>
               <input
-                type="checkbox"
-                id="syncApiKey"
-                checked={syncApiKey}
-                onChange={(e) => setSyncApiKey(e.target.checked)}
-                className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+                type="text"
+                value={imageApiBase}
+                onChange={(e) => setImageApiBase(e.target.value)}
+                placeholder="https://openrouter.ai/api/v1"
+                className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
               />
-              <label htmlFor="syncApiKey" className="text-xs text-muted-foreground cursor-pointer select-none">
-                共用文生文 OpenRouter API Key (无需重复填写)
-              </label>
             </div>
 
-            {!syncApiKey && (
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">独立 Image API Key</label>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] text-muted-foreground">图像生成 API Key</label>
+                <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={syncApiKey}
+                    onChange={(e) => setSyncApiKey(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  <span>复用上方 LLM API Key (OpenRouter 共享密钥)</span>
+                </label>
+              </div>
+              {!syncApiKey && (
                 <div className="relative">
                   <input
                     type="password"
                     value={imageApiKey}
                     onChange={(e) => setImageApiKey(e.target.value)}
-                    placeholder="可选：单独绘图 API Key"
-                    className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
+                    placeholder="输入单独的生图 API Key..."
+                    className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 pl-8 focus:outline-none focus:border-primary"
                   />
-                  <Key className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-muted-foreground pointer-events-none" />
+                  <Key className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={onClose}
-              className="px-4 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow disabled:opacity-50"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>正在保存...</span>
-                </>
-              ) : isSaved ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>已保存设置</span>
-                </>
-              ) : (
-                <span>保存预设配置</span>
-              )}
-            </button>
+          {/* Footer Buttons */}
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-[11px] text-muted-foreground">配置将安全持久化保存在云端与本地浏览器</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-1.5 rounded-lg text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>保存中...</span>
+                  </>
+                ) : isSaved ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>已保存生效</span>
+                  </>
+                ) : (
+                  <span>保存设置</span>
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>

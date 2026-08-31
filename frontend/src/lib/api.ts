@@ -3,13 +3,36 @@ import { ProjectModel, ShotModel } from "@/types/shot";
 
 export type ProjectListItem = ProjectModel;
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+export function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    const custom = localStorage.getItem("storyboard_api_url");
+    if (custom && custom.trim()) {
+      return custom.replace(/\/+$/, "");
+    }
+  }
+  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787").replace(/\/+$/, "");
+}
+
+export function setApiBaseUrl(url: string) {
+  if (typeof window !== "undefined") {
+    if (!url || !url.trim()) {
+      localStorage.removeItem("storyboard_api_url");
+    } else {
+      localStorage.setItem("storyboard_api_url", url.trim().replace(/\/+$/, ""));
+    }
+  }
+}
 
 const apiClient = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
   headers: {
     "Content-Type": "application/json",
   },
+});
+
+// Dynamically inject latest base URL on every request
+apiClient.interceptors.request.use((config) => {
+  config.baseURL = `${getApiBaseUrl()}/api`;
+  return config;
 });
 
 export interface GenerationResponse {
@@ -32,6 +55,12 @@ export interface BatchImageResponse {
 }
 
 export const api = {
+  // Test Health
+  async checkHealth(): Promise<{ status: string; runtime: string }> {
+    const { data } = await apiClient.get("/health");
+    return data;
+  },
+
   // Projects
   async getProjects(): Promise<ProjectModel[]> {
     const { data } = await apiClient.get("/projects");
@@ -113,15 +142,15 @@ export const api = {
 
   // Export URLs
   getExportSheetUrl(projectId: string): string {
-    return `${API_BASE_URL}/api/export/storyboard-sheet/${projectId}`;
+    return `${getApiBaseUrl()}/api/export/storyboard-sheet/${projectId}`;
   },
 
   getExportScriptUrl(projectId: string): string {
-    return `${API_BASE_URL}/api/export/script-markdown/${projectId}`;
+    return `${getApiBaseUrl()}/api/export/script-markdown/${projectId}`;
   },
 
   getExportDirectorGlobalPromptUrl(projectId: string): string {
-    return `${API_BASE_URL}/api/export/director-global-prompt/${projectId}`;
+    return `${getApiBaseUrl()}/api/export/director-global-prompt/${projectId}`;
   },
 
   async fetchDirectorGlobalPrompt(projectId: string): Promise<string> {
@@ -130,10 +159,10 @@ export const api = {
   },
 
   getExportImagesZipUrl(projectId: string): string {
-    return `${API_BASE_URL}/api/export/images-zip/${projectId}`;
+    return `${getApiBaseUrl()}/api/export/images-zip/${projectId}`;
   },
 
   getExportPackageUrl(projectId: string): string {
-    return `${API_BASE_URL}/api/export/package-zip/${projectId}`;
+    return `${getApiBaseUrl()}/api/export/package-zip/${projectId}`;
   },
 };
