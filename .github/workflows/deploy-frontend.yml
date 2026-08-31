@@ -37,7 +37,7 @@ jobs:
       - name: Build Next.js Static Export
         working-directory: frontend
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || vars.NEXT_PUBLIC_API_URL || 'https://storyboard-backend.workers.dev' }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || vars.NEXT_PUBLIC_API_URL || '' }}
         run: npm run build
 
       - name: Ensure Pages Project Exists

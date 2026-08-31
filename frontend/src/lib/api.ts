@@ -10,7 +10,16 @@ export function getApiBaseUrl(): string {
       return custom.replace(/\/+$/, "");
     }
   }
-  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787").replace(/\/+$/, "");
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl && envUrl.trim()) {
+    return envUrl.replace(/\/+$/, "");
+  }
+  if (typeof window !== "undefined") {
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return "http://localhost:8787";
+    }
+  }
+  return "";
 }
 
 export function setApiBaseUrl(url: string) {
@@ -31,7 +40,8 @@ const apiClient = axios.create({
 
 // Dynamically inject latest base URL on every request
 apiClient.interceptors.request.use((config) => {
-  config.baseURL = `${getApiBaseUrl()}/api`;
+  const baseUrl = getApiBaseUrl();
+  config.baseURL = baseUrl ? `${baseUrl}/api` : "/api";
   return config;
 });
 
@@ -142,15 +152,18 @@ export const api = {
 
   // Export URLs
   getExportSheetUrl(projectId: string): string {
-    return `${getApiBaseUrl()}/api/export/storyboard-sheet/${projectId}`;
+    const base = getApiBaseUrl();
+    return base ? `${base}/api/export/storyboard-sheet/${projectId}` : `/api/export/storyboard-sheet/${projectId}`;
   },
 
   getExportScriptUrl(projectId: string): string {
-    return `${getApiBaseUrl()}/api/export/script-markdown/${projectId}`;
+    const base = getApiBaseUrl();
+    return base ? `${base}/api/export/script-markdown/${projectId}` : `/api/export/script-markdown/${projectId}`;
   },
 
   getExportDirectorGlobalPromptUrl(projectId: string): string {
-    return `${getApiBaseUrl()}/api/export/director-global-prompt/${projectId}`;
+    const base = getApiBaseUrl();
+    return base ? `${base}/api/export/director-global-prompt/${projectId}` : `/api/export/director-global-prompt/${projectId}`;
   },
 
   async fetchDirectorGlobalPrompt(projectId: string): Promise<string> {
@@ -159,10 +172,12 @@ export const api = {
   },
 
   getExportImagesZipUrl(projectId: string): string {
-    return `${getApiBaseUrl()}/api/export/images-zip/${projectId}`;
+    const base = getApiBaseUrl();
+    return base ? `${base}/api/export/images-zip/${projectId}` : `/api/export/images-zip/${projectId}`;
   },
 
   getExportPackageUrl(projectId: string): string {
-    return `${getApiBaseUrl()}/api/export/package-zip/${projectId}`;
+    const base = getApiBaseUrl();
+    return base ? `${base}/api/export/package-zip/${projectId}` : `/api/export/package-zip/${projectId}`;
   },
 };
