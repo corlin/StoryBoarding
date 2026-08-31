@@ -59,11 +59,6 @@ export interface ShotImageResponse {
   storyboard_image_url: string;
 }
 
-export interface BatchImageResponse {
-  status: string;
-  rendered_count: number;
-}
-
 export const api = {
   // Test Health
   async checkHealth(): Promise<{ status: string; runtime: string }> {
@@ -131,11 +126,6 @@ export const api = {
 
   async generateShotImage(shotId: string): Promise<ShotImageResponse> {
     const { data } = await apiClient.post(`/generate/images/${shotId}`);
-    return data;
-  },
-
-  async generateProjectImages(projectId: string): Promise<BatchImageResponse> {
-    const { data } = await apiClient.post(`/generate/images/project/${projectId}`);
     return data;
   },
 

@@ -61,8 +61,7 @@ router.get("/director-global-prompt/:projectId", async (c) => {
   });
 });
 
-// GET /api/export/package-zip/:projectId
-router.get("/package-zip/:projectId", async (c) => {
+async function handleZipExport(c: any, filenamePrefix: string) {
   const db = getDb(c.env.DB);
   const projectId = c.req.param("projectId");
   const { proj, shotList } = await getProjectAndShots(db, projectId);
@@ -74,27 +73,15 @@ router.get("/package-zip/:projectId", async (c) => {
     status: 200,
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="generation_package_${projectId}.zip"`,
+      "Content-Disposition": `attachment; filename="${filenamePrefix}_${projectId}.zip"`,
     },
   });
-});
+}
+
+// GET /api/export/package-zip/:projectId
+router.get("/package-zip/:projectId", (c) => handleZipExport(c, "generation_package"));
 
 // GET /api/export/images-zip/:projectId
-router.get("/images-zip/:projectId", async (c) => {
-  const db = getDb(c.env.DB);
-  const projectId = c.req.param("projectId");
-  const { proj, shotList } = await getProjectAndShots(db, projectId);
-
-  if (!proj) return c.text("Project not found", 404);
-
-  const zipBytes = await generateGenerationPackageZip(proj, shotList);
-  return new Response(zipBytes, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="storyboard_images_${projectId}.zip"`,
-    },
-  });
-});
+router.get("/images-zip/:projectId", (c) => handleZipExport(c, "storyboard_images"));
 
 export default router;
