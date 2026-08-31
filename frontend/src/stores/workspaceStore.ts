@@ -190,15 +190,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         character_direction: "facing_camera",
         audio: {},
         transition: "cut",
-        storyboard_image_url: generateStoryboardSvgUrl({
-          order: newOrder,
-          shot_size: "medium_shot",
-          camera_angle: "eye_level",
-          action: "新动作描述...",
-          subject: "新主体",
-        }),
+        storyboard_image_url: "",
         continuity_data: {},
-        is_dirty: false,
+        is_dirty: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

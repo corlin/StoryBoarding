@@ -49,14 +49,21 @@ async function saveImageToR2(
     }
 
     if (imageSource.startsWith("http://") || imageSource.startsWith("https://")) {
-      const res = await fetch(imageSource, { method: "GET" });
-      if (res.ok) {
-        const buffer = await res.arrayBuffer();
-        const contentType = res.headers.get("content-type") || "image/jpeg";
-        await storage.put(r2Key, buffer, {
-          httpMetadata: { contentType },
-        });
-        return `/api/assets/${r2Key}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      try {
+        const res = await fetch(imageSource, { method: "GET", signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const buffer = await res.arrayBuffer();
+          const contentType = res.headers.get("content-type") || "image/jpeg";
+          await storage.put(r2Key, buffer, {
+            httpMetadata: { contentType },
+          });
+          return `/api/assets/${r2Key}`;
+        }
+      } catch (_) {
+        clearTimeout(timeoutId);
       }
     }
   } catch (err) {
@@ -66,58 +73,7 @@ async function saveImageToR2(
   return null;
 }
 
-// Instant 0ms Previz Director Graphite Sketch Generator (High Performance)
-export function generateInstantPrevizSvg(shot: {
-  order: number;
-  shotSize: string;
-  cameraAngle: string;
-  action: string;
-  subject?: string;
-}): string {
-  const sizeUpper = (shot.shotSize || "medium_shot").replace(/_/g, " ").toUpperCase();
-  const angleUpper = (shot.cameraAngle || "eye_level").replace(/_/g, " ").toUpperCase();
-  const actionEscaped = (shot.action || "").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const subjEscaped = (shot.subject || "").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
-    <rect width="640" height="360" fill="#080c14"/>
-    <defs>
-      <pattern id="grid-${shot.order}" width="40" height="40" patternUnits="userSpaceOnUse">
-        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
-      </pattern>
-      <linearGradient id="previz-grad-${shot.order}" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#0f172a"/>
-        <stop offset="100%" stop-color="#020617"/>
-      </linearGradient>
-    </defs>
-    <rect width="640" height="360" fill="url(#previz-grad-${shot.order})"/>
-    <rect width="640" height="360" fill="url(#grid-${shot.order})"/>
-    
-    <!-- 16:9 Action Safe Frame Area -->
-    <rect x="24" y="24" width="592" height="312" rx="10" fill="none" stroke="rgba(56,189,248,0.25)" stroke-width="1.5" stroke-dasharray="8 6"/>
-    
-    <!-- Director's Crosshair Center -->
-    <line x1="320" y1="165" x2="320" y2="195" stroke="rgba(56,189,248,0.4)" stroke-width="1.5"/>
-    <line x1="305" y1="180" x2="335" y2="180" stroke="rgba(56,189,248,0.4)" stroke-width="1.5"/>
-    <circle cx="320" cy="180" r="42" fill="none" stroke="rgba(56,189,248,0.2)" stroke-width="1"/>
-
-    <!-- Top Badge -->
-    <rect x="40" y="40" width="160" height="28" rx="6" fill="rgba(15,23,42,0.85)" stroke="rgba(56,189,248,0.4)" stroke-width="1"/>
-    <text x="50" y="59" fill="#38bdf8" font-size="13" font-family="monospace" font-weight="bold">PREVIZ · SHOT ${String(shot.order).padStart(2, "0")}</text>
-    
-    <!-- Camera Spec -->
-    <text x="215" y="59" fill="#94a3b8" font-size="12" font-family="sans-serif" font-weight="500">${sizeUpper} · ${angleUpper}</text>
-    
-    <!-- Narrative Caption Box -->
-    <rect x="40" y="260" width="560" height="60" rx="8" fill="rgba(0,0,0,0.75)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-    <text x="56" y="284" fill="#38bdf8" font-size="12" font-family="sans-serif" font-weight="bold">${subjEscaped || "场景构图"}</text>
-    <text x="56" y="303" fill="#e2e8f0" font-size="11" font-family="sans-serif">${actionEscaped.slice(0, 52)}...</text>
-  </svg>`;
-
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
-
-// Robust Universal Multimodal Storyboard Image Generator (For On-Demand & Batch Developing)
+// Robust Universal Multimodal Storyboard Image Generator with 20s Timeout & FLUX Fallback
 export async function generateCinematicStoryboardImage(
   prompt: string,
   shotId: string,
@@ -136,13 +92,16 @@ export async function generateCinematicStoryboardImage(
 
   let rawImageUrl = "";
 
-  // 1. Call AI Provider when API Key is present
+  // 1. Call AI Provider when API Key is present with a 20s timeout
   if (apiKey) {
     const isOpenRouter = apiBase.includes("openrouter.ai");
 
     // Case A: OpenRouter Multimodal Chat Completions Protocol (Grok Imagine, Imagen 3, FLUX, Recraft)
     if (isOpenRouter) {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
           method: "POST",
           headers: {
@@ -156,12 +115,14 @@ export async function generateCinematicStoryboardImage(
             messages: [
               {
                 role: "user",
-                content: `Generate a high quality 16:9 cinematic pre-production director storyboard drawing: ${prompt}`,
+                content: `Cinematic movie production storyboard drawing, 16:9 widescreen: ${prompt}`,
               },
             ],
             modalities: ["image", "text"],
           }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
 
         if (resp.ok) {
           const data = (await resp.json()) as any;
@@ -183,17 +144,19 @@ export async function generateCinematicStoryboardImage(
             }
           }
         } else {
-          const errText = await resp.text();
-          console.warn(`OpenRouter image generation returned ${resp.status}:`, errText);
+          console.warn(`OpenRouter image generation returned ${resp.status}`);
         }
-      } catch (e) {
-        console.warn("OpenRouter chat/completions image call failed:", e);
+      } catch (e: any) {
+        console.warn("OpenRouter image call failed or timed out (>20s):", e?.message || e);
       }
     }
 
     // Case B: Standard OpenAI /images/generations Protocol (DALL-E 3, Midjourney API, etc.)
     if (!rawImageUrl) {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images/generations`, {
           method: "POST",
           headers: {
@@ -207,7 +170,9 @@ export async function generateCinematicStoryboardImage(
             size: "1024x1024",
             response_format: "url",
           }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
 
         if (resp.ok) {
           const data = (await resp.json()) as any;
@@ -222,11 +187,11 @@ export async function generateCinematicStoryboardImage(
     }
   }
 
-  // 2. High-speed cinematic 16:9 FLUX engine fallback if no API key or upstream failed
+  // 2. High-speed cinematic 16:9 FLUX engine fallback if no API key or upstream failed/timed out
   if (!rawImageUrl) {
     const cleanPrompt = prompt.replace(/[^\w\s,\.\-]/g, " ").trim();
     rawImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      `cinematic 2d pre-production film storyboard graphite drawing, 16:9 widescreen, ${cleanPrompt}, movie concept art, visual master`
+      `cinematic 2d film storyboard illustration, 16:9 widescreen, ${cleanPrompt}, movie concept art, dynamic lighting, masterpiece`
     )}?width=1024&height=576&seed=${seed}&model=flux&nologo=true`;
   }
 
@@ -241,7 +206,32 @@ export async function generateCinematicStoryboardImage(
   return rawImageUrl;
 }
 
-// POST /api/generate/from-story (Instant Previz breakdown <1.5s)
+// 3-Worker Safe Concurrency Task Pool Helper
+export async function runConcurrentTasks<T, R>(
+  items: T[],
+  concurrency: number,
+  taskFn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let currentIndex = 0;
+
+  async function worker() {
+    while (currentIndex < items.length) {
+      const idx = currentIndex++;
+      try {
+        results[idx] = await taskFn(items[idx], idx);
+      } catch (err) {
+        console.error(`Concurrent task failed at index ${idx}:`, err);
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
+// POST /api/generate/from-story (Real AI breakdown with 3-worker concurrent image generation)
 router.post("/from-story", async (c) => {
   const db = getDb(c.env.DB);
   const body = await c.req.json();
@@ -300,56 +290,52 @@ router.post("/from-story", async (c) => {
       await db.delete(shots).where(eq(shots.id, u.id));
     }
 
+    const availableSlots: { slot: number; planShot: any }[] = [];
     let aiIndex = 0;
     for (let slot = 1; slot <= Math.max(6, result.shots.length); slot++) {
       if (lockedOrders.has(slot)) continue;
       const s = result.shots[aiIndex];
       if (!s) break;
       aiIndex++;
+      availableSlots.push({ slot, planShot: s });
+    }
 
+    // 3-Worker concurrent real AI image generation
+    await runConcurrentTasks(availableSlots, 3, async ({ slot, planShot }) => {
       const shotId = crypto.randomUUID();
-      const previzSvg = generateInstantPrevizSvg({
-        order: slot,
-        shotSize: s.shot_size,
-        cameraAngle: s.camera_angle,
-        action: s.action,
-        subject: s.subject || "",
-      });
+      const seed = Math.floor(Math.random() * 900000) + slot * 1000;
+      const imageUrl = await generateCinematicStoryboardImage(planShot.image_prompt, shotId, settings, c.env.STORAGE, seed);
 
       await db.insert(shots).values({
         id: shotId,
         sequenceId: seq.id,
         order: slot,
-        duration: s.duration,
-        shotSize: s.shot_size,
-        cameraAngle: s.camera_angle,
-        cameraMovement: JSON.stringify(s.camera_movement || {}),
-        subject: s.subject || "",
-        action: s.action,
-        dialogue: s.dialogue || "",
-        narrativeFunction: s.narrative_function || "动作推进",
-        lighting: s.lighting || "自然光",
-        audio: JSON.stringify(s.audio || {}),
-        imagePrompt: s.image_prompt,
-        videoPrompt: s.video_prompt,
-        continuityData: JSON.stringify(s.continuity_data || {}),
-        storyboardImageUrl: previzSvg,
-        isDirty: true,
+        duration: planShot.duration,
+        shotSize: planShot.shot_size,
+        cameraAngle: planShot.camera_angle,
+        cameraMovement: JSON.stringify(planShot.camera_movement || {}),
+        subject: planShot.subject || "",
+        action: planShot.action,
+        dialogue: planShot.dialogue || "",
+        narrativeFunction: planShot.narrative_function || "动作推进",
+        lighting: planShot.lighting || "自然光",
+        audio: JSON.stringify(planShot.audio || {}),
+        imagePrompt: planShot.image_prompt,
+        videoPrompt: planShot.video_prompt,
+        continuityData: JSON.stringify(planShot.continuity_data || {}),
+        storyboardImageUrl: imageUrl,
+        isDirty: false,
         isLocked: false,
       });
-    }
+    });
   } else {
     await db.delete(shots).where(eq(shots.sequenceId, seq.id));
 
-    for (const s of result.shots) {
+    // 3-Worker concurrent real AI image generation
+    await runConcurrentTasks(result.shots, 3, async (s) => {
       const shotId = crypto.randomUUID();
-      const previzSvg = generateInstantPrevizSvg({
-        order: s.order,
-        shotSize: s.shot_size,
-        cameraAngle: s.camera_angle,
-        action: s.action,
-        subject: s.subject || "",
-      });
+      const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
+      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
 
       await db.insert(shots).values({
         id: shotId,
@@ -368,11 +354,11 @@ router.post("/from-story", async (c) => {
         imagePrompt: s.image_prompt,
         videoPrompt: s.video_prompt,
         continuityData: JSON.stringify(s.continuity_data || {}),
-        storyboardImageUrl: previzSvg,
-        isDirty: true,
+        storyboardImageUrl: imageUrl,
+        isDirty: false,
         isLocked: false,
       });
-    }
+    });
   }
 
   return c.json({
@@ -383,7 +369,7 @@ router.post("/from-story", async (c) => {
   });
 });
 
-// POST /api/generate/from-script (Instant Previz breakdown <1.5s)
+// POST /api/generate/from-script (Real AI breakdown from script with 3-worker concurrent image generation)
 router.post("/from-script", async (c) => {
   const db = getDb(c.env.DB);
   const body = await c.req.json();
@@ -437,56 +423,50 @@ router.post("/from-script", async (c) => {
       await db.delete(shots).where(eq(shots.id, u.id));
     }
 
+    const availableSlots: { slot: number; planShot: any }[] = [];
     let aiIndex = 0;
     for (let slot = 1; slot <= Math.max(6, result.shots.length); slot++) {
       if (lockedOrders.has(slot)) continue;
       const s = result.shots[aiIndex];
       if (!s) break;
       aiIndex++;
+      availableSlots.push({ slot, planShot: s });
+    }
 
+    await runConcurrentTasks(availableSlots, 3, async ({ slot, planShot }) => {
       const shotId = crypto.randomUUID();
-      const previzSvg = generateInstantPrevizSvg({
-        order: slot,
-        shotSize: s.shot_size,
-        cameraAngle: s.camera_angle,
-        action: s.action,
-        subject: s.subject || "",
-      });
+      const seed = Math.floor(Math.random() * 900000) + slot * 1000;
+      const imageUrl = await generateCinematicStoryboardImage(planShot.image_prompt, shotId, settings, c.env.STORAGE, seed);
 
       await db.insert(shots).values({
         id: shotId,
         sequenceId: seq.id,
         order: slot,
-        duration: s.duration,
-        shotSize: s.shot_size,
-        cameraAngle: s.camera_angle,
-        cameraMovement: JSON.stringify(s.camera_movement || {}),
-        subject: s.subject || "",
-        action: s.action,
-        dialogue: s.dialogue || "",
-        narrativeFunction: s.narrative_function || "动作推进",
-        lighting: s.lighting || "自然光",
-        audio: JSON.stringify(s.audio || {}),
-        imagePrompt: s.image_prompt,
-        videoPrompt: s.video_prompt,
-        continuityData: JSON.stringify(s.continuity_data || {}),
-        storyboardImageUrl: previzSvg,
-        isDirty: true,
+        duration: planShot.duration,
+        shotSize: planShot.shot_size,
+        cameraAngle: planShot.camera_angle,
+        cameraMovement: JSON.stringify(planShot.camera_movement || {}),
+        subject: planShot.subject || "",
+        action: planShot.action,
+        dialogue: planShot.dialogue || "",
+        narrativeFunction: planShot.narrative_function || "动作推进",
+        lighting: planShot.lighting || "自然光",
+        audio: JSON.stringify(planShot.audio || {}),
+        imagePrompt: planShot.image_prompt,
+        videoPrompt: planShot.video_prompt,
+        continuityData: JSON.stringify(planShot.continuity_data || {}),
+        storyboardImageUrl: imageUrl,
+        isDirty: false,
         isLocked: false,
       });
-    }
+    });
   } else {
     await db.delete(shots).where(eq(shots.sequenceId, seq.id));
 
-    for (const s of result.shots) {
+    await runConcurrentTasks(result.shots, 3, async (s) => {
       const shotId = crypto.randomUUID();
-      const previzSvg = generateInstantPrevizSvg({
-        order: s.order,
-        shotSize: s.shot_size,
-        cameraAngle: s.camera_angle,
-        action: s.action,
-        subject: s.subject || "",
-      });
+      const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
+      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
 
       await db.insert(shots).values({
         id: shotId,
@@ -505,11 +485,11 @@ router.post("/from-script", async (c) => {
         imagePrompt: s.image_prompt,
         videoPrompt: s.video_prompt,
         continuityData: JSON.stringify(s.continuity_data || {}),
-        storyboardImageUrl: previzSvg,
-        isDirty: true,
+        storyboardImageUrl: imageUrl,
+        isDirty: false,
         isLocked: false,
       });
-    }
+    });
   }
 
   return c.json({
@@ -520,7 +500,7 @@ router.post("/from-script", async (c) => {
   });
 });
 
-// POST /api/generate/images/:shotId (On-demand Hi-Fi AI diffusion & R2 saving)
+// POST /api/generate/images/:shotId (Dedicated single-shot real AI regeneration)
 router.post("/images/:shotId", async (c) => {
   const db = getDb(c.env.DB);
   const shotId = c.req.param("shotId");
@@ -538,7 +518,7 @@ router.post("/images/:shotId", async (c) => {
 
   await db.update(shots).set({
     storyboardImageUrl: imageUrl,
-    isDirty: false, // Upgraded from Previz sketch to Hi-Fi AI rendered state
+    isDirty: false,
     updatedAt: new Date().toISOString(),
   }).where(eq(shots.id, shotId));
 

@@ -288,13 +288,9 @@ export function createDemoMatrixProject(): ProjectModel {
       ...s.camera_movement,
       speed: s.camera_movement.speed as 'slow' | 'medium' | 'fast' | 'sudden' | undefined,
     },
-    storyboard_image_url: generateStoryboardSvgUrl({
-      order: s.order,
-      shot_size: s.shot_size,
-      camera_angle: s.camera_angle,
-      action: s.action,
-      subject: s.subject,
-    }),
+    storyboard_image_url: `https://image.pollinations.ai/prompt/${encodeURIComponent(
+      `cinematic 2d film storyboard illustration, 16:9 widescreen, ${s.action}, cyberpunk tea house martial arts matrix aesthetic`
+    )}?width=1024&height=576&seed=${s.order * 1000 + 42}&model=flux&nologo=true`,
   })) as ShotModel[];
 
   return {

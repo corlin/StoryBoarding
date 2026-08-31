@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ShotModel } from "@/types/shot";
 import { StoryboardCell } from "./StoryboardCell";
-import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, Paintbrush, CheckCircle2 } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StoryboardPanelProps {
@@ -32,11 +32,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   const [gridCols, setGridCols] = useState<2 | 3 | 4>(3);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const previzShots = shots.filter(
-    (s) => s.is_dirty || !s.storyboard_image_url || s.storyboard_image_url.startsWith("data:image/svg")
-  );
-  const previzCount = previzShots.length;
-  const hiFiCount = shots.length - previzCount;
+  const missingImageCount = shots.filter((s) => !s.storyboard_image_url || s.is_dirty).length;
 
   // Auto-scroll to selected storyboard cell during playback or selection
   useEffect(() => {
@@ -69,28 +65,12 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
           <span className="text-xs text-muted-foreground font-mono">
             [{shots.length} 镜]
           </span>
-
-          {/* Previz vs Hi-Fi Stats */}
-          {shots.length > 0 && (
-            <div className="hidden sm:flex items-center gap-1.5 ml-2 text-[11px] font-mono">
-              {previzCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                  {previzCount} 镜草图
-                </span>
-              )}
-              {hiFiCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  {hiFiCount} 镜高精
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Actions & Layout Controls */}
         <div className="flex items-center gap-2">
-          {/* Batch Previz Developing Button */}
-          {previzCount > 0 && onRegenerateDirty && (
+          {/* Batch Re-render Button if any shots missing images */}
+          {missingImageCount > 0 && onRegenerateDirty && (
             <button
               onClick={onRegenerateDirty}
               disabled={isBatchRendering}
@@ -98,19 +78,19 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                 "inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold shadow-sm transition-all duration-200",
                 isBatchRendering
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
-                  : "bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-black shadow-amber-500/20 hover:shadow-md"
+                  : "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20"
               )}
-              title="按序将所有 Previz 构图草图冲印为影视级 AI 高精成片"
+              title="批量渲染尚未生成画面的镜头"
             >
               {isBatchRendering ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Paintbrush className="w-3.5 h-3.5" />
+                <RefreshCw className="w-3.5 h-3.5" />
               )}
               <span>
                 {isBatchRendering
-                  ? `冲印中 (${batchProgress?.current || 0}/${batchProgress?.total || previzCount})`
-                  : `批量冲印全部草图 (${previzCount})`}
+                  ? `渲染中 (${batchProgress?.current || 0}/${batchProgress?.total || missingImageCount})`
+                  : `批量生成画面 (${missingImageCount})`}
               </span>
             </button>
           )}
@@ -166,7 +146,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
           <div className="flex items-center gap-2 text-xs text-amber-300 font-medium min-w-0">
             <Loader2 className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
             <span className="truncate">
-              正在后台顺序冲印：第 <strong>{batchProgress.current}</strong> / {batchProgress.total} 镜...
+              正在后台顺序渲染画面：第 <strong>{batchProgress.current}</strong> / {batchProgress.total} 镜...
             </span>
           </div>
 

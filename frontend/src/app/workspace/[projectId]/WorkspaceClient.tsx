@@ -293,13 +293,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       const updated = shots.map((s) => ({
         ...s,
         is_dirty: false,
-        storyboard_image_url: generateStoryboardSvgUrl({
-          order: s.order,
-          shot_size: s.shot_size,
-          camera_angle: s.camera_angle,
-          action: s.action,
-          subject: s.subject,
-        }),
+        storyboard_image_url: `https://image.pollinations.ai/prompt/${encodeURIComponent(
+          `cinematic 2d film storyboard illustration, 16:9 widescreen, ${s.action}, cyberpunk tea house martial arts matrix aesthetic`
+        )}?width=1024&height=576&seed=${s.order * 1000 + Date.now() % 1000}&model=flux&nologo=true`,
       }));
       setProject({
         ...currentProject,
@@ -310,7 +306,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           },
         ],
       });
-      notify.success("✨ 演示故事板已重绘完毕！");
+      notify.success("✨ 演示故事板画面已重新绘制！");
       return;
     }
 
@@ -329,7 +325,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         setBatchProgress({ current: done, total: previzShots.length });
       }
       await fetchProject(currentProject.id);
-      notify.success(`🎨 全部 ${previzShots.length} 个 Previz 草图冲印完成！已升级为高精成片`);
+      notify.success(`🎨 全部 ${previzShots.length} 个镜头画面渲染完成！`);
     } catch (err: any) {
       notify.error("批量冲印队列出现异常");
     } finally {
@@ -348,15 +344,11 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       if (shot) {
         updateShotLocal(shotId, {
           is_dirty: false,
-          storyboard_image_url: generateStoryboardSvgUrl({
-            order: shot.order,
-            shot_size: shot.shot_size,
-            camera_angle: shot.camera_angle,
-            action: shot.action,
-            subject: shot.subject,
-          }),
+          storyboard_image_url: `https://image.pollinations.ai/prompt/${encodeURIComponent(
+            `cinematic 2d film storyboard illustration, 16:9 widescreen, ${shot.action}, cyberpunk tea house martial arts matrix aesthetic`
+          )}?width=1024&height=576&seed=${shot.order * 1000 + Date.now() % 1000}&model=flux&nologo=true`,
         });
-        notify.success(`✨ 第 ${shot.order} 镜重绘成功！`);
+        notify.success(`✨ 第 ${shot.order} 镜重新打样成功！`);
       }
       return;
     }

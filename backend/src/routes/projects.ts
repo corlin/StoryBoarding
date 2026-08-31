@@ -3,7 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
 import { projects, sequences, shots, systemSettings } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt } from "../agents/director/pipeline";
-import { generateInstantPrevizSvg } from "./generation";
+import { generateCinematicStoryboardImage, runConcurrentTasks } from "./generation";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -63,6 +63,11 @@ async function ensureDemoProject(db: any) {
     await db.delete(shots).where(eq(shots.sequenceId, seq.id));
 
     for (const item of FULL_DEMO_SHOTS) {
+      const cleanPrompt = item.act.replace(/[^\w\s,\.\-]/g, " ").trim();
+      const demoImgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+        `cinematic 2d film storyboard illustration, 16:9 widescreen, ${cleanPrompt}, cyberpunk tea house martial arts matrix aesthetic`
+      )}?width=1024&height=576&seed=${item.order * 1000 + 42}&model=flux&nologo=true`;
+
       await db.insert(shots).values({
         id: `shot-demo-${String(item.order).padStart(2, "0")}`,
         sequenceId: seq.id,
@@ -80,13 +85,7 @@ async function ensureDemoProject(db: any) {
         imagePrompt: formatDirectorImagePrompt(item.act, item.size, item.angle, item.mov),
         videoPrompt: `Cinematic movie camera ${item.mov}, ${item.act}, 4k film still`,
         continuityData: JSON.stringify({ screen_direction: item.order % 2 === 0 ? "right_to_left" : "left_to_right" }),
-        storyboardImageUrl: generateInstantPrevizSvg({
-          order: item.order,
-          shotSize: item.size,
-          cameraAngle: item.angle,
-          action: item.act,
-          subject: item.subj,
-        }),
+        storyboardImageUrl: demoImgUrl,
         isDirty: false,
         isLocked: false,
       });
@@ -165,13 +164,7 @@ router.get("/:id", async (c) => {
           image_prompt: s.imagePrompt,
           video_prompt: s.videoPrompt,
           continuity_data: s.continuityData ? JSON.parse(s.continuityData) : {},
-          storyboard_image_url: s.storyboardImageUrl || generateInstantPrevizSvg({
-            order: s.order,
-            shotSize: s.shotSize,
-            cameraAngle: s.cameraAngle,
-            action: s.action,
-            subject: s.subject || "",
-          }),
+          storyboard_image_url: s.storyboardImageUrl || "",
           is_dirty: s.isDirty,
           is_locked: s.isLocked,
           created_at: s.createdAt,
@@ -192,7 +185,7 @@ router.get("/:id", async (c) => {
   });
 });
 
-// POST /api/projects
+// POST /api/projects (Auto-generate real AI visual storyboards concurrently)
 router.post("/", async (c) => {
   const db = getDb(c.env.DB);
   const body = await c.req.json();
@@ -220,7 +213,6 @@ router.post("/", async (c) => {
     order: 1,
   });
 
-  // Fast Instant Previz Generation: No blocking 50s T2I diffusion calls in loop!
   const effectiveStory = story.trim() || title.trim();
   try {
     const settings = await getActiveSettings(db, c.env);
@@ -230,15 +222,11 @@ router.post("/", async (c) => {
       model: settings.llmModel,
     });
 
-    for (const s of plan.shots) {
+    // 3-Worker safe concurrent real AI image generation
+    await runConcurrentTasks(plan.shots, 3, async (s) => {
       const shotId = crypto.randomUUID();
-      const previzSvg = generateInstantPrevizSvg({
-        order: s.order,
-        shotSize: s.shot_size,
-        cameraAngle: s.camera_angle,
-        action: s.action,
-        subject: s.subject || "",
-      });
+      const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
+      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
 
       await db.insert(shots).values({
         id: shotId,
@@ -257,11 +245,11 @@ router.post("/", async (c) => {
         imagePrompt: s.image_prompt,
         videoPrompt: s.video_prompt,
         continuityData: JSON.stringify(s.continuity_data || {}),
-        storyboardImageUrl: previzSvg,
-        isDirty: true, // Marked as Previz sketch state, ready for Hi-Fi AI diffusion
+        storyboardImageUrl: imageUrl,
+        isDirty: false,
         isLocked: false,
       });
-    }
+    });
   } catch (e) {
     console.error("Auto shot generation note during project creation:", e);
   }

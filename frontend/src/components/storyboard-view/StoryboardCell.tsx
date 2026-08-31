@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ShotModel } from "@/types/shot";
-import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock, Paintbrush, Sparkle } from "lucide-react";
-import { generateStoryboardSvgUrl } from "@/lib/storyboardGraphics";
+import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StoryboardCellProps {
@@ -41,23 +40,10 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
 
   const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || "MS";
   const isLocked = Boolean(shot.is_locked);
-  const isPreviz = shot.is_dirty || !shot.storyboard_image_url || shot.storyboard_image_url.startsWith("data:image/svg");
 
   useEffect(() => {
-    if (shot.storyboard_image_url) {
-      setImgSrc(shot.storyboard_image_url);
-    } else {
-      setImgSrc(
-        generateStoryboardSvgUrl({
-          order: shot.order,
-          shot_size: shot.shot_size,
-          camera_angle: shot.camera_angle,
-          action: shot.action,
-          subject: shot.subject,
-        })
-      );
-    }
-  }, [shot.storyboard_image_url, shot.action, shot.shot_size, shot.camera_angle, shot.order, shot.subject]);
+    setImgSrc(shot.storyboard_image_url || "");
+  }, [shot.storyboard_image_url]);
 
   // Stopwatch timer for single shot generation (essential for 50s Grok / 15s Imagen models)
   useEffect(() => {
@@ -92,17 +78,6 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
     }
   };
 
-  const handleImageError = () => {
-    const fallbackSvg = generateStoryboardSvgUrl({
-      order: shot.order,
-      shot_size: shot.shot_size,
-      camera_angle: shot.camera_angle,
-      action: shot.action,
-      subject: shot.subject,
-    });
-    setImgSrc(fallbackSvg);
-  };
-
   return (
     <div
       onClick={onSelect}
@@ -128,15 +103,14 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           <img
             src={imgSrc}
             alt={`Shot ${index + 1}`}
-            onError={handleImageError}
             className="w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.02]"
           />
         ) : (
-          /* Placeholder Canvas */
-          <div className="flex flex-col items-center justify-center text-muted-foreground/50 p-4 text-center">
-            <Film className="w-8 h-8 mb-1.5 opacity-40" />
-            <span className="text-xs font-mono tracking-wider">
-              {shot.shot_size.toUpperCase()}
+          /* Clean Cinematic Skeleton Frame (No fake generic geometric SVG) */
+          <div className="flex flex-col items-center justify-center text-muted-foreground/40 p-4 text-center">
+            <Film className="w-8 h-8 mb-1.5 opacity-30 animate-pulse" />
+            <span className="text-xs font-mono tracking-wider font-semibold text-muted-foreground/60">
+              {shot.shot_size.toUpperCase()} · 待渲染
             </span>
           </div>
         )}
@@ -152,35 +126,23 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
             </div>
 
             <p className="relative text-xs font-semibold text-foreground tracking-tight flex items-center gap-1.5">
-              <span>正在暗房冲印第 {index + 1} 镜</span>
+              <span>正在渲染第 {index + 1} 镜画面</span>
               <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
             </p>
 
             <span className="relative text-[11px] font-mono text-primary font-bold mt-1 bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-              ⏱️ 冲印耗时: {elapsed.toFixed(1)}s
+              ⏱️ 耗时: {elapsed.toFixed(1)}s
             </span>
           </div>
         )}
 
-        {/* Top Badges (Shot No, Shot Size, Duration, Previz/Hi-Fi Status, Lock) */}
+        {/* Top Badges (Shot No, Shot Size, Duration, Lock) */}
         <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-background/90 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-mono border border-border/60 shadow-sm z-10">
           <span className="font-bold text-sky-400">{String(index + 1).padStart(2, "0")}</span>
           <span className="text-muted-foreground">·</span>
           <span className="font-semibold text-foreground">{sizeAbbr}</span>
           <span className="text-muted-foreground">·</span>
           <span className="text-emerald-400 font-semibold">{shot.duration}s</span>
-
-          {/* Previz vs HiFi Badge */}
-          <span className="text-muted-foreground">·</span>
-          {isPreviz ? (
-            <span className="text-[10px] text-sky-400 font-sans font-medium px-1 rounded bg-sky-500/10 border border-sky-500/20">
-              Previz草图
-            </span>
-          ) : (
-            <span className="text-[10px] text-emerald-400 font-sans font-medium px-1 rounded bg-emerald-500/10 border border-emerald-500/20">
-              高精成片
-            </span>
-          )}
 
           {isLocked && (
             <>
@@ -238,36 +200,25 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
             </button>
           )}
 
-          {/* Previz -> Hi-Fi AI Develop Button / Quick Resample Button */}
-          {isPreviz ? (
-            <button
-              onClick={handleRegenerate}
-              disabled={isRegenerating}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md font-bold text-xs shadow-md transition-all disabled:opacity-50 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-black animate-in fade-in"
-              title="调用大模型将当前 Previz 草图冲印为影视级高精画面"
-            >
-              {isRegenerating ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Paintbrush className="w-3.5 h-3.5" />
-              )}
-              <span>{isRegenerating ? "冲印中" : "冲印成片"}</span>
-            </button>
-          ) : (
-            <button
-              onClick={handleRegenerate}
-              disabled={isRegenerating}
-              className="opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 rounded font-medium text-xs shadow transition-colors disabled:opacity-50 bg-background/85 hover:bg-background text-foreground border border-border/60 backdrop-blur"
-              title="重新打样渲染高精画面"
-            >
-              {isRegenerating ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="w-3.5 h-3.5" />
-              )}
-              <span>重新打样</span>
-            </button>
-          )}
+          {/* Regenerate / Re-sample Shot Image Button */}
+          <button
+            onClick={handleRegenerate}
+            disabled={isRegenerating}
+            className={cn(
+              "flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs shadow transition-all disabled:opacity-50 backdrop-blur border",
+              !imgSrc
+                ? "bg-amber-500 hover:bg-amber-400 text-black border-amber-500/40"
+                : "bg-background/85 hover:bg-background text-foreground hover:text-primary border-border/50 opacity-0 group-hover:opacity-100"
+            )}
+            title="重新打样渲染电影级分镜画面"
+          >
+            {isRegenerating ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="w-3.5 h-3.5" />
+            )}
+            <span>{isRegenerating ? "绘制中" : imgSrc ? "重新打样" : "生成画面"}</span>
+          </button>
         </div>
 
         {/* Camera Movement Arrow Visual Overlay */}
