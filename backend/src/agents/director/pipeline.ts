@@ -55,25 +55,35 @@ export function getDirectorSystemPrompt(targetDuration: number = 30.0): string {
 - 第四篇章 (24~30s, 镜10-12): 合 · 胜负裁决与电影感余韵定格。`;
   }
 
-  return `你是一位好莱坞顶级电影视觉导演与分镜师智能体 (AI Visual Director & Storyboard Artist)。
-你的核心任务是将人类导演输入的故事或剧本，转化为符合影视工业标准的结构化分镜脚本。
+  return `你是一位好莱坞顶级电影视觉导演与分镜大师智能体 (Hollywood Visual Director & Master Storyboard Artist)。
+你的核心任务是将人类导演输入的故事剧本，转化为结构严谨、视觉动势拉满的工业级电影分镜头。
+
 ${pacingGuidance}
 
-目标时长: ${targetDuration} 秒，请规划生成恰好 ${expectedShots} 个节奏紧凑、上下动作高度连贯的电影镜头。
+【全片视觉与角色特征锚点（Global Visual Anchor）要求】：
+请在 JSON 顶层输出：
+1. "theme": 故事核心主题短语 (中英文)
+2. "global_visual_anchor": 全片核心视觉与角色基石 (英文, 包含主角外观特征、核心场景基调与美术风格，如 "Protagonist is a martial artist in black cybernetic coat, dark neon-lit rain alleyway, high-tension cinematic graphite sketch")
+3. "shots": 分镜头列表 (恰好 ${expectedShots} 个镜头)
 
-每个镜头必须包含：
+【每个镜头字段规范】：
 - order: 镜头序号 (1..${expectedShots})
 - duration: 镜头时长 (秒)
 - shot_size: 景别 ('extreme_wide_shot' | 'wide_shot' | 'full_shot' | 'medium_shot' | 'medium_close_up' | 'close_up' | 'extreme_close_up')
 - camera_angle: 角度 ('eye_level' | 'low_angle' | 'high_angle' | 'dutch_angle' | 'birds_eye' | 'worms_eye')
-- camera_movement: 运镜 (如 { "type": "crane", "speed": "slow" } 或 { "type": "push_in" })
+- camera_movement: 运镜 (如 { "type": "push_in", "speed": "fast" } 或 { "type": "tracking_right" })
 - subject: 镜头主体描述
-- action: 镜头具体动作与画面叙事 (必须承接上一镜头动势)
+- action: 镜头具体动作与画面叙事 (必须承接上一镜头动势，详细描述人物肢体、动态交互与视线)
 - dialogue: 角色对白 (可选)
-- narrative_function: 视听叙事功能
-- lighting: 光影基调 (统一黑白灰石墨手绘光影)
+- narrative_function: 视听叙事功能 (如 "核心动作交锋 / 视觉奇观展示")
+- lighting: 光影基调 (如 "黑白灰侧逆光石墨光影")
 - audio: 音效 (sfx) 与音乐 (music)
-- image_prompt: 专业的 2D 分镜概念草图提示词 (English)
+- image_prompt: 极其详尽的高保真英文生图提示词 (English)，必须包含：
+  1) 全局主角外观特征 (Character Consistency Anchor)
+  2) 景别与机位角度 (Framing & Camera Angle)
+  3) 具体身体动作与物理对抗交互 (Specific Physical Action)
+  4) 空间背景与光影 (Environment & Lighting)
+  5) 固定风格后缀: "2d monochrome graphite film storyboard sketch, 16:9 widescreen composition, professional pre-viz illustration, clean pencil line art, tonal shading, unfinished aesthetic, no color, no comic text"
 - video_prompt: 专业的 AI 视频生成运镜提示词 (English)
 - continuity_data: 空间与视线连贯性数据 ({ "screen_direction": "left_to_right" })
 `;
@@ -90,6 +100,7 @@ export function formatDirectorImagePrompt(
     prevShot?: { order: number; action: string; shotSize?: string };
     screenDirection?: string;
     order?: number;
+    globalAnchor?: string;
   }
 ): string {
   const sizeMap: Record<string, string> = {
@@ -102,26 +113,30 @@ export function formatDirectorImagePrompt(
     extreme_close_up: "extreme close up (ECU)",
   };
   const angleMap: Record<string, string> = {
-    eye_level: "eye level",
-    low_angle: "low angle looking up",
-    high_angle: "high angle looking down",
-    dutch_angle: "dutch angle tilted",
+    eye_level: "eye level shot",
+    low_angle: "low angle looking up, dramatic perspective",
+    high_angle: "high angle looking down, spatial overview",
+    dutch_angle: "dutch tilt angle, high dynamic tension",
     birds_eye: "overhead bird's eye view",
-    worms_eye: "worm's eye perspective",
+    worms_eye: "ground-level worm's eye perspective",
   };
 
-  const readableSize = sizeMap[size] || size;
-  const readableAngle = angleMap[angle] || angle;
-  const shotNo = context?.order ? `SHOT ${String(context.order).padStart(2, "0")}` : "SHOT";
+  const readableSize = sizeMap[size] || size || "medium shot";
+  const readableAngle = angleMap[angle] || angle || "eye level shot";
+  const shotNo = context?.order ? `Shot #${String(context.order).padStart(2, "0")}` : "Shot";
   const dir = context?.screenDirection || "left_to_right";
+  const subject = context?.subject ? `Subject: ${context.subject}. ` : "";
+  const globalAnchor = context?.globalAnchor || context?.storyContext || "";
 
   let continuityClause = "";
   if (context?.prevShot) {
-    const cleanPrev = context.prevShot.action.slice(0, 45).replace(/"/g, "'");
-    continuityClause = `Continuing from SHOT ${String(context.prevShot.order).padStart(2, "0")} where ${cleanPrev}, `;
+    const cleanPrev = context.prevShot.action.slice(0, 50).replace(/["“”'‘’]/g, "'");
+    continuityClause = `Continuing from previous shot where ${cleanPrev}, `;
   }
 
-  return `Monochrome grayscale rough graphite storyboard sketch, ${readableSize}, ${readableAngle}, camera ${mov}. ${continuityClause}${shotNo} action: ${action}. Screen direction: ${dir}, maintaining 180-degree action axis. Clean gestural pencil linework, unfinished pre-viz aesthetic, standard 16:9 draft, no color, no comic bubbles.`;
+  const baseStyle = "2d monochrome graphite film storyboard sketch, professional pre-production concept art, 16:9 widescreen composition, high contrast pencil line art, tonal graphite shading, cinematic staging";
+
+  return `${baseStyle}. ${globalAnchor ? `Visual Anchor: ${globalAnchor}. ` : ""}${readableSize}, ${readableAngle}, camera ${mov}. ${continuityClause}${shotNo} - ${subject}Action: ${action}. Screen direction: ${dir}, 180-degree action axis locked. Unfinished pre-viz aesthetic, dynamic gestural linework, no color, no speech bubbles.`;
 }
 
 // Generate story-adaptive fallback storyboard based on user's actual story text
@@ -248,21 +263,32 @@ export async function runDirectorPipeline(
 
           const parsed = JSON.parse(jsonStr);
           if (parsed.shots && Array.isArray(parsed.shots) && parsed.shots.length > 0) {
+            const globalAnchor = parsed.global_visual_anchor || storyText.slice(0, 100);
+
             // Post-process with 4-pillar continuity prompt builder
             const enrichedShots: ShotPlan[] = parsed.shots.map((s: any, idx: number) => {
               const prev = idx > 0 ? { order: idx, action: parsed.shots[idx - 1].action } : undefined;
-              const imgPrompt = formatDirectorImagePrompt(
-                s.action || "",
-                s.shot_size || "medium_shot",
-                s.camera_angle || "eye_level",
-                s.camera_movement?.type || "static",
-                {
-                  order: s.order || idx + 1,
-                  prevShot: prev,
-                  screenDirection: s.continuity_data?.screen_direction || (idx % 2 === 0 ? "left_to_right" : "right_to_left"),
-                  storyContext: storyText.slice(0, 80),
-                }
-              );
+              const rawImgPrompt = (s.image_prompt || "").trim();
+
+              let finalImgPrompt = rawImgPrompt;
+              if (!rawImgPrompt || rawImgPrompt.length < 25) {
+                finalImgPrompt = formatDirectorImagePrompt(
+                  s.action || "",
+                  s.shot_size || "medium_shot",
+                  s.camera_angle || "eye_level",
+                  s.camera_movement?.type || "static",
+                  {
+                    order: s.order || idx + 1,
+                    subject: s.subject,
+                    prevShot: prev,
+                    screenDirection: s.continuity_data?.screen_direction || (idx % 2 === 0 ? "left_to_right" : "right_to_left"),
+                    storyContext: storyText.slice(0, 80),
+                    globalAnchor: globalAnchor,
+                  }
+                );
+              } else if (globalAnchor && !rawImgPrompt.toLowerCase().includes(globalAnchor.toLowerCase().slice(0, 20))) {
+                finalImgPrompt = `Visual Anchor: ${globalAnchor}. ${rawImgPrompt}`;
+              }
 
               return {
                 order: s.order || idx + 1,
@@ -276,7 +302,7 @@ export async function runDirectorPipeline(
                 narrative_function: s.narrative_function || "动作推进",
                 lighting: s.lighting || "黑白灰石墨光影",
                 audio: typeof s.audio === "object" ? s.audio : { sfx: "环境音" },
-                image_prompt: imgPrompt,
+                image_prompt: finalImgPrompt,
                 video_prompt: s.video_prompt || `Cinematic camera, ${s.action}`,
                 continuity_data: typeof s.continuity_data === "object" ? s.continuity_data : { screen_direction: "left_to_right" },
               };

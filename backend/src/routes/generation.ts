@@ -141,7 +141,9 @@ export async function generateCinematicStoryboardImage(
             messages: [
               {
                 role: "user",
-                content: `Monochrome pre-production director storyboard draft (512x288, 16:9 widescreen, graphite lines): ${prompt}`,
+                content: prompt.includes("graphite storyboard sketch")
+                  ? prompt
+                  : `2D monochrome graphite film storyboard sketch, 16:9 widescreen, pencil line art: ${prompt}`,
               },
             ],
             modalities: ["image", "text"],
@@ -215,9 +217,14 @@ export async function generateCinematicStoryboardImage(
 
   // 2. High-speed cinematic 512x288 FLUX engine fallback if no API key or upstream failed/timed out
   if (!rawImageUrl) {
-    const cleanPrompt = prompt.replace(/[^\w\s,\.\-]/g, " ").trim();
+    const cleanPrompt = prompt
+      .replace(/[\r\n\t]+/g, " ")
+      .replace(/["“”'‘’]/g, "'")
+      .replace(/\s+/g, " ")
+      .trim();
+
     rawImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      `cinematic 2d monochrome graphite film storyboard illustration, 16:9 widescreen, ${cleanPrompt}, draft line art`
+      `cinematic 2d monochrome graphite film storyboard illustration, 16:9 widescreen, ${cleanPrompt}`
     )}?width=512&height=288&seed=${seed}&model=flux&nologo=true`;
   }
 
