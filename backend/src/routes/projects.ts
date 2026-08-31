@@ -224,12 +224,9 @@ router.post("/", async (c) => {
       model: settings.llmModel,
     });
 
-    // 3-Worker safe concurrent real AI image generation with deterministic seed chain
-    await runConcurrentTasks(plan.shots, 3, async (s) => {
+    // Fast instant insertion of structured director shots into D1
+    for (const s of plan.shots) {
       const shotId = crypto.randomUUID();
-      const seed = baseSeed + s.order * 1000;
-      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
-
       await db.insert(shots).values({
         id: shotId,
         sequenceId: seqId,
@@ -247,13 +244,13 @@ router.post("/", async (c) => {
         imagePrompt: s.image_prompt,
         videoPrompt: s.video_prompt,
         continuityData: JSON.stringify(s.continuity_data || {}),
-        storyboardImageUrl: imageUrl,
+        storyboardImageUrl: "",
         isDirty: false,
         isLocked: false,
       });
-    });
+    }
   } catch (e) {
-    console.error("Auto shot generation note during project creation:", e);
+    console.error("Auto shot breakdown error during project creation:", e);
   }
 
   return c.json(newProj, 201);

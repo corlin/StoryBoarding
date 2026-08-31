@@ -64,33 +64,29 @@ export default function DashboardPage() {
 
     const startTime = Date.now();
 
-    // Progress interpolation engine
+    // Instant smooth progress interpolation engine
     progressIntervalRef.current = setInterval(() => {
       const elapsed = Number(((Date.now() - startTime) / 1000).toFixed(1));
       setCreationElapsed(elapsed);
 
-      // Smooth multi-stage progress curve
-      if (elapsed < 0.8) {
-        // Stage 0: 0% -> 20%
+      // Fast multi-stage curve tuned for ~1.2s instant creation
+      if (elapsed < 0.3) {
         setCreationStage(0);
-        setCreationProgress(Math.min(20, Math.round(5 + elapsed * 18)));
-      } else if (elapsed < 3.2) {
-        // Stage 1: 20% -> 60%
+        setCreationProgress(Math.min(30, Math.round(5 + (elapsed / 0.3) * 25)));
+      } else if (elapsed < 0.7) {
         setCreationStage(1);
-        const ratio = (elapsed - 0.8) / 2.4;
-        setCreationProgress(Math.min(60, Math.round(20 + ratio * 40)));
-      } else if (elapsed < 5.5) {
-        // Stage 2: 60% -> 85%
+        const ratio = (elapsed - 0.3) / 0.4;
+        setCreationProgress(Math.min(65, Math.round(30 + ratio * 35)));
+      } else if (elapsed < 1.1) {
         setCreationStage(2);
-        const ratio = (elapsed - 3.2) / 2.3;
-        setCreationProgress(Math.min(85, Math.round(60 + ratio * 25)));
+        const ratio = (elapsed - 0.7) / 0.4;
+        setCreationProgress(Math.min(88, Math.round(65 + ratio * 23)));
       } else {
-        // Stage 3: 85% -> 96%
         setCreationStage(3);
-        const ratio = Math.min(1, (elapsed - 5.5) / 5);
-        setCreationProgress(Math.min(96, Math.round(85 + ratio * 11)));
+        const ratio = Math.min(1, (elapsed - 1.1) / 1.5);
+        setCreationProgress(Math.min(97, Math.round(88 + ratio * 9)));
       }
-    }, 100);
+    }, 50);
 
     try {
       const created = await api.createProject({
@@ -104,12 +100,12 @@ export default function DashboardPage() {
       setCreationStage(4);
       setCreationComplete(true);
 
-      // Graceful 350ms delay to display 100% success badge
+      // Snappy 250ms delay to display 100% success badge
       setTimeout(() => {
         setIsCreating(false);
         setIsSubmittingProject(false);
         router.push(`/workspace?id=${created.id}`);
-      }, 400);
+      }, 250);
     } catch (err: any) {
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       console.error("Failed to create project", err);
