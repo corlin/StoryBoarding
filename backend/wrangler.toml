@@ -3,9 +3,9 @@ main = "src/index.ts"
 compatibility_date = "2024-11-27"
 compatibility_flags = ["nodejs_compat"]
 
-# Cloudflare Smart Placement: Automatically places worker execution near US East D1 database
+# Cloudflare Region Placement: Target Google Cloud Platform (GCP) us-east1
 [placement]
-mode = "smart"
+region = "gcp:us-east1"
 
 # Cloudflare D1 Serverless SQLite Database Binding (Primary Location: enam / US East)
 [[d1_databases]]
