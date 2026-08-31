@@ -46,7 +46,7 @@ export default function DashboardPage() {
         story: newStory,
         target_duration: targetDuration,
       });
-      router.push(`/workspace/${created.id}`);
+      router.push(`/workspace?id=${created.id}`);
     } catch (e) {
       console.error("Failed to create project", e);
       alert("创建项目失败，请点击右上角「设置」检查后端 Worker API 服务连接地址");
@@ -196,7 +196,7 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground mb-4">开始创建你的第一个分镜头故事板工程</p>
             <div className="flex gap-3">
               <Link
-                href="/workspace/demo"
+                href="/workspace?id=demo"
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-medium bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 transition-colors"
               >
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
@@ -216,7 +216,7 @@ export default function DashboardPage() {
             {projects.map((proj) => (
               <Link
                 key={proj.id}
-                href={`/workspace/${proj.id}`}
+                href={`/workspace?id=${proj.id}`}
                 className="group p-5 rounded-xl border border-border/70 bg-card/60 hover:bg-card hover:border-primary/50 transition-all flex flex-col justify-between"
               >
                 <div>

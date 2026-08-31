@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { TopBar } from "@/components/workspace/TopBar";
 import { ScriptPanel } from "@/components/script-view/ScriptPanel";
@@ -14,15 +14,21 @@ import { generateStoryboardSvgUrl } from "@/lib/storyboardGraphics";
 import { createDemoMatrixProject } from "@/lib/demoMatrixScene";
 
 interface WorkspaceClientProps {
-  projectId: string;
+  projectId?: string;
 }
 
 export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const routeParams = useParams();
+
+  const queryId = searchParams?.get("id") || searchParams?.get("projectId");
   const rawParamId = Array.isArray(routeParams?.projectId) ? routeParams.projectId[0] : routeParams?.projectId;
-  const pathId = typeof window !== "undefined" ? window.location.pathname.replace(/^\/workspace\/?/, "").split("/")[0] : "";
-  const effectiveProjectId = (rawParamId as string) || pathId || projectId || "demo";
+  const pathId = typeof window !== "undefined"
+    ? window.location.pathname.replace(/^\/workspace\/?/, "").split("/")[0].split("?")[0]
+    : "";
+
+  const effectiveProjectId = queryId || (rawParamId && rawParamId !== "demo" ? rawParamId : "") || pathId || projectId || "demo";
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isTheaterOpen, setIsTheaterOpen] = useState(false);
@@ -68,7 +74,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           target_duration: currentProject?.target_duration || 30.0,
         });
         targetProjectId = newProj.id;
-        router.push(`/workspace/${targetProjectId}`);
+        router.push(`/workspace?id=${targetProjectId}`);
       }
 
       await api.generateFromStory({
@@ -96,7 +102,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           target_duration: currentProject?.target_duration || 30.0,
         });
         targetProjectId = newProj.id;
-        router.push(`/workspace/${targetProjectId}`);
+        router.push(`/workspace?id=${targetProjectId}`);
       }
 
       await api.generateFromScript({

@@ -15,7 +15,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-4">
             <Link
-              href="/workspace/demo"
+              href="/workspace?id=demo"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Demo Workspace
