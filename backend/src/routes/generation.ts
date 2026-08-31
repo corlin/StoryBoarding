@@ -529,23 +529,4 @@ router.post("/images/:shotId", async (c) => {
   });
 });
 
-// POST /api/generate/images/project/:projectId
-router.post("/images/project/:projectId", async (c) => {
-  const db = getDb(c.env.DB);
-  const projectId = c.req.param("projectId");
-
-  const seqs = await db.select().from(sequences).where(eq(sequences.projectId, projectId)).all();
-  let count = 0;
-
-  for (const seq of seqs) {
-    const shotList = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).all();
-    count += shotList.length;
-  }
-
-  return c.json({
-    status: "success",
-    rendered_count: count,
-  });
-});
-
 export default router;

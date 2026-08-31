@@ -21,20 +21,10 @@ export interface CameraMovement {
   secondary?: string;
 }
 
-export interface AnnotationItem {
-  type: 'motion_arrow' | 'camera_arrow' | 'focal_marker' | 'text_label';
-  color: string;
-  from?: [number, number];
-  to?: [number, number];
-  position?: [number, number];
-  text?: string;
-}
-
 export interface CompositionData {
   subject_position?: string;
   focal_point?: string;
   depth_elements?: string[];
-  annotations?: AnnotationItem[];
 }
 
 export interface AudioData {

@@ -14,7 +14,6 @@ import { VersionHistoryDrawer } from "@/components/drawers/VersionHistoryDrawer"
 import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
 import { notify } from "@/components/ui/ToastNotification";
 import { api } from "@/lib/api";
-import { generateStoryboardSvgUrl } from "@/lib/storyboardGraphics";
 import { createDemoMatrixProject } from "@/lib/demoMatrixScene";
 import { ProjectVersion, ProjectModel } from "@/types/shot";
 import { History, Clock, RotateCcw, GitBranch, X, Lock } from "lucide-react";

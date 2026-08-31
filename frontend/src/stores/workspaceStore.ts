@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { ProjectModel, ShotModel, SequenceModel } from "@/types/shot";
 import { api } from "@/lib/api";
-import { generateStoryboardSvgUrl } from "@/lib/storyboardGraphics";
 
 interface WorkspaceState {
   currentProject: ProjectModel | null;
@@ -70,13 +69,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
             storyboard_image_url:
               shot.storyboard_image_url ||
               shot.storyboardImageUrl ||
-              generateStoryboardSvgUrl({
-                order,
-                shot_size: size,
-                camera_angle: angle,
-                action,
-                subject,
-              }),
+              "",
             is_dirty: typeof shot.is_dirty === "boolean" ? shot.is_dirty : (typeof shot.isDirty === "boolean" ? shot.isDirty : false),
             created_at: shot.created_at || shot.createdAt || new Date().toISOString(),
             updated_at: shot.updated_at || shot.updatedAt || new Date().toISOString(),
@@ -125,20 +118,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
             }
           }
 
-          const nextImg = updates.action && updates.action !== shot.action
-            ? generateStoryboardSvgUrl({
-                order: shot.order,
-                shot_size: updates.shot_size || shot.shot_size,
-                camera_angle: updates.camera_angle || shot.camera_angle,
-                action: updates.action,
-                subject: updates.subject || shot.subject,
-              })
-            : shot.storyboard_image_url;
-
           return {
             ...shot,
             ...updates,
-            storyboard_image_url: updates.storyboard_image_url || nextImg,
             is_dirty: nextDirty,
           };
         }

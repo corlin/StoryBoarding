@@ -1,5 +1,4 @@
 import { ProjectModel, ShotModel } from "@/types/shot";
-import { generateStoryboardSvgUrl } from "@/lib/storyboardGraphics";
 
 export function createDemoMatrixProject(): ProjectModel {
   const rawShots = [
