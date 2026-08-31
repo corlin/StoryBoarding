@@ -37,7 +37,7 @@ jobs:
       - name: Build Next.js Static Export
         working-directory: frontend
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || vars.NEXT_PUBLIC_API_URL || '' }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || vars.NEXT_PUBLIC_API_URL || 'https://storyboarding-api.caifu.social' }}
         run: npm run build
 
       - name: Ensure Pages Project Exists

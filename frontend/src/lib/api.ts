@@ -19,7 +19,8 @@ export function getApiBaseUrl(): string {
       return "http://localhost:8787";
     }
   }
-  return "";
+  // Default Official Production Cloudflare Worker Backend (Zero-Config Auto-Connect)
+  return "https://storyboarding-api.caifu.social";
 }
 
 export function setApiBaseUrl(url: string) {

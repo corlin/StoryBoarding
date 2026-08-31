@@ -179,12 +179,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   setApiUrl(e.target.value);
                   setApiStatus("idle");
                 }}
-                placeholder="例如: https://storyboard-backend.xxxx.workers.dev 或 http://localhost:8787"
+                placeholder="默认官方生产服务: https://storyboarding-api.caifu.social"
                 className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary text-foreground"
               />
               <div className="flex items-center justify-between mt-1.5">
                 <span className="text-[10px] text-muted-foreground">
-                  提示：填入 Cloudflare 控制台中分配给 `storyboard-backend` 的真实 workers.dev 域名
+                  默认直连官方生产节点（https://storyboarding-api.caifu.social），全网免配秒连
                 </span>
                 {apiStatus === "err" && (
                   <span className="text-[10px] text-red-400 flex items-center gap-1">
