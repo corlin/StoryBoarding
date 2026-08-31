@@ -17,6 +17,8 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
 
     steps:
@@ -38,18 +40,48 @@ jobs:
         working-directory: backend
         run: npx tsc --noEmit
 
-      - name: Initialize D1 Database & R2 Bucket (US East / enam)
+      - name: Auto-Provision D1 & R2 on US East and Inject D1 UUID
         working-directory: backend
         run: |
-          echo "Ensuring D1 Database exists on US East..."
+          echo "1. Ensuring D1 Database exists on US East (enam)..."
           npx wrangler d1 create storyboard_db --location=enam || true
-          echo "Ensuring R2 Bucket exists..."
+          
+          echo "2. Ensuring R2 Bucket exists..."
           npx wrangler r2 bucket create storyboard-assets || true
+
+          echo "3. Querying actual D1 Database UUID from Cloudflare..."
+          DB_UUID=$(npx wrangler d1 list --json | node -e "
+            const fs = require('fs');
+            try {
+              const list = JSON.parse(fs.readFileSync(0, 'utf-8'));
+              const db = Array.isArray(list) ? list.find(d => d.name === 'storyboard_db') : null;
+              if (db && db.uuid) {
+                process.stdout.write(db.uuid);
+              }
+            } catch (e) {
+              console.error('Error parsing D1 list:', e);
+            }
+          ")
+
+          echo "Detected D1 UUID: [$DB_UUID]"
+
+          if [ -n "$DB_UUID" ]; then
+            echo "Injecting real database_id into wrangler.toml..."
+            node -e "
+              const fs = require('fs');
+              let toml = fs.readFileSync('wrangler.toml', 'utf-8');
+              toml = toml.replace(/database_id\s*=\s*\"[^\"]*\"/, 'database_id = \"$DB_UUID\"');
+              fs.writeFileSync('wrangler.toml', toml, 'utf-8');
+            "
+            echo "Updated wrangler.toml D1 binding configuration."
+          else
+            echo "Warning: Could not automatically detect D1 UUID, proceeding with fallback..."
+          fi
 
       - name: Apply D1 Database Migrations (US East)
         working-directory: backend
         run: |
-          echo "Applying initial schema to remote D1 database..."
+          echo "Applying schema migrations to remote D1..."
           npx wrangler d1 execute storyboard_db --remote --file=drizzle/migrations/0000_initial.sql --yes || true
 
       - name: Deploy Worker to Cloudflare Edge
