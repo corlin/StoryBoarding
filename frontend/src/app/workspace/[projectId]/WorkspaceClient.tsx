@@ -14,7 +14,6 @@ import { VersionHistoryDrawer } from "@/components/drawers/VersionHistoryDrawer"
 import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
 import { notify } from "@/components/ui/ToastNotification";
 import { api } from "@/lib/api";
-import { createDemoMatrixProject } from "@/lib/demoMatrixScene";
 import { ProjectVersion, ProjectModel } from "@/types/shot";
 import { History, Clock, RotateCcw, GitBranch, X, Lock } from "lucide-react";
 
@@ -66,31 +65,22 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   } = useWorkspaceStore();
 
   const loadVersions = useCallback(async () => {
-    if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") {
-      setVersions([]);
-      return;
-    }
     try {
       setIsLoadingVersions(true);
       const data = await api.getProjectVersions(effectiveProjectId);
       setVersions(data);
     } catch (e) {
-      console.warn("Failed to load versions:", e);
+      console.warn("Failed to load versions from server:", e);
     } finally {
       setIsLoadingVersions(false);
     }
   }, [effectiveProjectId]);
 
+  // 100% Server-First: Always load directly from Cloudflare D1 backend
   useEffect(() => {
-    if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") {
-      const demoProj = createDemoMatrixProject();
-      setProject(demoProj);
-      selectShot(demoProj.sequences[0]?.shots[0]?.id || null);
-    } else {
-      fetchProject(effectiveProjectId);
-      loadVersions();
-    }
-  }, [effectiveProjectId, fetchProject, selectShot, setProject, loadVersions]);
+    fetchProject(effectiveProjectId);
+    loadVersions();
+  }, [effectiveProjectId, fetchProject, loadVersions]);
 
   // When previewing a historical version, construct a virtual ProjectModel
   const displayProject: ProjectModel | null = previewVersion
@@ -145,7 +135,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   // Server-side asynchronous rendering state synchronizer
   useEffect(() => {
     if (!currentProject || previewVersion) return;
-    if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") return;
 
     const unrenderedCount = shots.filter((s) => !s.storyboard_image_url).length;
     if (unrenderedCount === 0) {
@@ -175,11 +164,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   // Handlers for Version Time Machine
   const handleCreateSnapshot = async (name: string, tag?: string) => {
-    if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") {
-      notify.info("Demo 演示项目不支持持久化保存快照");
-      return;
-    }
-
     try {
       await api.createProjectVersion(effectiveProjectId, {
         version_name: name,
@@ -187,7 +171,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         trigger_type: "manual",
       });
       await loadVersions();
-      notify.success(`📸 已成功保存快照「${tag || "新版本"} · ${name}」！`);
+      notify.success(`📸 已成功保存快照「${tag || "新版本"} · ${name}」至云端！`);
     } catch (e: any) {
       notify.error(e?.message || "保存快照失败");
     }
@@ -319,27 +303,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       return;
     }
 
-    if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") {
-      const updated = shots.map((s) => ({
-        ...s,
-        is_dirty: false,
-        storyboard_image_url: `https://image.pollinations.ai/prompt/${encodeURIComponent(
-          `cinematic 2d film storyboard illustration, 16:9 widescreen, ${s.action}, cyberpunk tea house martial arts matrix aesthetic`
-        )}?width=1024&height=576&seed=${s.order * 1000 + Date.now() % 1000}&model=flux&nologo=true`,
-      }));
-      setProject({
-        ...currentProject,
-        sequences: [
-          {
-            ...currentProject.sequences[0],
-            shots: updated,
-          },
-        ],
-      });
-      notify.success("✨ 演示故事板画面已重新绘制！");
-      return;
-    }
-
     setIsBatchRendering(true);
     setBatchProgress({ current: 0, total: previzShots.length });
 
@@ -355,7 +318,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         setBatchProgress({ current: done, total: previzShots.length });
       }
       await fetchProject(currentProject.id);
-      notify.success(`🎨 全部 ${previzShots.length} 个镜头画面渲染完成！`);
+      notify.success(`🎨 全部 ${previzShots.length} 个镜头画面冲印完成！`);
     } catch (err: any) {
       notify.error("批量冲印队列出现异常");
     } finally {
@@ -369,25 +332,11 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       return;
     }
 
-    if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") {
-      const shot = shots.find((s) => s.id === shotId);
-      if (shot) {
-        updateShotLocal(shotId, {
-          is_dirty: false,
-          storyboard_image_url: `https://image.pollinations.ai/prompt/${encodeURIComponent(
-            `cinematic 2d film storyboard illustration, 16:9 widescreen, ${shot.action}, cyberpunk tea house martial arts matrix aesthetic`
-          )}?width=1024&height=576&seed=${shot.order * 1000 + Date.now() % 1000}&model=flux&nologo=true`,
-        });
-        notify.success(`✨ 第 ${shot.order} 镜重新打样成功！`);
-      }
-      return;
-    }
-
     try {
       await regenerateShotImage(shotId);
-      notify.success("🎨 镜头视觉画面重绘完成！");
+      notify.success("🎨 镜头视觉画面冲印存盘完成！");
     } catch (e: any) {
-      notify.error("镜头重绘失败，请检查图像 API 设置");
+      notify.error("镜头冲印失败，请检查图像 API 设置");
     }
   };
 
@@ -455,115 +404,88 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         </div>
       )}
 
-      {/* Main Dual-View Workspace Area */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 overflow-hidden relative">
-        {/* Left: Shot Script View */}
-        <ScriptPanel
-          shots={shots}
-          sequenceId={activeSequence?.id || ""}
-          selectedShotId={selectedShotId}
-          onSelectShot={selectShot}
-          onUpdateShot={async (shotId, updates) => {
-            if (previewVersion) {
-              notify.info("当前处于历史预览模式，无法编辑");
-              return;
-            }
-            await saveShotRemote(shotId, updates);
-          }}
-          onAddShot={async (seqId) => {
-            if (previewVersion) {
-              notify.info("当前处于历史预览模式，无法添加镜头");
-              return;
-            }
-            await addShot(seqId);
-          }}
-          onDeleteShot={async (shotId) => {
-            if (previewVersion) {
-              notify.info("当前处于历史预览模式，无法删除镜头");
-              return;
-            }
-            await deleteShot(shotId);
-          }}
-          onOpenDrawer={handleOpenDrawer}
-        />
+      {/* Main 3-Column Studio Workspace */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Column: Script & Scene Pacing Editor */}
+        <div className="w-[380px] shrink-0 h-full border-r border-border bg-card/20">
+          <ScriptPanel
+            shots={shots}
+            sequenceId={activeSequence?.id || ""}
+            selectedShotId={selectedShotId}
+            onSelectShot={selectShot}
+            onUpdateShot={saveShotRemote}
+            onAddShot={() => activeSequence && addShot(activeSequence.id)}
+            onDeleteShot={deleteShot}
+            onOpenDrawer={handleOpenDrawer}
+          />
+        </div>
 
-        {/* Right: Storyboard View */}
-        <StoryboardPanel
-          shots={shots}
-          selectedShotId={selectedShotId}
-          onSelectShot={selectShot}
-          onRegenerateDirty={handleRegenerateDirty}
-          onRegenerateShotImage={handleRegenerateSingleShot}
-          onToggleLock={handleToggleLockShot}
-          onOpenTheater={handleOpenTheater}
-          onOpenDrawer={handleOpenDrawer}
-          isBatchRendering={isBatchRendering}
-          batchProgress={batchProgress}
-        />
+        {/* Center/Right Column: 16:9 Storyboard Canvas */}
+        <div className="flex-1 h-full overflow-hidden bg-background">
+          <StoryboardPanel
+            shots={shots}
+            selectedShotId={selectedShotId}
+            onSelectShot={(id) => selectShot(id)}
+            onOpenDrawer={handleOpenDrawer}
+            onOpenTheater={handleOpenTheater}
+            onRegenerateDirty={handleRegenerateDirty}
+            onRegenerateShotImage={handleRegenerateSingleShot}
+            onToggleLock={handleToggleLockShot}
+            isBatchRendering={isBatchRendering}
+            batchProgress={batchProgress}
+          />
+        </div>
       </div>
 
-      {/* Bottom: Timeline Bar */}
+      {/* Bottom Column: Timeline Scrubber */}
       <TimelineBar
         shots={shots}
-        targetDuration={displayProject?.target_duration || 30}
+        targetDuration={displayProject?.target_duration || 30.0}
         selectedShotId={selectedShotId}
-        onSelectShot={selectShot}
+        onSelectShot={(id) => selectShot(id)}
       />
 
-      {/* Progressive Multi-Stage AI Director Pipeline Modal */}
+      {/* Modals & Drawers */}
       <DirectorPipelineModal
         isOpen={isGenerating}
         storyPreview={generationStory}
-        targetDuration={displayProject?.target_duration || 30}
+        targetDuration={displayProject?.target_duration || 30.0}
       />
 
-      {/* Version History Drawer */}
+      <CinemaTheaterModal
+        isOpen={isTheaterOpen}
+        shots={shots}
+        initialShotId={theaterShotId}
+        onClose={() => setIsTheaterOpen(false)}
+      />
+
+      {activeDrawerShot && (
+        <ShotDetailDrawer
+          isOpen={isDrawerOpen}
+          shot={activeDrawerShot}
+          onClose={() => setIsDrawerOpen(false)}
+          onUpdateShot={saveShotRemote}
+          onRegenerateImage={handleRegenerateSingleShot}
+        />
+      )}
+
       <VersionHistoryDrawer
         isOpen={isVersionsDrawerOpen}
         onClose={() => setIsVersionsDrawerOpen(false)}
         versions={versions}
-        previewVersionId={previewVersion?.id || null}
+        isLoading={isLoadingVersions}
+        previewVersionId={previewVersion?.id}
         onPreviewVersion={handlePreviewVersion}
         onRollbackVersion={handleRollbackVersion}
         onForkVersion={handleForkVersion}
-        onOpenCreateSnapshot={() => {
-          setIsVersionsDrawerOpen(false);
-          setIsCreateSnapshotModalOpen(true);
-        }}
-        isLoading={isLoadingVersions}
+        onOpenCreateSnapshot={() => setIsCreateSnapshotModalOpen(true)}
       />
 
-      {/* Create Snapshot Modal */}
       <CreateSnapshotModal
         isOpen={isCreateSnapshotModalOpen}
         onClose={() => setIsCreateSnapshotModalOpen(false)}
-        onConfirm={handleCreateSnapshot}
         suggestedTag={`v1.${versions.length + 1}`}
-      />
-
-      {/* Cinema Theater Modal (Animatic Dynamic Timeline Playback) */}
-      <CinemaTheaterModal
-        isOpen={isTheaterOpen}
-        onClose={() => setIsTheaterOpen(false)}
-        shots={shots}
-        initialShotId={theaterShotId}
-        targetDuration={displayProject?.target_duration || 30}
-        onSelectShot={selectShot}
-      />
-
-      {/* Slide-out Shot Detail Drawer */}
-      <ShotDetailDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        shot={activeDrawerShot}
-        onUpdateShot={async (shotId, updates) => {
-          if (previewVersion) {
-            notify.info("当前处于历史预览模式，无法编辑");
-            return;
-          }
-          await saveShotRemote(shotId, updates);
-        }}
-        onRegenerateImage={handleRegenerateSingleShot}
+        onConfirm={handleCreateSnapshot}
       />
     </div>
   );
