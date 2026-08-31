@@ -19,36 +19,48 @@ async function getActiveSettings(db: any, env: Bindings) {
   };
 }
 
-// Helper to create demo project if database is completely empty
+const FULL_DEMO_SHOTS = [
+  { order: 1, duration: 2.5, size: "extreme_wide_shot", angle: "high_angle", mov: "crane", subj: "古风茶楼与赛博雨夜", act: "俯瞰赛博雨夜，青瓦飞檐的古风茶楼悬挂着发光的红灯笼，周围环绕着绿色全息数据流与密集的雨幕。" },
+  { order: 2, duration: 2.0, size: "wide_shot", angle: "eye_level", mov: "tracking_right", subj: "墨客 (Moke)", act: "墨客身穿黑色立领长衫风衣，戴着黑色墨镜，缓步踏过水洼，皮靴带起一圈圈慢动作水花涟漪。" },
+  { order: 3, duration: 2.0, size: "medium_shot", angle: "low_angle", mov: "push_in", subj: "特工银狐 (Agent Fox)", act: "特工银狐从茶馆暗影中缓步走出，右手微抬，袖口机械装置发出淡蓝色充能微光。" },
+  { order: 4, duration: 2.5, size: "medium_close_up", angle: "eye_level", mov: "static", subj: "墨客 (Moke)", act: "墨客面容沉静，双手从容展开摆出经典咏春/太极问手起手式，手指轻勾：“请。”" },
+  { order: 5, duration: 2.0, size: "full_shot", angle: "dutch_angle", mov: "handheld", subj: "特工与墨客", act: "特工暴喝一声率先发难，瞬步暴冲撕裂雨雾，重拳带起空气激波直轰墨客面门。" },
+  { order: 6, duration: 3.0, size: "close_up", angle: "low_angle", mov: "tracking_left", subj: "拳脚拆招", act: "墨客不退反进，左右黐手黏带化劲，手腕翻转顺势格挡，两人近身拳影交错火花四溅。" },
+  { order: 7, duration: 3.5, size: "extreme_close_up", angle: "eye_level", mov: "pan_left", subj: "电磁枪拔枪", act: "特工近战受阻，左手突然拔出高科技电磁手枪直抵墨客眉心，决然扣动扳机。" },
+  { order: 8, duration: 3.5, size: "medium_shot", angle: "worms_eye", mov: "tracking_right", subj: "墨客子弹时间铁板桥", act: "【经典子弹时间】镜头360度极慢速环绕，墨客极限铁板桥下腰，电磁子弹旋转穿透悬浮水珠，在墨镜上方划出清晰气浪。" },
+  { order: 9, duration: 2.5, size: "medium_close_up", angle: "low_angle", mov: "push_in", subj: "墨客起身特写", act: "墨客腰背借力如春藤回弹起身，墨镜上赫然反光映出特工惊恐瞪大的双眼。" },
+  { order: 10, duration: 2.5, size: "full_shot", angle: "dutch_angle", mov: "tracking_right", subj: "凌空飞踢", act: "墨客借势腾空而起，在空中展开华丽的凌空飞踢（三连佛山无影脚），重重踏在特工胸膛护甲上。" },
+  { order: 11, duration: 2.0, size: "wide_shot", angle: "high_angle", mov: "pull_out", subj: "特工倒飞坠地", act: "特工如炮弹般倒飞撞穿茶馆二楼的雕花木格屏风，木屑与雨瓦轰然炸裂，狠狠摔入街巷积水中。" },
+  { order: 12, duration: 2.0, size: "medium_shot", angle: "eye_level", mov: "static", subj: "墨客收势", act: "墨客潇洒单膝落地后挺拔站起，单手轻拂长衫下摆，四周雨水流速瞬间恢复正常，从容收势。" },
+];
+
+// Helper to create or ensure the complete 12-shot demo project in database
 async function ensureDemoProject(db: any) {
-  const existing = await db.select().from(projects).limit(1);
-  if (existing.length === 0) {
-    const projId = "demo";
+  const existing = await db.select().from(projects).where(eq(projects.id, "demo")).get();
+  const seqId = "seq-demo-1";
+
+  if (!existing) {
     await db.insert(projects).values({
-      id: projId,
+      id: "demo",
       title: "矩阵·赛博宗师：雨夜茶馆决战 (The Matrix: Cyber Master)",
       story: "赛博雨夜，青瓦飞檐的古典中式茶楼隐没在全息霓虹广告与绿色数据流雨幕中。黑客武术大师墨客身着黑色立领长衫风衣踏入雨巷，与拦截的特工银狐狭路相逢。两人展开惊心动魄的近身功夫对决，经历了电磁枪拔枪、经典360度子弹时间铁板桥闪避、凌空三连踢，最终特工被踢飞撞碎雕花屏风，墨客收势伫立在雨中。",
       targetDuration: 30.0,
     });
 
-    const seqId = "seq-demo-1";
     await db.insert(sequences).values({
       id: seqId,
-      projectId: projId,
+      projectId: "demo",
       title: "茶馆雨夜决战主场次",
       order: 1,
     });
+  }
 
-    const demoShots = [
-      { order: 1, duration: 5.0, size: "extreme_wide_shot", angle: "high_angle", mov: "crane", subj: "古风茶楼", act: "站在雨中的悬浮茶楼前，霓虹广告投影在湿漉地面上形成扭曲倒影" },
-      { order: 2, duration: 4.0, size: "medium_shot", angle: "low_angle", mov: "push_in", subj: "特工银狐", act: "从巷道阴影中走出，液压关节发出机械声，等离子短棍展开时迸发蓝色电弧" },
-      { order: 3, duration: 3.0, size: "close_up", angle: "dutch_angle", mov: "static", subj: "特工电磁枪", act: "机械手指扣动电磁枪扳机，武器充能时浮现红色能量纹路" },
-      { order: 4, duration: 6.0, size: "medium_close_up", angle: "eye_level", mov: "pan_right", subj: "墨客避弹", act: "以太极云手动作侧身避弹，折扇展开形成电磁屏障，雨滴在力场周围悬浮" },
-      { order: 5, duration: 5.0, size: "wide_shot", angle: "high_angle", mov: "crane_down", subj: "量子碎片", act: "被电磁弹击中的瞬间，纳米材料碎片呈量子态扩散，每个碎片显示不同时空影像" },
-      { order: 6, duration: 7.0, size: "full_shot", angle: "eye_level", mov: "tracking_back", subj: "宗师收势", act: "收扇负手而立，风衣下摆缓缓落下，背后悬浮着破碎的茶楼全息投影" },
-    ];
+  // Ensure all 12 shots exist in demo sequence
+  const currentDemoShots = await db.select().from(shots).where(eq(shots.sequenceId, seqId)).all();
+  if (currentDemoShots.length < 12) {
+    await db.delete(shots).where(eq(shots.sequenceId, seqId));
 
-    for (const s of demoShots) {
+    for (const s of FULL_DEMO_SHOTS) {
       await db.insert(shots).values({
         id: `shot-demo-${s.order}`,
         sequenceId: seqId,
@@ -59,9 +71,9 @@ async function ensureDemoProject(db: any) {
         cameraMovement: JSON.stringify({ type: s.mov }),
         subject: s.subj,
         action: s.act,
-        narrativeFunction: "动作推进",
-        lighting: "冷调暗红霓虹与绿色数据流反光",
-        audio: JSON.stringify({ sfx: "暴雨声、全息霓虹电流嗡鸣" }),
+        narrativeFunction: s.order === 1 ? "环境建立" : s.order === 8 ? "高潮视效 (Bullet Time)" : "动作推进",
+        lighting: "暗红霓虹与绿色数据流反光",
+        audio: JSON.stringify({ sfx: "暴雨声、功夫格挡与电弧充能" }),
         imagePrompt: formatDirectorImagePrompt(s.act, s.size, s.angle, s.mov),
         videoPrompt: `Camera ${s.mov} ${s.act}`,
         continuityData: JSON.stringify({ screen_direction: "left_to_right" }),
