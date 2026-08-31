@@ -118,12 +118,53 @@ export async function generateCinematicStoryboardImage(
 
   let rawImageUrl = "";
 
-  // 1. Call AI Provider when API Key is present with a 20s timeout
+  // 1. Call AI Provider when API Key is present with a 25s timeout
   if (apiKey) {
     const isOpenRouter = apiBase.includes("openrouter.ai");
 
-    // Case A: OpenRouter Multimodal Chat Completions Protocol (Grok Imagine, Imagen 3, FLUX, Recraft)
+    // Case 0: OpenRouter Official Dedicated /images API (for openai/gpt-image-2 and 16:9 Widescreen Storyboard Generation)
     if (isOpenRouter) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+        const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+            "HTTP-Referer": "https://storyboarding.caifu.social",
+            "X-Title": "AI StoryBoarding",
+          },
+          body: JSON.stringify({
+            model: model,
+            prompt: prompt,
+            aspect_ratio: "16:9",
+            quality: "high",
+            background: "auto",
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (resp.ok) {
+          const data = (await resp.json()) as any;
+          if (data.data && Array.isArray(data.data) && data.data[0]) {
+            rawImageUrl = data.data[0].url || data.data[0].b64_json || "";
+          } else if (data.images && Array.isArray(data.images) && data.images[0]) {
+            rawImageUrl = data.images[0].url || data.images[0] || "";
+          }
+          if (rawImageUrl && !rawImageUrl.startsWith("http") && !rawImageUrl.startsWith("data:")) {
+            rawImageUrl = `data:image/png;base64,${rawImageUrl}`;
+          }
+        }
+      } catch (e: any) {
+        console.warn("OpenRouter /images dedicated call failed:", e?.message || e);
+      }
+    }
+
+    // Case A: OpenRouter Multimodal Chat Completions Protocol (Fallback for chat-based vision models)
+    if (isOpenRouter && !rawImageUrl) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout

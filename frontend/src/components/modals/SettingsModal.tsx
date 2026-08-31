@@ -394,7 +394,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <span>文生图 / Storyboard Image Generator (图像模型)</span>
               </div>
               <span className="text-[10px] font-mono text-sky-400/90 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
-                推荐: x-ai/grok-imagine-image-2.0
+                推荐: openai/gpt-image-2 (16:9 原生画幅)
               </span>
             </div>
 
@@ -408,7 +408,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     setImageProvider(val);
                     if (val === "openrouter") {
                       setImageApiBase("https://openrouter.ai/api/v1");
-                      setImageModel("x-ai/grok-imagine-image-2.0");
+                      setImageModel("openai/gpt-image-2");
                     } else if (val === "openai_compatible") {
                       setImageApiBase("https://api.openai.com/v1");
                       setImageModel("dall-e-3");
@@ -416,8 +416,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   }}
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
                 >
-                  <option value="openrouter">OpenRouter Image API</option>
-                  <option value="openai_compatible">OpenAI DALL-E 3</option>
+                  <option value="openrouter">OpenRouter Dedicated /images</option>
+                  <option value="openai_compatible">OpenAI DALL-E 3 / Proxy</option>
                 </select>
               </div>
 
@@ -428,8 +428,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   onChange={(e) => setImageModel(e.target.value)}
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
                 >
+                  <option value="openai/gpt-image-2">openai/gpt-image-2 (OpenAI 最新超清电影分镜 · 推荐)</option>
                   <option value="x-ai/grok-imagine-image-2.0">x-ai/grok-imagine-image-2.0 (极快高保真)</option>
-                  <option value="google/imagen-3">google/imagen-3 (Google 顶级质感)</option>
                   <option value="black-forest-labs/flux-1-schnell">black-forest-labs/flux-1-schnell (Flux 极速)</option>
                   <option value="black-forest-labs/flux-1-dev">black-forest-labs/flux-1-dev (Flux 精细)</option>
                   <option value="recraft/recraft-20b-svg">recraft/recraft-20b-svg (矢量速写风格)</option>

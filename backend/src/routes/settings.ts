@@ -20,7 +20,7 @@ router.get("/providers", async (c) => {
       imageProvider: "openrouter",
       imageApiKey: "",
       imageApiBase: "https://openrouter.ai/api/v1",
-      imageModel: c.env.DEFAULT_IMAGE_MODEL || "google/imagen-3",
+      imageModel: c.env.DEFAULT_IMAGE_MODEL || "openai/gpt-image-2",
       updatedAt: new Date().toISOString(),
     };
     await db.insert(systemSettings).values(defaultData);
@@ -37,32 +37,36 @@ router.get("/providers", async (c) => {
     image_provider: s.imageProvider,
     image_api_key: s.imageApiKey,
     image_api_base: s.imageApiBase,
-    image_model: s.imageModel,
+    image_model: s.imageModel || "openai/gpt-image-2",
   });
 });
 
-// PUT /api/settings/providers
-router.put("/providers", async (c) => {
+// POST /api/settings/providers (Update Provider Settings)
+router.post("/providers", async (c) => {
   const db = getDb(c.env.DB);
   const body = await c.req.json();
 
-  const updates: any = {};
-  if (body.llm_provider !== undefined) updates.llmProvider = body.llm_provider;
-  if (body.llm_api_key !== undefined) updates.llmApiKey = body.llm_api_key;
-  if (body.llm_api_base !== undefined) updates.llmApiBase = body.llm_api_base;
-  if (body.llm_model !== undefined) updates.llmModel = body.llm_model;
-  if (body.image_provider !== undefined) updates.imageProvider = body.image_provider;
-  if (body.image_api_key !== undefined) updates.imageApiKey = body.image_api_key;
-  if (body.image_api_base !== undefined) updates.imageApiBase = body.image_api_base;
-  if (body.image_model !== undefined) updates.imageModel = body.image_model;
-  updates.updatedAt = new Date().toISOString();
+  const updateData = {
+    llmProvider: body.llm_provider || "openrouter",
+    llmApiKey: (body.llm_api_key || "").trim(),
+    llmApiBase: (body.llm_api_base || "https://openrouter.ai/api/v1").trim(),
+    llmModel: (body.llm_model || "deepseek/deepseek-chat").trim(),
+    imageProvider: body.image_provider || "openrouter",
+    imageApiKey: (body.image_api_key || "").trim(),
+    imageApiBase: (body.image_api_base || "https://openrouter.ai/api/v1").trim(),
+    imageModel: (body.image_model || "openai/gpt-image-2").trim(),
+    updatedAt: new Date().toISOString(),
+  };
 
   await db
     .insert(systemSettings)
-    .values({ id: "default", ...updates })
-    .onConflictDoUpdate({ target: systemSettings.id, set: updates });
+    .values({ id: "default", ...updateData })
+    .onConflictDoUpdate({
+      target: systemSettings.id,
+      set: updateData,
+    });
 
-  return c.json({ success: true, ...body });
+  return c.json({ status: "success", settings: updateData });
 });
 
 // POST /api/settings/test-llm (Real-time LLM Model Probe)
@@ -112,37 +116,62 @@ router.post("/test-llm", async (c) => {
   }
 });
 
-// POST /api/settings/test-image (Real-time Image Model Probe)
+// POST /api/settings/test-image (Real-time Image Model Probe via OpenRouter /images & OpenAI /images/generations)
 router.post("/test-image", async (c) => {
   const body = await c.req.json();
   const apiKey = (body.api_key || "").trim();
   const apiBase = (body.api_base || "https://openrouter.ai/api/v1").trim();
-  const model = (body.model || "x-ai/grok-imagine-image-2.0").trim();
+  const model = (body.model || "openai/gpt-image-2").trim();
 
   if (!apiKey) {
     return c.json({ ok: false, error: "请先填入 AI 绘画 API Key" }, 400);
   }
 
   const start = Date.now();
+  const isOpenRouter = apiBase.includes("openrouter.ai");
+
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-    const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://storyboarding.caifu.social",
-        "X-Title": "AI StoryBoarding Diagnostics",
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [{ role: "user", content: "Monochrome storyboard thumbnail test, 16:9 widescreen" }],
-        modalities: ["image", "text"],
-      }),
-      signal: controller.signal,
-    });
+    let resp: Response;
+    if (isOpenRouter) {
+      // Primary: OpenRouter Dedicated /images endpoint
+      resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          "HTTP-Referer": "https://storyboarding.caifu.social",
+          "X-Title": "AI StoryBoarding Diagnostics",
+        },
+        body: JSON.stringify({
+          model: model,
+          prompt: "2d monochrome graphite film storyboard illustration, 16:9 widescreen, cinematic draft line art",
+          aspect_ratio: "16:9",
+          quality: "high",
+          background: "auto",
+        }),
+        signal: controller.signal,
+      });
+    } else {
+      // OpenAI Compatible /images/generations endpoint
+      resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images/generations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: model,
+          prompt: "2d monochrome graphite film storyboard illustration, 16:9 widescreen",
+          n: 1,
+          size: "512x512",
+        }),
+        signal: controller.signal,
+      });
+    }
+
     clearTimeout(timeoutId);
     const latency = Date.now() - start;
 
