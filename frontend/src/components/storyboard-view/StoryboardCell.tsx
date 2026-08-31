@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ShotModel } from "@/types/shot";
-import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, AlertCircle } from "lucide-react";
+import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock } from "lucide-react";
 import { generateStoryboardSvgUrl } from "@/lib/storyboardGraphics";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,7 @@ interface StoryboardCellProps {
   isSelected: boolean;
   onSelect: () => void;
   onRegenerateImage?: () => Promise<void> | void;
+  onToggleLock?: (shotId: string, locked: boolean) => void;
   onOpenDetail?: () => void;
   onOpenTheater?: () => void;
 }
@@ -30,15 +31,16 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
   isSelected,
   onSelect,
   onRegenerateImage,
+  onToggleLock,
   onOpenDetail,
   onOpenTheater,
 }) => {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [imgSrc, setImgSrc] = useState<string>(shot.storyboard_image_url || "");
-  const [isLoaded, setIsLoaded] = useState(true);
 
   const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || "MS";
+  const isLocked = Boolean(shot.is_locked);
 
   useEffect(() => {
     if (shot.storyboard_image_url) {
@@ -82,8 +84,14 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
     }
   };
 
+  const handleToggleLock = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleLock) {
+      onToggleLock(shot.id, !isLocked);
+    }
+  };
+
   const handleImageError = () => {
-    // Graceful fallback to SVG graphic preview if remote image fails
     const fallbackSvg = generateStoryboardSvgUrl({
       order: shot.order,
       shot_size: shot.shot_size,
@@ -153,17 +161,41 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           </div>
         )}
 
-        {/* Top Badges (Shot No, Shot Size, Duration) */}
+        {/* Top Badges (Shot No, Shot Size, Duration, Lock) */}
         <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-background/90 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-mono border border-border/60 shadow-sm z-10">
           <span className="font-bold text-sky-400">{String(index + 1).padStart(2, "0")}</span>
           <span className="text-muted-foreground">·</span>
           <span className="font-semibold text-foreground">{sizeAbbr}</span>
           <span className="text-muted-foreground">·</span>
           <span className="text-emerald-400 font-semibold">{shot.duration}s</span>
+          {isLocked && (
+            <>
+              <span className="text-muted-foreground">·</span>
+              <span title="已锁定保护，AI重构时保持不变">
+                <Lock className="w-3 h-3 text-amber-400" />
+              </span>
+            </>
+          )}
         </div>
 
         {/* Top Right Action Buttons */}
         <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+          {/* Shot Lock / Unlock Toggle Button */}
+          {onToggleLock && (
+            <button
+              onClick={handleToggleLock}
+              className={cn(
+                "p-1.5 rounded-md backdrop-blur border transition-all shadow-sm",
+                isLocked
+                  ? "bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500/30"
+                  : "bg-background/85 hover:bg-background text-muted-foreground hover:text-amber-400 border-border/40 opacity-0 group-hover:opacity-100"
+              )}
+              title={isLocked ? "镜头已锁定（点击解锁）" : "锁定镜头（防止 AI 重拆时被覆盖）"}
+            >
+              {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+            </button>
+          )}
+
           {/* Zoom / Theater Mode Indicator */}
           {onOpenTheater && !isRegenerating && (
             <button

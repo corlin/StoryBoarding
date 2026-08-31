@@ -18,6 +18,8 @@ import {
   Images,
   Trash2,
   ChevronLeft,
+  Camera,
+  History,
 } from "lucide-react";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { BibleModal } from "@/components/modals/BibleModal";
@@ -28,15 +30,21 @@ import { api } from "@/lib/api";
 interface TopBarProps {
   project: ProjectModel | null;
   totalDuration: number;
+  activeVersionTag?: string;
   onGenerateFromStory: (story: string) => Promise<void>;
   onImportScript?: (scriptText: string) => Promise<void>;
+  onOpenVersions?: () => void;
+  onOpenCreateSnapshot?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
   project,
   totalDuration,
+  activeVersionTag = "v1.0",
   onGenerateFromStory,
   onImportScript,
+  onOpenVersions,
+  onOpenCreateSnapshot,
 }) => {
   const router = useRouter();
   const [isOpenModal, setIsOpenModal] = useState(false);
@@ -101,9 +109,22 @@ export const TopBar: React.FC<TopBarProps> = ({
           </Link>
 
           <div className="flex items-baseline gap-2 min-w-0">
-            <h1 className="font-semibold text-sm truncate max-w-[200px] md:max-w-md">
+            <h1 className="font-semibold text-sm truncate max-w-[180px] md:max-w-xs">
               {project?.title || "AI 导演分镜工作台"}
             </h1>
+
+            {/* Version Time Machine Capsule */}
+            {onOpenVersions && (
+              <button
+                onClick={onOpenVersions}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-secondary hover:bg-primary/15 border border-border hover:border-primary/40 text-foreground hover:text-primary transition-colors shadow-2xs"
+                title="点击打开版本时光机（查看历史快照与回滚）"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>{activeVersionTag}</span>
+              </button>
+            )}
+
             <span className="text-xs text-muted-foreground font-mono">
               {totalDuration.toFixed(1)}s / {project?.target_duration || 30}s
             </span>
@@ -144,6 +165,18 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
+          {/* Manual Snapshot */}
+          {onOpenCreateSnapshot && (
+            <button
+              onClick={onOpenCreateSnapshot}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors shadow-sm"
+              title="保存当前分镜版本快照"
+            >
+              <Camera className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">快照</span>
+            </button>
+          )}
+
           {/* Start Point B: Import Script */}
           <button
             onClick={() => setIsOpenScriptModal(true)}

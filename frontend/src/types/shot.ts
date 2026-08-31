@@ -101,3 +101,20 @@ export interface ProjectModel {
   updated_at: string;
   sequences: SequenceModel[];
 }
+
+export interface ProjectVersion {
+  id: string;
+  project_id: string;
+  version_tag: string;
+  version_name: string;
+  trigger_type: "manual" | "auto_pre_ai" | "rollback_backup";
+  shot_count: number;
+  total_duration: number;
+  snapshot_data: {
+    project: any;
+    sequences: any[];
+    shotCount: number;
+    totalDuration: number;
+  };
+  created_at: string;
+}

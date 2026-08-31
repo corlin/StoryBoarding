@@ -38,8 +38,21 @@ export const shots = sqliteTable("shots", {
   continuityData: text("continuity_data").default("{}").notNull(), // JSON string
   storyboardImageUrl: text("storyboard_image_url"),
   isDirty: integer("is_dirty", { mode: "boolean" }).default(false).notNull(),
+  isLocked: integer("is_locked", { mode: "boolean" }).default(false).notNull(),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+export const projectVersions = sqliteTable("project_versions", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  versionTag: text("version_tag").notNull(), // e.g. "v1.0", "v1.1"
+  versionName: text("version_name").notNull(), // e.g. "AI 拆镜前备份", "制片人定稿版"
+  triggerType: text("trigger_type").notNull().default("manual"), // "manual" | "auto_pre_ai" | "rollback_backup"
+  shotCount: integer("shot_count").notNull().default(0),
+  totalDuration: real("total_duration").notNull().default(30.0),
+  snapshotData: text("snapshot_data").notNull(), // Full JSON snapshot of project, sequences, and shots
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
 
 export const systemSettings = sqliteTable("system_settings", {
@@ -63,5 +76,8 @@ export type InsertSequence = typeof sequences.$inferInsert;
 
 export type Shot = typeof shots.$inferSelect;
 export type InsertShot = typeof shots.$inferInsert;
+
+export type ProjectVersion = typeof projectVersions.$inferSelect;
+export type InsertProjectVersion = typeof projectVersions.$inferInsert;
 
 export type SystemSetting = typeof systemSettings.$inferSelect;

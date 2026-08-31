@@ -1,6 +1,6 @@
 import React from "react";
 import { ShotModel, ShotSize, CameraAngle } from "@/types/shot";
-import { Trash2, Camera, AlertTriangle, ExternalLink, SlidersHorizontal } from "lucide-react";
+import { Trash2, Camera, AlertTriangle, ExternalLink, SlidersHorizontal, Lock, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ShotScriptCardProps {
@@ -41,6 +41,13 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
   onDelete,
   onOpenDrawer,
 }) => {
+  const isLocked = Boolean(shot.is_locked);
+
+  const handleToggleLock = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUpdate({ is_locked: !isLocked });
+  };
+
   return (
     <div
       onClick={onSelect}
@@ -58,6 +65,13 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
             SHOT {String(index + 1).padStart(2, "0")}
           </span>
 
+          {isLocked && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+              <Lock className="w-3 h-3" />
+              <span>已锁定</span>
+            </span>
+          )}
+
           {shot.is_dirty && (
             <span
               className="inline-flex items-center gap-1 text-xs font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20"
@@ -69,8 +83,22 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
           )}
         </div>
 
-        {/* Action buttons (Inspect Drawer & Delete) */}
+        {/* Action buttons (Lock, Inspect Drawer, Delete) */}
         <div className="flex items-center gap-1">
+          {/* Lock / Unlock button */}
+          <button
+            onClick={handleToggleLock}
+            className={cn(
+              "p-1.5 rounded-md transition-all text-xs",
+              isLocked
+                ? "text-amber-400 bg-amber-500/15 border border-amber-500/30"
+                : "text-muted-foreground hover:text-amber-400 hover:bg-secondary opacity-0 group-hover:opacity-100"
+            )}
+            title={isLocked ? "镜头已锁定保护（点击解锁）" : "锁定镜头（防止 AI 重拆时被覆盖）"}
+          >
+            {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+          </button>
+
           {onOpenDrawer && (
             <button
               onClick={(e) => {
@@ -108,7 +136,7 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
           <select
             value={shot.shot_size}
             onChange={(e) => onUpdate({ shot_size: e.target.value as ShotSize })}
-            className="w-full text-xs font-medium bg-background border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-primary"
+            className="w-full bg-background border border-border/80 rounded-md px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary font-medium"
           >
             {SHOT_SIZES.map((s) => (
               <option key={s.value} value={s.value}>
@@ -121,12 +149,12 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
         {/* Camera Angle Selector */}
         <div>
           <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
-            机位视角
+            机位角度
           </label>
           <select
             value={shot.camera_angle}
             onChange={(e) => onUpdate({ camera_angle: e.target.value as CameraAngle })}
-            className="w-full text-xs font-medium bg-background border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-primary"
+            className="w-full bg-background border border-border/80 rounded-md px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary font-medium"
           >
             {CAMERA_ANGLES.map((a) => (
               <option key={a.value} value={a.value}>
@@ -141,47 +169,44 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
           <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
             时长 (秒)
           </label>
-          <div className="flex items-center relative">
-            <input
-              type="number"
-              step="0.5"
-              min="0.1"
-              max="60"
-              value={shot.duration}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                if (!isNaN(val)) {
-                  onUpdate({ duration: val });
-                }
-              }}
-              className="w-full text-xs font-mono font-medium bg-background border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-primary"
-            />
-            <span className="absolute right-2 text-xs text-muted-foreground pointer-events-none">s</span>
-          </div>
+          <input
+            type="number"
+            step="0.5"
+            min="0.5"
+            max="60"
+            value={shot.duration}
+            onChange={(e) => onUpdate({ duration: parseFloat(e.target.value) || 1.0 })}
+            className="w-full bg-background border border-border/80 rounded-md px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:border-primary font-medium"
+          />
         </div>
       </div>
 
-      {/* Action / Script Description Field (Scaled to 14px comfortable reading size) */}
-      <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
-        <label className="text-[11px] font-semibold text-muted-foreground block">
-          画面动作与调度
+      {/* Action / Visual Narrative Field */}
+      <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+        <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+          画面动作与视听调度
         </label>
         <textarea
           rows={2}
-          value={shot.action || ""}
+          value={shot.action}
           onChange={(e) => onUpdate({ action: e.target.value })}
-          placeholder="描述角色动作、主体走向与戏剧行为..."
-          className="w-full text-sm font-medium bg-background/70 border border-border rounded-lg p-2.5 focus:outline-none focus:border-primary focus:bg-background resize-none leading-relaxed text-foreground"
+          placeholder="描述角色动作、画面构图、运动轨迹..."
+          className="w-full bg-background border border-border/80 rounded-md p-2 text-xs md:text-sm text-foreground focus:outline-none focus:border-primary resize-none leading-relaxed"
         />
       </div>
 
-      {/* Camera Movement summary */}
-      <div className="mt-2.5 flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
-        <span className="flex items-center gap-1.5 font-mono text-sky-400/90 font-medium">
-          <Camera className="w-3.5 h-3.5" />
-          <span>运镜: {shot.camera_movement?.type || "static"}</span>
-        </span>
-        <span className="text-muted-foreground/70 font-medium">{shot.narrative_function || "主叙事"}</span>
+      {/* Dialogue / Audio Field */}
+      <div onClick={(e) => e.stopPropagation()}>
+        <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+          对白 / 音效提示 (可选)
+        </label>
+        <input
+          type="text"
+          value={shot.dialogue || ""}
+          onChange={(e) => onUpdate({ dialogue: e.target.value })}
+          placeholder="角色台词 或 [音效: 雨声、雷鸣]"
+          className="w-full bg-background border border-border/80 rounded-md px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary placeholder:text-muted-foreground/50"
+        />
       </div>
     </div>
   );

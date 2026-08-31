@@ -150,6 +150,27 @@ export const api = {
     return data;
   },
 
+  // Versions & Time Machine
+  async getProjectVersions(projectId: string): Promise<any[]> {
+    const { data } = await apiClient.get(`/projects/${projectId}/versions`);
+    return data;
+  },
+
+  async createProjectVersion(projectId: string, payload: { version_name?: string; version_tag?: string; trigger_type?: string }) {
+    const { data } = await apiClient.post(`/projects/${projectId}/versions`, payload);
+    return data;
+  },
+
+  async rollbackProjectVersion(projectId: string, versionId: string) {
+    const { data } = await apiClient.post(`/projects/${projectId}/versions/${versionId}/rollback`);
+    return data;
+  },
+
+  async forkProjectVersion(projectId: string, versionId: string): Promise<{ id: string; title: string }> {
+    const { data } = await apiClient.post(`/projects/${projectId}/versions/${versionId}/fork`);
+    return data;
+  },
+
   // Export URLs
   getExportSheetUrl(projectId: string): string {
     const base = getApiBaseUrl();

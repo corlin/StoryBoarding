@@ -11,6 +11,7 @@ interface StoryboardPanelProps {
   onRegenerateShotImage?: (shotId: string) => Promise<void> | void;
   onOpenTheater?: (shotId: string) => void;
   onOpenDrawer?: (shotId: string) => void;
+  onToggleLock?: (shotId: string, locked: boolean) => void;
   isBatchRendering?: boolean;
   batchProgress?: { current: number; total: number };
 }
@@ -21,6 +22,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   onSelectShot,
   onRegenerateDirty,
   onRegenerateShotImage,
+  onToggleLock,
   onOpenTheater,
   onOpenDrawer,
   isBatchRendering = false,
@@ -172,6 +174,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                   isSelected={shot.id === selectedShotId}
                   onSelect={() => onSelectShot(shot.id)}
                   onRegenerateImage={() => onRegenerateShotImage && onRegenerateShotImage(shot.id)}
+                  onToggleLock={onToggleLock}
                   onOpenDetail={() => onOpenDrawer && onOpenDrawer(shot.id)}
                   onOpenTheater={() => onOpenTheater && onOpenTheater(shot.id)}
                 />

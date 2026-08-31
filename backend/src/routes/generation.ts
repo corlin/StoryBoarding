@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
-import { projects, sequences, shots, systemSettings } from "../db/schema";
+import { projects, sequences, shots, systemSettings, projectVersions } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt } from "../agents/director/pipeline";
+import { captureProjectSnapshot } from "./versions";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -213,6 +214,25 @@ router.post("/from-story", async (c) => {
     seq = { id: seqId, projectId, title: "主场次", order: 1, createdAt: "", updatedAt: "" };
   }
 
+  // 1. Auto-capture pre-AI snapshot before modifying shots
+  const preSnapshot = await captureProjectSnapshot(db, projectId);
+  if (preSnapshot && preSnapshot.shotCount > 0) {
+    const backupId = crypto.randomUUID();
+    const existingVersions = await db.select().from(projectVersions).where(eq(projectVersions.projectId, projectId)).all();
+    const versionTag = `v1.${existingVersions.length + 1}-auto`;
+    await db.insert(projectVersions).values({
+      id: backupId,
+      projectId,
+      versionTag,
+      versionName: `AI 导演拆镜前自动备份`,
+      triggerType: "auto_pre_ai",
+      shotCount: preSnapshot.shotCount,
+      totalDuration: preSnapshot.totalDuration,
+      snapshotData: JSON.stringify(preSnapshot),
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   const settings = await getActiveSettings(db, c.env);
   const result = await runDirectorPipeline(storyText, targetDuration, {
     apiKey: settings.llmApiKey,
@@ -220,33 +240,83 @@ router.post("/from-story", async (c) => {
     model: settings.llmModel,
   });
 
-  await db.delete(shots).where(eq(shots.sequenceId, seq.id));
+  // 2. Check for locked shots
+  const existingShots = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).all();
+  const lockedShots = existingShots.filter((s) => s.isLocked);
 
-  for (const s of result.shots) {
-    const shotId = crypto.randomUUID();
-    const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
-    const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+  if (lockedShots.length > 0) {
+    // Keep locked shots, replace unlocked shots
+    const lockedOrders = new Set(lockedShots.map((s) => s.order));
+    const unlockedShots = existingShots.filter((s) => !s.isLocked);
+    for (const u of unlockedShots) {
+      await db.delete(shots).where(eq(shots.id, u.id));
+    }
 
-    await db.insert(shots).values({
-      id: shotId,
-      sequenceId: seq.id,
-      order: s.order,
-      duration: s.duration,
-      shotSize: s.shot_size,
-      cameraAngle: s.camera_angle,
-      cameraMovement: JSON.stringify(s.camera_movement || {}),
-      subject: s.subject || "",
-      action: s.action,
-      dialogue: s.dialogue || "",
-      narrativeFunction: s.narrative_function || "动作推进",
-      lighting: s.lighting || "自然光",
-      audio: JSON.stringify(s.audio || {}),
-      imagePrompt: s.image_prompt,
-      videoPrompt: s.video_prompt,
-      continuityData: JSON.stringify(s.continuity_data || {}),
-      storyboardImageUrl: imageUrl,
-      isDirty: false,
-    });
+    // Insert new shots into unlocked slots
+    let aiIndex = 0;
+    for (let slot = 1; slot <= Math.max(6, result.shots.length); slot++) {
+      if (lockedOrders.has(slot)) continue;
+      const s = result.shots[aiIndex];
+      if (!s) break;
+      aiIndex++;
+
+      const shotId = crypto.randomUUID();
+      const seed = Math.floor(Math.random() * 900000) + slot * 1000;
+      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+
+      await db.insert(shots).values({
+        id: shotId,
+        sequenceId: seq.id,
+        order: slot,
+        duration: s.duration,
+        shotSize: s.shot_size,
+        cameraAngle: s.camera_angle,
+        cameraMovement: JSON.stringify(s.camera_movement || {}),
+        subject: s.subject || "",
+        action: s.action,
+        dialogue: s.dialogue || "",
+        narrativeFunction: s.narrative_function || "动作推进",
+        lighting: s.lighting || "自然光",
+        audio: JSON.stringify(s.audio || {}),
+        imagePrompt: s.image_prompt,
+        videoPrompt: s.video_prompt,
+        continuityData: JSON.stringify(s.continuity_data || {}),
+        storyboardImageUrl: imageUrl,
+        isDirty: false,
+        isLocked: false,
+      });
+    }
+  } else {
+    // Standard full replacement
+    await db.delete(shots).where(eq(shots.sequenceId, seq.id));
+
+    for (const s of result.shots) {
+      const shotId = crypto.randomUUID();
+      const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
+      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+
+      await db.insert(shots).values({
+        id: shotId,
+        sequenceId: seq.id,
+        order: s.order,
+        duration: s.duration,
+        shotSize: s.shot_size,
+        cameraAngle: s.camera_angle,
+        cameraMovement: JSON.stringify(s.camera_movement || {}),
+        subject: s.subject || "",
+        action: s.action,
+        dialogue: s.dialogue || "",
+        narrativeFunction: s.narrative_function || "动作推进",
+        lighting: s.lighting || "自然光",
+        audio: JSON.stringify(s.audio || {}),
+        imagePrompt: s.image_prompt,
+        videoPrompt: s.video_prompt,
+        continuityData: JSON.stringify(s.continuity_data || {}),
+        storyboardImageUrl: imageUrl,
+        isDirty: false,
+        isLocked: false,
+      });
+    }
   }
 
   return c.json({
@@ -276,6 +346,25 @@ router.post("/from-script", async (c) => {
     seq = { id: seqId, projectId, title: "导入剧本场次", order: 1, createdAt: "", updatedAt: "" };
   }
 
+  // 1. Auto-capture pre-AI snapshot
+  const preSnapshot = await captureProjectSnapshot(db, projectId);
+  if (preSnapshot && preSnapshot.shotCount > 0) {
+    const backupId = crypto.randomUUID();
+    const existingVersions = await db.select().from(projectVersions).where(eq(projectVersions.projectId, projectId)).all();
+    const versionTag = `v1.${existingVersions.length + 1}-auto`;
+    await db.insert(projectVersions).values({
+      id: backupId,
+      projectId,
+      versionTag,
+      versionName: `剧本解析前自动备份`,
+      triggerType: "auto_pre_ai",
+      shotCount: preSnapshot.shotCount,
+      totalDuration: preSnapshot.totalDuration,
+      snapshotData: JSON.stringify(preSnapshot),
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   const settings = await getActiveSettings(db, c.env);
   const result = await runDirectorPipeline(scriptText, 30.0, {
     apiKey: settings.llmApiKey,
@@ -283,33 +372,79 @@ router.post("/from-script", async (c) => {
     model: settings.llmModel,
   });
 
-  await db.delete(shots).where(eq(shots.sequenceId, seq.id));
+  const existingShots = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).all();
+  const lockedShots = existingShots.filter((s) => s.isLocked);
 
-  for (const s of result.shots) {
-    const shotId = crypto.randomUUID();
-    const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
-    const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+  if (lockedShots.length > 0) {
+    const lockedOrders = new Set(lockedShots.map((s) => s.order));
+    const unlockedShots = existingShots.filter((s) => !s.isLocked);
+    for (const u of unlockedShots) {
+      await db.delete(shots).where(eq(shots.id, u.id));
+    }
 
-    await db.insert(shots).values({
-      id: shotId,
-      sequenceId: seq.id,
-      order: s.order,
-      duration: s.duration,
-      shotSize: s.shot_size,
-      cameraAngle: s.camera_angle,
-      cameraMovement: JSON.stringify(s.camera_movement || {}),
-      subject: s.subject || "",
-      action: s.action,
-      dialogue: s.dialogue || "",
-      narrativeFunction: s.narrative_function || "动作推进",
-      lighting: s.lighting || "自然光",
-      audio: JSON.stringify(s.audio || {}),
-      imagePrompt: s.image_prompt,
-      videoPrompt: s.video_prompt,
-      continuityData: JSON.stringify(s.continuity_data || {}),
-      storyboardImageUrl: imageUrl,
-      isDirty: false,
-    });
+    let aiIndex = 0;
+    for (let slot = 1; slot <= Math.max(6, result.shots.length); slot++) {
+      if (lockedOrders.has(slot)) continue;
+      const s = result.shots[aiIndex];
+      if (!s) break;
+      aiIndex++;
+
+      const shotId = crypto.randomUUID();
+      const seed = Math.floor(Math.random() * 900000) + slot * 1000;
+      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+
+      await db.insert(shots).values({
+        id: shotId,
+        sequenceId: seq.id,
+        order: slot,
+        duration: s.duration,
+        shotSize: s.shot_size,
+        cameraAngle: s.camera_angle,
+        cameraMovement: JSON.stringify(s.camera_movement || {}),
+        subject: s.subject || "",
+        action: s.action,
+        dialogue: s.dialogue || "",
+        narrativeFunction: s.narrative_function || "动作推进",
+        lighting: s.lighting || "自然光",
+        audio: JSON.stringify(s.audio || {}),
+        imagePrompt: s.image_prompt,
+        videoPrompt: s.video_prompt,
+        continuityData: JSON.stringify(s.continuity_data || {}),
+        storyboardImageUrl: imageUrl,
+        isDirty: false,
+        isLocked: false,
+      });
+    }
+  } else {
+    await db.delete(shots).where(eq(shots.sequenceId, seq.id));
+
+    for (const s of result.shots) {
+      const shotId = crypto.randomUUID();
+      const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
+      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+
+      await db.insert(shots).values({
+        id: shotId,
+        sequenceId: seq.id,
+        order: s.order,
+        duration: s.duration,
+        shotSize: s.shot_size,
+        cameraAngle: s.camera_angle,
+        cameraMovement: JSON.stringify(s.camera_movement || {}),
+        subject: s.subject || "",
+        action: s.action,
+        dialogue: s.dialogue || "",
+        narrativeFunction: s.narrative_function || "动作推进",
+        lighting: s.lighting || "自然光",
+        audio: JSON.stringify(s.audio || {}),
+        imagePrompt: s.image_prompt,
+        videoPrompt: s.video_prompt,
+        continuityData: JSON.stringify(s.continuity_data || {}),
+        storyboardImageUrl: imageUrl,
+        isDirty: false,
+        isLocked: false,
+      });
+    }
   }
 
   return c.json({

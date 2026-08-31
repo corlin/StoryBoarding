@@ -66,6 +66,8 @@ router.put("/:id", async (c) => {
   }
   if (body.storyboard_image_url !== undefined) updates.storyboardImageUrl = body.storyboard_image_url;
   if (body.is_dirty !== undefined) updates.isDirty = Boolean(body.is_dirty);
+  if (body.is_locked !== undefined) updates.isLocked = Boolean(body.is_locked);
+  if (body.isLocked !== undefined) updates.isLocked = Boolean(body.isLocked);
   updates.updatedAt = new Date().toISOString();
 
   const [updated] = await db.update(shots).set(updates).where(eq(shots.id, id)).returning();

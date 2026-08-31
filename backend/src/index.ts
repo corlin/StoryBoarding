@@ -7,6 +7,7 @@ import generationRouter from "./routes/generation";
 import exportRouter from "./routes/export";
 import settingsRouter from "./routes/settings";
 import assetsRouter from "./routes/assets";
+import versionsRouter from "./routes/versions";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -35,6 +36,7 @@ app.get("/api/health", (c) => {
 
 // Mount modular sub-routers
 app.route("/api/projects", projectsRouter);
+app.route("/api/projects", versionsRouter); // /api/projects/:projectId/versions...
 app.route("/api/shots", shotsRouter);
 app.route("/api/generate", generationRouter);
 app.route("/api/export", exportRouter);
