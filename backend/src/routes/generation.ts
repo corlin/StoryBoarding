@@ -19,6 +19,55 @@ async function getActiveSettings(db: any, env: Bindings) {
   };
 }
 
+// Generate real AI storyboard image using configured provider or high-speed cinematic FLUX engine
+export async function generateCinematicStoryboardImage(
+  prompt: string,
+  settings: {
+    imageApiKey?: string;
+    imageApiBase?: string;
+    imageModel?: string;
+  },
+  seed: number = Math.floor(Math.random() * 1000000)
+): Promise<string> {
+  const apiKey = settings.imageApiKey?.trim();
+  const apiBase = settings.imageApiBase?.trim() || "https://openrouter.ai/api/v1";
+  const model = settings.imageModel?.trim() || "google/imagen-3";
+
+  // 1. If API Key provided, attempt OpenAI / OpenRouter images API
+  if (apiKey) {
+    try {
+      const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images/generations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: model,
+          prompt: prompt,
+          n: 1,
+          size: "1024x1024",
+          response_format: "url",
+        }),
+      });
+
+      if (resp.ok) {
+        const data = (await resp.json()) as any;
+        const url = data.data?.[0]?.url;
+        if (url) return url;
+      }
+    } catch (e) {
+      console.warn("API image generation failed, using fallback:", e);
+    }
+  }
+
+  // 2. High-speed cinematic 16:9 visual storyboard engine (FLUX widescreen drawing)
+  const cleanPrompt = prompt.replace(/[^\w\s,\.\-]/g, " ").trim();
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(
+    `cinematic 2d pre-production film storyboard graphite drawing, 16:9 widescreen, ${cleanPrompt}, movie concept art, visual master`
+  )}?width=1024&height=576&seed=${seed}&model=flux&nologo=true`;
+}
+
 // POST /api/generate/from-story
 router.post("/from-story", async (c) => {
   const db = getDb(c.env.DB);
@@ -53,10 +102,14 @@ router.post("/from-story", async (c) => {
   // Clear existing shots for sequence
   await db.delete(shots).where(eq(shots.sequenceId, seq.id));
 
-  // Insert newly planned shots
+  // Insert newly planned shots with visual storyboard images
   for (const s of result.shots) {
+    const shotId = crypto.randomUUID();
+    const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
+    const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, settings, seed);
+
     await db.insert(shots).values({
-      id: crypto.randomUUID(),
+      id: shotId,
       sequenceId: seq.id,
       order: s.order,
       duration: s.duration,
@@ -72,6 +125,7 @@ router.post("/from-story", async (c) => {
       imagePrompt: s.image_prompt,
       videoPrompt: s.video_prompt,
       continuityData: JSON.stringify(s.continuity_data || {}),
+      storyboardImageUrl: imageUrl,
       isDirty: false,
     });
   }
@@ -113,8 +167,12 @@ router.post("/from-script", async (c) => {
   await db.delete(shots).where(eq(shots.sequenceId, seq.id));
 
   for (const s of result.shots) {
+    const shotId = crypto.randomUUID();
+    const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
+    const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, settings, seed);
+
     await db.insert(shots).values({
-      id: crypto.randomUUID(),
+      id: shotId,
       sequenceId: seq.id,
       order: s.order,
       duration: s.duration,
@@ -130,6 +188,7 @@ router.post("/from-script", async (c) => {
       imagePrompt: s.image_prompt,
       videoPrompt: s.video_prompt,
       continuityData: JSON.stringify(s.continuity_data || {}),
+      storyboardImageUrl: imageUrl,
       isDirty: false,
     });
   }
@@ -154,43 +213,15 @@ router.post("/images/:shotId", async (c) => {
 
   const settings = await getActiveSettings(db, c.env);
   const prompt = shot.imagePrompt || formatDirectorImagePrompt(shot.action, shot.shotSize, shot.cameraAngle, "static");
+  const seed = Math.floor(Math.random() * 9000000) + Date.now() % 10000;
 
-  let imageUrl = "";
+  const imageUrl = await generateCinematicStoryboardImage(prompt, settings, seed);
 
-  if (settings.imageApiKey && settings.imageApiKey.trim()) {
-    try {
-      const resp = await fetch(`${settings.imageApiBase.replace(/\/+$/, "")}/images/generations`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${settings.imageApiKey}`,
-        },
-        body: JSON.stringify({
-          model: settings.imageModel,
-          prompt: prompt,
-          n: 1,
-          size: "1024x1024",
-          response_format: "url",
-        }),
-      });
-
-      if (resp.ok) {
-        const data = (await resp.json()) as any;
-        imageUrl = data.data?.[0]?.url || "";
-      }
-    } catch (e) {
-      console.error("Failed to generate real AI image:", e);
-    }
-  }
-
-  if (!imageUrl) {
-    // If no API key or generation failed, mark as success with prompt preserved
-    imageUrl = shot.storyboardImageUrl || "";
-  }
-
-  if (imageUrl) {
-    await db.update(shots).set({ storyboardImageUrl: imageUrl, isDirty: false, updatedAt: new Date().toISOString() }).where(eq(shots.id, shotId));
-  }
+  await db.update(shots).set({
+    storyboardImageUrl: imageUrl,
+    isDirty: false,
+    updatedAt: new Date().toISOString(),
+  }).where(eq(shots.id, shotId));
 
   return c.json({
     status: "success",
@@ -204,12 +235,24 @@ router.post("/images/project/:projectId", async (c) => {
   const db = getDb(c.env.DB);
   const projectId = c.req.param("projectId");
 
+  const settings = await getActiveSettings(db, c.env);
   const seqs = await db.select().from(sequences).where(eq(sequences.projectId, projectId)).all();
   let count = 0;
 
   for (const seq of seqs) {
     const shotList = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).all();
-    count += shotList.length;
+    for (const s of shotList) {
+      const prompt = s.imagePrompt || formatDirectorImagePrompt(s.action, s.shotSize, s.cameraAngle, "static");
+      const seed = Math.floor(Math.random() * 9000000) + Date.now() % 10000;
+      const imageUrl = await generateCinematicStoryboardImage(prompt, settings, seed);
+
+      await db.update(shots).set({
+        storyboardImageUrl: imageUrl,
+        isDirty: false,
+        updatedAt: new Date().toISOString(),
+      }).where(eq(shots.id, s.id));
+      count += 1;
+    }
   }
 
   return c.json({

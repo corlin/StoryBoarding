@@ -3,6 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
 import { projects, sequences, shots, systemSettings } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt } from "../agents/director/pipeline";
+import { generateCinematicStoryboardImage } from "./generation";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -207,14 +208,18 @@ router.post("/", async (c) => {
     });
 
     for (const s of plan.shots) {
+      const shotId = crypto.randomUUID();
+      const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
+      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, settings, seed);
+
       await db.insert(shots).values({
-        id: crypto.randomUUID(),
+        id: shotId,
         sequenceId: seqId,
         order: s.order,
         duration: s.duration,
         shotSize: s.shot_size,
         cameraAngle: s.camera_angle,
-        cameraMovement: JSON.stringify(s.camera_movement),
+        cameraMovement: JSON.stringify(s.camera_movement || {}),
         subject: s.subject || "",
         action: s.action,
         dialogue: s.dialogue || "",
@@ -224,7 +229,8 @@ router.post("/", async (c) => {
         imagePrompt: s.image_prompt,
         videoPrompt: s.video_prompt,
         continuityData: JSON.stringify(s.continuity_data || {}),
-        isDirty: true,
+        storyboardImageUrl: imageUrl,
+        isDirty: false,
       });
     }
   } catch (e) {

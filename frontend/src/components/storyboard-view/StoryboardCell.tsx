@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ShotModel } from "@/types/shot";
 import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, AlertCircle } from "lucide-react";
+import { generateStoryboardSvgUrl } from "@/lib/storyboardGraphics";
 import { cn } from "@/lib/utils";
 
 interface StoryboardCellProps {
@@ -34,10 +35,26 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
 }) => {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [hasImageError, setHasImageError] = useState(false);
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [imgSrc, setImgSrc] = useState<string>(shot.storyboard_image_url || "");
+  const [isLoaded, setIsLoaded] = useState(true);
 
   const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || "MS";
+
+  useEffect(() => {
+    if (shot.storyboard_image_url) {
+      setImgSrc(shot.storyboard_image_url);
+    } else {
+      setImgSrc(
+        generateStoryboardSvgUrl({
+          order: shot.order,
+          shot_size: shot.shot_size,
+          camera_angle: shot.camera_angle,
+          action: shot.action,
+          subject: shot.subject,
+        })
+      );
+    }
+  }, [shot.storyboard_image_url, shot.action, shot.shot_size, shot.camera_angle, shot.order, shot.subject]);
 
   // Stopwatch timer for single shot generation
   useEffect(() => {
@@ -59,13 +76,22 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
     if (!onRegenerateImage || isRegenerating) return;
     try {
       setIsRegenerating(true);
-      setHasImageError(false);
       await onRegenerateImage();
-    } catch (err) {
-      setHasImageError(true);
     } finally {
       setIsRegenerating(false);
     }
+  };
+
+  const handleImageError = () => {
+    // Graceful fallback to SVG graphic preview if remote image fails
+    const fallbackSvg = generateStoryboardSvgUrl({
+      order: shot.order,
+      shot_size: shot.shot_size,
+      camera_angle: shot.camera_angle,
+      action: shot.action,
+      subject: shot.subject,
+    });
+    setImgSrc(fallbackSvg);
   };
 
   return (
@@ -89,16 +115,12 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
         className="relative aspect-video w-full bg-muted/40 flex items-center justify-center overflow-hidden cursor-zoom-in"
         title="点击放大进入影院动态播放模式"
       >
-        {shot.storyboard_image_url ? (
+        {imgSrc ? (
           <img
-            src={shot.storyboard_image_url}
+            src={imgSrc}
             alt={`Shot ${index + 1}`}
-            onLoad={() => setIsImageLoaded(true)}
-            onError={() => setHasImageError(true)}
-            className={cn(
-              "w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.02]",
-              isImageLoaded ? "opacity-100" : "opacity-80 blur-xs"
-            )}
+            onError={handleImageError}
+            className="w-full h-full object-cover transition-all duration-300 group-hover:scale-[1.02]"
           />
         ) : (
           /* Placeholder Canvas */
@@ -171,26 +193,19 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           )}
 
           {/* Dirty State Indicator / Quick Regenerate Button */}
-          {(shot.is_dirty || !shot.storyboard_image_url || hasImageError) && (
+          {(shot.is_dirty || !shot.storyboard_image_url) && (
             <button
               onClick={handleRegenerate}
               disabled={isRegenerating}
-              className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs shadow transition-colors disabled:opacity-50",
-                hasImageError
-                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  : "bg-amber-500/90 hover:bg-amber-400 text-black"
-              )}
-              title={hasImageError ? "生图失败，点击重试" : "点击单独重绘该格"}
+              className="flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs shadow transition-colors disabled:opacity-50 bg-amber-500/90 hover:bg-amber-400 text-black"
+              title="点击单独重绘该格"
             >
               {isRegenerating ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : hasImageError ? (
-                <AlertCircle className="w-3.5 h-3.5" />
               ) : (
                 <RefreshCw className="w-3.5 h-3.5" />
               )}
-              <span>{isRegenerating ? "绘制中" : hasImageError ? "重试" : "重绘"}</span>
+              <span>{isRegenerating ? "绘制中" : "重绘"}</span>
             </button>
           )}
         </div>
