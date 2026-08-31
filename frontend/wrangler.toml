@@ -1,0 +1,7 @@
+name = "storyboard-frontend"
+compatibility_date = "2024-11-27"
+pages_build_output_dir = "out"
+
+# Cloudflare Region Placement: Target Google Cloud Platform (GCP) us-east1
+[placement]
+region = "gcp:us-east1"
