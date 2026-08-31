@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ShotModel } from "@/types/shot";
-import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock } from "lucide-react";
+import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock, CheckCircle, Compass, Palette, CloudUpload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StoryboardCellProps {
@@ -40,16 +40,16 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
 
   const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || "MS";
   const isLocked = Boolean(shot.is_locked);
+  const isDeveloping = !imgSrc || isRegenerating;
 
   useEffect(() => {
     setImgSrc(shot.storyboard_image_url || "");
   }, [shot.storyboard_image_url]);
 
-  // Stopwatch timer for single shot generation (essential for 50s Grok / 15s Imagen models)
+  // Live Darkroom Developing Stopwatch (Tracks both single manual regenerate and initial background creation)
   useEffect(() => {
     let timer: any;
-    if (isRegenerating) {
-      setElapsed(0);
+    if (isDeveloping) {
       const start = Date.now();
       timer = setInterval(() => {
         setElapsed(Number(((Date.now() - start) / 1000).toFixed(1)));
@@ -58,7 +58,33 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
       setElapsed(0);
     }
     return () => clearInterval(timer);
-  }, [isRegenerating]);
+  }, [isDeveloping]);
+
+  // Determine dynamic 3-stage darkroom status text
+  const getDevelopingStage = (sec: number) => {
+    if (sec < 1.2) {
+      return {
+        text: "180° 轴线与构图锁定",
+        icon: Compass,
+        color: "text-sky-400",
+      };
+    }
+    if (sec < 2.5) {
+      return {
+        text: "黑白石墨草图绘图中",
+        icon: Palette,
+        color: "text-amber-400",
+      };
+    }
+    return {
+      text: "R2 云端对象存储写入",
+      icon: Sparkles,
+      color: "text-emerald-400",
+    };
+  };
+
+  const currentStage = getDevelopingStage(elapsed);
+  const StageIcon = currentStage.icon;
 
   const handleRegenerate = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -91,53 +117,57 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
       {/* 16:9 Frame Aspect Ratio Container */}
       <div
         onClick={(e) => {
-          if (onOpenTheater) {
+          if (imgSrc && onOpenTheater) {
             e.stopPropagation();
             onOpenTheater();
           }
         }}
-        className="relative aspect-video w-full bg-muted/40 flex items-center justify-center overflow-hidden cursor-zoom-in"
-        title="点击放大进入影院动态播放模式"
+        className={cn(
+          "relative aspect-video w-full bg-muted/40 flex items-center justify-center overflow-hidden",
+          imgSrc ? "cursor-zoom-in" : "cursor-default"
+        )}
+        title={imgSrc ? "点击放大进入影院动态播放模式" : "云端暗房显影中..."}
       >
-        {imgSrc ? (
+        {imgSrc && !isRegenerating ? (
+          /* Real Film Storyboard Artwork with Smooth 400ms Exposure Fade-in */
           <img
             src={imgSrc}
             alt={`Shot ${index + 1}`}
-            className="w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.02]"
+            className="w-full h-full object-cover transition-all duration-500 animate-in fade-in zoom-in-95 group-hover:scale-[1.02]"
           />
         ) : (
-          /* Clean Cinematic Skeleton Frame (No fake generic geometric SVG) */
-          <div className="flex flex-col items-center justify-center text-muted-foreground/40 p-4 text-center">
-            <Film className="w-8 h-8 mb-1.5 opacity-30 animate-pulse" />
-            <span className="text-xs font-mono tracking-wider font-semibold text-muted-foreground/60">
-              {shot.shot_size.toUpperCase()} · 待渲染
-            </span>
-          </div>
-        )}
+          /* 35mm Film Developing Chamber (Cinema Darkroom Monitor) */
+          <div className="absolute inset-0 bg-neutral-950 flex flex-col items-center justify-center p-3 text-center z-10 select-none overflow-hidden">
+            {/* Subtle 35mm film scan light beam */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/15 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-sky-500/0 via-sky-400 to-sky-500/0 animate-pulse" />
 
-        {/* Darkroom Film Developing Shimmer Overlay (Active during image generation) */}
-        {isRegenerating && (
-          <div className="absolute inset-0 bg-black/85 backdrop-blur-xs flex flex-col items-center justify-center p-3 text-center z-20 animate-in fade-in duration-200">
-            {/* Shimmer sweeping beam */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/20 to-transparent -translate-x-full animate-[shimmer_1.8s_infinite]" />
-
-            <div className="relative p-2.5 rounded-full bg-primary/20 text-primary mb-2 shadow-inner border border-primary/30">
-              <Loader2 className="w-5 h-5 animate-spin" />
+            {/* Pulsing film reel spinner */}
+            <div className="relative p-2.5 rounded-full bg-primary/10 text-primary mb-1.5 shadow-inner border border-primary/20 backdrop-blur-xs">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
             </div>
 
+            {/* Dynamic Stage Title & Status */}
             <p className="relative text-xs font-semibold text-foreground tracking-tight flex items-center gap-1.5">
-              <span>正在渲染第 {index + 1} 镜画面</span>
-              <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+              <span>第 {String(index + 1).padStart(2, "0")} 镜 · 暗房显影中</span>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
             </p>
 
-            <span className="relative text-[11px] font-mono text-primary font-bold mt-1 bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-              ⏱️ 耗时: {elapsed.toFixed(1)}s
+            {/* Dynamic 3-Stage Progress Feedback */}
+            <div className="relative flex items-center gap-1 mt-1 text-[11px] font-medium font-mono text-muted-foreground bg-background/80 px-2 py-0.5 rounded-full border border-border/70 shadow-xs">
+              <StageIcon className={cn("w-3 h-3 animate-pulse", currentStage.color)} />
+              <span className={currentStage.color}>{currentStage.text}</span>
+            </div>
+
+            {/* Stopwatch Timer Badge */}
+            <span className="relative text-[10px] font-mono text-muted-foreground/80 mt-1">
+              ⏱️ 耗时 {elapsed.toFixed(1)}s
             </span>
           </div>
         )}
 
         {/* Top Badges (Shot No, Shot Size, Duration, Lock) */}
-        <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-background/90 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-mono border border-border/60 shadow-sm z-10">
+        <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-background/90 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-mono border border-border/60 shadow-sm z-20">
           <span className="font-bold text-sky-400">{String(index + 1).padStart(2, "0")}</span>
           <span className="text-muted-foreground">·</span>
           <span className="font-semibold text-foreground">{sizeAbbr}</span>
@@ -148,93 +178,112 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
             <>
               <span className="text-muted-foreground">·</span>
               <span title="已锁定保护，AI重构时保持不变">
-                <Lock className="w-3 h-3 text-amber-400" />
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
               </span>
             </>
           )}
         </div>
 
-        {/* Top Right Action Buttons */}
-        <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
-          {/* Shot Lock / Unlock Toggle Button */}
+        {/* Top Right Quick Action Buttons */}
+        <div className="absolute top-2 right-2 flex items-center gap-1.5 z-20">
+          {/* Lock / Unlock Toggle Button */}
           {onToggleLock && (
             <button
               onClick={handleToggleLock}
               className={cn(
-                "p-1.5 rounded-md backdrop-blur border transition-all shadow-sm",
+                "p-1.5 rounded-md backdrop-blur-md border transition-all duration-150 shadow-sm",
                 isLocked
                   ? "bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500/30"
-                  : "bg-background/85 hover:bg-background text-muted-foreground hover:text-amber-400 border-border/40 opacity-0 group-hover:opacity-100"
+                  : "bg-background/80 border-border/60 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100"
               )}
-              title={isLocked ? "镜头已锁定（点击解锁）" : "锁定镜头（防止 AI 重拆时被覆盖）"}
+              title={isLocked ? "点击解锁分镜（AI 拆镜时将允许重新规划）" : "点击锁定分镜（AI 拆镜时将受保护保持不变）"}
             >
               {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
             </button>
           )}
 
-          {/* Zoom / Theater Mode Indicator */}
-          {onOpenTheater && !isRegenerating && (
+          {/* Single Shot Regenerate Button */}
+          {onRegenerateImage && (
+            <button
+              onClick={handleRegenerate}
+              disabled={isDeveloping}
+              className={cn(
+                "p-1.5 rounded-md backdrop-blur-md border transition-all duration-150 shadow-sm",
+                isDeveloping
+                  ? "bg-muted/80 text-muted-foreground border-border/40 cursor-not-allowed"
+                  : "bg-background/80 border-border/60 text-muted-foreground hover:text-foreground hover:bg-background opacity-0 group-hover:opacity-100"
+              )}
+              title="重新打样当前分镜画面 (存入 R2)"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", isDeveloping && "animate-spin text-primary")} />
+            </button>
+          )}
+
+          {/* Maximize Theater Button */}
+          {imgSrc && onOpenTheater && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenTheater();
               }}
-              className="p-1.5 rounded-md bg-background/85 hover:bg-background text-muted-foreground hover:text-sky-400 backdrop-blur border border-border/40 transition-colors opacity-0 group-hover:opacity-100 shadow-sm"
-              title="大图放大 / 影院动态播放"
+              className="p-1.5 rounded-md bg-background/80 backdrop-blur-md border border-border/60 text-muted-foreground hover:text-foreground transition-all duration-150 opacity-0 group-hover:opacity-100 shadow-sm"
+              title="全屏影院预览"
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
           )}
+        </div>
 
-          {/* Detail Inspect Button */}
-          {onOpenDetail && !isRegenerating && (
+        {/* Narrative Function Capsule (Bottom-left overlay) */}
+        {shot.narrative_function && (
+          <div className="absolute bottom-2 left-2 bg-black/75 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] font-medium text-zinc-300 border border-white/10 z-10">
+            {shot.narrative_function}
+          </div>
+        )}
+
+        {/* Persisted to R2 Status Indicator (Bottom-right overlay) */}
+        {imgSrc && !isRegenerating && (
+          <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/75 backdrop-blur-xs px-1.5 py-0.5 rounded text-[9px] font-mono text-emerald-400 border border-emerald-500/20 z-10 opacity-70 group-hover:opacity-100 transition-opacity">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>R2</span>
+          </div>
+        )}
+      </div>
+
+      {/* Card Body: Action and Script Description */}
+      <div className="p-3 flex flex-col justify-between flex-1 gap-2 bg-card/40">
+        <div>
+          <p className="text-xs text-foreground/90 font-medium line-clamp-2 leading-relaxed" title={shot.action}>
+            {shot.action || "未填写动作描述"}
+          </p>
+
+          {shot.dialogue && (
+            <p className="text-[11px] text-primary/90 italic mt-1 line-clamp-1 border-l-2 border-primary/40 pl-1.5">
+              “{shot.dialogue}”
+            </p>
+          )}
+        </div>
+
+        {/* Footer Info: Camera Movement & Detail Trigger */}
+        <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1 truncate max-w-[140px]" title={shot.camera_movement?.type || "固定机位"}>
+            <Camera className="w-3 h-3 shrink-0 text-muted-foreground/70" />
+            <span className="truncate">{shot.camera_movement?.type || "固定机位"}</span>
+          </div>
+
+          {onOpenDetail && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenDetail();
               }}
-              className="p-1.5 rounded-md bg-background/85 hover:bg-background text-muted-foreground hover:text-primary backdrop-blur border border-border/40 transition-colors opacity-0 group-hover:opacity-100 shadow-sm"
-              title="查看参数与提示词"
+              className="flex items-center gap-1 text-[11px] text-primary/80 hover:text-primary transition-colors font-medium ml-auto"
             >
-              <Info className="w-3.5 h-3.5" />
+              <span>参数</span>
+              <Info className="w-3 h-3" />
             </button>
           )}
-
-          {/* Regenerate / Re-sample Shot Image Button */}
-          <button
-            onClick={handleRegenerate}
-            disabled={isRegenerating}
-            className={cn(
-              "flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs shadow transition-all disabled:opacity-50 backdrop-blur border",
-              !imgSrc
-                ? "bg-amber-500 hover:bg-amber-400 text-black border-amber-500/40"
-                : "bg-background/85 hover:bg-background text-foreground hover:text-primary border-border/50 opacity-0 group-hover:opacity-100"
-            )}
-            title="重新打样渲染电影级分镜画面"
-          >
-            {isRegenerating ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="w-3.5 h-3.5" />
-            )}
-            <span>{isRegenerating ? "绘制中" : imgSrc ? "重新打样" : "生成画面"}</span>
-          </button>
         </div>
-
-        {/* Camera Movement Arrow Visual Overlay */}
-        {shot.camera_movement?.type && shot.camera_movement.type !== "static" && (
-          <div className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded bg-background/90 text-xs font-mono text-muted-foreground border border-border/50 backdrop-blur-sm z-10">
-            <Camera className="w-3.5 h-3.5 text-sky-400" />
-            <span>{shot.camera_movement.type}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Caption & Director Notes */}
-      <div className="p-3 bg-card/90 border-t border-border/60 text-xs md:text-sm">
-        <p className="line-clamp-2 text-foreground/90 leading-snug font-medium">
-          {shot.action || <span className="text-muted-foreground italic">无动作描述</span>}
-        </p>
       </div>
     </div>
   );

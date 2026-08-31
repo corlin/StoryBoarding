@@ -69,6 +69,21 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
 
         {/* Actions & Layout Controls */}
         <div className="flex items-center gap-2">
+          {/* Darkroom Status Capsule */}
+          {missingImageCount > 0 ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[11px] font-mono text-amber-400 animate-pulse">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>
+                云端暗房显影中: {shots.length - missingImageCount}/{shots.length} 镜 ({Math.round(((shots.length - missingImageCount) / Math.max(1, shots.length)) * 100)}%)
+              </span>
+            </div>
+          ) : shots.length > 0 ? (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>全片 {shots.length} 镜已显影就绪 (R2)</span>
+            </div>
+          ) : null}
+
           {/* Batch Re-render Button if any shots missing images */}
           {missingImageCount > 0 && onRegenerateDirty && (
             <button
@@ -89,8 +104,8 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
               )}
               <span>
                 {isBatchRendering
-                  ? `渲染中 (${batchProgress?.current || 0}/${batchProgress?.total || missingImageCount})`
-                  : `批量生成画面 (${missingImageCount})`}
+                  ? `冲印中 (${batchProgress?.current || 0}/${batchProgress?.total || missingImageCount})`
+                  : `一键冲印 (${missingImageCount})`}
               </span>
             </button>
           )}
