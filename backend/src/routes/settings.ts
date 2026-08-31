@@ -72,15 +72,19 @@ const handleUpdateProviders = async (c: any) => {
 router.post("/providers", handleUpdateProviders);
 router.put("/providers", handleUpdateProviders);
 
-// POST /api/settings/test-llm (Real-time LLM Model Probe)
+// POST /api/settings/test-llm (Real-time LLM Model Probe - 100% Server-Side via Cloudflare Worker)
 router.post("/test-llm", async (c) => {
-  const body = await c.req.json();
-  const apiKey = (body.api_key || "").trim();
-  const apiBase = (body.api_base || "https://openrouter.ai/api/v1").trim();
-  const model = (body.model || "deepseek/deepseek-chat").trim();
+  const db = getDb(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) || {};
+
+  let setting = await db.select().from(systemSettings).where(eq(systemSettings.id, "default")).get();
+
+  const apiKey = (body.api_key || setting?.llmApiKey || "").trim();
+  const apiBase = (body.api_base || setting?.llmApiBase || c.env.DEFAULT_LLM_API_BASE || "https://openrouter.ai/api/v1").trim();
+  const model = (body.model || setting?.llmModel || c.env.DEFAULT_LLM_MODEL || "deepseek/deepseek-chat").trim();
 
   if (!apiKey) {
-    return c.json({ ok: false, error: "请先填入 LLM API Key" }, 400);
+    return c.json({ ok: false, error: "服务端与请求中均未配置 LLM API Key，请先输入或保存设置" }, 400);
   }
 
   const start = Date.now();
@@ -109,25 +113,29 @@ router.post("/test-llm", async (c) => {
     if (resp.ok) {
       const data = (await resp.json()) as any;
       const reply = data.choices?.[0]?.message?.content?.trim() || "PONG";
-      return c.json({ ok: true, latency_ms: latency, model, reply });
+      return c.json({ ok: true, latency_ms: latency, model, reply, executed_by: "cloudflare_worker" });
     } else {
       const errText = await resp.text();
-      return c.json({ ok: false, status: resp.status, error: `HTTP ${resp.status}: ${errText}` }, 400);
+      return c.json({ ok: false, status: resp.status, error: `HTTP ${resp.status}: ${errText}`, executed_by: "cloudflare_worker" }, 400);
     }
   } catch (err: any) {
-    return c.json({ ok: false, error: err?.message || "请求超时或网络异常" }, 500);
+    return c.json({ ok: false, error: err?.message || "服务端请求超时或网络异常", executed_by: "cloudflare_worker" }, 500);
   }
 });
 
-// POST /api/settings/test-image (Real-time Image Model Probe via OpenRouter /images & OpenAI /images/generations)
+// POST /api/settings/test-image (Real-time Image Model Probe - 100% Server-Side via Cloudflare Worker)
 router.post("/test-image", async (c) => {
-  const body = await c.req.json();
-  const apiKey = (body.api_key || "").trim();
-  const apiBase = (body.api_base || "https://openrouter.ai/api/v1").trim();
-  const model = (body.model || "openai/gpt-image-2").trim();
+  const db = getDb(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) || {};
+
+  let setting = await db.select().from(systemSettings).where(eq(systemSettings.id, "default")).get();
+
+  const apiKey = (body.api_key || setting?.imageApiKey || setting?.llmApiKey || "").trim();
+  const apiBase = (body.api_base || setting?.imageApiBase || "https://openrouter.ai/api/v1").trim();
+  const model = (body.model || setting?.imageModel || c.env.DEFAULT_IMAGE_MODEL || "openai/gpt-image-2").trim();
 
   if (!apiKey) {
-    return c.json({ ok: false, error: "请先填入 AI 绘画 API Key" }, 400);
+    return c.json({ ok: false, error: "服务端与请求中均未配置生图 API Key，请先输入或保存设置" }, 400);
   }
 
   const start = Date.now();
@@ -179,13 +187,13 @@ router.post("/test-image", async (c) => {
     const latency = Date.now() - start;
 
     if (resp.ok) {
-      return c.json({ ok: true, latency_ms: latency, model });
+      return c.json({ ok: true, latency_ms: latency, model, executed_by: "cloudflare_worker" });
     } else {
       const errText = await resp.text();
-      return c.json({ ok: false, status: resp.status, error: `HTTP ${resp.status}: ${errText}` }, 400);
+      return c.json({ ok: false, status: resp.status, error: `HTTP ${resp.status}: ${errText}`, executed_by: "cloudflare_worker" }, 400);
     }
   } catch (err: any) {
-    return c.json({ ok: false, error: err?.message || "生图测试超时或网络异常" }, 500);
+    return c.json({ ok: false, error: err?.message || "服务端生图测试超时或网络异常", executed_by: "cloudflare_worker" }, 500);
   }
 });
 

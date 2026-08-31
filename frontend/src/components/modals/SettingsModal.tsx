@@ -79,10 +79,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   };
 
   const handleTestLlm = async () => {
-    if (!llmApiKey.trim()) {
-      notify.error("请先填入 LLM API Key");
-      return;
-    }
     setLlmTestStatus("testing");
     setLlmTestMsg("");
     try {
@@ -93,27 +89,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       });
       if (res.ok) {
         setLlmTestStatus("ok");
-        setLlmTestMsg(`连通成功 (${res.latency_ms}ms) · 响应: ${res.reply}`);
-        notify.success(`LLM 模型 ${res.model} 连通正常 (${res.latency_ms}ms)`);
+        setLlmTestMsg(`服务端连通成功 (${res.latency_ms}ms) · 响应: ${res.reply}`);
+        notify.success(`[Worker服务端] LLM 模型 ${res.model} 连通正常 (${res.latency_ms}ms)`);
       } else {
         setLlmTestStatus("err");
         setLlmTestMsg(res.error || "调用失败");
-        notify.error(`LLM 连通失败: ${res.error}`);
+        notify.error(`服务端测试失败: ${res.error}`);
       }
     } catch (e: any) {
       const errMsg = e.response?.data?.error || e.message || "请求失败";
       setLlmTestStatus("err");
       setLlmTestMsg(errMsg);
-      notify.error(`LLM 连通异常: ${errMsg}`);
+      notify.error(`服务端探测异常: ${errMsg}`);
     }
   };
 
   const handleTestImage = async () => {
     const key = (syncApiKey ? llmApiKey : imageApiKey).trim();
-    if (!key) {
-      notify.error("请先填入 AI 绘画 API Key");
-      return;
-    }
     setImageTestStatus("testing");
     setImageTestMsg("");
     try {
@@ -124,18 +116,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       });
       if (res.ok) {
         setImageTestStatus("ok");
-        setImageTestMsg(`连通成功 (${res.latency_ms}ms)`);
-        notify.success(`生图模型 ${res.model} 连通正常 (${res.latency_ms}ms)`);
+        setImageTestMsg(`服务端连通成功 (${res.latency_ms}ms)`);
+        notify.success(`[Worker服务端] 生图模型 ${res.model} 连通正常 (${res.latency_ms}ms)`);
       } else {
         setImageTestStatus("err");
         setImageTestMsg(res.error || "调用失败");
-        notify.error(`生图模型测试失败: ${res.error}`);
+        notify.error(`服务端生图测试失败: ${res.error}`);
       }
     } catch (e: any) {
       const errMsg = e.response?.data?.error || e.message || "请求失败";
       setImageTestStatus("err");
       setImageTestMsg(errMsg);
-      notify.error(`生图模型测试异常: ${errMsg}`);
+      notify.error(`服务端生图探测异常: ${errMsg}`);
     }
   };
 
@@ -354,18 +346,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               <button
                 type="button"
                 onClick={handleTestLlm}
-                disabled={llmTestStatus === "testing" || !llmApiKey.trim()}
+                disabled={llmTestStatus === "testing"}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 transition-colors shadow-xs"
               >
                 {llmTestStatus === "testing" ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>探测 LLM 中...</span>
+                    <span>服务端发包探测中...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>测试 LLM 导演连通性</span>
+                    <span>服务端实测 LLM 导演</span>
                   </>
                 )}
               </button>
@@ -490,18 +482,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               <button
                 type="button"
                 onClick={handleTestImage}
-                disabled={imageTestStatus === "testing" || (!syncApiKey && !imageApiKey.trim()) || (syncApiKey && !llmApiKey.trim())}
+                disabled={imageTestStatus === "testing"}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50 transition-colors shadow-xs"
               >
                 {imageTestStatus === "testing" ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>探测生图模型中...</span>
+                    <span>服务端生图发包探测中...</span>
                   </>
                 ) : (
                   <>
                     <ImageIcon className="w-3.5 h-3.5" />
-                    <span>测试 AI 绘画连通性</span>
+                    <span>服务端实测 AI 绘画</span>
                   </>
                 )}
               </button>
@@ -520,9 +512,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
           </div>
 
+          {/* Footnote Notice */}
+          <div className="text-[11px] text-muted-foreground/80 bg-muted/30 border border-border/50 rounded-lg p-2.5 flex items-center gap-2">
+            <Globe className="w-4 h-4 text-primary shrink-0" />
+            <span>所有连通性实测均由 Cloudflare Worker 后端服务器直接发起，非本地浏览器端直连，不受本地网络及跨域限制。</span>
+          </div>
+
           {/* Footer Buttons */}
-          <div className="flex items-center justify-between pt-2">
-            <span className="text-[11px] text-muted-foreground">配置将安全持久化保存在云端与本地浏览器</span>
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[11px] text-muted-foreground">配置将安全持久化保存在云端 D1 数据库与本地</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
