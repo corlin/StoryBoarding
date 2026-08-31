@@ -6,6 +6,7 @@ import shotsRouter from "./routes/shots";
 import generationRouter from "./routes/generation";
 import exportRouter from "./routes/export";
 import settingsRouter from "./routes/settings";
+import assetsRouter from "./routes/assets";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -38,5 +39,6 @@ app.route("/api/shots", shotsRouter);
 app.route("/api/generate", generationRouter);
 app.route("/api/export", exportRouter);
 app.route("/api/settings", settingsRouter);
+app.route("/api/assets", assetsRouter);
 
 export default app;

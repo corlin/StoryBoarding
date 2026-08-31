@@ -210,7 +210,7 @@ router.post("/", async (c) => {
     for (const s of plan.shots) {
       const shotId = crypto.randomUUID();
       const seed = Math.floor(Math.random() * 900000) + s.order * 1000;
-      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, settings, seed);
+      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
 
       await db.insert(shots).values({
         id: shotId,
