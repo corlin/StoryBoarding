@@ -11,7 +11,7 @@ mode = "smart"
 [[d1_databases]]
 binding = "DB"
 database_name = "storyboard_db"
-database_id = "storyboard-db-production"
+database_id = "storyboard_db"
 migrations_dir = "drizzle/migrations"
 
 # Cloudflare R2 Object Storage Binding (For AI images & assets)
