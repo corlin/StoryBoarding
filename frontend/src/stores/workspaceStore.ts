@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { ProjectModel, ShotModel } from "@/types/shot";
 import { api } from "@/lib/api";
+import { generateStoryboardSvgUrl } from "@/lib/storyboardGraphics";
 
 interface WorkspaceState {
   currentProject: ProjectModel | null;
@@ -33,9 +34,30 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const project = await api.getProject(projectId);
-      set({ currentProject: project, isLoading: false });
-      // Default select first shot if available, or reset to null
-      const firstShot = project.sequences[0]?.shots[0];
+      
+      const enrichedSequences = (project.sequences || []).map((seq) => ({
+        ...seq,
+        shots: (seq.shots || []).map((shot) => ({
+          ...shot,
+          storyboard_image_url:
+            shot.storyboard_image_url ||
+            generateStoryboardSvgUrl({
+              order: shot.order,
+              shot_size: shot.shot_size,
+              camera_angle: shot.camera_angle,
+              action: shot.action,
+              subject: shot.subject,
+            }),
+        })),
+      }));
+
+      const enrichedProject = {
+        ...project,
+        sequences: enrichedSequences,
+      };
+
+      set({ currentProject: enrichedProject, isLoading: false });
+      const firstShot = enrichedSequences[0]?.shots[0];
       set({ selectedShotId: firstShot ? firstShot.id : null });
     } catch (err: any) {
       set({ error: err?.message || "Failed to load project", isLoading: false });
@@ -62,9 +84,20 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
             }
           }
 
+          const nextImg = updates.action && updates.action !== shot.action
+            ? generateStoryboardSvgUrl({
+                order: shot.order,
+                shot_size: updates.shot_size || shot.shot_size,
+                camera_angle: updates.camera_angle || shot.camera_angle,
+                action: updates.action,
+                subject: updates.subject || shot.subject,
+              })
+            : shot.storyboard_image_url;
+
           return {
             ...shot,
             ...updates,
+            storyboard_image_url: updates.storyboard_image_url || nextImg,
             is_dirty: nextDirty,
           };
         }
@@ -72,31 +105,25 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       }),
     }));
 
-    set({ currentProject: { ...currentProject, sequences: updatedSequences } });
+    set({
+      currentProject: {
+        ...currentProject,
+        sequences: updatedSequences,
+      },
+    });
   },
 
   saveShotRemote: async (shotId, updates) => {
     get().updateShotLocal(shotId, updates);
+    const { currentProject } = get();
+    if (!currentProject || currentProject.id === "demo" || currentProject.id === "demo-matrix-cyber-master") {
+      return;
+    }
+
     try {
       await api.updateShot(shotId, updates);
-    } catch (err: any) {
-      console.error("Failed to sync shot to backend", err);
-      set({ error: err?.message || "同步镜头修改失败" });
-    }
-  },
-
-  regenerateShotImage: async (shotId) => {
-    try {
-      const res = await api.generateShotImage(shotId);
-      if (res && res.storyboard_image_url) {
-        get().updateShotLocal(shotId, {
-          storyboard_image_url: res.storyboard_image_url,
-          is_dirty: false,
-        });
-      }
-    } catch (err: any) {
-      console.error("Failed to regenerate shot image", err);
-      set({ error: err?.message || "单格重绘失败" });
+    } catch (err) {
+      console.error("Failed to persist shot changes to remote:", err);
     }
   },
 
@@ -104,48 +131,102 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const { currentProject } = get();
     if (!currentProject) return;
 
-    try {
-      const newShot = await api.createShot({
+    const seq = currentProject.sequences.find((s) => s.id === sequenceId) || currentProject.sequences[0];
+    const newOrder = (seq?.shots.length || 0) + 1;
+
+    if (currentProject.id === "demo" || currentProject.id === "demo-matrix-cyber-master") {
+      const newLocalShot: ShotModel = {
+        id: `shot-local-${Date.now()}`,
         sequence_id: sequenceId,
-        action: "新镜头动作描述",
+        order: newOrder,
+        duration: 3.0,
         shot_size: "medium_shot",
         camera_angle: "eye_level",
-        duration: 2.5,
-      });
+        camera_movement: { type: "static" },
+        subject: "新主体",
+        action: "新动作描述...",
+        composition: {},
+        character_direction: "facing_camera",
+        audio: {},
+        transition: "cut",
+        storyboard_image_url: generateStoryboardSvgUrl({
+          order: newOrder,
+          shot_size: "medium_shot",
+          camera_angle: "eye_level",
+          action: "新动作描述...",
+          subject: "新主体",
+        }),
+        continuity_data: {},
+        is_dirty: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      const updatedSequences = currentProject.sequences.map((seq) => {
-        if (seq.id === sequenceId) {
-          return { ...seq, shots: [...seq.shots, newShot] };
-        }
-        return seq;
-      });
+      const updatedSequences = currentProject.sequences.map((s) =>
+        s.id === sequenceId ? { ...s, shots: [...s.shots, newLocalShot] } : s
+      );
 
       set({
         currentProject: { ...currentProject, sequences: updatedSequences },
-        selectedShotId: newShot.id,
+        selectedShotId: newLocalShot.id,
       });
-    } catch (err: any) {
-      set({ error: err?.message || "Failed to add shot" });
+      return;
     }
+
+    const created = await api.createShot({
+      sequence_id: sequenceId,
+      order: newOrder,
+      duration: 3.0,
+      shot_size: "medium_shot",
+      camera_angle: "eye_level",
+      camera_movement: { type: "static" },
+      subject: "新角色",
+      action: "输入镜头具体动作描述...",
+    });
+
+    await get().fetchProject(currentProject.id);
+    set({ selectedShotId: created.id });
   },
 
   deleteShot: async (shotId) => {
     const { currentProject, selectedShotId } = get();
     if (!currentProject) return;
 
-    try {
-      await api.deleteShot(shotId);
+    if (currentProject.id === "demo" || currentProject.id === "demo-matrix-cyber-master") {
       const updatedSequences = currentProject.sequences.map((seq) => ({
         ...seq,
-        shots: seq.shots.filter((s) => s.id !== shotId),
+        shots: seq.shots.filter((s) => s.id !== shotId).map((s, idx) => ({ ...s, order: idx + 1 })),
       }));
-
       set({
         currentProject: { ...currentProject, sequences: updatedSequences },
         selectedShotId: selectedShotId === shotId ? null : selectedShotId,
       });
-    } catch (err: any) {
-      set({ error: err?.message || "Failed to delete shot" });
+      return;
+    }
+
+    await api.deleteShot(shotId);
+    await get().fetchProject(currentProject.id);
+  },
+
+  regenerateShotImage: async (shotId) => {
+    const { currentProject } = get();
+    if (!currentProject) return;
+
+    if (currentProject.id === "demo" || currentProject.id === "demo-matrix-cyber-master") {
+      get().updateShotLocal(shotId, { is_dirty: false });
+      return;
+    }
+
+    try {
+      const resp = await api.generateShotImage(shotId);
+      if (resp && resp.storyboard_image_url) {
+        get().updateShotLocal(shotId, {
+          storyboard_image_url: resp.storyboard_image_url,
+          is_dirty: false,
+        });
+      }
+    } catch (e) {
+      console.error(e);
     }
   },
 }));

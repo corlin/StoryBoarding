@@ -1,9 +1,23 @@
 import { Hono } from "hono";
 import { eq, desc } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
-import { projects, sequences, shots } from "../db/schema";
+import { projects, sequences, shots, systemSettings } from "../db/schema";
+import { runDirectorPipeline, formatDirectorImagePrompt } from "../agents/director/pipeline";
 
 const router = new Hono<{ Bindings: Bindings }>();
+
+// Helper to get active API keys from D1 system_settings or env
+async function getActiveSettings(db: any, env: Bindings) {
+  const setting = await db.select().from(systemSettings).where(eq(systemSettings.id, "default")).get();
+  return {
+    llmApiKey: setting?.llmApiKey || "",
+    llmApiBase: setting?.llmApiBase || env.DEFAULT_LLM_API_BASE || "https://openrouter.ai/api/v1",
+    llmModel: setting?.llmModel || env.DEFAULT_LLM_MODEL || "deepseek/deepseek-chat",
+    imageApiKey: setting?.imageApiKey || setting?.llmApiKey || "",
+    imageApiBase: setting?.imageApiBase || "https://openrouter.ai/api/v1",
+    imageModel: setting?.imageModel || env.DEFAULT_IMAGE_MODEL || "google/imagen-3",
+  };
+}
 
 // Helper to create demo project if database is completely empty
 async function ensureDemoProject(db: any) {
@@ -48,7 +62,7 @@ async function ensureDemoProject(db: any) {
         narrativeFunction: "动作推进",
         lighting: "冷调暗红霓虹与绿色数据流反光",
         audio: JSON.stringify({ sfx: "暴雨声、全息霓虹电流嗡鸣" }),
-        imagePrompt: `Professional pre-production director's storyboard sketch, 16:9 cinematic frame, rough graphite and dark pencil lines, bold confident gestural strokes, selective grayscale wash, clear silhouette staging, directional movement arrows, ${s.size}, ${s.angle}, camera ${s.mov}, ${s.act} --no speech balloons, comic panels, 3d render`,
+        imagePrompt: formatDirectorImagePrompt(s.act, s.size, s.angle, s.mov),
         videoPrompt: `Camera ${s.mov} ${s.act}`,
         continuityData: JSON.stringify({ screen_direction: "left_to_right" }),
         isDirty: false,
@@ -62,7 +76,25 @@ router.get("/", async (c) => {
   const db = getDb(c.env.DB);
   await ensureDemoProject(db);
   const list = await db.select().from(projects).orderBy(desc(projects.updatedAt));
-  return c.json(list);
+
+  // Attach shot_count for each project
+  const enriched = await Promise.all(
+    list.map(async (p) => {
+      const seqs = await db.select().from(sequences).where(eq(sequences.projectId, p.id)).all();
+      let totalShots = 0;
+      for (const seq of seqs) {
+        const shotList = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).all();
+        totalShots += shotList.length;
+      }
+      return {
+        ...p,
+        target_duration: p.targetDuration,
+        shot_count: totalShots,
+      };
+    })
+  );
+
+  return c.json(enriched);
 });
 
 // GET /api/projects/:id
@@ -105,24 +137,64 @@ router.post("/", async (c) => {
   const db = getDb(c.env.DB);
   const body = await c.req.json();
   const id = crypto.randomUUID();
+  const title = body.title || "未命名项目";
+  const story = body.story || "";
+  const targetDuration = Number(body.target_duration) || 30.0;
 
   const [newProj] = await db
     .insert(projects)
     .values({
       id,
-      title: body.title || "未命名项目",
-      story: body.story || "",
-      targetDuration: Number(body.target_duration) || 30.0,
+      title,
+      story,
+      targetDuration,
     })
     .returning();
 
   // Create initial default sequence
+  const seqId = crypto.randomUUID();
   await db.insert(sequences).values({
-    id: crypto.randomUUID(),
+    id: seqId,
     projectId: id,
     title: "主场次 (Main Sequence)",
     order: 1,
   });
+
+  // Auto-generate shots from story if story text is provided
+  if (story.trim().length > 0) {
+    try {
+      const settings = await getActiveSettings(db, c.env);
+      const plan = await runDirectorPipeline(story, targetDuration, {
+        apiKey: settings.llmApiKey,
+        apiBase: settings.llmApiBase,
+        model: settings.llmModel,
+      });
+
+      for (const s of plan.shots) {
+        await db.insert(shots).values({
+          id: crypto.randomUUID(),
+          sequenceId: seqId,
+          order: s.order,
+          duration: s.duration,
+          shotSize: s.shot_size,
+          cameraAngle: s.camera_angle,
+          cameraMovement: JSON.stringify(s.camera_movement),
+          subject: s.subject || "",
+          action: s.action,
+          dialogue: s.dialogue || "",
+          narrativeFunction: s.narrative_function || "动作推进",
+          lighting: s.lighting || "自然光影",
+          audio: JSON.stringify(s.audio || {}),
+          imagePrompt: s.image_prompt,
+          videoPrompt: s.video_prompt,
+          continuityData: JSON.stringify(s.continuity_data || {}),
+          isDirty: true,
+        });
+      }
+    } catch (e) {
+      console.error("Auto shot generation failed during project creation:", e);
+    }
+  }
 
   return c.json(newProj, 201);
 });
