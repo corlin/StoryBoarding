@@ -7,7 +7,7 @@ import math
 import httpx
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from app.models.entities import Project, Shot
 from app.services.storyboard_renderer import get_font, render_shot_storyboard_image
 
@@ -49,13 +49,25 @@ def _sanitize_filename(text: str, max_len: int = 14) -> str:
     cleaned = re.sub(r'_+', '_', cleaned).strip('_')
     return cleaned[:max_len] if cleaned else "action"
 
-def _get_shot_filename(shot: Shot) -> str:
-    """Generates standard industrial ordered filename for single shot"""
+def _extract_shot_meta(shot: Shot) -> Dict[str, Any]:
+    """Extracts unified shot metadata for UI badges, labels, and file naming"""
+    shot_no = f"{shot.order:02d}"
     size_abbr = SHOT_SIZE_ABBR.get(shot.shot_size, (shot.shot_size or "MS")[:3].upper())
+    dur_val = shot.duration if isinstance(shot.duration, (int, float)) else 2.5
+    dur_str = f"{dur_val:.1f}s"
     mov = shot.camera_movement if isinstance(shot.camera_movement, dict) else {}
     mov_type = mov.get("type", "static")
     clean_act = _sanitize_filename(shot.action, max_len=14)
-    return f"SHOT_{shot.order:02d}_{size_abbr}_{mov_type}_{clean_act}.png"
+    filename = f"SHOT_{shot_no}_{size_abbr}_{mov_type}_{clean_act}.png"
+    return {
+        "shot_no": shot_no,
+        "size_abbr": size_abbr,
+        "dur_val": dur_val,
+        "dur_str": dur_str,
+        "mov_type": mov_type,
+        "clean_action": clean_act,
+        "filename": filename,
+    }
 
 def _write_zip_entry(zf: zipfile.ZipFile, path_str: str, data: bytes):
     """Writes ZIP entry with explicit UTF-8 encoding flag bit (0x800) for cross-platform compatibility"""
@@ -69,7 +81,6 @@ def _load_or_render_shot_image(shot: Shot, width: int = 560, height: int = 315) 
     """Attempts to load shot's real AI generated image, falling back to 1-to-1 visual vector drawing"""
     url = getattr(shot, "storyboard_image_url", None)
     if url and isinstance(url, str):
-        # 1. Base64 Image
         if url.startswith("data:image"):
             try:
                 b64_part = url.split(",", 1)[-1]
@@ -78,11 +89,8 @@ def _load_or_render_shot_image(shot: Shot, width: int = 560, height: int = 315) 
                 return img.resize((width, height), Image.Resampling.LANCZOS)
             except Exception as e:
                 print(f"Failed to load base64 shot image: {e}")
-
-        # 2. HTTP / MinIO URL
         elif url.startswith("http://") or url.startswith("https://"):
             try:
-                # Replace localhost minio with internal container address if running in docker
                 fetch_url = url.replace("http://localhost:9000", "http://minio:9000")
                 with httpx.Client(timeout=5.0) as client:
                     resp = client.get(fetch_url)
@@ -92,7 +100,6 @@ def _load_or_render_shot_image(shot: Shot, width: int = 560, height: int = 315) 
             except Exception as e:
                 print(f"Failed to download shot image from {url}: {e}")
 
-    # Fallback to 1-to-1 visual storyboard renderer
     mov = shot.camera_movement if isinstance(shot.camera_movement, dict) else {}
     return render_shot_storyboard_image(
         order=shot.order,
@@ -115,47 +122,32 @@ class ExportService:
         bg_img = _load_or_render_shot_image(shot, width=width, height=height)
         canvas.paste(bg_img, (0, 0))
 
-        # Fonts for 1080P
-        font_badge_num = get_font(28)
-        font_badge_meta = get_font(24)
-        font_mov = get_font(20)
-        font_caption = get_font(28)
-        font_dialogue = get_font(22)
+        meta = _extract_shot_meta(shot)
 
         # 2. Top-Left Badge: [01 · WS · 5.0s]
-        shot_no = f"{shot.order:02d}"
-        size_abbr = SHOT_SIZE_ABBR.get(shot.shot_size, (shot.shot_size or "MS")[:3].upper())
-        dur_str = f"{shot.duration:.1f}s" if isinstance(shot.duration, (int, float)) else "2.5s"
-        
         badge_x, badge_y = 36, 36
         badge_w, badge_h = 240, 52
-
-        # Translucent badge background
         draw.rectangle(
             [badge_x, badge_y, badge_x + badge_w, badge_y + badge_h],
             fill=(10, 14, 23),
             outline=(51, 65, 85),
             width=2
         )
-        draw.text((badge_x + 16, badge_y + 10), shot_no, fill=(56, 189, 248), font=font_badge_num)
-        draw.text((badge_x + 60, badge_y + 12), f"· {size_abbr} · {dur_str}", fill=(203, 213, 225), font=font_badge_meta)
+        draw.text((badge_x + 16, badge_y + 10), meta["shot_no"], fill=(56, 189, 248), font=get_font(28))
+        draw.text((badge_x + 60, badge_y + 12), f"· {meta['size_abbr']} · {meta['dur_str']}", fill=(203, 213, 225), font=get_font(24))
 
-        # 3. Top-Right / Bottom-Left Camera Movement Badge
-        mov = shot.camera_movement if isinstance(shot.camera_movement, dict) else {}
-        mov_type = mov.get("type", "static")
-        if mov_type and mov_type != "static":
-            mov_text = f"🎥 {mov_type}"
-            mov_x = 36
-            mov_y = height - 190
-            mov_w = 170
-            mov_h = 44
+        # 3. Camera Movement Badge (if any)
+        if meta["mov_type"] and meta["mov_type"] != "static":
+            mov_text = f"🎥 {meta['mov_type']}"
+            mov_x, mov_y = 36, height - 190
+            mov_w, mov_h = 170, 44
             draw.rectangle(
                 [mov_x, mov_y, mov_x + mov_w, mov_y + mov_h],
                 fill=(10, 14, 23),
                 outline=(51, 65, 85),
                 width=2
             )
-            draw.text((mov_x + 14, mov_y + 8), mov_text, fill=(148, 163, 184), font=font_mov)
+            draw.text((mov_x + 14, mov_y + 8), mov_text, fill=(148, 163, 184), font=get_font(20))
 
         # 4. Bottom Action & Dialogue Subtitle Bar
         caption_bar_h = 125
@@ -165,10 +157,10 @@ class ExportService:
 
         action_lines = _wrap_text(shot.action, max_chars=48, max_lines=2)
         for l_idx, line_str in enumerate(action_lines):
-            draw.text((40, bar_y + 18 + l_idx * 34), line_str, fill=(241, 245, 249), font=font_caption)
+            draw.text((40, bar_y + 18 + l_idx * 34), line_str, fill=(241, 245, 249), font=get_font(28))
 
         if shot.dialogue:
-            draw.text((width - 450, bar_y + 24), f"台词: {shot.dialogue[:18]}", fill=(251, 191, 36), font=font_dialogue)
+            draw.text((width - 450, bar_y + 24), f"台词: {shot.dialogue[:18]}", fill=(251, 191, 36), font=get_font(22))
 
         out = io.BytesIO()
         canvas.save(out, format="PNG", quality=95)
@@ -194,22 +186,17 @@ class ExportService:
         canvas = Image.new("RGB", (total_w, total_h), color=(10, 14, 23))
         draw = ImageDraw.Draw(canvas)
 
-        font_title = get_font(26)
-        font_sub = get_font(15)
-        font_badge = get_font(13)
-        font_caption = get_font(14)
-
         # Header Title Area
         draw.rectangle([0, 0, total_w, header_h - 12], fill=(15, 23, 42))
         draw.line([(0, header_h - 12), (total_w, header_h - 12)], fill=(30, 41, 59), width=2)
         
         project_title = project.title or "AI Director Workspace Storyboard"
-        draw.text((margin, 22), f"项目: {project_title}", fill=(248, 250, 252), font=font_title)
+        draw.text((margin, 22), f"项目: {project_title}", fill=(248, 250, 252), font=get_font(26))
         draw.text(
             (margin, 62),
             f"目标总时长: {project.target_duration:.1f} 秒  |  分镜头总数: {total_shots} 镜  |  排版格局: {cols}×{rows} 视觉故事板",
             fill=(148, 163, 184),
-            font=font_sub
+            font=get_font(15)
         )
 
         # Render Cells matching StoryboardCell.tsx
@@ -219,6 +206,8 @@ class ExportService:
             x = margin + c * (cell_w + margin)
             y = header_h + r * (cell_h + margin)
 
+            meta = _extract_shot_meta(shot)
+
             # 1. Outer Card Background & Border
             draw.rectangle([x, y, x + cell_w, y + cell_h], fill=(15, 23, 42), outline=(51, 65, 85), width=2)
 
@@ -227,35 +216,22 @@ class ExportService:
             canvas.paste(cell_img, (x, y))
 
             # 3. Top-Left Badge: [01 · WS · 5.0s]
-            shot_no = f"{shot.order:02d}"
-            size_abbr = SHOT_SIZE_ABBR.get(shot.shot_size, shot.shot_size[:3].upper())
-            dur_str = f"{shot.duration:.1f}s" if isinstance(shot.duration, (int, float)) else "2.5s"
-            
-            badge_text = f"{shot_no} · {size_abbr} · {dur_str}"
-            badge_w = 120
-            badge_h = 24
-            badge_x = x + 10
-            badge_y = y + 10
-
-            # Draw translucent badge pill
+            badge_w, badge_h = 120, 24
+            badge_x, badge_y = x + 10, y + 10
             draw.rectangle(
                 [badge_x, badge_y, badge_x + badge_w, badge_y + badge_h],
                 fill=(10, 14, 23),
                 outline=(51, 65, 85),
                 width=1
             )
-            draw.text((badge_x + 8, badge_y + 4), shot_no, fill=(56, 189, 248), font=font_badge)
-            draw.text((badge_x + 30, badge_y + 4), f"· {size_abbr} · {dur_str}", fill=(203, 213, 225), font=font_badge)
+            draw.text((badge_x + 8, badge_y + 4), meta["shot_no"], fill=(56, 189, 248), font=get_font(13))
+            draw.text((badge_x + 30, badge_y + 4), f"· {meta['size_abbr']} · {meta['dur_str']}", fill=(203, 213, 225), font=get_font(13))
 
-            # 4. Bottom-Left Camera Movement Badge (if any)
-            mov = shot.camera_movement if isinstance(shot.camera_movement, dict) else {}
-            mov_type = mov.get("type", "static")
-            if mov_type and mov_type != "static":
-                mov_text = f"🎥 {mov_type}"
-                mov_w = 90
-                mov_h = 22
-                mov_x = x + 10
-                mov_y = y + img_h - mov_h - 10
+            # 4. Camera Movement Badge (if any)
+            if meta["mov_type"] and meta["mov_type"] != "static":
+                mov_text = f"🎥 {meta['mov_type']}"
+                mov_w, mov_h = 90, 22
+                mov_x, mov_y = x + 10, y + img_h - mov_h - 10
                 draw.rectangle(
                     [mov_x, mov_y, mov_x + mov_w, mov_y + mov_h],
                     fill=(10, 14, 23),
@@ -269,10 +245,8 @@ class ExportService:
             draw.line([(x, cap_y), (x + cell_w, cap_y)], fill=(30, 41, 59), width=1)
             
             action_lines = _wrap_text(shot.action, max_chars=34, max_lines=2)
-            line_spacing = 20
-            text_start_y = cap_y + 12
             for l_idx, line_str in enumerate(action_lines):
-                draw.text((x + 14, text_start_y + l_idx * line_spacing), line_str, fill=(226, 232, 240), font=font_caption)
+                draw.text((x + 14, cap_y + 12 + l_idx * 20), line_str, fill=(226, 232, 240), font=get_font(14))
 
         out = io.BytesIO()
         canvas.save(out, format="PNG")
@@ -284,9 +258,9 @@ class ExportService:
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w") as zf:
             for shot in shots:
-                filename = _get_shot_filename(shot)
+                meta = _extract_shot_meta(shot)
                 img_bytes = ExportService.export_single_shot_frame_image(shot, width=1920, height=1080)
-                _write_zip_entry(zf, f"storyboard_images/{filename}", img_bytes)
+                _write_zip_entry(zf, f"storyboard_images/{meta['filename']}", img_bytes)
         return buf.getvalue()
 
     @staticmethod
@@ -301,10 +275,10 @@ class ExportService:
         ]
 
         for s in shots:
-            mov_type = s.camera_movement.get('type', 'static') if isinstance(s.camera_movement, dict) else 'static'
-            lines.append(f"### SHOT {s.order:02d} · {s.shot_size.upper()} · {s.duration}s")
+            meta = _extract_shot_meta(s)
+            lines.append(f"### SHOT {meta['shot_no']} · {meta['size_abbr']} · {meta['dur_str']}")
             lines.append(f"- **景别机位**: {s.shot_size} / {s.camera_angle}")
-            lines.append(f"- **运镜方式**: {mov_type}")
+            lines.append(f"- **运镜方式**: {meta['mov_type']}")
             lines.append(f"- **动作调度**: {s.action}")
             lines.append(f"- **叙事功能**: {s.narrative_function or '主动作推进'}")
             lines.append(f"- **环境光影**: {s.lighting or '自然光'}")
@@ -320,9 +294,8 @@ class ExportService:
         """Generates 100% compliant PROFESSIONAL DIRECTOR'S STORYBOARD — GLOBAL PROMPT Markdown"""
         shots_summary = []
         for s in shots:
-            mov = s.camera_movement.get('type', 'static') if isinstance(s.camera_movement, dict) else 'static'
-            size_abbr = SHOT_SIZE_ABBR.get(s.shot_size, s.shot_size.upper())
-            shots_summary.append(f"* **SHOT {s.order:02d}** [{size_abbr} · {s.camera_angle} · {mov}]: {s.action}")
+            meta = _extract_shot_meta(s)
+            shots_summary.append(f"* **SHOT {meta['shot_no']}** [{meta['size_abbr']} · {s.camera_angle} · {meta['mov_type']}]: {s.action}")
 
         shots_text = "\n".join(shots_summary)
 
@@ -453,8 +426,8 @@ Do not create:
 
             # 5. Individual Ordered 1080P Shot Images Folder
             for shot in shots:
-                filename = _get_shot_filename(shot)
+                s_meta = _extract_shot_meta(shot)
                 img_bytes = ExportService.export_single_shot_frame_image(shot, width=1920, height=1080)
-                _write_zip_entry(zf, f"storyboard_images/{filename}", img_bytes)
+                _write_zip_entry(zf, f"storyboard_images/{s_meta['filename']}", img_bytes)
 
         return buf.getvalue()

@@ -135,8 +135,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
                 >
                   <option value="openrouter">OpenRouter (推荐)</option>
-                  <option value="openai_compatible">OpenAI Compatible (Direct)</option>
-                  <option value="anthropic_compatible">Anthropic (Direct)</option>
+                  <option value="openai_compatible">OpenAI Compatible (Direct / OneAPI)</option>
                 </select>
               </div>
 
