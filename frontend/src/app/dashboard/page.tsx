@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Film, Clock, Sparkles, Clapperboard, ArrowRight, Settings, AlertCircle, RefreshCw, Trash2 } from "lucide-react";
 import { api, ProjectListItem } from "@/lib/api";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
+import { ProjectCreationProgress } from "@/components/modals/ProjectCreationProgress";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -21,6 +22,16 @@ export default function DashboardPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newStory, setNewStory] = useState("");
   const [targetDuration, setTargetDuration] = useState(30);
+
+  // Creation progress states
+  const [isSubmittingProject, setIsSubmittingProject] = useState(false);
+  const [creationElapsed, setCreationElapsed] = useState(0);
+  const [creationProgress, setCreationProgress] = useState(0);
+  const [creationStage, setCreationStage] = useState(0);
+  const [creationComplete, setCreationComplete] = useState(false);
+  const [creationError, setCreationError] = useState<string | null>(null);
+
+  const progressIntervalRef = useRef<any>(null);
 
   const loadProjects = async () => {
     try {
@@ -40,9 +51,46 @@ export default function DashboardPage() {
     loadProjects();
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!newTitle.trim()) return;
+
+    setIsSubmittingProject(true);
+    setCreationError(null);
+    setCreationComplete(false);
+    setCreationProgress(5);
+    setCreationStage(0);
+    setCreationElapsed(0);
+
+    const startTime = Date.now();
+
+    // Progress interpolation engine
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = Number(((Date.now() - startTime) / 1000).toFixed(1));
+      setCreationElapsed(elapsed);
+
+      // Smooth multi-stage progress curve
+      if (elapsed < 0.8) {
+        // Stage 0: 0% -> 20%
+        setCreationStage(0);
+        setCreationProgress(Math.min(20, Math.round(5 + elapsed * 18)));
+      } else if (elapsed < 3.2) {
+        // Stage 1: 20% -> 60%
+        setCreationStage(1);
+        const ratio = (elapsed - 0.8) / 2.4;
+        setCreationProgress(Math.min(60, Math.round(20 + ratio * 40)));
+      } else if (elapsed < 5.5) {
+        // Stage 2: 60% -> 85%
+        setCreationStage(2);
+        const ratio = (elapsed - 3.2) / 2.3;
+        setCreationProgress(Math.min(85, Math.round(60 + ratio * 25)));
+      } else {
+        // Stage 3: 85% -> 96%
+        setCreationStage(3);
+        const ratio = Math.min(1, (elapsed - 5.5) / 5);
+        setCreationProgress(Math.min(96, Math.round(85 + ratio * 11)));
+      }
+    }, 100);
 
     try {
       const created = await api.createProject({
@@ -50,16 +98,34 @@ export default function DashboardPage() {
         story: newStory,
         target_duration: targetDuration,
       });
-      router.push(`/workspace?id=${created.id}`);
-    } catch (e) {
-      console.error("Failed to create project", e);
-      alert("创建项目失败，请点击右上角「设置」检查后端 Worker API 服务连接地址");
+
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      setCreationProgress(100);
+      setCreationStage(4);
+      setCreationComplete(true);
+
+      // Graceful 350ms delay to display 100% success badge
+      setTimeout(() => {
+        setIsCreating(false);
+        setIsSubmittingProject(false);
+        router.push(`/workspace?id=${created.id}`);
+      }, 400);
+    } catch (err: any) {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      console.error("Failed to create project", err);
+      setCreationError(err?.message || "创建项目失败，请检查网络或点击配置 Worker 服务与 API Key");
     }
   };
 
   const handleConfirmDelete = async (projectId: string) => {
     await api.deleteProject(projectId);
     await loadProjects();
+  };
+
+  const handleCancelCreate = () => {
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    setIsSubmittingProject(false);
+    setCreationError(null);
   };
 
   return (
@@ -82,7 +148,11 @@ export default function DashboardPage() {
             <Settings className="w-4 h-4" />
           </button>
           <button
-            onClick={() => setIsCreating(true)}
+            onClick={() => {
+              setIsSubmittingProject(false);
+              setCreationError(null);
+              setIsCreating(true);
+            }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
@@ -130,63 +200,89 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Create Modal */}
+        {/* Create Modal / Creation Progress Flow */}
         {isCreating && (
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-card border border-border rounded-xl p-6 max-w-lg w-full shadow-2xl">
-              <h2 className="text-lg font-semibold mb-4">新建导演项目</h2>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">项目名称</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="例如：偷油的老鼠 (Kitchen Mouse)"
-                    value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                    className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary"
-                  />
-                </div>
+            <div className="bg-card border border-border rounded-xl p-6 max-w-lg w-full shadow-2xl transition-all duration-300">
+              {isSubmittingProject ? (
+                <ProjectCreationProgress
+                  title={newTitle}
+                  story={newStory}
+                  targetDuration={targetDuration}
+                  progressPercent={creationProgress}
+                  elapsedSeconds={creationElapsed}
+                  activeStageIndex={creationStage}
+                  isComplete={creationComplete}
+                  errorMessage={creationError}
+                  onRetry={() => handleCreate()}
+                  onCancel={handleCancelCreate}
+                  onOpenSettings={() => {
+                    setIsCreating(false);
+                    setIsSubmittingProject(false);
+                    setIsSettingsOpen(true);
+                  }}
+                />
+              ) : (
+                <>
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    <span>新建好莱坞导演分镜项目</span>
+                  </h2>
+                  <form onSubmit={handleCreate} className="space-y-4">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1.5">项目名称</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="例如：偷油的老鼠 (Kitchen Mouse)"
+                        value={newTitle}
+                        onChange={(e) => setNewTitle(e.target.value)}
+                        className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                      />
+                    </div>
 
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">故事描述 (可选)</label>
-                  <textarea
-                    rows={3}
-                    placeholder="输入剧本故事梗概或创意简述，稍后可由 AI 导演自动拆解为 Shot..."
-                    value={newStory}
-                    onChange={(e) => setNewStory(e.target.value)}
-                    className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary resize-none"
-                  />
-                </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1.5">故事描述 (可选)</label>
+                      <textarea
+                        rows={3}
+                        placeholder="输入剧本故事梗概或创意简述，稍后将由 AI 导演自动规划 6 阶段镜头节拍..."
+                        value={newStory}
+                        onChange={(e) => setNewStory(e.target.value)}
+                        className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary resize-none"
+                      />
+                    </div>
 
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">目标总时长 (秒)</label>
-                  <input
-                    type="number"
-                    min="5"
-                    max="600"
-                    value={targetDuration}
-                    onChange={(e) => setTargetDuration(Number(e.target.value))}
-                    className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
-                  />
-                </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1.5">目标总时长 (秒)</label>
+                      <input
+                        type="number"
+                        min="5"
+                        max="600"
+                        value={targetDuration}
+                        onChange={(e) => setTargetDuration(Number(e.target.value))}
+                        className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                      />
+                    </div>
 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreating(false)}
-                    className="px-4 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    取消
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    创建并进入工作台
-                  </button>
-                </div>
-              </form>
+                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+                      <button
+                        type="button"
+                        onClick={() => setIsCreating(false)}
+                        className="px-4 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>创建并进入工作台</span>
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -212,7 +308,11 @@ export default function DashboardPage() {
                 <span>体验 Demo 样例工作台</span>
               </Link>
               <button
-                onClick={() => setIsCreating(true)}
+                onClick={() => {
+                  setIsSubmittingProject(false);
+                  setCreationError(null);
+                  setIsCreating(true);
+                }}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
