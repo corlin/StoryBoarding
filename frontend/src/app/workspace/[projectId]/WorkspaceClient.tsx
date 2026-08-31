@@ -142,43 +142,36 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   const activeVersionTag = versions[0]?.version_tag || "v1.0";
 
-  // Auto Streaming Darkroom Queue (3-Worker concurrency for unrendered shots upon entering workspace)
-  const autoStreamTriggeredRef = React.useRef<string | null>(null);
-
+  // Server-side asynchronous rendering state synchronizer
   useEffect(() => {
     if (!currentProject || previewVersion) return;
     if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") return;
 
-    const unrenderedShots = shots.filter((s) => !s.storyboard_image_url);
-    if (unrenderedShots.length > 0 && autoStreamTriggeredRef.current !== currentProject.id) {
-      autoStreamTriggeredRef.current = currentProject.id;
-
-      (async () => {
-        setIsBatchRendering(true);
-        setBatchProgress({ current: 0, total: unrenderedShots.length });
-
-        let done = 0;
-        const queue = [...unrenderedShots];
-        const workers = Array.from({ length: Math.min(3, queue.length) }, async () => {
-          while (queue.length > 0) {
-            const item = queue.shift();
-            if (!item) break;
-            try {
-              await regenerateShotImage(item.id);
-            } catch (e) {
-              console.warn(`Streaming darkroom failed for shot ${item.id}`, e);
-            }
-            done += 1;
-            setBatchProgress({ current: done, total: unrenderedShots.length });
-          }
-        });
-
-        await Promise.all(workers);
+    const unrenderedCount = shots.filter((s) => !s.storyboard_image_url).length;
+    if (unrenderedCount === 0) {
+      if (isBatchRendering) {
         setIsBatchRendering(false);
-        notify.success(`🎉 全片 ${unrenderedShots.length} 镜导演画板已全部洗印就绪！`);
-      })();
+        notify.success("🎉 全片分镜画板已由云端后台冲印入库完毕！");
+      }
+      return;
     }
-  }, [currentProject, shots, previewVersion, effectiveProjectId, regenerateShotImage]);
+
+    setIsBatchRendering(true);
+    setBatchProgress({
+      current: shots.length - unrenderedCount,
+      total: shots.length,
+    });
+
+    const timer = setInterval(async () => {
+      try {
+        await fetchProject(effectiveProjectId);
+      } catch (e) {
+        console.warn("Polling project status error:", e);
+      }
+    }, 2000);
+
+    return () => clearInterval(timer);
+  }, [currentProject, shots, previewVersion, effectiveProjectId, fetchProject, isBatchRendering]);
 
   // Handlers for Version Time Machine
   const handleCreateSnapshot = async (name: string, tag?: string) => {

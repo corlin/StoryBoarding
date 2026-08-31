@@ -225,8 +225,10 @@ router.post("/", async (c) => {
     });
 
     // Fast instant insertion of structured director shots into D1
+    const insertedShotTasks: { shotId: string; s: any }[] = [];
     for (const s of plan.shots) {
       const shotId = crypto.randomUUID();
+      insertedShotTasks.push({ shotId, s });
       await db.insert(shots).values({
         id: shotId,
         sequenceId: seqId,
@@ -248,6 +250,32 @@ router.post("/", async (c) => {
         isDirty: false,
         isLocked: false,
       });
+    }
+
+    // 100% Server-side background asynchronous image rendering & R2 persistence via Worker ExecutionCtx
+    const backgroundRenderJob = async () => {
+      try {
+        await runConcurrentTasks(insertedShotTasks, 3, async ({ shotId, s }) => {
+          const seed = baseSeed + s.order * 1000;
+          const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+          await db
+            .update(shots)
+            .set({
+              storyboardImageUrl: imageUrl,
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(shots.id, shotId));
+        });
+        console.log(`[Worker Background Task] Successfully rendered all ${insertedShotTasks.length} shots to R2 for project ${id}`);
+      } catch (bgErr) {
+        console.error(`[Worker Background Task] Error rendering shots for project ${id}:`, bgErr);
+      }
+    };
+
+    if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+      c.executionCtx.waitUntil(backgroundRenderJob());
+    } else {
+      backgroundRenderJob(); // Fallback for local environments without ExecutionContext
     }
   } catch (e) {
     console.error("Auto shot breakdown error during project creation:", e);

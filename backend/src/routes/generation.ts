@@ -328,43 +328,57 @@ router.post("/from-story", async (c) => {
       availableSlots.push({ slot, planShot: s });
     }
 
-    // 3-Worker concurrent real AI image generation with deterministic seed chain
-    await runConcurrentTasks(availableSlots, 3, async ({ slot, planShot }) => {
+    const insertedShotTasks: { shotId: string; s: any; slot: number }[] = [];
+    for (const item of availableSlots) {
       const shotId = crypto.randomUUID();
-      const seed = baseSeed + slot * 1000;
-      const imageUrl = await generateCinematicStoryboardImage(planShot.image_prompt, shotId, settings, c.env.STORAGE, seed);
-
+      insertedShotTasks.push({ shotId, s: item.planShot, slot: item.slot });
       await db.insert(shots).values({
         id: shotId,
         sequenceId: seq.id,
-        order: slot,
-        duration: planShot.duration,
-        shotSize: planShot.shot_size,
-        cameraAngle: planShot.camera_angle,
-        cameraMovement: JSON.stringify(planShot.camera_movement || {}),
-        subject: planShot.subject || "",
-        action: planShot.action,
-        dialogue: planShot.dialogue || "",
-        narrativeFunction: planShot.narrative_function || "动作推进",
-        lighting: planShot.lighting || "自然光",
-        audio: JSON.stringify(planShot.audio || {}),
-        imagePrompt: planShot.image_prompt,
-        videoPrompt: planShot.video_prompt,
-        continuityData: JSON.stringify(planShot.continuity_data || {}),
-        storyboardImageUrl: imageUrl,
+        order: item.slot,
+        duration: item.planShot.duration,
+        shotSize: item.planShot.shot_size,
+        cameraAngle: item.planShot.camera_angle,
+        cameraMovement: JSON.stringify(item.planShot.camera_movement || {}),
+        subject: item.planShot.subject || "",
+        action: item.planShot.action,
+        dialogue: item.planShot.dialogue || "",
+        narrativeFunction: item.planShot.narrative_function || "动作推进",
+        lighting: item.planShot.lighting || "自然光",
+        audio: JSON.stringify(item.planShot.audio || {}),
+        imagePrompt: item.planShot.image_prompt,
+        videoPrompt: item.planShot.video_prompt,
+        continuityData: JSON.stringify(item.planShot.continuity_data || {}),
+        storyboardImageUrl: "",
         isDirty: false,
         isLocked: false,
       });
-    });
+    }
+
+    const backgroundJob = async () => {
+      try {
+        await runConcurrentTasks(insertedShotTasks, 3, async ({ shotId, s, slot }) => {
+          const seed = baseSeed + slot * 1000;
+          const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+          await db.update(shots).set({ storyboardImageUrl: imageUrl, updatedAt: new Date().toISOString() }).where(eq(shots.id, shotId));
+        });
+      } catch (err) {
+        console.error("Background rendering error (locked shots from-story):", err);
+      }
+    };
+
+    if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+      c.executionCtx.waitUntil(backgroundJob());
+    } else {
+      backgroundJob();
+    }
   } else {
     await db.delete(shots).where(eq(shots.sequenceId, seq.id));
 
-    // 3-Worker concurrent real AI image generation with deterministic seed chain
-    await runConcurrentTasks(result.shots, 3, async (s) => {
+    const insertedShotTasks: { shotId: string; s: any }[] = [];
+    for (const s of result.shots) {
       const shotId = crypto.randomUUID();
-      const seed = baseSeed + s.order * 1000;
-      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
-
+      insertedShotTasks.push({ shotId, s });
       await db.insert(shots).values({
         id: shotId,
         sequenceId: seq.id,
@@ -382,11 +396,29 @@ router.post("/from-story", async (c) => {
         imagePrompt: s.image_prompt,
         videoPrompt: s.video_prompt,
         continuityData: JSON.stringify(s.continuity_data || {}),
-        storyboardImageUrl: imageUrl,
+        storyboardImageUrl: "",
         isDirty: false,
         isLocked: false,
       });
-    });
+    }
+
+    const backgroundJob = async () => {
+      try {
+        await runConcurrentTasks(insertedShotTasks, 3, async ({ shotId, s }) => {
+          const seed = baseSeed + s.order * 1000;
+          const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+          await db.update(shots).set({ storyboardImageUrl: imageUrl, updatedAt: new Date().toISOString() }).where(eq(shots.id, shotId));
+        });
+      } catch (err) {
+        console.error("Background rendering error (from-story):", err);
+      }
+    };
+
+    if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+      c.executionCtx.waitUntil(backgroundJob());
+    } else {
+      backgroundJob();
+    }
   }
 
   return c.json({
@@ -397,7 +429,7 @@ router.post("/from-story", async (c) => {
   });
 });
 
-// POST /api/generate/from-script (Real AI breakdown from script with 3-worker concurrent image generation)
+// POST /api/generate/from-script (Real AI breakdown from script with server-side async image generation)
 router.post("/from-script", async (c) => {
   const db = getDb(c.env.DB);
   const body = await c.req.json();
@@ -462,41 +494,57 @@ router.post("/from-script", async (c) => {
       availableSlots.push({ slot, planShot: s });
     }
 
-    await runConcurrentTasks(availableSlots, 3, async ({ slot, planShot }) => {
+    const insertedShotTasks: { shotId: string; s: any; slot: number }[] = [];
+    for (const item of availableSlots) {
       const shotId = crypto.randomUUID();
-      const seed = baseSeed + slot * 1000;
-      const imageUrl = await generateCinematicStoryboardImage(planShot.image_prompt, shotId, settings, c.env.STORAGE, seed);
-
+      insertedShotTasks.push({ shotId, s: item.planShot, slot: item.slot });
       await db.insert(shots).values({
         id: shotId,
         sequenceId: seq.id,
-        order: slot,
-        duration: planShot.duration,
-        shotSize: planShot.shot_size,
-        cameraAngle: planShot.camera_angle,
-        cameraMovement: JSON.stringify(planShot.camera_movement || {}),
-        subject: planShot.subject || "",
-        action: planShot.action,
-        dialogue: planShot.dialogue || "",
-        narrativeFunction: planShot.narrative_function || "动作推进",
-        lighting: planShot.lighting || "自然光",
-        audio: JSON.stringify(planShot.audio || {}),
-        imagePrompt: planShot.image_prompt,
-        videoPrompt: planShot.video_prompt,
-        continuityData: JSON.stringify(planShot.continuity_data || {}),
-        storyboardImageUrl: imageUrl,
+        order: item.slot,
+        duration: item.planShot.duration,
+        shotSize: item.planShot.shot_size,
+        cameraAngle: item.planShot.camera_angle,
+        cameraMovement: JSON.stringify(item.planShot.camera_movement || {}),
+        subject: item.planShot.subject || "",
+        action: item.planShot.action,
+        dialogue: item.planShot.dialogue || "",
+        narrativeFunction: item.planShot.narrative_function || "动作推进",
+        lighting: item.planShot.lighting || "自然光",
+        audio: JSON.stringify(item.planShot.audio || {}),
+        imagePrompt: item.planShot.image_prompt,
+        videoPrompt: item.planShot.video_prompt,
+        continuityData: JSON.stringify(item.planShot.continuity_data || {}),
+        storyboardImageUrl: "",
         isDirty: false,
         isLocked: false,
       });
-    });
+    }
+
+    const backgroundJob = async () => {
+      try {
+        await runConcurrentTasks(insertedShotTasks, 3, async ({ shotId, s, slot }) => {
+          const seed = baseSeed + slot * 1000;
+          const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+          await db.update(shots).set({ storyboardImageUrl: imageUrl, updatedAt: new Date().toISOString() }).where(eq(shots.id, shotId));
+        });
+      } catch (err) {
+        console.error("Background rendering error (locked shots from-script):", err);
+      }
+    };
+
+    if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+      c.executionCtx.waitUntil(backgroundJob());
+    } else {
+      backgroundJob();
+    }
   } else {
     await db.delete(shots).where(eq(shots.sequenceId, seq.id));
 
-    await runConcurrentTasks(result.shots, 3, async (s) => {
+    const insertedShotTasks: { shotId: string; s: any }[] = [];
+    for (const s of result.shots) {
       const shotId = crypto.randomUUID();
-      const seed = baseSeed + s.order * 1000;
-      const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
-
+      insertedShotTasks.push({ shotId, s });
       await db.insert(shots).values({
         id: shotId,
         sequenceId: seq.id,
@@ -514,11 +562,29 @@ router.post("/from-script", async (c) => {
         imagePrompt: s.image_prompt,
         videoPrompt: s.video_prompt,
         continuityData: JSON.stringify(s.continuity_data || {}),
-        storyboardImageUrl: imageUrl,
+        storyboardImageUrl: "",
         isDirty: false,
         isLocked: false,
       });
-    });
+    }
+
+    const backgroundJob = async () => {
+      try {
+        await runConcurrentTasks(insertedShotTasks, 3, async ({ shotId, s }) => {
+          const seed = baseSeed + s.order * 1000;
+          const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+          await db.update(shots).set({ storyboardImageUrl: imageUrl, updatedAt: new Date().toISOString() }).where(eq(shots.id, shotId));
+        });
+      } catch (err) {
+        console.error("Background rendering error (from-script):", err);
+      }
+    };
+
+    if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+      c.executionCtx.waitUntil(backgroundJob());
+    } else {
+      backgroundJob();
+    }
   }
 
   return c.json({
