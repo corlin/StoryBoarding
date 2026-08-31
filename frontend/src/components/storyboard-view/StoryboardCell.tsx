@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ShotModel } from "@/types/shot";
 import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock, CheckCircle, Compass, Palette, CloudUpload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeAssetUrl } from "@/lib/api";
 
 interface StoryboardCellProps {
   shot: ShotModel;
@@ -36,14 +37,14 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
 }) => {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [imgSrc, setImgSrc] = useState<string>(shot.storyboard_image_url || "");
+  const [imgSrc, setImgSrc] = useState<string>(normalizeAssetUrl(shot.storyboard_image_url));
 
   const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || "MS";
   const isLocked = Boolean(shot.is_locked);
   const isDeveloping = !imgSrc || isRegenerating;
 
   useEffect(() => {
-    setImgSrc(shot.storyboard_image_url || "");
+    setImgSrc(normalizeAssetUrl(shot.storyboard_image_url));
   }, [shot.storyboard_image_url]);
 
   // Live Darkroom Developing Stopwatch (Tracks both single manual regenerate and initial background creation)

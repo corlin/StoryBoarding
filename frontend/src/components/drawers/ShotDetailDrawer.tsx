@@ -14,6 +14,7 @@ import {
   Eye,
 } from "lucide-react";
 import { ShotModel } from "@/types/shot";
+import { normalizeAssetUrl } from "@/lib/api";
 
 interface ShotDetailDrawerProps {
   isOpen: boolean;
@@ -149,7 +150,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
             <div className="w-full md:w-56 aspect-video rounded-lg overflow-hidden border border-border bg-muted shrink-0 relative">
               {shot.storyboard_image_url ? (
                 <img
-                  src={shot.storyboard_image_url}
+                  src={normalizeAssetUrl(shot.storyboard_image_url)}
                   alt={`Shot ${shot.order}`}
                   className="w-full h-full object-cover"
                 />

@@ -23,6 +23,17 @@ export function getApiBaseUrl(): string {
   return "https://storyboarding-api.caifu.social";
 }
 
+export function normalizeAssetUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  if (url.startsWith("/api/assets/")) {
+    return `https://storyboarding-api.caifu.social${url}`;
+  }
+  if (url.startsWith("https://storyboarding.caifu.social/api/assets/")) {
+    return url.replace("https://storyboarding.caifu.social/api/assets/", "https://storyboarding-api.caifu.social/api/assets/");
+  }
+  return url;
+}
+
 export function setApiBaseUrl(url: string) {
   if (typeof window !== "undefined") {
     if (!url || !url.trim()) {
@@ -138,6 +149,16 @@ export const api = {
 
   async updateProviderConfig(payload: any) {
     const { data } = await apiClient.put("/settings/providers", payload);
+    return data;
+  },
+
+  async testLlm(payload: { api_key: string; api_base?: string; model?: string }): Promise<{ ok: boolean; latency_ms?: number; model?: string; reply?: string; error?: string }> {
+    const { data } = await apiClient.post("/settings/test-llm", payload);
+    return data;
+  },
+
+  async testImage(payload: { api_key: string; api_base?: string; model?: string }): Promise<{ ok: boolean; latency_ms?: number; model?: string; error?: string }> {
+    const { data } = await apiClient.post("/settings/test-image", payload);
     return data;
   },
 

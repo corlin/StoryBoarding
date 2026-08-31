@@ -209,7 +209,7 @@ export async function runDirectorPipeline(
   if (apiKey) {
     try {
       const systemPrompt = getDirectorSystemPrompt(targetDuration);
-      const userMessage = `【故事剧本内容】：\n${storyText}\n\n【目标时长】：${targetDuration} 秒（请严格规划 ${expectedCount} 个分镜头）。请严格输出 JSON 格式。`;
+      const userMessage = `【故事剧本内容】：\n${storyText}\n\n【目标时长】：${targetDuration} 秒（请严格规划 ${expectedCount} 个分镜头）。请直接输出纯 JSON 对象（不要附加其他说明文字），格式如下：\n{\n  "theme": "故事主题",\n  "shots": [ ... ]\n}`;
 
       const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
         method: "POST",
@@ -226,15 +226,27 @@ export async function runDirectorPipeline(
             { role: "user", content: userMessage },
           ],
           temperature: 0.7,
-          response_format: { type: "json_object" },
         }),
       });
 
       if (resp.ok) {
         const data = (await resp.json()) as any;
-        const content = data.choices?.[0]?.message?.content;
-        if (content) {
-          const parsed = JSON.parse(content);
+        const rawContent = data.choices?.[0]?.message?.content || "";
+        if (rawContent) {
+          // Robust universal JSON extraction (handles markdown ```json ... ``` and plain text)
+          let jsonStr = rawContent.trim();
+          const mdMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+          if (mdMatch && mdMatch[1]) {
+            jsonStr = mdMatch[1].trim();
+          } else {
+            const start = jsonStr.indexOf("{");
+            const end = jsonStr.lastIndexOf("}");
+            if (start !== -1 && end !== -1 && end > start) {
+              jsonStr = jsonStr.slice(start, end + 1);
+            }
+          }
+
+          const parsed = JSON.parse(jsonStr);
           if (parsed.shots && Array.isArray(parsed.shots) && parsed.shots.length > 0) {
             // Post-process with 4-pillar continuity prompt builder
             const enrichedShots: ShotPlan[] = parsed.shots.map((s: any, idx: number) => {
@@ -277,9 +289,12 @@ export async function runDirectorPipeline(
             };
           }
         }
+      } else {
+        const errText = await resp.text();
+        console.error(`[Director LLM Upstream Error HTTP ${resp.status}]:`, errText);
       }
-    } catch (e) {
-      console.warn("Director pipeline LLM call fallback:", e);
+    } catch (e: any) {
+      console.warn("Director pipeline LLM call fallback:", e?.message || e);
     }
   }
 

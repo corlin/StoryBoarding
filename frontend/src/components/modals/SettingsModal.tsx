@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap, Globe, AlertCircle } from "lucide-react";
 import { api, getApiBaseUrl, setApiBaseUrl } from "@/lib/api";
+import { notify } from "@/components/ui/ToastNotification";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -26,11 +27,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
+  // Model Diagnostics states
+  const [llmTestStatus, setLlmTestStatus] = useState<"idle" | "testing" | "ok" | "err">("idle");
+  const [llmTestMsg, setLlmTestMsg] = useState("");
+  const [imageTestStatus, setImageTestStatus] = useState<"idle" | "testing" | "ok" | "err">("idle");
+  const [imageTestMsg, setImageTestMsg] = useState("");
+
   useEffect(() => {
     if (isOpen) {
       setIsSaved(false);
       setApiUrl(getApiBaseUrl());
       setApiStatus("idle");
+      setLlmTestStatus("idle");
+      setImageTestStatus("idle");
 
       api.getProviderConfig()
         .then((config) => {
@@ -66,6 +75,67 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     } catch (e: any) {
       setApiStatus("err");
       setApiErrMsg(e?.message || "无法连接到该 Worker 地址");
+    }
+  };
+
+  const handleTestLlm = async () => {
+    if (!llmApiKey.trim()) {
+      notify.error("请先填入 LLM API Key");
+      return;
+    }
+    setLlmTestStatus("testing");
+    setLlmTestMsg("");
+    try {
+      const res = await api.testLlm({
+        api_key: llmApiKey.trim(),
+        api_base: llmApiBase.trim(),
+        model: llmModel.trim(),
+      });
+      if (res.ok) {
+        setLlmTestStatus("ok");
+        setLlmTestMsg(`连通成功 (${res.latency_ms}ms) · 响应: ${res.reply}`);
+        notify.success(`LLM 模型 ${res.model} 连通正常 (${res.latency_ms}ms)`);
+      } else {
+        setLlmTestStatus("err");
+        setLlmTestMsg(res.error || "调用失败");
+        notify.error(`LLM 连通失败: ${res.error}`);
+      }
+    } catch (e: any) {
+      const errMsg = e.response?.data?.error || e.message || "请求失败";
+      setLlmTestStatus("err");
+      setLlmTestMsg(errMsg);
+      notify.error(`LLM 连通异常: ${errMsg}`);
+    }
+  };
+
+  const handleTestImage = async () => {
+    const key = (syncApiKey ? llmApiKey : imageApiKey).trim();
+    if (!key) {
+      notify.error("请先填入 AI 绘画 API Key");
+      return;
+    }
+    setImageTestStatus("testing");
+    setImageTestMsg("");
+    try {
+      const res = await api.testImage({
+        api_key: key,
+        api_base: imageApiBase.trim(),
+        model: imageModel.trim(),
+      });
+      if (res.ok) {
+        setImageTestStatus("ok");
+        setImageTestMsg(`连通成功 (${res.latency_ms}ms)`);
+        notify.success(`生图模型 ${res.model} 连通正常 (${res.latency_ms}ms)`);
+      } else {
+        setImageTestStatus("err");
+        setImageTestMsg(res.error || "调用失败");
+        notify.error(`生图模型测试失败: ${res.error}`);
+      }
+    } catch (e: any) {
+      const errMsg = e.response?.data?.error || e.message || "请求失败";
+      setImageTestStatus("err");
+      setImageTestMsg(errMsg);
+      notify.error(`生图模型测试异常: ${errMsg}`);
     }
   };
 
@@ -271,12 +341,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <input
                   type="password"
                   value={llmApiKey}
-                  onChange={(e) => setLlmApiKey(e.target.value)}
+                  onChange={(e) => {
+                    setLlmApiKey(e.target.value);
+                    setLlmTestStatus("idle");
+                  }}
                   placeholder="sk-or-v1-..."
                   className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 pl-8 focus:outline-none focus:border-primary"
                 />
                 <Key className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
               </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={handleTestLlm}
+                disabled={llmTestStatus === "testing" || !llmApiKey.trim()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 transition-colors shadow-xs"
+              >
+                {llmTestStatus === "testing" ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>探测 LLM 中...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>测试 LLM 导演连通性</span>
+                  </>
+                )}
+              </button>
+              {llmTestStatus === "ok" && (
+                <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" />
+                  {llmTestMsg}
+                </span>
+              )}
+              {llmTestStatus === "err" && (
+                <span className="text-[11px] text-red-400 font-mono flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {llmTestMsg}
+                </span>
+              )}
             </div>
           </div>
 
@@ -368,12 +474,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   <input
                     type="password"
                     value={imageApiKey}
-                    onChange={(e) => setImageApiKey(e.target.value)}
+                    onChange={(e) => {
+                      setImageApiKey(e.target.value);
+                      setImageTestStatus("idle");
+                    }}
                     placeholder="输入单独的生图 API Key..."
                     className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 pl-8 focus:outline-none focus:border-primary"
                   />
                   <Key className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
                 </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={handleTestImage}
+                disabled={imageTestStatus === "testing" || (!syncApiKey && !imageApiKey.trim()) || (syncApiKey && !llmApiKey.trim())}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50 transition-colors shadow-xs"
+              >
+                {imageTestStatus === "testing" ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>探测生图模型中...</span>
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>测试 AI 绘画连通性</span>
+                  </>
+                )}
+              </button>
+              {imageTestStatus === "ok" && (
+                <span className="text-[11px] text-sky-400 font-mono flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" />
+                  {imageTestMsg}
+                </span>
+              )}
+              {imageTestStatus === "err" && (
+                <span className="text-[11px] text-red-400 font-mono flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {imageTestMsg}
+                </span>
               )}
             </div>
           </div>

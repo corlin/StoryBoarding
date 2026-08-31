@@ -65,4 +65,96 @@ router.put("/providers", async (c) => {
   return c.json({ success: true, ...body });
 });
 
+// POST /api/settings/test-llm (Real-time LLM Model Probe)
+router.post("/test-llm", async (c) => {
+  const body = await c.req.json();
+  const apiKey = (body.api_key || "").trim();
+  const apiBase = (body.api_base || "https://openrouter.ai/api/v1").trim();
+  const model = (body.model || "deepseek/deepseek-chat").trim();
+
+  if (!apiKey) {
+    return c.json({ ok: false, error: "请先填入 LLM API Key" }, 400);
+  }
+
+  const start = Date.now();
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://storyboarding.caifu.social",
+        "X-Title": "AI StoryBoarding Diagnostics",
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: "user", content: "Ping: Reply with 'PONG' in 1 word." }],
+        max_tokens: 15,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    const latency = Date.now() - start;
+
+    if (resp.ok) {
+      const data = (await resp.json()) as any;
+      const reply = data.choices?.[0]?.message?.content?.trim() || "PONG";
+      return c.json({ ok: true, latency_ms: latency, model, reply });
+    } else {
+      const errText = await resp.text();
+      return c.json({ ok: false, status: resp.status, error: `HTTP ${resp.status}: ${errText}` }, 400);
+    }
+  } catch (err: any) {
+    return c.json({ ok: false, error: err?.message || "请求超时或网络异常" }, 500);
+  }
+});
+
+// POST /api/settings/test-image (Real-time Image Model Probe)
+router.post("/test-image", async (c) => {
+  const body = await c.req.json();
+  const apiKey = (body.api_key || "").trim();
+  const apiBase = (body.api_base || "https://openrouter.ai/api/v1").trim();
+  const model = (body.model || "x-ai/grok-imagine-image-2.0").trim();
+
+  if (!apiKey) {
+    return c.json({ ok: false, error: "请先填入 AI 绘画 API Key" }, 400);
+  }
+
+  const start = Date.now();
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+    const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://storyboarding.caifu.social",
+        "X-Title": "AI StoryBoarding Diagnostics",
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: "user", content: "Monochrome storyboard thumbnail test, 16:9 widescreen" }],
+        modalities: ["image", "text"],
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    const latency = Date.now() - start;
+
+    if (resp.ok) {
+      return c.json({ ok: true, latency_ms: latency, model });
+    } else {
+      const errText = await resp.text();
+      return c.json({ ok: false, status: resp.status, error: `HTTP ${resp.status}: ${errText}` }, 400);
+    }
+  } catch (err: any) {
+    return c.json({ ok: false, error: err?.message || "生图测试超时或网络异常" }, 500);
+  }
+});
+
 export default router;

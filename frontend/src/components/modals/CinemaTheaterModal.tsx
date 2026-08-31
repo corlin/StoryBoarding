@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { ShotModel } from "@/types/shot";
+import { normalizeAssetUrl } from "@/lib/api";
 
 interface CinemaTheaterModalProps {
   isOpen: boolean;
@@ -252,7 +253,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
         >
           {currentShot?.storyboard_image_url ? (
             <img
-              src={currentShot.storyboard_image_url}
+              src={normalizeAssetUrl(currentShot.storyboard_image_url)}
               alt={`Shot ${currentIndex + 1}`}
               className="w-full h-full object-cover transition-all duration-300"
             />
