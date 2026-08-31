@@ -45,8 +45,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerShotId, setDrawerShotId] = useState<string | null>(null);
 
-  // Resizable Split-Pane states
-  const [leftPanelWidth, setLeftPanelWidth] = useState(330);
+  // Resizable Split-Pane states (5:5 equal default split)
+  const [leftPanelPercent, setLeftPanelPercent] = useState(50);
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -55,13 +55,15 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     setIsDragging(true);
   };
 
-  // Drag listener for resizable split pane
+  // Drag listener for resizable split pane (percentage-based)
   useEffect(() => {
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.min(Math.max(e.clientX, 280), 560);
-      setLeftPanelWidth(newWidth);
+      const containerWidth = window.innerWidth;
+      if (containerWidth <= 0) return;
+      const newPercent = Math.min(Math.max((e.clientX / containerWidth) * 100, 20), 80);
+      setLeftPanelPercent(newPercent);
     };
 
     const handleMouseUp = () => {
@@ -78,9 +80,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   }, [isDragging]);
 
   const handleResetDivider = () => {
-    setLeftPanelWidth(330);
+    setLeftPanelPercent(50);
     setIsLeftPanelCollapsed(false);
-    notify.info("左右栏宽度已复位至默认黄金比例 (330px)");
+    notify.info("左右栏宽度已复位至默认 5:5 对半均等比例");
   };
 
   // Version Control & Time Machine state
@@ -447,7 +449,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       <div className={cn("flex-1 flex overflow-hidden relative", isDragging && "select-none cursor-col-resize")}>
         {/* Left Column: Script & Scene Pacing Editor */}
         <div
-          style={{ width: isLeftPanelCollapsed ? 0 : `${leftPanelWidth}px` }}
+          style={{ width: isLeftPanelCollapsed ? 0 : `${leftPanelPercent}%` }}
           className={cn(
             "shrink-0 h-full overflow-hidden bg-card/20 relative",
             isDragging ? "transition-none" : "transition-[width] duration-200 ease-in-out"
@@ -475,7 +477,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             "relative group flex items-center justify-center w-2 -mx-1 z-30 cursor-col-resize select-none shrink-0 transition-colors",
             isDragging ? "bg-primary/40" : "hover:bg-primary/20"
           )}
-          title="按住鼠标左右拖拽调整分栏宽度，双击复位默认比例 (330px)"
+          title="按住鼠标左右拖拽调整分栏宽度，双击复位默认 5:5 比例"
         >
           {/* Vertical Divider Line */}
           <div
