@@ -91,6 +91,22 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     }
   };
 
+  // Auto-generate shots if an existing project has 0 shots and story/title exists
+  useEffect(() => {
+    if (
+      currentProject &&
+      effectiveProjectId !== "demo" &&
+      effectiveProjectId !== "demo-matrix-cyber-master" &&
+      shots.length === 0 &&
+      !isGenerating
+    ) {
+      const promptStory = currentProject.story?.trim() || currentProject.title;
+      if (promptStory) {
+        handleGenerateFromStory(promptStory);
+      }
+    }
+  }, [currentProject?.id, shots.length]);
+
   const handleImportScript = async (scriptText: string) => {
     setIsGenerating(true);
     try {

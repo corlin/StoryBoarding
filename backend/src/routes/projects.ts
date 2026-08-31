@@ -160,40 +160,39 @@ router.post("/", async (c) => {
     order: 1,
   });
 
-  // Auto-generate shots from story if story text is provided
-  if (story.trim().length > 0) {
-    try {
-      const settings = await getActiveSettings(db, c.env);
-      const plan = await runDirectorPipeline(story, targetDuration, {
-        apiKey: settings.llmApiKey,
-        apiBase: settings.llmApiBase,
-        model: settings.llmModel,
-      });
+  // Always auto-generate shots from story or title
+  const effectiveStory = story.trim() || title.trim();
+  try {
+    const settings = await getActiveSettings(db, c.env);
+    const plan = await runDirectorPipeline(effectiveStory, targetDuration, {
+      apiKey: settings.llmApiKey,
+      apiBase: settings.llmApiBase,
+      model: settings.llmModel,
+    });
 
-      for (const s of plan.shots) {
-        await db.insert(shots).values({
-          id: crypto.randomUUID(),
-          sequenceId: seqId,
-          order: s.order,
-          duration: s.duration,
-          shotSize: s.shot_size,
-          cameraAngle: s.camera_angle,
-          cameraMovement: JSON.stringify(s.camera_movement),
-          subject: s.subject || "",
-          action: s.action,
-          dialogue: s.dialogue || "",
-          narrativeFunction: s.narrative_function || "动作推进",
-          lighting: s.lighting || "自然光影",
-          audio: JSON.stringify(s.audio || {}),
-          imagePrompt: s.image_prompt,
-          videoPrompt: s.video_prompt,
-          continuityData: JSON.stringify(s.continuity_data || {}),
-          isDirty: true,
-        });
-      }
-    } catch (e) {
-      console.error("Auto shot generation failed during project creation:", e);
+    for (const s of plan.shots) {
+      await db.insert(shots).values({
+        id: crypto.randomUUID(),
+        sequenceId: seqId,
+        order: s.order,
+        duration: s.duration,
+        shotSize: s.shot_size,
+        cameraAngle: s.camera_angle,
+        cameraMovement: JSON.stringify(s.camera_movement),
+        subject: s.subject || "",
+        action: s.action,
+        dialogue: s.dialogue || "",
+        narrativeFunction: s.narrative_function || "动作推进",
+        lighting: s.lighting || "自然光影",
+        audio: JSON.stringify(s.audio || {}),
+        imagePrompt: s.image_prompt,
+        videoPrompt: s.video_prompt,
+        continuityData: JSON.stringify(s.continuity_data || {}),
+        isDirty: true,
+      });
     }
+  } catch (e) {
+    console.error("Auto shot generation failed during project creation:", e);
   }
 
   return c.json(newProj, 201);
