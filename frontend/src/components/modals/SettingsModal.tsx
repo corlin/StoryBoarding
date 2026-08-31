@@ -429,6 +429,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
                 >
                   <option value="openai/gpt-image-2">openai/gpt-image-2 (OpenAI 最新超清电影分镜 · 推荐)</option>
+                  <option value="google/gemini-3.1-flash-image">google/gemini-3.1-flash-image (Google 最新超快分镜生图)</option>
+                  <option value="google/gemini-2.5-flash-image">google/gemini-2.5-flash-image (Google 纳米香蕉生图)</option>
                   <option value="x-ai/grok-imagine-image-2.0">x-ai/grok-imagine-image-2.0 (极快高保真)</option>
                   <option value="black-forest-labs/flux-1-schnell">black-forest-labs/flux-1-schnell (Flux 极速)</option>
                   <option value="black-forest-labs/flux-1-dev">black-forest-labs/flux-1-dev (Flux 精细)</option>
