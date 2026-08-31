@@ -1,0 +1,2 @@
+# Cloudflare Pages SPA Client Routing Rules
+/workspace/* /workspace/demo.html 200

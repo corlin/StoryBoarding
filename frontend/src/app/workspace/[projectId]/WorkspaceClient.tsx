@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { TopBar } from "@/components/workspace/TopBar";
 import { ScriptPanel } from "@/components/script-view/ScriptPanel";
@@ -19,6 +19,11 @@ interface WorkspaceClientProps {
 
 export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const router = useRouter();
+  const routeParams = useParams();
+  const rawParamId = Array.isArray(routeParams?.projectId) ? routeParams.projectId[0] : routeParams?.projectId;
+  const pathId = typeof window !== "undefined" ? window.location.pathname.replace(/^\/workspace\/?/, "").split("/")[0] : "";
+  const effectiveProjectId = (rawParamId as string) || pathId || projectId || "demo";
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isTheaterOpen, setIsTheaterOpen] = useState(false);
   const [theaterShotId, setTheaterShotId] = useState<string | null>(null);
@@ -39,14 +44,14 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   } = useWorkspaceStore();
 
   useEffect(() => {
-    if (projectId === "demo") {
+    if (effectiveProjectId === "demo") {
       const demoProj = createDemoMatrixProject();
       setProject(demoProj);
       selectShot(demoProj.sequences[0]?.shots[0]?.id || null);
     } else {
-      fetchProject(projectId);
+      fetchProject(effectiveProjectId);
     }
-  }, [projectId, fetchProject, selectShot, setProject]);
+  }, [effectiveProjectId, fetchProject, selectShot, setProject]);
 
   const activeSequence = currentProject?.sequences[0];
   const shots = activeSequence?.shots || [];
@@ -56,7 +61,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     setIsGenerating(true);
     try {
       let targetProjectId = currentProject?.id;
-      if (projectId === "demo" || !targetProjectId || targetProjectId === "demo-matrix-cyber-master") {
+      if (effectiveProjectId === "demo" || !targetProjectId || targetProjectId === "demo-matrix-cyber-master") {
         const newProj = await api.createProject({
           title: story.slice(0, 24) || "新建 AI 分镜项目",
           story: story,
@@ -84,7 +89,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     setIsGenerating(true);
     try {
       let targetProjectId = currentProject?.id;
-      if (projectId === "demo" || !targetProjectId || targetProjectId === "demo-matrix-cyber-master") {
+      if (effectiveProjectId === "demo" || !targetProjectId || targetProjectId === "demo-matrix-cyber-master") {
         const newProj = await api.createProject({
           title: "导入剧本工程",
           story: scriptText.slice(0, 100),
@@ -109,7 +114,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   const handleRegenerateDirty = async () => {
     if (!currentProject) return;
-    if (projectId === "demo") {
+    if (effectiveProjectId === "demo") {
       const updated = shots.map((s) => ({
         ...s,
         is_dirty: false,
@@ -137,7 +142,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   };
 
   const handleRegenerateSingleShot = async (shotId: string) => {
-    if (projectId === "demo") {
+    if (effectiveProjectId === "demo") {
       const shot = shots.find((s) => s.id === shotId);
       if (shot) {
         updateShotLocal(shotId, {
