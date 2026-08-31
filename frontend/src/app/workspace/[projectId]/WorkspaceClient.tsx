@@ -9,6 +9,8 @@ import { StoryboardPanel } from "@/components/storyboard-view/StoryboardPanel";
 import { TimelineBar } from "@/components/timeline/TimelineBar";
 import { CinemaTheaterModal } from "@/components/modals/CinemaTheaterModal";
 import { ShotDetailDrawer } from "@/components/drawers/ShotDetailDrawer";
+import { DirectorPipelineModal } from "@/components/workspace/DirectorPipelineModal";
+import { notify } from "@/components/ui/ToastNotification";
 import { api } from "@/lib/api";
 import { generateStoryboardSvgUrl } from "@/lib/storyboardGraphics";
 import { createDemoMatrixProject } from "@/lib/demoMatrixScene";
@@ -31,6 +33,10 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const effectiveProjectId = queryId || (rawParamId && rawParamId !== "demo" ? rawParamId : "") || pathId || projectId || "demo";
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStory, setGenerationStory] = useState("");
+  const [isBatchRendering, setIsBatchRendering] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
+
   const [isTheaterOpen, setIsTheaterOpen] = useState(false);
   const [theaterShotId, setTheaterShotId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -65,6 +71,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   const handleGenerateFromStory = async (story: string) => {
     setIsGenerating(true);
+    setGenerationStory(story);
     try {
       let targetProjectId = effectiveProjectId;
       if (targetProjectId === "demo" || targetProjectId === "demo-matrix-cyber-master") {
@@ -83,9 +90,10 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         target_duration: currentProject?.target_duration || 30.0,
       });
       await fetchProject(targetProjectId);
+      notify.success("🎬 AI 导演拆镜完成！成功规划标准好莱坞镜头节拍");
     } catch (err: any) {
       console.error("AI拆镜失败:", err);
-      alert(err?.message || "AI 导演智能拆镜失败，请检查网络或在右上角「设置」中配置 OpenRouter API Key");
+      notify.error(err?.message || "AI 导演拆镜失败，请检查网络或在右上角「设置」中配置 OpenRouter API Key");
     } finally {
       setIsGenerating(false);
     }
@@ -93,6 +101,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   const handleImportScript = async (scriptText: string) => {
     setIsGenerating(true);
+    setGenerationStory(scriptText.slice(0, 80));
     try {
       let targetProjectId = effectiveProjectId;
       if (targetProjectId === "demo" || targetProjectId === "demo-matrix-cyber-master") {
@@ -110,9 +119,10 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         script_text: scriptText,
       });
       await fetchProject(targetProjectId);
+      notify.success("📜 剧本逆向解析拆镜完成！");
     } catch (err: any) {
       console.error("导入剧本解析失败:", err);
-      alert(err?.message || "剧本逆向解析失败，请检查网络或在右上角「设置」中配置 OpenRouter API Key");
+      notify.error(err?.message || "剧本逆向解析失败，请检查网络或在右上角「设置」中配置 OpenRouter API Key");
     } finally {
       setIsGenerating(false);
     }
@@ -120,6 +130,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   const handleRegenerateDirty = async () => {
     if (!currentProject) return;
+    const dirtyShots = shots.filter((s) => s.is_dirty);
+    if (dirtyShots.length === 0) return;
+
     if (effectiveProjectId === "demo" || effectiveProjectId === "demo-matrix-cyber-master") {
       const updated = shots.map((s) => ({
         ...s,
@@ -141,10 +154,32 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           },
         ],
       });
+      notify.success("✨ 演示故事板已重绘完毕！");
       return;
     }
-    await api.generateProjectImages(currentProject.id);
-    await fetchProject(currentProject.id);
+
+    setIsBatchRendering(true);
+    setBatchProgress({ current: 0, total: dirtyShots.length });
+
+    try {
+      // Process one by one for smooth visual progress tracking
+      let done = 0;
+      for (const s of dirtyShots) {
+        try {
+          await regenerateShotImage(s.id);
+        } catch (e) {
+          console.error(`Failed to generate image for shot ${s.id}`, e);
+        }
+        done += 1;
+        setBatchProgress({ current: done, total: dirtyShots.length });
+      }
+      await fetchProject(currentProject.id);
+      notify.success(`🎨 全部 ${dirtyShots.length} 个待重绘镜头渲染完成！`);
+    } catch (err: any) {
+      notify.error("批量渲染出现异常");
+    } finally {
+      setIsBatchRendering(false);
+    }
   };
 
   const handleRegenerateSingleShot = async (shotId: string) => {
@@ -161,10 +196,17 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             subject: shot.subject,
           }),
         });
+        notify.success(`✨ 第 ${shot.order} 镜重绘成功！`);
       }
       return;
     }
-    await regenerateShotImage(shotId);
+
+    try {
+      await regenerateShotImage(shotId);
+      notify.success("🎨 镜头视觉画面重绘完成！");
+    } catch (e: any) {
+      notify.error("镜头重绘失败，请检查图像 API 设置");
+    }
   };
 
   const handleOpenTheater = (shotId?: string) => {
@@ -194,14 +236,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
       {/* Main Dual-View Workspace Area */}
       <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 overflow-hidden relative">
-        {isGenerating && (
-          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-3">
-            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm font-medium text-foreground">AI 导演智能拆镜中，正在规划节拍与视听语言...</p>
-            <p className="text-xs text-muted-foreground">调用好莱坞 6 阶段视觉导演状态机</p>
-          </div>
-        )}
-
         {/* Left: Shot Script View */}
         <ScriptPanel
           shots={shots}
@@ -223,6 +257,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           onRegenerateShotImage={handleRegenerateSingleShot}
           onOpenTheater={handleOpenTheater}
           onOpenDrawer={handleOpenDrawer}
+          isBatchRendering={isBatchRendering}
+          batchProgress={batchProgress}
         />
       </div>
 
@@ -232,6 +268,13 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         targetDuration={currentProject?.target_duration || 30}
         selectedShotId={selectedShotId}
         onSelectShot={selectShot}
+      />
+
+      {/* Progressive Multi-Stage AI Director Pipeline Modal */}
+      <DirectorPipelineModal
+        isOpen={isGenerating}
+        storyPreview={generationStory}
+        targetDuration={currentProject?.target_duration || 30}
       />
 
       {/* Cinema Theater Modal (Animatic Dynamic Timeline Playback) */}

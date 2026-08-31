@@ -60,14 +60,15 @@ body {
 /* Firefox standard scrollbar properties */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
 
-/* Hide scrollbar completely when needed */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+/* Film Darkroom Shimmer Keyframes */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }

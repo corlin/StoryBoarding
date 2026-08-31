@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ShotModel } from "@/types/shot";
-import { Film, RefreshCw, Camera, Loader2, Info, Maximize2 } from "lucide-react";
+import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StoryboardCellProps {
@@ -33,14 +33,36 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
   onOpenTheater,
 }) => {
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [hasImageError, setHasImageError] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+
   const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || "MS";
+
+  // Stopwatch timer for single shot generation
+  useEffect(() => {
+    let timer: any;
+    if (isRegenerating) {
+      setElapsed(0);
+      const start = Date.now();
+      timer = setInterval(() => {
+        setElapsed(Number(((Date.now() - start) / 1000).toFixed(1)));
+      }, 100);
+    } else {
+      setElapsed(0);
+    }
+    return () => clearInterval(timer);
+  }, [isRegenerating]);
 
   const handleRegenerate = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!onRegenerateImage || isRegenerating) return;
     try {
       setIsRegenerating(true);
+      setHasImageError(false);
       await onRegenerateImage();
+    } catch (err) {
+      setHasImageError(true);
     } finally {
       setIsRegenerating(false);
     }
@@ -71,7 +93,12 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           <img
             src={shot.storyboard_image_url}
             alt={`Shot ${index + 1}`}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            onLoad={() => setIsImageLoaded(true)}
+            onError={() => setHasImageError(true)}
+            className={cn(
+              "w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.02]",
+              isImageLoaded ? "opacity-100" : "opacity-80 blur-xs"
+            )}
           />
         ) : (
           /* Placeholder Canvas */
@@ -83,8 +110,29 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           </div>
         )}
 
+        {/* Darkroom Film Developing Shimmer Overlay (Active during image generation) */}
+        {isRegenerating && (
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-3 text-center z-10 animate-in fade-in duration-200">
+            {/* Shimmer sweeping beam */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/15 to-transparent -translate-x-full animate-[shimmer_1.8s_infinite]" />
+
+            <div className="relative p-2.5 rounded-full bg-primary/20 text-primary mb-2 shadow-inner border border-primary/30">
+              <Loader2 className="w-5 h-5 animate-spin" />
+            </div>
+
+            <p className="relative text-xs font-semibold text-foreground tracking-tight flex items-center gap-1.5">
+              <span>渲染第 {index + 1} 镜画面</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+            </p>
+
+            <span className="relative text-[11px] font-mono text-primary/90 font-medium mt-1">
+              ⏱️ 耗时 {elapsed.toFixed(1)}s
+            </span>
+          </div>
+        )}
+
         {/* Top Badges (Shot No, Shot Size, Duration) */}
-        <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-background/90 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-mono border border-border/60 shadow-sm">
+        <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-background/90 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-mono border border-border/60 shadow-sm z-10">
           <span className="font-bold text-sky-400">{String(index + 1).padStart(2, "0")}</span>
           <span className="text-muted-foreground">·</span>
           <span className="font-semibold text-foreground">{sizeAbbr}</span>
@@ -93,9 +141,9 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
         </div>
 
         {/* Top Right Action Buttons */}
-        <div className="absolute top-2 right-2 flex items-center gap-1.5">
+        <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
           {/* Zoom / Theater Mode Indicator */}
-          {onOpenTheater && (
+          {onOpenTheater && !isRegenerating && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -109,7 +157,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           )}
 
           {/* Detail Inspect Button */}
-          {onOpenDetail && (
+          {onOpenDetail && !isRegenerating && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -123,33 +171,40 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           )}
 
           {/* Dirty State Indicator / Quick Regenerate Button */}
-          {(shot.is_dirty || !shot.storyboard_image_url) && (
+          {(shot.is_dirty || !shot.storyboard_image_url || hasImageError) && (
             <button
               onClick={handleRegenerate}
               disabled={isRegenerating}
-              className="flex items-center gap-1 px-2 py-1 rounded bg-amber-500/90 hover:bg-amber-400 text-black font-semibold text-xs shadow transition-colors disabled:opacity-50"
-              title="点击单独重绘该格"
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs shadow transition-colors disabled:opacity-50",
+                hasImageError
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : "bg-amber-500/90 hover:bg-amber-400 text-black"
+              )}
+              title={hasImageError ? "生图失败，点击重试" : "点击单独重绘该格"}
             >
               {isRegenerating ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : hasImageError ? (
+                <AlertCircle className="w-3.5 h-3.5" />
               ) : (
                 <RefreshCw className="w-3.5 h-3.5" />
               )}
-              <span>{isRegenerating ? "绘制中" : "重绘"}</span>
+              <span>{isRegenerating ? "绘制中" : hasImageError ? "重试" : "重绘"}</span>
             </button>
           )}
         </div>
 
         {/* Camera Movement Arrow Visual Overlay */}
         {shot.camera_movement?.type && shot.camera_movement.type !== "static" && (
-          <div className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded bg-background/90 text-xs font-mono text-muted-foreground border border-border/50 backdrop-blur-sm">
+          <div className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded bg-background/90 text-xs font-mono text-muted-foreground border border-border/50 backdrop-blur-sm z-10">
             <Camera className="w-3.5 h-3.5 text-sky-400" />
             <span>{shot.camera_movement.type}</span>
           </div>
         )}
       </div>
 
-      {/* Caption & Director Notes (Enlarged to 13px comfortable reading font) */}
+      {/* Caption & Director Notes */}
       <div className="p-3 bg-card/90 border-t border-border/60 text-xs md:text-sm">
         <p className="line-clamp-2 text-foreground/90 leading-snug font-medium">
           {shot.action || <span className="text-muted-foreground italic">无动作描述</span>}
