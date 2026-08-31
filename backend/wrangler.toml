@@ -3,7 +3,11 @@ main = "src/index.ts"
 compatibility_date = "2024-11-27"
 compatibility_flags = ["nodejs_compat"]
 
-# Cloudflare D1 Serverless SQLite Database Binding
+# Cloudflare Smart Placement: Automatically places worker execution near US East D1 database
+[placement]
+mode = "smart"
+
+# Cloudflare D1 Serverless SQLite Database Binding (Primary Location: enam / US East)
 [[d1_databases]]
 binding = "DB"
 database_name = "storyboard_db"

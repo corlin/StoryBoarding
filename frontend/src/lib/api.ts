@@ -1,6 +1,8 @@
 import axios from "axios";
 import { ProjectModel, ShotModel } from "@/types/shot";
 
+export type ProjectListItem = ProjectModel;
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
 const apiClient = axios.create({

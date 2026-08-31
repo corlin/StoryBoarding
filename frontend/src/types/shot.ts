@@ -96,6 +96,7 @@ export interface ProjectModel {
   creative_brief?: string;
   style_config: Record<string, any>;
   target_duration: number;
+  shot_count?: number;
   created_at: string;
   updated_at: string;
   sequences: SequenceModel[];

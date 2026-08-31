@@ -284,6 +284,10 @@ export function createDemoMatrixProject(): ProjectModel {
 
   const populatedShots: ShotModel[] = rawShots.map((s) => ({
     ...s,
+    camera_movement: {
+      ...s.camera_movement,
+      speed: s.camera_movement.speed as 'slow' | 'medium' | 'fast' | 'sudden' | undefined,
+    },
     storyboard_image_url: generateStoryboardSvgUrl({
       order: s.order,
       shot_size: s.shot_size,
@@ -291,7 +295,7 @@ export function createDemoMatrixProject(): ProjectModel {
       action: s.action,
       subject: s.subject,
     }),
-  }));
+  })) as ShotModel[];
 
   return {
     id: "demo-matrix-cyber-master",
