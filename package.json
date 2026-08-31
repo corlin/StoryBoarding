@@ -1,0 +1,14 @@
+{
+  "name": "storyboard-workspace",
+  "version": "2.0.0",
+  "private": true,
+  "description": "AI Director Storyboarding Cloudflare Serverless Architecture",
+  "scripts": {
+    "dev": "npm run dev:backend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build:backend": "npm run deploy --prefix backend -- --dry-run",
+    "deploy:backend": "npm run deploy --prefix backend",
+    "deploy:frontend": "npm run build --prefix frontend"
+  }
+}

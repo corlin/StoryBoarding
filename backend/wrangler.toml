@@ -1,0 +1,22 @@
+name = "storyboard-backend"
+main = "src/index.ts"
+compatibility_date = "2024-11-27"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare D1 Serverless SQLite Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "storyboard_db"
+database_id = "storyboard-db-production"
+migrations_dir = "drizzle/migrations"
+
+# Cloudflare R2 Object Storage Binding (For AI images & assets)
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "storyboard-assets"
+
+[vars]
+ENVIRONMENT = "production"
+DEFAULT_LLM_API_BASE = "https://openrouter.ai/api/v1"
+DEFAULT_LLM_MODEL = "deepseek/deepseek-chat"
+DEFAULT_IMAGE_MODEL = "google/imagen-3"

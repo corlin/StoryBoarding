@@ -1,0 +1,25 @@
+{
+  "name": "storyboard-backend-worker",
+  "version": "1.0.0",
+  "description": "AI Director Storyboarding Edge API on Cloudflare Workers",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply storyboard_db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply storyboard_db --remote"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.36.4",
+    "hono": "^4.6.14",
+    "jszip": "^3.10.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "drizzle-kit": "^0.28.1",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.99.0"
+  }
+}
