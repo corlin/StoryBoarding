@@ -40,7 +40,7 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
   }, [selectedShotId]);
 
   return (
-    <section className="flex flex-col h-full min-h-0 overflow-hidden bg-background border-r border-border">
+    <section className="flex flex-col h-full min-h-0 overflow-hidden bg-background">
       {/* Panel Sub-Header */}
       <div className="h-12 px-4 border-b border-border flex items-center justify-between bg-card/40 shrink-0 select-none">
         <div className="flex items-center gap-2">

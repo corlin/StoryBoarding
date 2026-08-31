@@ -14,8 +14,9 @@ import { VersionHistoryDrawer } from "@/components/drawers/VersionHistoryDrawer"
 import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
 import { notify } from "@/components/ui/ToastNotification";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { ProjectVersion, ProjectModel } from "@/types/shot";
-import { History, Clock, RotateCcw, GitBranch, X, Lock } from "lucide-react";
+import { History, Clock, RotateCcw, GitBranch, X, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface WorkspaceClientProps {
   projectId?: string;
@@ -43,6 +44,44 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [theaterShotId, setTheaterShotId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerShotId, setDrawerShotId] = useState<string | null>(null);
+
+  // Resizable Split-Pane states
+  const [leftPanelWidth, setLeftPanelWidth] = useState(330);
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  // Drag listener for resizable split pane
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.min(Math.max(e.clientX, 280), 560);
+      setLeftPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging]);
+
+  const handleResetDivider = () => {
+    setLeftPanelWidth(330);
+    setIsLeftPanelCollapsed(false);
+    notify.info("左右栏宽度已复位至默认黄金比例 (330px)");
+  };
 
   // Version Control & Time Machine state
   const [versions, setVersions] = useState<ProjectVersion[]>([]);
@@ -404,24 +443,66 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         </div>
       )}
 
-      {/* Main 3-Column Studio Workspace */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main Studio Workspace with Resizable Split-Pane */}
+      <div className={cn("flex-1 flex overflow-hidden relative", isDragging && "select-none cursor-col-resize")}>
         {/* Left Column: Script & Scene Pacing Editor */}
-        <div className="w-[380px] shrink-0 h-full border-r border-border bg-card/20">
-          <ScriptPanel
-            shots={shots}
-            sequenceId={activeSequence?.id || ""}
-            selectedShotId={selectedShotId}
-            onSelectShot={selectShot}
-            onUpdateShot={saveShotRemote}
-            onAddShot={() => activeSequence && addShot(activeSequence.id)}
-            onDeleteShot={deleteShot}
-            onOpenDrawer={handleOpenDrawer}
+        <div
+          style={{ width: isLeftPanelCollapsed ? 0 : `${leftPanelWidth}px` }}
+          className={cn(
+            "shrink-0 h-full overflow-hidden bg-card/20 relative",
+            isDragging ? "transition-none" : "transition-[width] duration-200 ease-in-out"
+          )}
+        >
+          {!isLeftPanelCollapsed && (
+            <ScriptPanel
+              shots={shots}
+              sequenceId={activeSequence?.id || ""}
+              selectedShotId={selectedShotId}
+              onSelectShot={selectShot}
+              onUpdateShot={saveShotRemote}
+              onAddShot={() => activeSequence && addShot(activeSequence.id)}
+              onDeleteShot={deleteShot}
+              onOpenDrawer={handleOpenDrawer}
+            />
+          )}
+        </div>
+
+        {/* Resizable Divider Line & Collapse Handle */}
+        <div
+          onMouseDown={handleMouseDown}
+          onDoubleClick={handleResetDivider}
+          className={cn(
+            "relative group flex items-center justify-center w-2 -mx-1 z-30 cursor-col-resize select-none shrink-0 transition-colors",
+            isDragging ? "bg-primary/40" : "hover:bg-primary/20"
+          )}
+          title="按住鼠标左右拖拽调整分栏宽度，双击复位默认比例 (330px)"
+        >
+          {/* Vertical Divider Line */}
+          <div
+            className={cn(
+              "w-[1px] h-full bg-border transition-colors",
+              isDragging ? "bg-primary" : "group-hover:bg-primary/60"
+            )}
           />
+
+          {/* Quick Collapse / Expand Toggle Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsLeftPanelCollapsed(!isLeftPanelCollapsed);
+            }}
+            className={cn(
+              "absolute top-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-8 rounded-sm bg-card border border-border shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 z-40",
+              isLeftPanelCollapsed ? "left-1 rounded-r-md" : "-left-2 opacity-0 group-hover:opacity-100"
+            )}
+            title={isLeftPanelCollapsed ? "展开左侧分镜头脚本栏" : "收起左侧剧本栏 (全屏沉浸画板)"}
+          >
+            {isLeftPanelCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+          </button>
         </div>
 
         {/* Center/Right Column: 16:9 Storyboard Canvas */}
-        <div className="flex-1 h-full overflow-hidden bg-background">
+        <div className="flex-1 h-full overflow-hidden bg-background min-w-0">
           <StoryboardPanel
             shots={shots}
             selectedShotId={selectedShotId}

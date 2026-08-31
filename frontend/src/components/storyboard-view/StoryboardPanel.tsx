@@ -54,7 +54,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
       : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3";
 
   return (
-    <section className="flex flex-col h-full bg-background/50 border-l border-border select-none relative">
+    <section className="flex flex-col h-full bg-background/50 select-none relative">
       {/* Header Bar */}
       <div className="h-12 border-b border-border px-4 flex items-center justify-between shrink-0 bg-card/50">
         <div className="flex items-center gap-2">
