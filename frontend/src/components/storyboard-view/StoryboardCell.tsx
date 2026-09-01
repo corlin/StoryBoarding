@@ -63,22 +63,29 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
 
   // Determine dynamic 3-stage darkroom status text
   const getDevelopingStage = (sec: number) => {
-    if (sec < 1.2) {
+    if (sec >= 30.0) {
+      return {
+        text: "⚠️ 显影等待超时 (点击右上角重绘)",
+        icon: Sparkles,
+        color: "text-red-400",
+      };
+    }
+    if (sec < 2.0) {
       return {
         text: "180° 轴线与构图锁定",
         icon: Compass,
         color: "text-sky-400",
       };
     }
-    if (sec < 2.5) {
+    if (sec < 25.0) {
       return {
-        text: "黑白石墨草图绘图中",
+        text: "电影级概念画面渲染中 (最长30s)",
         icon: Palette,
         color: "text-amber-400",
       };
     }
     return {
-      text: "R2 云端对象存储写入",
+      text: "R2 云端对象存储写入存盘",
       icon: Sparkles,
       color: "text-emerald-400",
     };

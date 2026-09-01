@@ -267,7 +267,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       const proj = await api.getProject(targetProjectId);
       const allShots = proj?.sequences?.[0]?.shots || [];
       const unrendered = allShots.filter(
-        (s: any) => !s.storyboard_image_url || s.storyboard_image_url.startsWith("data:image/svg") || s.is_dirty
+        (s: any) => !s.storyboard_image_url || s.is_dirty
       );
       if (unrendered.length === 0) {
         setIsBatchRendering(false);
@@ -277,8 +277,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       setBatchProgress({ current: 0, total: unrendered.length });
       let completed = 0;
 
-      // Concurrency worker pool (2 parallel workers to avoid OpenRouter rate limit bursts while keeping fast throughput)
-      const concurrency = 2;
+      // Concurrency worker pool: strictly max 3 parallel workers
+      const concurrency = 3;
       let currentIndex = 0;
 
       const runWorker = async () => {

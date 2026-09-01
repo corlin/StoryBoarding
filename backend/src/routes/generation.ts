@@ -126,7 +126,7 @@ export async function generateCinematicStoryboardImage(
     if (isOpenRouter) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s strict wait
 
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images`, {
           method: "POST",
@@ -167,7 +167,7 @@ export async function generateCinematicStoryboardImage(
     if (isOpenRouter && !rawImageUrl) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
           method: "POST",
@@ -216,7 +216,7 @@ export async function generateCinematicStoryboardImage(
           console.warn(`OpenRouter image generation returned ${resp.status}`);
         }
       } catch (e: any) {
-        console.warn("OpenRouter image call failed or timed out (>20s):", e?.message || e);
+        console.warn("OpenRouter image call failed or timed out (>30s):", e?.message || e);
       }
     }
 
@@ -224,7 +224,7 @@ export async function generateCinematicStoryboardImage(
     if (!rawImageUrl) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images/generations`, {
           method: "POST",
@@ -256,20 +256,7 @@ export async function generateCinematicStoryboardImage(
     }
   }
 
-  // 2. High-speed cinematic 512x288 FLUX engine fallback if no API key or upstream failed/timed out
-  if (!rawImageUrl) {
-    const cleanPrompt = prompt
-      .replace(/[\r\n\t]+/g, " ")
-      .replace(/["“”'‘’]/g, "'")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    rawImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      `cinematic 2d monochrome graphite film storyboard illustration, 16:9 widescreen, ${cleanPrompt}`
-    )}?width=512&height=288&seed=${seed}&model=flux&nologo=true`;
-  }
-
-  // 3. Persist image to Cloudflare R2 object storage
+  // 2. Persist image to Cloudflare R2 object storage (Zero fake placeholders: if failed/timed out, keep strictly empty)
   if (storage && rawImageUrl) {
     const r2Url = await saveImageToR2(rawImageUrl, storage, r2Key);
     if (r2Url) {
@@ -277,7 +264,7 @@ export async function generateCinematicStoryboardImage(
     }
   }
 
-  return rawImageUrl;
+  return rawImageUrl || "";
 }
 
 // 3-Worker Safe Concurrency Task Pool Helper
