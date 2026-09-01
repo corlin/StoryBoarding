@@ -115,6 +115,7 @@ export interface ExtractedHeroAndWorld {
   raw: string;
   heroSubjectZh: string;
   heroSubjectEn: string;
+  characterDnaEn: string;
   styleKeywordsEn: string;
   sceneEnvironmentEn: string;
   cameraPerspective: string;
@@ -193,34 +194,42 @@ export function extractHeroAndWorld(text: string): ExtractedHeroAndWorld {
     sceneEnvironmentEn = "cinematic atmospheric environment with rich spatial depth";
   }
 
-  // 3. Extract & Lock Core Protagonist Hero Subject (Subject Invariance)
+  // 3. Extract & Lock Core Protagonist Hero Subject + Character Visual DNA Anchor
   let heroSubjectZh = cleaned || "主角";
   let heroSubjectEn = "";
+  let characterDnaEn = "";
 
   if (/猪|小猪|粉猪|飞天猪|小粉猪/i.test(raw)) {
     heroSubjectZh = "特立独行飞行的粉色小猪";
     heroSubjectEn = "a distinct adorable flying pink pig with delicate feathered wings, expressive determined eyes, wearing a tiny stylish scarf";
+    characterDnaEn = "Character visual DNA: miniature pastel-pink piglet, smooth velvety skin, expressive glossy obsidian eyes, two delicate white-feathered angel wings on back, wearing a snug knitted crimson-striped winter scarf";
   } else if (/猫|小猫|飞天猫/i.test(raw)) {
     heroSubjectZh = "灵动可爱的小猫";
     heroSubjectEn = "a charming adorable stylized cat with bright curious eyes and soft fluffy fur";
+    characterDnaEn = "Character visual DNA: sleek calico-patterned stylized kitten, vibrant emerald green eyes, fluffy white bib fur, delicate whiskers";
   } else if (/狗|小狗|修勾/i.test(raw)) {
     heroSubjectZh = "机灵活泼的小狗";
     heroSubjectEn = "a lively charming stylized dog with joyful expressive features";
+    characterDnaEn = "Character visual DNA: golden-furred charming puppy, floppy ears, joyful amber eyes, wearing a blue leather collar";
   } else if (/贾宝玉|林黛玉|大观园游人/i.test(raw)) {
     heroSubjectZh = "大观园人物与游览者";
     heroSubjectEn = "elegant classical Chinese characters dressed in traditional silk robes";
+    characterDnaEn = "Character visual DNA: elegant youth wearing jade headpiece and ornate crimson silk brocade hanfu robe with embroidered clouds";
   } else if (/机器人|机甲/i.test(raw)) {
     heroSubjectZh = "独特智能机器人";
     heroSubjectEn = "a unique sleek autonomous stylized robot with glowing optical sensors";
+    characterDnaEn = "Character visual DNA: matte-white ceramic armor plating, cyan-glowing curved visor, compact hover-thruster propulsion module";
   } else {
     heroSubjectZh = cleaned || "故事主角";
     heroSubjectEn = `the protagonist character (${cleaned || "main character"})`;
+    characterDnaEn = `Character visual DNA: distinct unique appearance of ${cleaned || "the protagonist"}`;
   }
 
   return {
     raw,
     heroSubjectZh,
     heroSubjectEn,
+    characterDnaEn,
     styleKeywordsEn,
     sceneEnvironmentEn,
     cameraPerspective: cameraPerspective || "cinematic perspective",
@@ -292,13 +301,14 @@ export function formatDirectorImagePrompt(
     .replace(/[““”'‘’]/g, "")
     .trim() || `${parsed.heroSubjectZh}展开精彩行动`;
 
-  // BUILD PURE VISUAL IMAGE PROMPT - SUBJECT FIRST INVARIANCE
+  // BUILD PURE VISUAL IMAGE PROMPT - SUBJECT FIRST & DNA INVARIANCE
   const parts: string[] = [];
 
   // 1. Art Style & Lighting Base
   parts.push(parsed.styleKeywordsEn);
 
-  // 2. HERO SUBJECT (MANDATORY AT FRONT)
+  // 2. HERO SUBJECT & CHARACTER VISUAL DNA (MANDATORY AT FRONT)
+  parts.push(parsed.characterDnaEn);
   parts.push(`Hero subject is ${parsed.heroSubjectEn}`);
 
   // 3. Scene Environment (Decoupled from hero)
