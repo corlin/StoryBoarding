@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
 import { shots } from "../db/schema";
 
+import { formatDirectorImagePrompt, formatDirectorVideoPrompt } from "../agents/director/pipeline";
+
 const router = new Hono<{ Bindings: Bindings }>();
 
 // POST /api/shots
@@ -11,6 +13,22 @@ router.post("/", async (c) => {
   const body = await c.req.json();
   const id = crypto.randomUUID();
 
+  const action = body.action || "";
+  const size = body.shot_size || "medium_shot";
+  const angle = body.camera_angle || "eye_level";
+  const mov = typeof body.camera_movement === "object" ? body.camera_movement.type || "push_in" : body.camera_movement || "push_in";
+  const subject = body.subject || "";
+
+  const autoImgPrompt = body.image_prompt || formatDirectorImagePrompt(action, size, angle, mov, {
+    subject,
+    order: Number(body.order) || 1,
+  });
+
+  const autoVidPrompt = body.video_prompt || formatDirectorVideoPrompt(action, mov, size, {
+    subject,
+    order: Number(body.order) || 1,
+  });
+
   const [newShot] = await db
     .insert(shots)
     .values({
@@ -18,17 +36,17 @@ router.post("/", async (c) => {
       sequenceId: body.sequence_id,
       order: Number(body.order) || 1,
       duration: Number(body.duration) || 2.5,
-      shotSize: body.shot_size || "medium_shot",
-      cameraAngle: body.camera_angle || "eye_level",
+      shotSize: size,
+      cameraAngle: angle,
       cameraMovement: typeof body.camera_movement === "string" ? body.camera_movement : JSON.stringify(body.camera_movement || {}),
-      subject: body.subject || "",
-      action: body.action || "",
+      subject,
+      action,
       dialogue: body.dialogue || "",
       narrativeFunction: body.narrative_function || "动作推进",
-      lighting: body.lighting || "自然光",
+      lighting: body.lighting || "通透自然光影",
       audio: typeof body.audio === "string" ? body.audio : JSON.stringify(body.audio || {}),
-      imagePrompt: body.image_prompt || "",
-      videoPrompt: body.video_prompt || "",
+      imagePrompt: autoImgPrompt,
+      videoPrompt: autoVidPrompt,
       continuityData: typeof body.continuity_data === "string" ? body.continuity_data : JSON.stringify(body.continuity_data || {}),
       isDirty: false,
     })
@@ -42,6 +60,11 @@ router.put("/:id", async (c) => {
   const db = getDb(c.env.DB);
   const id = c.req.param("id");
   const body = await c.req.json();
+
+  const existingShot = await db.select().from(shots).where(eq(shots.id, id)).get();
+  if (!existingShot) {
+    return c.json({ detail: "Shot not found" }, 404);
+  }
 
   const updates: any = {};
   if (body.order !== undefined) updates.order = Number(body.order);
@@ -59,15 +82,54 @@ router.put("/:id", async (c) => {
   if (body.audio !== undefined) {
     updates.audio = typeof body.audio === "string" ? body.audio : JSON.stringify(body.audio);
   }
-  if (body.image_prompt !== undefined) updates.imagePrompt = body.image_prompt;
-  if (body.video_prompt !== undefined) updates.videoPrompt = body.video_prompt;
   if (body.continuity_data !== undefined) {
     updates.continuityData = typeof body.continuity_data === "string" ? body.continuity_data : JSON.stringify(body.continuity_data);
   }
-  if (body.storyboard_image_url !== undefined) updates.storyboardImageUrl = body.storyboard_image_url;
+  if (body.storyboard_image_url !== undefined) {
+    updates.storyboardImageUrl = body.storyboard_image_url;
+    updates.isDirty = false;
+  }
   if (body.is_dirty !== undefined) updates.isDirty = Boolean(body.is_dirty);
   if (body.is_locked !== undefined) updates.isLocked = Boolean(body.is_locked);
   if (body.isLocked !== undefined) updates.isLocked = Boolean(body.isLocked);
+
+  // Check if visual action script was edited -> auto re-compile prompts & flag dirty
+  const isScriptModified =
+    (body.action !== undefined && body.action !== existingShot.action) ||
+    (body.shot_size !== undefined && body.shot_size !== existingShot.shotSize) ||
+    (body.camera_angle !== undefined && body.camera_angle !== existingShot.cameraAngle) ||
+    (body.camera_movement !== undefined && JSON.stringify(body.camera_movement) !== existingShot.cameraMovement) ||
+    (body.subject !== undefined && body.subject !== existingShot.subject);
+
+  if (isScriptModified) {
+    const finalAction = body.action !== undefined ? body.action : existingShot.action || "";
+    const finalSize = body.shot_size !== undefined ? body.shot_size : existingShot.shotSize || "medium_shot";
+    const finalAngle = body.camera_angle !== undefined ? body.camera_angle : existingShot.cameraAngle || "eye_level";
+    const movObj = body.camera_movement !== undefined ? body.camera_movement : JSON.parse(existingShot.cameraMovement || "{}");
+    const finalMov = typeof movObj === "object" ? movObj?.type || "push_in" : movObj || "push_in";
+    const finalSubject = body.subject !== undefined ? body.subject : existingShot.subject || "";
+
+    if (body.image_prompt === undefined) {
+      updates.imagePrompt = formatDirectorImagePrompt(finalAction, finalSize, finalAngle, finalMov, {
+        subject: finalSubject,
+        order: updates.order || existingShot.order,
+      });
+    }
+    if (body.video_prompt === undefined) {
+      updates.videoPrompt = formatDirectorVideoPrompt(finalAction, finalMov, finalSize, {
+        subject: finalSubject,
+        order: updates.order || existingShot.order,
+      });
+    }
+
+    if (body.storyboard_image_url === undefined && existingShot.storyboardImageUrl) {
+      updates.isDirty = true;
+    }
+  } else {
+    if (body.image_prompt !== undefined) updates.imagePrompt = body.image_prompt;
+    if (body.video_prompt !== undefined) updates.videoPrompt = body.video_prompt;
+  }
+
   updates.updatedAt = new Date().toISOString();
 
   const [updated] = await db.update(shots).set(updates).where(eq(shots.id, id)).returning();

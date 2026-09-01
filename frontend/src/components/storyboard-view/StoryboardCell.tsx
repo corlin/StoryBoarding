@@ -329,6 +329,18 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
               </span>
             </>
           )}
+
+          {/* Dirty Badge: Script modified, prompt auto-recompiled, ready to re-render */}
+          {shot.is_dirty && !isActivelyDeveloping && (
+            <button
+              onClick={handleRegenerate}
+              className="flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 px-2 py-0.5 rounded text-[10px] font-medium animate-pulse shadow-sm transition-all ml-1"
+              title="台本已修改且提示词已重新编译，点击重绘以匹配最新台本"
+            >
+              <Sparkles className="w-3 h-3 text-amber-400" />
+              <span>⚡ 台本已改·重绘</span>
+            </button>
+          )}
         </div>
 
         {/* Top Right Quick Action Buttons */}
