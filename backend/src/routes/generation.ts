@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
 import { projects, sequences, shots, systemSettings, projectVersions } from "../db/schema";
-import { runDirectorPipeline, formatDirectorImagePrompt } from "../agents/director/pipeline";
+import { runDirectorPipeline, formatDirectorImagePrompt, cleanPromptOfMetaPollution } from "../agents/director/pipeline";
 import { captureProjectSnapshot } from "./versions";
 
 const router = new Hono<{ Bindings: Bindings }>();
@@ -169,6 +169,7 @@ export async function generateCinematicStoryboardImage(
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
+        const cleanPrompt = cleanPromptOfMetaPollution(prompt);
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
           method: "POST",
           headers: {
@@ -182,9 +183,7 @@ export async function generateCinematicStoryboardImage(
             messages: [
               {
                 role: "user",
-                content: prompt.includes("Cinematic film still")
-                  ? prompt
-                  : `Cinematic film still concept art, 16:9 widescreen composition, dramatic lighting: ${prompt}`,
+                content: cleanPrompt,
               },
             ],
             modalities: ["image", "text"],
@@ -226,6 +225,7 @@ export async function generateCinematicStoryboardImage(
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
+        const cleanPrompt = cleanPromptOfMetaPollution(prompt);
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images/generations`, {
           method: "POST",
           headers: {
@@ -234,7 +234,7 @@ export async function generateCinematicStoryboardImage(
           },
           body: JSON.stringify({
             model: model,
-            prompt: prompt,
+            prompt: cleanPrompt,
             n: 1,
             size: "512x512",
             response_format: "url",

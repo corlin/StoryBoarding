@@ -64,14 +64,20 @@ export function getDirectorSystemPrompt(targetDuration: number = 30.0): string {
 ${pacingGuidance}
 
 【全题材与主角一致性最高准则】：
-1. 严格围绕用户输入的具体主角（如动物、人类、机器人、神话生物、职场人物等）和具体题材（如童话卡通、赛博朋克、古风仙侠、都市生活、科幻探险、爱情喜剧等）展开镜头调度。
-2. 绝对禁止脱离用户设定的主角去脑补无关的角色或无关的格斗互殴！
-3. 精准继承用户指定的艺术风格与美学调性，并在 "global_visual_anchor" 与各镜头 "image_prompt" 中严格保持画风统一。
+1. 严格围绕用户输入的具体主角（如人物、动物、古典建筑、科幻世界等）和具体题材展开。
+2. 将用户提到的“无人机视角/俯视/特写”等机位词归入镜头摄影机视角，绝对不能把“无人机”误当成故事主角去写现代军事谍战！
+3. 精准继承用户指定的艺术风格与美学调性（如“皮克斯 3D 动画”、“红楼梦中国古典园林”等），并在所有提示词中保持高度统一。
 
-【全片视觉与角色特征锚点（Global Visual Anchor）要求】：
+【生图提示词 (image_prompt) 纯净视觉规范 (CRITICAL)】：
+- 必须是纯粹的英文视觉描述句（Pure Visual Description），严禁包含任何元数据标签或文字前缀！
+- 绝对严禁输出 "Visual Anchor:", "Anticipation Pose:", "Action:", "Shot #", "Screen direction:", "Subject:" 等词汇（这些词会被生图模型画成漫画对白与乱码文本框！）。
+- 绝对禁止画面出现真实摄影器材（如 camera crane, tripod, drone equipment）。
+- 提示词末尾统一附加去字样负向约束: "no text, no speech bubbles, no dialogue boxes, no labels, no watermark, no camera equipment, no tripods, no film crew, clean diegetic scene, 16:9 widescreen"
+
+【输出格式规范】：
 请在 JSON 顶层输出：
 1. "theme": 故事核心主题短语 (中英文)
-2. "global_visual_anchor": 全片核心视觉与角色基石 (英文, 包含主角外观特征、核心场景基调与美术风格，如 "Protagonist is a cute flying pink pig with wings, vibrant stylized 3D cartoon city forest, bright cinematic daylight")
+2. "global_visual_anchor": 全片核心视觉基石 (纯英文描述, 包含主角外观、场景美学与艺术风格)
 3. "shots": 分镜头列表 (恰好 ${expectedShots} 个镜头)
 
 【每个镜头字段规范】：
@@ -80,45 +86,87 @@ ${pacingGuidance}
 - shot_size: 景别 ('extreme_wide_shot' | 'wide_shot' | 'full_shot' | 'medium_shot' | 'medium_close_up' | 'close_up' | 'extreme_close_up')
 - camera_angle: 角度 ('eye_level' | 'low_angle' | 'high_angle' | 'dutch_angle' | 'birds_eye' | 'worms_eye')
 - camera_movement: 运镜 ({ "type": "push_in" | "tracking_right" | "arc_rotate" | "crane" | "tilt_up", "speed": "fast" | "medium" | "slow" })
-- subject: 镜头主体描述
-- action: 镜头具体动作与画面叙事 (详细描述主体肢体动作、动态交互与视线)
+- subject: 镜头主体描述 (如 "大观园亭台楼阁与游览人物")
+- action: 镜头具体动作与画面叙事 (中文描述)
 - dialogue: 角色对白 (可选)
-- narrative_function: 视听叙事功能 (如 "空间建立 / 主体亮相 / 戏剧转折 / 核心高潮 / 余韵定格")
-- lighting: 光影基调 (如 "通透电影光影，主光源分明，侧逆光轮廓光清晰")
+- narrative_function: 视听叙事功能 (如 "空间建立 / 主体漫步 / 细节特写 / 视觉奇观 / 余韵定格")
+- lighting: 光影基调 (如 "明亮温暖的皮克斯电影级光影，柔和天光与通透景深")
 - audio: 音效 (sfx) 与音乐 (music)
-- image_prompt: 极其详尽的【I2V 黄金第一帧 (Keyframe Anchor)】英文生图提示词 (English)，必须严格满足：
-  1) 全局主角外观特征与美术风格 (Character Consistency & Style Anchor)
-  2) 三层景深视差构图 (3-Plane Depth: Foreground Framing + Midground Subject + Background Vanishing Point)
-  3) 清晰动作起势定格 (Kinetic Anticipation Pose: 动作爆发前 0.1s 定格，关节分明无黏连)
-  4) 电影级通透光影与轮廓光 (Dramatic Three-point Lighting & Rim Light)
-  5) 防器材穿帮与质量后缀 (严格禁止画面出现摄影机器材): "16:9 widescreen composition, professional pre-viz keyframe, sharp focus, zero motion blur, clean proportions, vivid atmosphere, no cameras in frame, no film equipment, no camera crane, no tripod, no film crew, no speech bubbles, no text, ready for I2V video keyframe"
-- video_prompt: 专业的【4段式 AI 视频生动提示词 (English)】(专为 Runway Gen-3 / 可灵 Kling 1.5 / Minimax 优化)，格式严格包含：
-  1) [Camera Trajectory & Velocity]: 运镜轨迹与物理动量
-  2) [Subject Starting Pose & Dynamic Evolution]: 角色从首帧起势姿态到动作演变
-  3) [Physical Simulation & Environmental Dynamics]: 环境动态流体物理 (如风、光影、粒子)
-  4) [Motion Control & Temporal Coherence]: 帧率节奏与防畸变约束 ("Smooth 24fps cinematic temporal motion, realistic momentum physics, continuous seamless trajectory, no morphing, no distortion")
+- image_prompt: 纯净英文生图提示词 (Pure Visual Description, no labels, no prefixes)
+- video_prompt: 4段式 AI 视频提示词 ([Camera], [Action], [Dynamics], [Quality])
 - continuity_data: 镜头间剪辑流数据 ({ "screen_direction": "left_to_right" | "right_to_left", "motion_in": "入画动势", "motion_out": "出画动势", "transition_recommendation": "Match cut on action" | "Hard cut" })
 `;
 }
 
-function detectStyleKeywords(text: string): string {
-  const t = (text || "").toLowerCase();
-  if (t.includes("卡通") || t.includes("3d") || t.includes("pixar") || t.includes("disney") || t.includes("动画") || t.includes("cute") || t.includes("cartoon")) {
-    return "Stylized 3D cinematic animation concept art, Pixar/Disney aesthetic, vibrant color palette, clear readable forms, volumetric studio lighting, rich atmospheric depth";
+export interface ExtractedStoryCore {
+  raw: string;
+  cleanSubject: string;
+  coreScene: string;
+  styleKeywords: string;
+  cameraPerspective: string;
+  fullTitle: string;
+}
+
+export function extractStoryCore(text: string): ExtractedStoryCore {
+  const raw = (text || "").trim();
+  let cleaned = raw;
+
+  let cameraPerspective = "";
+  const perspectivePatterns = [
+    { regex: /(?:无人机视角|无人机航拍|航拍视角|航拍|俯瞰视角|俯瞰|鸟瞰)/gi, en: "aerial drone panoramic vantage point, sweeping high-angle view" },
+    { regex: /(?:特写视角|宏观特写|微距特写)/gi, en: "macro detailed close-up perspective" },
+    { regex: /(?:第一人称视角|第一人称|主观视角|POV)/gi, en: "first-person point-of-view perspective" },
+    { regex: /(?:低角度仰视|低角度|仰拍|仰视视角)/gi, en: "grounded low-angle towering perspective" },
+    { regex: /(?:全景视角|大远景|全景)/gi, en: "expansive panoramic wide perspective" },
+    { regex: /(?:摇臂镜头|长镜头|斯坦尼康)/gi, en: "smooth sweeping cinematic vantage" },
+  ];
+
+  for (const p of perspectivePatterns) {
+    if (p.regex.test(cleaned)) {
+      cameraPerspective = p.en;
+      cleaned = cleaned.replace(p.regex, "").replace(/^[，,\s、:：]+|[，,\s、:：]+$/g, "").trim();
+    }
   }
-  if (t.includes("日漫") || t.includes("动漫") || t.includes("anime") || t.includes("manga") || t.includes("二次元") || t.includes("2d")) {
-    return "Cinematic 2D anime concept art, clean cel-shaded lines, dynamic anime composition, vivid Japanese animation aesthetic, dramatic lighting";
+
+  const stylePatterns = [
+    { regex: /(?:皮克斯风格|皮克斯|迪士尼风格|迪士尼|3D动画|3D卡通|三维卡通|卡通风格|卡通)/gi, en: "Stylized 3D Pixar Disney animation aesthetic, charming stylized character forms, rich vibrant color palette, warm volumetric studio lighting" },
+    { regex: /(?:红楼梦|大观园|中国古风|古典园林|古风|国风|水墨|仙侠)/gi, en: "Grand View Garden Dream of the Red Chamber traditional Chinese classical architecture, ornate pavilions, weeping willows, stone bridges, lotus ponds, poetic oriental aesthetic" },
+    { regex: /(?:二次元|日漫风格|日漫|动漫风格|动漫|新海诚|吉卜力|2D动画)/gi, en: "Vibrant 2D Japanese anime aesthetic, clean cel-shaded lines, Makoto Shinkai lighting, evocative sky" },
+    { regex: /(?:赛博朋克|赛博|未来科幻|科幻|机甲)/gi, en: "Cyberpunk sci-fi aesthetic, high-tech neon lighting, atmospheric haze, futuristic holographic reflections" },
+    { regex: /(?:写实电影|真人电影|写实|电影质感|8K写实)/gi, en: "Photorealistic 35mm cinematic film still, anamorphic lens, natural depth of field, dramatic three-point lighting" },
+  ];
+
+  const matchedStyles: string[] = [];
+  for (const sp of stylePatterns) {
+    if (sp.regex.test(raw)) {
+      matchedStyles.push(sp.en);
+    }
   }
-  if (t.includes("赛博朋克") || t.includes("cyberpunk") || t.includes("科幻") || t.includes("sci-fi") || t.includes("futuristic")) {
-    return "Cinematic sci-fi concept art, high-tech neon volumetric lighting, atmospheric haze, detailed futuristic environmental design, anamorphic widescreen";
-  }
-  if (t.includes("古风") || t.includes("水墨") || t.includes("国风") || t.includes("wuxia") || t.includes("ink")) {
-    return "Cinematic oriental fantasy concept art, dynamic flowing composition, atmospheric mist, elegant silhouette lighting, evocative artistic mood";
-  }
-  if (t.includes("写实") || t.includes("电影") || t.includes("realistic") || t.includes("live-action") || t.includes("photorealistic")) {
-    return "Realistic cinematic film still, 35mm anamorphic lens, natural depth of field, dramatic cinematic three-point lighting, photorealistic atmosphere";
-  }
-  return "Cinematic film still concept art, 16:9 widescreen composition, professional movie pre-production keyframe, dramatic three-point lighting, volumetric atmospheric depth";
+
+  let styleKeywords = matchedStyles.length > 0 
+    ? matchedStyles.join(", ") 
+    : "Cinematic concept art, 16:9 widescreen composition, professional pre-production keyframe, dramatic lighting, rich atmospheric depth";
+
+  const cleanSubject = cleaned || raw || "精彩故事主角与场景";
+
+  return {
+    raw,
+    cleanSubject,
+    coreScene: cleaned,
+    styleKeywords,
+    cameraPerspective: cameraPerspective || "cinematic perspective",
+    fullTitle: raw,
+  };
+}
+
+export function cleanPromptOfMetaPollution(prompt: string): string {
+  if (!prompt) return "";
+  return prompt
+    .replace(/\b(?:Visual Anchor|Character Consistency|Subject|Image Prompt|Keyframe Prompt|Anticipation Pose\s*&\s*Action|Screen direction|180-degree(?:\s*action)?\s*axis\s*locked|Continuing from previous shot where)\b[:：\s]*/gi, " ")
+    .replace(/\bShot\s*#?\d+\s*[-:]*/gi, " ")
+    .replace(/["“”'‘’]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function formatDirectorImagePrompt(
@@ -129,60 +177,70 @@ export function formatDirectorImagePrompt(
   context?: {
     storyContext?: string;
     subject?: string;
-    prevShot?: { order: number; action: string; shotSize?: string };
-    screenDirection?: string;
     order?: number;
     globalAnchor?: string;
   }
 ): string {
   const sizeMap: Record<string, string> = {
-    extreme_wide_shot: "extreme wide shot (EWS), deep depth of field",
-    wide_shot: "wide shot (WS), spatial environment framing",
-    full_shot: "full shot (FS), full body kinetic pose visible",
-    medium_shot: "medium shot (MS), clear waist-up dynamic staging",
-    medium_close_up: "medium close up (MCU), chest-up tension",
-    close_up: "close up (CU), shallow depth of field, intense focus",
-    extreme_close_up: "extreme close up (ECU), macro detail, micro-expression",
+    extreme_wide_shot: "extreme wide shot",
+    wide_shot: "wide establishing shot",
+    full_shot: "full shot framing subject completely",
+    medium_shot: "medium shot, clear dynamic staging",
+    medium_close_up: "medium close-up, focused upper body",
+    close_up: "close-up shot, sharp focus on subject",
+    extreme_close_up: "extreme close-up macro detail",
   };
   const angleMap: Record<string, string> = {
-    eye_level: "eye level shot, grounded perspective",
-    low_angle: "low angle looking up, dramatic towering perspective",
-    high_angle: "high angle looking down, spatial tactical overview",
-    dutch_angle: "dutch tilt angle, high dynamic tension and kinetic diagonal",
-    birds_eye: "overhead bird's eye view, geometric layout",
-    worms_eye: "ground-level worm's eye perspective, explosive scale",
+    eye_level: "eye-level perspective",
+    low_angle: "low-angle dramatic perspective",
+    high_angle: "high-angle vantage point",
+    dutch_angle: "dynamic tilted angle",
+    birds_eye: "overhead bird's-eye view",
+    worms_eye: "ground-level worm's-eye view",
   };
   const movViewpointMap: Record<string, string> = {
-    push_in: "dramatic forward dynamic viewpoint",
-    pull_out: "expansive wide viewpoint",
-    tracking_right: "dynamic lateral tracking viewpoint",
-    tracking_left: "dynamic lateral tracking viewpoint",
-    pan_right: "wide lateral vantage point",
-    pan_left: "wide lateral vantage point",
-    tilt_up: "grounded low vantage perspective",
-    tilt_down: "elevated high vantage perspective",
+    push_in: "forward dynamic viewpoint",
+    pull_out: "expansive wide perspective",
+    tracking_right: "lateral tracking viewpoint",
+    tracking_left: "lateral tracking viewpoint",
+    pan_right: "wide lateral vantage",
+    pan_left: "wide lateral vantage",
+    tilt_up: "grounded low viewpoint",
+    tilt_down: "elevated high vantage",
     arc_rotate: "three-quarter orbital viewpoint",
     crane: "elevated high-angle aerial vantage point",
     static: "locked-off balanced composition",
   };
 
-  const readableSize = sizeMap[size] || size || "medium shot";
-  const readableAngle = angleMap[angle] || angle || "eye level shot";
-  const readableViewpoint = movViewpointMap[mov] || "cinematic perspective";
-  const shotNo = context?.order ? `Shot #${String(context.order).padStart(2, "0")}` : "Shot";
-  const dir = context?.screenDirection || "left_to_right";
-  const subject = context?.subject ? `Subject: ${context.subject}. ` : "";
-  const globalAnchor = context?.globalAnchor || context?.storyContext || "";
+  const entities = extractStoryCore(`${context?.globalAnchor || ""} ${context?.storyContext || ""} ${action}`);
+  const readableSize = sizeMap[size] || "medium shot";
+  const readableAngle = angleMap[angle] || "eye-level perspective";
+  const readableViewpoint = movViewpointMap[mov] || entities.cameraPerspective || "cinematic perspective";
 
-  let continuityClause = "";
-  if (context?.prevShot) {
-    const cleanPrev = context.prevShot.action.slice(0, 50).replace(/["“”'‘’]/g, "'");
-    continuityClause = `Continuing from previous shot where ${cleanPrev}, `;
+  const cleanAction = action
+    .replace(/^(?:无人机视角|航拍视角|俯瞰视角|第\d+镜|SHOT\s*#?\d+)[:：\s]*/gi, "")
+    .replace(/[““”'‘’]/g, "")
+    .trim() || entities.cleanSubject;
+
+  const cleanAnchor = cleanPromptOfMetaPollution(context?.globalAnchor || "");
+  const parts: string[] = [];
+
+  parts.push(entities.styleKeywords);
+  if (cleanAnchor) {
+    parts.push(cleanAnchor);
+  } else if (entities.cleanSubject) {
+    parts.push(entities.cleanSubject);
   }
 
-  const baseStyle = detectStyleKeywords(`${globalAnchor} ${action} ${context?.storyContext || ""}`);
+  parts.push(`${readableSize}, ${readableAngle}, ${readableViewpoint}`);
+  if (cleanAction && cleanAction !== cleanAnchor) {
+    parts.push(cleanAction);
+  }
 
-  return `${baseStyle}. ${globalAnchor ? `Visual Anchor: ${globalAnchor}. ` : ""}${readableSize}, ${readableAngle}, ${readableViewpoint}. ${continuityClause}${shotNo} - ${subject}Anticipation Pose & Action: ${action}. Screen direction: ${dir}, 180-degree action axis locked. Sharp focus, zero motion blur, clean proportions, crisp silhouette lighting, vivid atmosphere, high production value, no cameras in frame, no film equipment, no camera crane rig, no tripods, clean diegetic scene, no text, no speech bubbles, ready for I2V video keyframe.`;
+  parts.push("vibrant atmospheric lighting, depth staging with foreground framing and background vanishing point");
+  parts.push("no text, no speech bubbles, no dialogue boxes, no labels, no watermark, no camera equipment, no tripods, no film crew, no borders, clean diegetic artwork, 16:9 widescreen");
+
+  return parts.filter(Boolean).join(". ");
 }
 
 export function formatDirectorVideoPrompt(
@@ -218,12 +276,13 @@ export function formatDirectorVideoPrompt(
   return `[Camera]: ${cameraTraj}. [Action]: ${subjectName} begins in sharp anticipation pose and executes ${cleanAction}, maintaining continuous kinetic momentum across the 16:9 frame in ${screenDir} trajectory. [Dynamics]: Atmospheric environmental particle flow, dynamic physics, volumetric lighting shifts. [Quality]: Smooth 24fps cinematic temporal motion, realistic momentum physics, continuous seamless trajectory, no morphing, no distortion.`;
 }
 
-// Generate story-adaptive fallback storyboard based on user's actual story text
 export function generateAdaptiveStoryShots(storyText: string, targetDuration: number = 30.0): ShotPlan[] {
   const cleanStory = (storyText || "").trim() || "未命名故事分镜";
-  const sentences = cleanStory
+  const entities = extractStoryCore(cleanStory);
+
+  const sentences = entities.cleanSubject
     .split(/[。！？\n\.\!\?；;]/)
-    .map((s) => s.trim())
+    .map((s) => s.replace(/^(?:无人机视角|航拍视角|俯瞰视角)[:：\s]*/gi, "").trim())
     .filter(Boolean);
 
   let targetCount = 12;
@@ -231,30 +290,30 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
   else if (targetDuration <= 20.0) targetCount = 6;
 
   const durPerShot = Number((targetDuration / targetCount).toFixed(1)) || 2.5;
-  const topic = cleanStory.slice(0, 30);
+  const coreTopic = entities.cleanSubject.slice(0, 35) || "精彩故事全景";
 
   const universal6Arcs = [
-    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "环境建立", act: `${topic}：全景建立空间地理与核心主体视觉基调` },
-    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "主体展开", act: `${topic}：主角在场景中展开标志性动态行动，展现生动细节` },
-    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "剧情推进", act: `${topic}：遭遇关键剧情事件或环境交互，视线与动势聚焦` },
-    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "情绪蓄势", act: `${topic}：特写主角专注神态与关键动作起势，展现生动表现力` },
-    { size: "close_up", angle: "low_angle", mov: "push_in", func: "核心高潮", act: `${topic}：核心行动高潮爆发，动态视觉奇观贯穿全幅画面` },
-    { size: "wide_shot", angle: "eye_level", mov: "pull_out", func: "余韵定格", act: `${topic}：行动达成，镜头缓缓拉开形成电影感余韵定格` },
+    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "环境建立", act: `${coreTopic}：全景建立故事空间与核心主体视觉基调` },
+    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "主体展开", act: `${coreTopic}：漫步与探索展开标志性动态行动，展现生动建筑与环境细节` },
+    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "剧情推进", act: `${coreTopic}：移步换景，视线与动势聚焦于核心景点与主体互动` },
+    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "情绪蓄势", act: `${coreTopic}：特写主角专注神态与精致细节，展现生动表现力` },
+    { size: "close_up", angle: "low_angle", mov: "push_in", func: "核心高潮", act: `${coreTopic}：核心高潮全景展开，秀美华丽的视觉奇观贯穿全屏` },
+    { size: "wide_shot", angle: "eye_level", mov: "pull_out", func: "余韵定格", act: `${coreTopic}：游览达成，镜头缓缓拉开形成优美电影感余韵定格` },
   ];
 
   const universal12Arcs = [
-    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "世界观建立", act: `${topic}：全景建立故事空间与世界观基调` },
-    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "主角亮相", act: `${topic}：主角正式亮相并展开标志性动作` },
-    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "探索互动", act: `${topic}：主角与场景环境展开生动交互` },
-    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "发现线索", act: `${topic}：遭遇关键剧情事件，视线锁定新目标` },
-    { size: "close_up", angle: "low_angle", mov: "push_in", func: "意图确立", act: `${topic}：特写专注神态，下定决心采取行动` },
-    { size: "full_shot", angle: "eye_level", mov: "tracking_left", func: "行动展开", act: `${topic}：全面启动核心行动，动势逐步加速` },
-    { size: "medium_shot", angle: "dutch_angle", mov: "pan_right", func: "动态挑战", act: `${topic}：面对动态挑战与场景转折，灵活应对` },
-    { size: "extreme_close_up", angle: "eye_level", mov: "push_in", func: "细节特写", act: `${topic}：微表情与局部关键特征极致细节特写` },
-    { size: "medium_close_up", angle: "eye_level", mov: "arc_rotate", func: "视觉焦点", act: `${topic}：环绕运镜展现核心高光时刻` },
-    { size: "full_shot", angle: "low_angle", mov: "tilt_up", func: "高潮爆发", act: `${topic}：核心高潮爆发，奇观画面拉满` },
-    { size: "wide_shot", angle: "high_angle", mov: "pull_out", func: "局势平息", act: `${topic}：关键目标达成，周围环境逐渐平息` },
-    { size: "extreme_wide_shot", angle: "eye_level", mov: "crane", func: "余韵定格", act: `${topic}：镜头升起拉远，形成电影感余韵定格` },
+    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "世界观建立", act: `${coreTopic}：全景建立故事空间与世界观基调` },
+    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "主角亮相", act: `${coreTopic}：主角正式亮相并展开标志性动作` },
+    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "探索互动", act: `${coreTopic}：主角与场景环境展开生动交互` },
+    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "发现线索", act: `${coreTopic}：遭遇关键剧情事件，视线锁定新目标` },
+    { size: "close_up", angle: "low_angle", mov: "push_in", func: "意图确立", act: `${coreTopic}：特写专注神态，下定决心采取行动` },
+    { size: "full_shot", angle: "eye_level", mov: "tracking_left", func: "行动展开", act: `${coreTopic}：全面启动核心行动，动势逐步加速` },
+    { size: "medium_shot", angle: "dutch_angle", mov: "pan_right", func: "动态挑战", act: `${coreTopic}：面对动态挑战与场景转折，灵活应对` },
+    { size: "extreme_close_up", angle: "eye_level", mov: "push_in", func: "细节特写", act: `${coreTopic}：微表情与局部关键特征极致细节特写` },
+    { size: "medium_close_up", angle: "eye_level", mov: "arc_rotate", func: "视觉焦点", act: `${coreTopic}：环绕运镜展现核心高光时刻` },
+    { size: "full_shot", angle: "low_angle", mov: "tilt_up", func: "高潮爆发", act: `${coreTopic}：核心高潮爆发，奇观画面拉满` },
+    { size: "wide_shot", angle: "high_angle", mov: "pull_out", func: "局势平息", act: `${coreTopic}：关键目标达成，周围环境逐渐平息` },
+    { size: "extreme_wide_shot", angle: "eye_level", mov: "crane", func: "余韵定格", act: `${coreTopic}：镜头升起拉远，形成电影感余韵定格` },
   ];
 
   const baseArcs = targetCount <= 6 ? universal6Arcs : universal12Arcs;
@@ -263,21 +322,18 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
   for (let i = 1; i <= targetCount; i++) {
     const pattern = baseArcs[(i - 1) % baseArcs.length];
     const sentenceAct = sentences[i - 1] ? `${sentences[i - 1]}` : pattern.act;
-    const prevShot = i > 1 ? { order: i - 1, action: shots[i - 2].action } : undefined;
     const screenDirection = i % 2 === 0 ? "right_to_left" : "left_to_right";
 
     const imgPrompt = formatDirectorImagePrompt(sentenceAct, pattern.size, pattern.angle, pattern.mov, {
       order: i,
-      prevShot,
-      screenDirection,
-      storyContext: topic,
+      storyContext: coreTopic,
+      globalAnchor: entities.styleKeywords,
     });
 
     const vidPrompt = formatDirectorVideoPrompt(sentenceAct, pattern.mov, pattern.size, {
       order: i,
-      subject: topic,
+      subject: coreTopic,
       screenDirection,
-      prevShot,
     });
 
     shots.push({
@@ -286,18 +342,18 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
       shot_size: pattern.size,
       camera_angle: pattern.angle,
       camera_movement: { type: pattern.mov, speed: "medium" },
-      subject: topic,
+      subject: coreTopic,
       action: sentenceAct,
       dialogue: "",
       narrative_function: pattern.func,
       lighting: "通透电影光影，主光源分明，侧逆光轮廓光清晰",
-      audio: { sfx: "环境音效、动作音效、配乐" },
+      audio: { sfx: "环境音效、优美古典配乐" },
       image_prompt: imgPrompt,
       video_prompt: vidPrompt,
       continuity_data: {
         screen_direction: screenDirection,
         motion_in: `Shot #${i} entry kinetic momentum from ${screenDirection}`,
-        motion_out: `Shot #${i} exit kinetic momentum to follow next cut`,
+        motion_out: `Shot #${i} exit kinetic momentum forward`,
         transition_recommendation: i === targetCount ? "Fade to black" : "Match cut on action",
       },
     });
@@ -326,7 +382,7 @@ export async function runDirectorPipeline(
   if (apiKey) {
     try {
       const systemPrompt = getDirectorSystemPrompt(targetDuration);
-      const userMessage = `【故事剧本内容】：\n${storyText}\n\n【目标时长】：${targetDuration} 秒（请严格规划 ${expectedCount} 个分镜头）。请直接输出纯 JSON 对象（不要附加其他说明文字），格式如下：\n{\n  "theme": "故事主题",\n  "global_visual_anchor": "主角外观特征与核心场景基石 (英文)",\n  "shots": [ ... ]\n}`;
+      const userMessage = `【故事剧本内容】：\n${storyText}\n\n【目标时长】：${targetDuration} 秒（请严格规划 ${expectedCount} 个分镜头）。请直接输出纯 JSON 对象（不要附加其他说明文字），格式如下：\n{\n  "theme": "故事主题",\n  "global_visual_anchor": "主角外观特征与核心场景基石 (纯英文场景画风描述，严禁包含任何文字标签)",\n  "shots": [ ... ]\n}`;
 
       const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
         method: "POST",
@@ -350,7 +406,6 @@ export async function runDirectorPipeline(
         const data = (await resp.json()) as any;
         const rawContent = data.choices?.[0]?.message?.content || "";
         if (rawContent) {
-          // Robust universal JSON extraction (handles markdown ```json ... ``` and plain text)
           let jsonStr = rawContent.trim();
           const mdMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
           if (mdMatch && mdMatch[1]) {
@@ -365,12 +420,12 @@ export async function runDirectorPipeline(
 
           const parsed = JSON.parse(jsonStr);
           if (parsed.shots && Array.isArray(parsed.shots) && parsed.shots.length > 0) {
-            const globalAnchor = parsed.global_visual_anchor || storyText.slice(0, 100);
+            const entities = extractStoryCore(storyText);
+            const globalAnchor = cleanPromptOfMetaPollution(parsed.global_visual_anchor || entities.styleKeywords);
 
-            // Post-process with 4-pillar continuity prompt builder & standard 4-part video prompt
             const enrichedShots: ShotPlan[] = parsed.shots.map((s: any, idx: number) => {
               const prev = idx > 0 ? { order: idx, action: parsed.shots[idx - 1].action } : undefined;
-              const rawImgPrompt = (s.image_prompt || "").trim();
+              const rawImgPrompt = cleanPromptOfMetaPollution(s.image_prompt || "");
               const screenDirection = s.continuity_data?.screen_direction || (idx % 2 === 0 ? "left_to_right" : "right_to_left");
               const movType = s.camera_movement?.type || "push_in";
 
@@ -383,15 +438,15 @@ export async function runDirectorPipeline(
                   movType,
                   {
                     order: s.order || idx + 1,
-                    subject: s.subject,
-                    prevShot: prev,
-                    screenDirection,
+                    subject: s.subject || entities.cleanSubject,
                     storyContext: storyText.slice(0, 80),
                     globalAnchor: globalAnchor,
                   }
                 );
-              } else if (globalAnchor && !rawImgPrompt.toLowerCase().includes(globalAnchor.toLowerCase().slice(0, 20))) {
-                finalImgPrompt = `Visual Anchor: ${globalAnchor}. ${rawImgPrompt}`;
+              } else {
+                finalImgPrompt = cleanPromptOfMetaPollution(
+                  `${globalAnchor}. ${rawImgPrompt}. no text, no speech bubbles, no dialogue boxes, no labels, no watermark, no camera equipment, no tripods, clean diegetic artwork, 16:9 widescreen`
+                );
               }
 
               let finalVidPrompt = (s.video_prompt || "").trim();
@@ -402,7 +457,7 @@ export async function runDirectorPipeline(
                   s.shot_size || "medium_shot",
                   {
                     order: s.order || idx + 1,
-                    subject: s.subject || globalAnchor.slice(0, 30),
+                    subject: s.subject || entities.cleanSubject,
                     screenDirection,
                     prevShot: prev,
                   }
@@ -423,12 +478,12 @@ export async function runDirectorPipeline(
                 shot_size: s.shot_size || "medium_shot",
                 camera_angle: s.camera_angle || "eye_level",
                 camera_movement: typeof s.camera_movement === "object" ? s.camera_movement : { type: "push_in", speed: "medium" },
-                subject: s.subject || "",
+                subject: s.subject || entities.cleanSubject,
                 action: s.action || "",
                 dialogue: s.dialogue || "",
-                narrative_function: s.narrative_function || "动作推进",
-                lighting: s.lighting || "高反差黑白石墨光影，侧逆光轮廓光",
-                audio: typeof s.audio === "object" ? s.audio : { sfx: "环境音" },
+                narrative_function: s.narrative_function || "主体漫步与场景展现",
+                lighting: s.lighting || "通透电影光影，主光源分明，侧逆光轮廓光清晰",
+                audio: typeof s.audio === "object" ? s.audio : { sfx: "环境音效、优美古典配乐" },
                 image_prompt: finalImgPrompt,
                 video_prompt: finalVidPrompt,
                 continuity_data: continuityData,
@@ -436,7 +491,7 @@ export async function runDirectorPipeline(
             });
 
             return {
-              theme: parsed.theme || storyText.slice(0, 20),
+              theme: parsed.theme || entities.cleanSubject,
               target_duration: targetDuration,
               shots: enrichedShots,
             };
@@ -452,9 +507,10 @@ export async function runDirectorPipeline(
   }
 
   // Fallback to intelligent story-adaptive breakdown
+  const entities = extractStoryCore(storyText);
   const fallbackShots = generateAdaptiveStoryShots(storyText, targetDuration);
   return {
-    theme: storyText.slice(0, 20) || "好莱坞智能分镜",
+    theme: entities.cleanSubject,
     target_duration: targetDuration,
     shots: fallbackShots,
   };
