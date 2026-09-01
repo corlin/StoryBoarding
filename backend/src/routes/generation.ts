@@ -182,9 +182,9 @@ export async function generateCinematicStoryboardImage(
             messages: [
               {
                 role: "user",
-                content: prompt.includes("graphite storyboard sketch")
+                content: prompt.includes("Cinematic film still")
                   ? prompt
-                  : `2D monochrome graphite film storyboard sketch, 16:9 widescreen, pencil line art: ${prompt}`,
+                  : `Cinematic film still concept art, 16:9 widescreen composition, dramatic lighting: ${prompt}`,
               },
             ],
             modalities: ["image", "text"],

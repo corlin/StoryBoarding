@@ -261,6 +261,52 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     notify.info(locked ? "🔒 镜头已锁定（AI重构时将保持不变）" : "🔓 镜头已解锁");
   };
 
+  const startClientRenderQueue = async (targetProjectId: string) => {
+    try {
+      setIsBatchRendering(true);
+      const proj = await api.getProject(targetProjectId);
+      const allShots = proj?.sequences?.[0]?.shots || [];
+      const unrendered = allShots.filter(
+        (s: any) => !s.storyboard_image_url || s.storyboard_image_url.startsWith("data:image/svg") || s.is_dirty
+      );
+      if (unrendered.length === 0) {
+        setIsBatchRendering(false);
+        return;
+      }
+
+      setBatchProgress({ current: 0, total: unrendered.length });
+      let completed = 0;
+
+      // Concurrency worker pool (2 parallel workers to avoid OpenRouter rate limit bursts while keeping fast throughput)
+      const concurrency = 2;
+      let currentIndex = 0;
+
+      const runWorker = async () => {
+        while (currentIndex < unrendered.length) {
+          const indexToProcess = currentIndex++;
+          const shot = unrendered[indexToProcess];
+          if (!shot) break;
+          try {
+            await regenerateShotImage(shot.id);
+          } catch (err) {
+            console.warn(`Shot ${shot.id} render error:`, err);
+          }
+          completed++;
+          setBatchProgress({ current: completed, total: unrendered.length });
+        }
+      };
+
+      const workers = Array.from({ length: Math.min(concurrency, unrendered.length) }, () => runWorker());
+      await Promise.all(workers);
+      await fetchProject(targetProjectId);
+      notify.success(`🎨 全部 ${unrendered.length} 个镜头画面显影冲印完成！`);
+    } catch (e: any) {
+      console.error("Client render queue error:", e);
+    } finally {
+      setIsBatchRendering(false);
+    }
+  };
+
   const handleGenerateFromStory = async (story: string) => {
     if (previewVersion) {
       setPreviewVersion(null);
@@ -287,7 +333,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       });
       await fetchProject(targetProjectId);
       await loadVersions();
-      notify.success("🎬 AI 导演拆镜完成！(已自动保存拆镜前备份快照)");
+      notify.success("🎬 AI 导演拆镜完成！正在启动保活冲印队列显影全部画面...");
+      startClientRenderQueue(targetProjectId);
     } catch (err: any) {
       console.error("AI拆镜失败:", err);
       notify.error(err?.message || "AI 导演拆镜失败，请检查网络或在右上角「设置」中配置 OpenRouter API Key");
@@ -321,7 +368,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       });
       await fetchProject(targetProjectId);
       await loadVersions();
-      notify.success("📜 剧本逆向解析拆镜完成！(已自动保存前置快照)");
+      notify.success("📜 剧本逆向解析拆镜完成！正在启动保活冲印队列显影全部画面...");
+      startClientRenderQueue(targetProjectId);
     } catch (err: any) {
       console.error("导入剧本解析失败:", err);
       notify.error(err?.message || "剧本逆向解析失败，请检查网络或在右上角「设置」中配置 OpenRouter API Key");
@@ -336,35 +384,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       return;
     }
     if (!currentProject) return;
-    const previzShots = shots.filter(
-      (s) => s.is_dirty || !s.storyboard_image_url || s.storyboard_image_url.startsWith("data:image/svg")
-    );
-    if (previzShots.length === 0) {
-      notify.info("当前所有镜头均已是高精成片状态");
-      return;
-    }
-
-    setIsBatchRendering(true);
-    setBatchProgress({ current: 0, total: previzShots.length });
-
-    try {
-      let done = 0;
-      for (const s of previzShots) {
-        try {
-          await regenerateShotImage(s.id);
-        } catch (e) {
-          console.error(`Failed to develop image for shot ${s.id}`, e);
-        }
-        done += 1;
-        setBatchProgress({ current: done, total: previzShots.length });
-      }
-      await fetchProject(currentProject.id);
-      notify.success(`🎨 全部 ${previzShots.length} 个镜头画面冲印完成！`);
-    } catch (err: any) {
-      notify.error("批量冲印队列出现异常");
-    } finally {
-      setIsBatchRendering(false);
-    }
+    await startClientRenderQueue(currentProject.id);
   };
 
   const handleRegenerateSingleShot = async (shotId: string) => {

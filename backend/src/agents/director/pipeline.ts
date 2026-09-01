@@ -76,14 +76,14 @@ ${pacingGuidance}
 - action: 镜头具体动作与画面叙事 (详细描述人物肢体蓄力、动态交互与视线)
 - dialogue: 角色对白 (可选)
 - narrative_function: 视听叙事功能 (如 "核心动作交锋 / 视觉奇观展示")
-- lighting: 光影基调 (如 "高反差黑白石墨光影，侧逆光轮廓光")
+- lighting: 光影基调 (如 "通透电影光影，主光源分明，侧逆光轮廓光清晰")
 - audio: 音效 (sfx) 与音乐 (music)
 - image_prompt: 极其详尽的【I2V 黄金第一帧 (Keyframe Anchor)】英文生图提示词 (English)，必须严格满足：
   1) 全局主角外观特征 (Character Consistency Anchor)
   2) 三层景深视差构图 (3-Plane Depth: Foreground Framing + Midground Subject + Background Vanishing Point)
   3) 清晰动作起势定格 (Kinetic Anticipation Pose: 动作爆发前 0.1s 定格，关节分明无黏连)
-  4) 空间背景与轮廓光 (Environment & Rim Lighting)
-  5) 固定风格与去模糊后缀: "2d monochrome graphite film storyboard sketch, 16:9 widescreen composition, professional pre-viz illustration, clean pencil line art, tonal graphite shading, sharp focus, zero motion blur, clean anatomical proportions, no color, no speech bubbles, no text"
+  4) 电影级通透光影与轮廓光 (Dramatic Three-point Lighting & Rim Light)
+  5) 固定风格与去模糊后缀: "Cinematic film still concept art, 16:9 widescreen composition, professional pre-viz keyframe, dramatic lighting, sharp focus, zero motion blur, clean anatomical proportions, vivid atmosphere, no speech bubbles, no text, ready for I2V video keyframe"
 - video_prompt: 专业的【4段式 AI 视频生动提示词 (English)】(专为 Runway Gen-3 / 可灵 Kling 1.5 / Minimax 优化)，格式严格包含：
   1) [Camera Trajectory & Velocity]: 运镜轨迹与物理动量 (如 "Dynamic low-angle Steadicam tracking forward at medium speed, panning smoothly to follow action")
   2) [Subject Starting Pose & Dynamic Evolution]: 角色从首帧起势姿态到爆发动作演变 (如 "Protagonist begins in low crouch stance and propels forward in explosive sprint, lunging with blade")
@@ -138,9 +138,9 @@ export function formatDirectorImagePrompt(
     continuityClause = `Continuing from previous shot where ${cleanPrev}, `;
   }
 
-  const baseStyle = "2d monochrome graphite film storyboard sketch, professional pre-production concept art, 16:9 widescreen composition, high contrast pencil line art, tonal graphite shading, cinematic 3-plane depth staging (foreground anchor, midground subject, background perspective)";
+  const baseStyle = "Cinematic film still concept art, 16:9 widescreen composition, professional movie pre-production keyframe, dramatic cinematic three-point lighting, volumetric atmospheric depth staging (foreground framing element, midground subject focus, background vanishing point)";
 
-  return `${baseStyle}. ${globalAnchor ? `Visual Anchor: ${globalAnchor}. ` : ""}${readableSize}, ${readableAngle}, camera ${mov}. ${continuityClause}${shotNo} - ${subject}Anticipation Pose & Action: ${action}. Screen direction: ${dir}, 180-degree action axis locked. Sharp focus, zero motion blur, clean anatomical proportions, crisp linework, no color, no speech bubbles, ready for I2V video keyframe.`;
+  return `${baseStyle}. ${globalAnchor ? `Visual Anchor: ${globalAnchor}. ` : ""}${readableSize}, ${readableAngle}, camera ${mov}. ${continuityClause}${shotNo} - ${subject}Anticipation Pose & Action: ${action}. Screen direction: ${dir}, 180-degree action axis locked. Sharp focus, zero motion blur, clean anatomical proportions, crisp silhouette lighting, vivid atmosphere, high production value, no text, no speech bubbles, ready for I2V video keyframe.`;
 }
 
 export function formatDirectorVideoPrompt(
