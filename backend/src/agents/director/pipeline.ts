@@ -34,25 +34,28 @@ export function getDirectorSystemPrompt(targetDuration: number = 30.0): string {
   if (targetDuration <= 8.0) {
     expectedShots = 3;
     pacingGuidance = `
-【8秒高燃短视频 3 节拍规范 (目标生成 3 个镜头)】：
-- 镜1 (0~2.5s): 强视觉奇观抓眼登场，建立核心危机；
-- 镜2 (2.5~5.5s): 极速动作攻防交锋，动态高潮爆发；
-- 镜3 (5.5~8.0s): 终极定格与戏剧悬念反转。`;
+【8秒短片 3 节拍规范 (目标生成 3 个镜头)】：
+- 镜1 (0~2.5s): 世界观与核心主体建立 (Establishment & Intro)；
+- 镜2 (2.5~5.5s): 核心动态交互与剧情高潮 (Dynamic Action & Climax)；
+- 镜3 (5.5~8.0s): 余韵定格与结局收尾 (Resolution & Final Frame)。`;
   } else if (targetDuration <= 20.0) {
     expectedShots = 6;
     pacingGuidance = `
-【20秒商业大片 6 节拍规范 (目标生成 6 个镜头)】：
-- 镜1-2 (0~6s): 场景世界观切入与主角动作登场；
-- 镜3-4 (6~14s): 对立冲突爆发与连环运镜追击；
-- 镜5-6 (14~20s): 绝杀视觉奇观与电影感收尾定格。`;
+【20秒电影级短片 6 节拍规范 (目标生成 6 个镜头)】：
+- 镜1 (0~3.0s): 环境建立 · 全景建立空间地理与核心主体视觉基调；
+- 镜2 (3.0~6.5s): 主体展开 · 主角在场景中展开标志性动态行动；
+- 镜3 (6.5~10.0s): 剧情转折 · 遭遇关键剧情事件或环境交互，视线与动势聚焦；
+- 镜4 (10.0~13.5s): 情绪蓄势 · 特写主角专注神态与关键动作起势；
+- 镜5 (13.5~17.0s): 核心高潮 · 核心行动高潮爆发，动态视觉奇观贯穿全屏；
+- 镜6 (17.0~20.0s): 余韵定格 · 行动达成，镜头拉远形成电影感余韵定格。`;
   } else {
     expectedShots = 12;
     pacingGuidance = `
 【30秒好莱坞叙事大片 4 篇章 12 节拍规范 (目标生成 10~12 个镜头)】：
-- 第一篇章 (0~6s, 镜1-3): 起 · 世界观建立与主角登场 (Establishment & Intro)；
-- 第二篇章 (6~15s, 镜4-6): 承 · 危机逼近与连环动作攻防 (Escalation & Combat)；
-- 第三篇章 (15~24s, 镜7-9): 转 · 子弹时间/慢动作视觉奇观与终极对抗 (Climax & Bullet-Time)；
-- 第四篇章 (24~30s, 镜10-12): 合 · 胜负裁决与电影感余韵定格 (Resolution & Final Frame)。`;
+- 第一篇章 (0~6s, 镜1-3): 起 · 世界观建立与主角亮相 (Establishment & Protagonist Intro)；
+- 第二篇章 (6~15s, 镜4-6): 承 · 剧情发展与主体生动探索 (Exploration & Narrative Escalation)；
+- 第三篇章 (15~24s, 镜7-9): 转 · 关键挑战与视觉奇观高潮 (Key Turning Point & Visual Climax)；
+- 第四篇章 (24~30s, 镜10-12): 合 · 目标达成与电影感余韵定格 (Resolution & Final Frame)。`;
   }
 
   return `你是一位好莱坞顶级视觉导演与 AI 视频生成大师 (Hollywood Visual Director & AI Video Master)。
@@ -60,10 +63,15 @@ export function getDirectorSystemPrompt(targetDuration: number = 30.0): string {
 
 ${pacingGuidance}
 
+【全题材与主角一致性最高准则】：
+1. 严格围绕用户输入的具体主角（如动物、人类、机器人、神话生物、职场人物等）和具体题材（如童话卡通、赛博朋克、古风仙侠、都市生活、科幻探险、爱情喜剧等）展开镜头调度。
+2. 绝对禁止脱离用户设定的主角去脑补无关的角色或无关的格斗互殴！
+3. 精准继承用户指定的艺术风格与美学调性，并在 "global_visual_anchor" 与各镜头 "image_prompt" 中严格保持画风统一。
+
 【全片视觉与角色特征锚点（Global Visual Anchor）要求】：
 请在 JSON 顶层输出：
 1. "theme": 故事核心主题短语 (中英文)
-2. "global_visual_anchor": 全片核心视觉与角色基石 (英文, 包含主角外观特征、核心场景基调与美术风格，如 "Protagonist is a martial artist in black cybernetic coat, dark neon-lit rain alleyway, high-tension cinematic graphite sketch")
+2. "global_visual_anchor": 全片核心视觉与角色基石 (英文, 包含主角外观特征、核心场景基调与美术风格，如 "Protagonist is a cute flying pink pig with wings, vibrant stylized 3D cartoon city forest, bright cinematic daylight")
 3. "shots": 分镜头列表 (恰好 ${expectedShots} 个镜头)
 
 【每个镜头字段规范】：
@@ -73,24 +81,44 @@ ${pacingGuidance}
 - camera_angle: 角度 ('eye_level' | 'low_angle' | 'high_angle' | 'dutch_angle' | 'birds_eye' | 'worms_eye')
 - camera_movement: 运镜 ({ "type": "push_in" | "tracking_right" | "arc_rotate" | "crane" | "tilt_up", "speed": "fast" | "medium" | "slow" })
 - subject: 镜头主体描述
-- action: 镜头具体动作与画面叙事 (详细描述人物肢体蓄力、动态交互与视线)
+- action: 镜头具体动作与画面叙事 (详细描述主体肢体动作、动态交互与视线)
 - dialogue: 角色对白 (可选)
-- narrative_function: 视听叙事功能 (如 "核心动作交锋 / 视觉奇观展示")
+- narrative_function: 视听叙事功能 (如 "空间建立 / 主体亮相 / 戏剧转折 / 核心高潮 / 余韵定格")
 - lighting: 光影基调 (如 "通透电影光影，主光源分明，侧逆光轮廓光清晰")
 - audio: 音效 (sfx) 与音乐 (music)
 - image_prompt: 极其详尽的【I2V 黄金第一帧 (Keyframe Anchor)】英文生图提示词 (English)，必须严格满足：
-  1) 全局主角外观特征 (Character Consistency Anchor)
+  1) 全局主角外观特征与美术风格 (Character Consistency & Style Anchor)
   2) 三层景深视差构图 (3-Plane Depth: Foreground Framing + Midground Subject + Background Vanishing Point)
   3) 清晰动作起势定格 (Kinetic Anticipation Pose: 动作爆发前 0.1s 定格，关节分明无黏连)
   4) 电影级通透光影与轮廓光 (Dramatic Three-point Lighting & Rim Light)
-  5) 固定风格与去模糊后缀: "Cinematic film still concept art, 16:9 widescreen composition, professional pre-viz keyframe, dramatic lighting, sharp focus, zero motion blur, clean anatomical proportions, vivid atmosphere, no speech bubbles, no text, ready for I2V video keyframe"
+  5) 去模糊与质量后缀: "16:9 widescreen composition, professional pre-viz keyframe, sharp focus, zero motion blur, clean proportions, vivid atmosphere, no speech bubbles, no text, ready for I2V video keyframe"
 - video_prompt: 专业的【4段式 AI 视频生动提示词 (English)】(专为 Runway Gen-3 / 可灵 Kling 1.5 / Minimax 优化)，格式严格包含：
-  1) [Camera Trajectory & Velocity]: 运镜轨迹与物理动量 (如 "Dynamic low-angle Steadicam tracking forward at medium speed, panning smoothly to follow action")
-  2) [Subject Starting Pose & Dynamic Evolution]: 角色从首帧起势姿态到爆发动作演变 (如 "Protagonist begins in low crouch stance and propels forward in explosive sprint, lunging with blade")
-  3) [Physical Simulation & Environmental Dynamics]: 布料飘动、雨滴飞溅、火花烟雾流体物理 (如 "Trench coat billows violently in crosswind, raindrops splash dynamically off shoulders with volumetric mist")
-  4) [Motion Control & Temporal Coherence]: 帧率节奏与防畸变约束 ("Smooth 24fps cinematic temporal motion, realistic human momentum physics, continuous seamless trajectory, no morphing, no distortion")
-- continuity_data: 镜头间剪辑流数据 ({ "screen_direction": "left_to_right" | "right_to_left", "motion_in": "入画动势", "motion_out": "出画动势", "transition_recommendation": "Match cut on action" | "Hard action cut" })
+  1) [Camera Trajectory & Velocity]: 运镜轨迹与物理动量
+  2) [Subject Starting Pose & Dynamic Evolution]: 角色从首帧起势姿态到动作演变
+  3) [Physical Simulation & Environmental Dynamics]: 环境动态流体物理 (如风、光影、粒子)
+  4) [Motion Control & Temporal Coherence]: 帧率节奏与防畸变约束 ("Smooth 24fps cinematic temporal motion, realistic momentum physics, continuous seamless trajectory, no morphing, no distortion")
+- continuity_data: 镜头间剪辑流数据 ({ "screen_direction": "left_to_right" | "right_to_left", "motion_in": "入画动势", "motion_out": "出画动势", "transition_recommendation": "Match cut on action" | "Hard cut" })
 `;
+}
+
+function detectStyleKeywords(text: string): string {
+  const t = (text || "").toLowerCase();
+  if (t.includes("卡通") || t.includes("3d") || t.includes("pixar") || t.includes("disney") || t.includes("动画") || t.includes("cute") || t.includes("cartoon")) {
+    return "Stylized 3D cinematic animation concept art, Pixar/Disney aesthetic, vibrant color palette, clear readable forms, volumetric studio lighting, rich atmospheric depth";
+  }
+  if (t.includes("日漫") || t.includes("动漫") || t.includes("anime") || t.includes("manga") || t.includes("二次元") || t.includes("2d")) {
+    return "Cinematic 2D anime concept art, clean cel-shaded lines, dynamic anime composition, vivid Japanese animation aesthetic, dramatic lighting";
+  }
+  if (t.includes("赛博朋克") || t.includes("cyberpunk") || t.includes("科幻") || t.includes("sci-fi") || t.includes("futuristic")) {
+    return "Cinematic sci-fi concept art, high-tech neon volumetric lighting, atmospheric haze, detailed futuristic environmental design, anamorphic widescreen";
+  }
+  if (t.includes("古风") || t.includes("水墨") || t.includes("国风") || t.includes("wuxia") || t.includes("ink")) {
+    return "Cinematic oriental fantasy concept art, dynamic flowing composition, atmospheric mist, elegant silhouette lighting, evocative artistic mood";
+  }
+  if (t.includes("写实") || t.includes("电影") || t.includes("realistic") || t.includes("live-action") || t.includes("photorealistic")) {
+    return "Realistic cinematic film still, 35mm anamorphic lens, natural depth of field, dramatic cinematic three-point lighting, photorealistic atmosphere";
+  }
+  return "Cinematic film still concept art, 16:9 widescreen composition, professional movie pre-production keyframe, dramatic three-point lighting, volumetric atmospheric depth";
 }
 
 export function formatDirectorImagePrompt(
@@ -138,9 +166,9 @@ export function formatDirectorImagePrompt(
     continuityClause = `Continuing from previous shot where ${cleanPrev}, `;
   }
 
-  const baseStyle = "Cinematic film still concept art, 16:9 widescreen composition, professional movie pre-production keyframe, dramatic cinematic three-point lighting, volumetric atmospheric depth staging (foreground framing element, midground subject focus, background vanishing point)";
+  const baseStyle = detectStyleKeywords(`${globalAnchor} ${action} ${context?.storyContext || ""}`);
 
-  return `${baseStyle}. ${globalAnchor ? `Visual Anchor: ${globalAnchor}. ` : ""}${readableSize}, ${readableAngle}, camera ${mov}. ${continuityClause}${shotNo} - ${subject}Anticipation Pose & Action: ${action}. Screen direction: ${dir}, 180-degree action axis locked. Sharp focus, zero motion blur, clean anatomical proportions, crisp silhouette lighting, vivid atmosphere, high production value, no text, no speech bubbles, ready for I2V video keyframe.`;
+  return `${baseStyle}. ${globalAnchor ? `Visual Anchor: ${globalAnchor}. ` : ""}${readableSize}, ${readableAngle}, camera ${mov}. ${continuityClause}${shotNo} - ${subject}Anticipation Pose & Action: ${action}. Screen direction: ${dir}, 180-degree action axis locked. Sharp focus, zero motion blur, clean proportions, crisp silhouette lighting, vivid atmosphere, high production value, no text, no speech bubbles, ready for I2V video keyframe.`;
 }
 
 export function formatDirectorVideoPrompt(
@@ -173,7 +201,7 @@ export function formatDirectorVideoPrompt(
   const subjectName = context?.subject || "Protagonist";
   const screenDir = context?.screenDirection || "left_to_right";
 
-  return `[Camera]: ${cameraTraj}. [Action]: ${subjectName} begins in sharp anticipation pose and executes ${cleanAction}, maintaining continuous kinetic momentum across the 16:9 frame in ${screenDir} trajectory. [Dynamics]: Atmospheric environmental particle flow, dynamic cloth physics billowing in wind, volumetric lighting shifts. [Quality]: Smooth 24fps cinematic temporal motion, realistic momentum physics, continuous seamless trajectory, no morphing, no distortion.`;
+  return `[Camera]: ${cameraTraj}. [Action]: ${subjectName} begins in sharp anticipation pose and executes ${cleanAction}, maintaining continuous kinetic momentum across the 16:9 frame in ${screenDir} trajectory. [Dynamics]: Atmospheric environmental particle flow, dynamic physics, volumetric lighting shifts. [Quality]: Smooth 24fps cinematic temporal motion, realistic momentum physics, continuous seamless trajectory, no morphing, no distortion.`;
 }
 
 // Generate story-adaptive fallback storyboard based on user's actual story text
@@ -191,25 +219,35 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
   const durPerShot = Number((targetDuration / targetCount).toFixed(1)) || 2.5;
   const topic = cleanStory.slice(0, 30);
 
-  const fallbackPatterns = [
-    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "环境建立", act: `${topic}：全景建立空间与视觉基调` },
-    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "人物出场", act: `主角步入雨夜场景，动作沉稳，带出环境细节` },
-    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "动机显现", act: `对立角色现身，气氛骤然紧张，双方视线锁定` },
-    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "起手对峙", act: `主角单手摆出起手架势，特写专注微表情` },
-    { size: "close_up", angle: "low_angle", mov: "push_in", func: "危机爆发", act: `对手瞬间突进，攻击破空而至` },
-    { size: "full_shot", angle: "eye_level", mov: "tracking_left", func: "核心交锋", act: `两人在暴雨中激烈交锋，拳风激荡带起水雾` },
-    { size: "medium_shot", angle: "dutch_angle", mov: "pan_right", func: "连环攻防", act: `倾斜机位快速摇移，沉桥封手化解攻势` },
-    { size: "extreme_close_up", angle: "eye_level", mov: "push_in", func: "局部受创", act: `关键部位受到重击，视觉冲击力拉满` },
-    { size: "medium_close_up", angle: "eye_level", mov: "arc_rotate", func: "子弹时间", act: `360度子弹时间慢动作，主角侧身避开致命攻击` },
-    { size: "full_shot", angle: "low_angle", mov: "tilt_up", func: "终极一击", act: `凌空飞踏重重轰中对手，将其击退` },
-    { size: "wide_shot", angle: "high_angle", mov: "pull_out", func: "局势落幕", act: `对手倒地化为数据消散，雨水逐渐平息` },
-    { size: "extreme_wide_shot", angle: "eye_level", mov: "crane", func: "余韵定格", act: `镜头缓缓升起拉远，主角独立于雨夜，定格收尾` },
+  const universal6Arcs = [
+    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "环境建立", act: `${topic}：全景建立空间地理与核心主体视觉基调` },
+    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "主体展开", act: `${topic}：主角在场景中展开标志性动态行动，展现生动细节` },
+    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "剧情推进", act: `${topic}：遭遇关键剧情事件或环境交互，视线与动势聚焦` },
+    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "情绪蓄势", act: `${topic}：特写主角专注神态与关键动作起势，展现生动表现力` },
+    { size: "close_up", angle: "low_angle", mov: "push_in", func: "核心高潮", act: `${topic}：核心行动高潮爆发，动态视觉奇观贯穿全幅画面` },
+    { size: "wide_shot", angle: "eye_level", mov: "pull_out", func: "余韵定格", act: `${topic}：行动达成，镜头缓缓拉开形成电影感余韵定格` },
   ];
 
+  const universal12Arcs = [
+    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "世界观建立", act: `${topic}：全景建立故事空间与世界观基调` },
+    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "主角亮相", act: `${topic}：主角正式亮相并展开标志性动作` },
+    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "探索互动", act: `${topic}：主角与场景环境展开生动交互` },
+    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "发现线索", act: `${topic}：遭遇关键剧情事件，视线锁定新目标` },
+    { size: "close_up", angle: "low_angle", mov: "push_in", func: "意图确立", act: `${topic}：特写专注神态，下定决心采取行动` },
+    { size: "full_shot", angle: "eye_level", mov: "tracking_left", func: "行动展开", act: `${topic}：全面启动核心行动，动势逐步加速` },
+    { size: "medium_shot", angle: "dutch_angle", mov: "pan_right", func: "动态挑战", act: `${topic}：面对动态挑战与场景转折，灵活应对` },
+    { size: "extreme_close_up", angle: "eye_level", mov: "push_in", func: "细节特写", act: `${topic}：微表情与局部关键特征极致细节特写` },
+    { size: "medium_close_up", angle: "eye_level", mov: "arc_rotate", func: "视觉焦点", act: `${topic}：环绕运镜展现核心高光时刻` },
+    { size: "full_shot", angle: "low_angle", mov: "tilt_up", func: "高潮爆发", act: `${topic}：核心高潮爆发，奇观画面拉满` },
+    { size: "wide_shot", angle: "high_angle", mov: "pull_out", func: "局势平息", act: `${topic}：关键目标达成，周围环境逐渐平息` },
+    { size: "extreme_wide_shot", angle: "eye_level", mov: "crane", func: "余韵定格", act: `${topic}：镜头升起拉远，形成电影感余韵定格` },
+  ];
+
+  const baseArcs = targetCount <= 6 ? universal6Arcs : universal12Arcs;
   const shots: ShotPlan[] = [];
 
   for (let i = 1; i <= targetCount; i++) {
-    const pattern = fallbackPatterns[(i - 1) % fallbackPatterns.length];
+    const pattern = baseArcs[(i - 1) % baseArcs.length];
     const sentenceAct = sentences[i - 1] ? `${sentences[i - 1]}` : pattern.act;
     const prevShot = i > 1 ? { order: i - 1, action: shots[i - 2].action } : undefined;
     const screenDirection = i % 2 === 0 ? "right_to_left" : "left_to_right";
@@ -238,8 +276,8 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
       action: sentenceAct,
       dialogue: "",
       narrative_function: pattern.func,
-      lighting: "高反差黑白石墨光影，侧逆光轮廓光",
-      audio: { sfx: "雨声、脚步声、重低音打击" },
+      lighting: "通透电影光影，主光源分明，侧逆光轮廓光清晰",
+      audio: { sfx: "环境音效、动作音效、配乐" },
       image_prompt: imgPrompt,
       video_prompt: vidPrompt,
       continuity_data: {
