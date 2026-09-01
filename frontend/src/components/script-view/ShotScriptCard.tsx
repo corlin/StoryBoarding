@@ -1,6 +1,6 @@
 import React from "react";
 import { ShotModel, ShotSize, CameraAngle } from "@/types/shot";
-import { Trash2, Camera, AlertTriangle, ExternalLink, SlidersHorizontal, Lock, Unlock } from "lucide-react";
+import { Trash2, Camera, AlertTriangle, MessageSquare, Volume2, Music, SlidersHorizontal, Lock, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ShotScriptCardProps {
@@ -46,6 +46,28 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
   const handleToggleLock = (e: React.MouseEvent) => {
     e.stopPropagation();
     onUpdate({ is_locked: !isLocked });
+  };
+
+  // Helper to extract audio sfx/music strings
+  const sfxText =
+    typeof shot.audio === "object"
+      ? Array.isArray(shot.audio?.sfx)
+        ? shot.audio.sfx.join("、")
+        : (shot.audio as any)?.sfx || ""
+      : typeof shot.audio === "string"
+      ? shot.audio
+      : "";
+
+  const musicText = typeof shot.audio === "object" ? shot.audio?.music || "" : "";
+
+  const handleAudioChange = (sfx: string, music: string) => {
+    onUpdate({
+      audio: {
+        ...(typeof shot.audio === "object" ? shot.audio : {}),
+        sfx: sfx ? sfx.split(/[、,，\s]+/).filter(Boolean) : [],
+        music: music || "",
+      },
+    });
   };
 
   return (
@@ -182,31 +204,63 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
       </div>
 
       {/* Action / Visual Narrative Field */}
-      <div className="mb-2" onClick={(e) => e.stopPropagation()}>
-        <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
-          画面动作与视听调度
+      <div className="mb-2.5" onClick={(e) => e.stopPropagation()}>
+        <label className="text-[11px] font-semibold text-foreground/90 flex items-center gap-1.5 mb-1">
+          <span>🎬 画面动作与视听调度</span>
         </label>
         <textarea
           rows={2}
           value={shot.action}
           onChange={(e) => onUpdate({ action: e.target.value })}
-          placeholder="描述角色动作、画面构图、运动轨迹..."
-          className="w-full bg-background border border-border/80 rounded-md p-2 text-xs md:text-sm text-foreground focus:outline-none focus:border-primary resize-none leading-relaxed"
+          placeholder="描述角色动作、画面构图、运动轨迹与空间调度..."
+          className="w-full bg-background border border-border/80 rounded-md p-2 text-xs md:text-sm text-foreground focus:outline-none focus:border-primary resize-none leading-relaxed font-medium"
         />
       </div>
 
-      {/* Dialogue / Audio Field */}
-      <div onClick={(e) => e.stopPropagation()}>
-        <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
-          对白 / 音效提示 (可选)
+      {/* Dialogue / Voiceover Field */}
+      <div className="mb-2.5" onClick={(e) => e.stopPropagation()}>
+        <label className="text-[11px] font-semibold text-sky-400/90 flex items-center gap-1 mb-1">
+          <MessageSquare className="w-3 h-3 text-sky-400" />
+          <span>角色对白 / 旁白台词 (Dialogue)</span>
         </label>
         <input
           type="text"
           value={shot.dialogue || ""}
           onChange={(e) => onUpdate({ dialogue: e.target.value })}
-          placeholder="角色台词 或 [音效: 雨声、雷鸣]"
-          className="w-full bg-background border border-border/80 rounded-md px-2 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary placeholder:text-muted-foreground/50"
+          placeholder="例如：孟姜女：“夫君，无论千山万水，我定要寻到你……”"
+          className="w-full bg-background border border-border/80 rounded-md px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-sky-400 placeholder:text-muted-foreground/50 font-medium"
         />
+      </div>
+
+      {/* Sound Design & Audio Field */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+        <div>
+          <label className="text-[11px] font-semibold text-emerald-400/90 flex items-center gap-1 mb-1">
+            <Volume2 className="w-3 h-3 text-emerald-400" />
+            <span>现场音效 (SFX)</span>
+          </label>
+          <input
+            type="text"
+            value={sfxText}
+            onChange={(e) => handleAudioChange(e.target.value, musicText)}
+            placeholder="如：呼啸北风声、城墙崩塌轰鸣"
+            className="w-full bg-background border border-border/80 rounded-md px-2.5 py-1 text-xs text-foreground focus:outline-none focus:border-emerald-400 placeholder:text-muted-foreground/40"
+          />
+        </div>
+
+        <div>
+          <label className="text-[11px] font-semibold text-purple-400/90 flex items-center gap-1 mb-1">
+            <Music className="w-3 h-3 text-purple-400" />
+            <span>配乐情绪 (Music)</span>
+          </label>
+          <input
+            type="text"
+            value={musicText}
+            onChange={(e) => handleAudioChange(sfxText, e.target.value)}
+            placeholder="如：凄清悲凉的古箫与大提琴"
+            className="w-full bg-background border border-border/80 rounded-md px-2.5 py-1 text-xs text-foreground focus:outline-none focus:border-purple-400 placeholder:text-muted-foreground/40"
+          />
+        </div>
       </div>
     </div>
   );

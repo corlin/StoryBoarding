@@ -100,7 +100,7 @@ export interface ExportOptions {
   includeHud?: boolean;
 }
 
-// Lightweight, instant, 1K-standard Previz draft sheet
+// Lightweight, instant, 1K-standard Previz draft sheet with complete Dialogue and Audio sound design
 export async function exportStoryboardSheetToPng(
   project: ProjectModel,
   shots: ShotModel[],
@@ -131,7 +131,7 @@ export async function exportStoryboardSheetToPng(
   // Compact, fast, lightweight Previz Draft Dimensions (<1K total width)
   const cellWidth = 380;
   const cellImgHeight = 214; // 16:9 widescreen ratio
-  const cellTextHeight = 86;
+  const cellTextHeight = 118; // Spacious to fit Action, Dialogue & Audio design
   const cellHeight = cellImgHeight + cellTextHeight;
 
   const padding = 28;
@@ -165,7 +165,7 @@ export async function exportStoryboardSheetToPng(
   ctx.font = "12px system-ui, -apple-system, sans-serif";
   const totalDur = shots.reduce((acc, s) => acc + (s.duration || 2.5), 0);
   ctx.fillText(
-    `Previz 草图  |  时长: ${project.target_duration || totalDur.toFixed(1)}s  |  共 ${count} 镜  |  16:9 故事板  |  ${new Date().toLocaleDateString()}`,
+    `Previz 故事板  |  时长: ${project.target_duration || totalDur.toFixed(1)}s  |  共 ${count} 镜  |  16:9 画幅  |  对白与声音设计版  |  ${new Date().toLocaleDateString()}`,
     padding,
     headerY + 48
   );
@@ -329,19 +329,45 @@ export async function exportStoryboardSheetToPng(
     ctx.fillText(durStr, cellX + 82, cellY + 22);
 
     // Text Box Area
-    const textY = cellY + cellImgHeight + 14;
+    const textStartX = cellX + 10;
+    const textMaxWidth = cellWidth - 20;
 
-    // Action Description (2 lines max)
+    // 1. Action Description (1 line)
+    const actionY = cellY + cellImgHeight + 14;
     ctx.fillStyle = "#f8fafc";
     ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
-    wrapText(ctx, shot.action || "镜头动作推进中...", cellX + 10, textY, cellWidth - 20, 16, 2);
+    wrapText(ctx, shot.action || "镜头动作推进中...", textStartX, actionY, textMaxWidth, 14, 1);
 
+    // 2. Dialogue / Voiceover (1 line)
+    const dialogueY = actionY + 16;
+    if (shot.dialogue) {
+      ctx.fillStyle = "#38bdf8";
+      ctx.font = "italic 10px system-ui, sans-serif";
+      wrapText(ctx, `💬 “${shot.dialogue}”`, textStartX, dialogueY, textMaxWidth, 14, 1);
+    } else {
+      ctx.fillStyle = "#64748b";
+      ctx.font = "10px system-ui, sans-serif";
+      ctx.fillText("💬 无台词 (纯视听环境音)", textStartX, dialogueY);
+    }
+
+    // 3. Audio & SFX Design (1 line)
+    const audioY = dialogueY + 16;
+    const sfx = typeof shot.audio === "object" ? (Array.isArray(shot.audio?.sfx) ? shot.audio.sfx.join("、") : (shot.audio as any)?.sfx) : "";
+    const music = typeof shot.audio === "object" ? shot.audio?.music : "";
+    const soundText = [sfx ? `🔊 ${sfx}` : "", music ? `🎵 ${music}` : ""].filter(Boolean).join("  |  ") || "🔊 环境自然音效";
+
+    ctx.fillStyle = "#34d399";
+    ctx.font = "10px system-ui, sans-serif";
+    wrapText(ctx, soundText, textStartX, audioY, textMaxWidth, 14, 1);
+
+    // 4. Camera & Lens info
+    const metaY = cellY + cellHeight - 10;
     ctx.fillStyle = "#64748b";
     ctx.font = "10px system-ui, monospace";
     ctx.fillText(
       `机位: ${movType} · ${shot.shot_size} / ${shot.camera_angle || "eye_level"}`,
-      cellX + 10,
-      cellY + cellHeight - 10
+      textStartX,
+      metaY
     );
   }
 
@@ -350,7 +376,7 @@ export async function exportStoryboardSheetToPng(
   ctx.fillStyle = "#475569";
   ctx.font = "11px system-ui, -apple-system, sans-serif";
   ctx.fillText(
-    "StoryBoarding AI · 导演视觉故事板工作草图 (Previz Draft Sheet)",
+    "StoryBoarding AI · 好莱坞故事板工作草图 (Previz Storyboard Sheet with Dialogue & Audio Design)",
     padding,
     footerY
   );

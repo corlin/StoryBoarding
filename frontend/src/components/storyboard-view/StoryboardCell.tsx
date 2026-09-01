@@ -410,7 +410,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
         )}
       </div>
 
-      {/* Card Body: Action and Script Description */}
+      {/* Card Body: Action, Dialogue, Audio and Script Description */}
       <div className="p-3 flex flex-col justify-between flex-1 gap-2 bg-card/40">
         <div>
           <p className="text-xs text-foreground/90 font-medium line-clamp-2 leading-relaxed" title={shot.action}>
@@ -418,10 +418,30 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           </p>
 
           {shot.dialogue && (
-            <p className="text-[11px] text-primary/90 italic mt-1 line-clamp-1 border-l-2 border-primary/40 pl-1.5">
-              “{shot.dialogue}”
+            <p className="text-[11px] text-sky-300 font-medium italic mt-1.5 line-clamp-1 border-l-2 border-sky-400/60 pl-1.5 bg-sky-500/5 py-0.5 rounded-r" title={shot.dialogue}>
+              💬 “{shot.dialogue}”
             </p>
           )}
+
+          {(() => {
+            const sfx = typeof shot.audio === "object" ? (Array.isArray(shot.audio?.sfx) ? shot.audio.sfx.join("、") : (shot.audio as any)?.sfx) : "";
+            const music = typeof shot.audio === "object" ? shot.audio?.music : "";
+            if (!sfx && !music) return null;
+            return (
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1.5 overflow-hidden">
+                {sfx && (
+                  <span className="inline-flex items-center gap-0.5 text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20 truncate max-w-[140px]" title={`音效: ${sfx}`}>
+                    🔊 {sfx}
+                  </span>
+                )}
+                {music && (
+                  <span className="inline-flex items-center gap-0.5 text-purple-400 bg-purple-500/10 px-1.5 py-0.2 rounded border border-purple-500/20 truncate max-w-[120px]" title={`配乐: ${music}`}>
+                    🎵 {music}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Footer Info: Camera Movement, Video Motion Indicator & Detail Trigger */}

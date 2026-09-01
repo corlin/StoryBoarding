@@ -59,28 +59,32 @@ export function getDirectorSystemPrompt(targetDuration: number = 30.0): string {
   }
 
   return `你是一位好莱坞顶级视觉导演与 AI 视频生成大师 (Hollywood Visual Director & AI Video Master)。
-你的终极任务是将用户的剧本或意向文本转化为可直接交付给 AI 视频大模型（Runway Gen-3 / 可灵 Kling 1.5 / Minimax 海螺 / Sora）进行批量生产的工业级电影分镜与黄金关键帧。
+你的终极任务是将用户的剧本或意向文本转化为工业级电影分镜脚本（包含画面动作、生动台词对白、音效与配乐设计、纯净生图提示词与视频运镜词）。
 
 ${pacingGuidance}
 
-【核心视觉导演四大铁律 (CRITICAL DIRECTING PRINCIPLES)】:
-1. 【题材与主体忠实性法则 (Genre & Subject Fidelity)】:
-   - 严禁擅自篡改题材！如果用户输入的是自然风光/历史岁月（如“长城脚下日升日落寒来暑往”），核心必须是长城、山峦、四季流转与宏伟光影，**绝对严禁擅自加入任何魔幻翅膀、哥特古堡或魔法光环**！
+【核心视觉导演五大铁律 (CRITICAL DIRECTING PRINCIPLES)】:
+1. 【对白与声音设计必须饱满完整 (MANDATORY Dialogue & Sound Design)】:
+   - 每个镜头必须包含对应的【角色台词或画外音旁白 (dialogue)】，严禁留空！（例如：“孟姜女：'夫君，无论千山万水，我定要找到你……'” 或 “旁白：'寒冬腊月，长城脚下白骨覆雪……'”）；
+   - 每个镜头必须包含具象的【音效 (sfx) 与配乐 (music)】（例如：sfx 为 "凛冽暴风雪呼啸、沉重踩雪脚步声"，music 为 "凄楚悲凉的古筝与低沉大提琴"）。
+
+2. 【题材与主体忠实性法则 (Genre & Subject Fidelity)】:
+   - 严禁擅自篡改题材！如果用户输入的是自然风光/历史岁月（如“长城”、“孟姜女哭长城”），核心必须是真实历史风貌与人物情感，**绝对严禁擅自加入任何魔幻翅膀、哥特古堡或魔法光环**！
    - 如果用户输入的是动作武侠/科幻，则遵循真实动作设计或赛博科幻硬核美学；
    - 如果用户输入的是萌宠/动物，则主体严格锁定该生物，严禁生成无关人类。
 
-2. 【专业视听语言与景别递进 (Cinematic Staging & Dynamic Progression)】:
+3. 【专业视听语言与景别递进 (Cinematic Staging & Dynamic Progression)】:
    - 景别（Shot Size）必须丰富交替（EWS 建立空间 -> WS 环境交互 -> MS 主体动作 -> MCU/CU 细节与情感 -> EWS 余韵定格）；
    - 运镜（Camera Movement）必须具有明确的电影动势（Crane 升降、Tracking 跟随、Push-in 推进、Pull-out 拉远）；
    - 严守 180° 运动轴线与镜头剪辑连贯性。
 
-3. 【纯净自然生图画卷描述 (Pure Diegetic Natural Prompting)】:
+4. 【纯净自然生图画卷描述 (Pure Diegetic Natural Prompting)】:
    - 严禁输出 "Visual Anchor:", "Anticipation Pose:", "Action:", "Shot #", "Subject:" 等任何机械标签！
    - 必须写出主谓宾连贯、具有电影级光影层次、材质细节与空间纵深的纯英文描述句。
    - 结尾统一附加强负向约束：
      "no poster frame, no decorative golden borders, no ornate card borders, no trading card frame, no franchise logo, no text watermark, full bleed widescreen film still, edge-to-edge diegetic scene, 16:9 widescreen"
 
-4. 【输出格式规范】：
+5. 【输出格式规范】：
 请在 JSON 顶层输出：
 1. "theme": 故事核心主题短语 (中英文)
 2. "global_visual_anchor": 全片核心视觉基石 (纯英文描述, 包含主角/主体外观、场景美学与艺术风格)
@@ -92,12 +96,12 @@ ${pacingGuidance}
 - shot_size: 景别 ('extreme_wide_shot' | 'wide_shot' | 'full_shot' | 'medium_shot' | 'medium_close_up' | 'close_up' | 'extreme_close_up')
 - camera_angle: 角度 ('eye_level' | 'low_angle' | 'high_angle' | 'dutch_angle' | 'birds_eye' | 'worms_eye')
 - camera_movement: 运镜 ({ "type": "push_in" | "tracking_right" | "arc_rotate" | "crane" | "tilt_up", "speed": "fast" | "medium" | "slow" })
-- subject: 镜头主体描述 (如 "万里长城与烽火台" 或 "主角人物")
+- subject: 镜头主体描述 (如 "孟姜女" 或 "古老长城与烽火台")
 - action: 具象生动的动作/画面台本描述 (中文，严禁空洞套话)
-- dialogue: 角色对白 (可选)
-- narrative_function: 视听叙事功能 (如 "空间建立 / 春夏生机 / 晚霞暮光 / 深秋红叶 / 寒冬积雪 / 余韵定格")
-- lighting: 光影基调 (如 "通透晨曦金光，丁达尔漫射光与山脉云海景深")
-- audio: 音效 (sfx) 与音乐 (music)
+- dialogue: 角色台词或画外音旁白 (中文，必填，富有戏剧张力)
+- narrative_function: 视听叙事功能 (如 "空间建立 / 悲痛哭诉 / 狂风怒吼 / 城墙坍塌 / 余韵定格")
+- lighting: 光影基调 (如 "阴郁寒冬冷灰天光，侧逆光勾勒人物消瘦凄凉轮廓")
+- audio: { "sfx": "呼啸寒风声、沉重脚步踩雪声", "music": "凄楚幽咽的古琴与悲壮交响" }
 - image_prompt: 纯净英文自然生图描述句 (Pure Visual Description in English, no labels)
 - video_prompt: 4段式 AI 视频提示词 ([Camera], [Action], [Dynamics], [Quality])
 - continuity_data: 镜头间剪辑流数据 ({ "screen_direction": "left_to_right" | "right_to_left", "motion_in": "入画动势", "motion_out": "出画动势", "transition_recommendation": "Match cut on action" | "Cross dissolve" | "Hard cut" })
@@ -132,6 +136,8 @@ export function normalizeAndPreprocessStory(text: string): string {
       cleaned = `灵巧可爱的${cleaned}在优美的天地间开启生动有趣的奇妙探索。`;
     } else if (/武侠|江湖|剑客|功夫/i.test(cleaned)) {
       cleaned = `烟雨江湖古典意境中，${cleaned}施展凌厉身法展开巅峰对决。`;
+    } else if (/孟姜女/i.test(cleaned)) {
+      cleaned = `孟姜女千里寻夫至长城脚下，闻夫已死，悲恸哭倒长城八百里的历史悲壮传奇。`;
     }
   }
 
@@ -164,10 +170,10 @@ export function parseSemanticScene(text: string): ExtractedSemanticScene {
   let isLandscape = false;
   let isNonHuman = false;
 
-  if (/长城|山脉|风景|风光|四季|春夏秋冬|日升日落|寒来暑往|雪景|大漠|黄河|自然|星空|草原|江河|故宫|山川/i.test(raw)) {
+  if (/长城脚下日升日落|四季|春夏秋冬|日升日落|寒来暑往|雪景|大漠|黄河|自然风光|星空|草原|江河|山川/i.test(raw) && !/孟姜女|人|战|英雄|故事/i.test(raw)) {
     genre = "landscape";
     isLandscape = true;
-  } else if (/武侠|古风|国风|水墨|江湖|唐宋|汉服|剑客|功夫|茶馆/i.test(raw)) {
+  } else if (/孟姜女|武侠|古风|国风|水墨|江湖|唐宋|汉服|历史|典故|剑客|功夫|茶馆/i.test(raw)) {
     genre = "classical";
   } else if (/赛博朋克|科幻|未来|机械|黑客|AI|机甲|霓虹|太空/i.test(raw)) {
     genre = "scifi";
@@ -209,19 +215,17 @@ export function parseSemanticScene(text: string): ExtractedSemanticScene {
   let styleKeywordsEn = "";
 
   if (isLandscape) {
-    if (/长城/i.test(raw)) {
-      heroZh = "雄伟万里长城与连绵烽火台";
-      heroEn = "the majestic Great Wall of China with ancient stone battlements and fortified watchtowers";
-      environmentZh = "蜿蜒崇山峻岭与四季变幻的雄浑天地";
-      environmentEn = "colossal winding mountain ridges, misty valley depths, dynamic seasonal skies from sunrise dawn to sunset and starry night";
-      styleKeywordsEn = "National Geographic masterwork landscape cinematography, 35mm film still, photorealistic ancient stone brick textures, epic documentary scale, natural volumetric atmospheric sunlight, zero humans, pure timeless heritage";
-    } else {
-      heroZh = heroPart;
-      heroEn = `majestic natural landscape feature of ${heroPart}`;
-      environmentZh = envPart || "雄伟壮丽的大自然山川";
-      environmentEn = "grand natural panoramic vista with dramatic weather and atmospheric depth";
-      styleKeywordsEn = "Epic landscape cinematography, 35mm film still, natural volumetric lighting, photorealistic terrain textures, zero humans";
-    }
+    heroZh = "雄伟万里长城与连绵烽火台";
+    heroEn = "the majestic Great Wall of China with ancient stone battlements and fortified watchtowers";
+    environmentZh = "蜿蜒崇山峻岭与四季变幻的雄浑天地";
+    environmentEn = "colossal winding mountain ridges, misty valley depths, dynamic seasonal skies from sunrise dawn to sunset and starry night";
+    styleKeywordsEn = "National Geographic masterwork landscape cinematography, 35mm film still, photorealistic ancient stone brick textures, epic documentary scale, natural volumetric atmospheric sunlight, zero humans, pure timeless heritage";
+  } else if (/孟姜女/i.test(raw)) {
+    heroZh = "孟姜女";
+    heroEn = "Meng Jiangnu, a devoted ancient Chinese woman in weathered traditional linen robes";
+    environmentZh = "风雪苍茫的万里长城古关隘";
+    environmentEn = "ancient snow-swept Great Wall stone fortress, desolate barren mountains, swirling snow blizzard in background";
+    styleKeywordsEn = "Cinematic historical drama film still, realistic 35mm film grain, emotional dramatic natural lighting, authentic ancient Chinese attire and stone fortress textures";
   } else if (genre === "creature") {
     if (/老鼠|鼠/i.test(heroPart)) {
       heroZh = "特立独行飞行的老鼠";
@@ -245,7 +249,7 @@ export function parseSemanticScene(text: string): ExtractedSemanticScene {
   } else if (genre === "classical") {
     heroZh = heroPart || "东方武者与历史人物";
     heroEn = `a classical Chinese protagonist in authentic historical attire (${heroPart})`;
-    environmentZh = envPart || "中国古典青石庭院与远山水墨";
+    environmentZh = envPart || "中国古典青石关隘与远山水墨";
     environmentEn = "traditional classical Chinese architecture, ancient stone tiles, misty mountain silhouettes, poetic oriental atmosphere";
     styleKeywordsEn = "Traditional Chinese classical cinema aesthetic, elegant oriental lighting, painterly atmosphere, authentic period textures";
   } else if (genre === "scifi") {
@@ -301,7 +305,6 @@ export function cleanPromptOfMetaPollution(prompt: string): string {
 // Synthesize pure, cinematic, natural English action descriptions from Chinese text
 export function synthesizeEnglishVisualAction(chineseAction: string, genre: string): string {
   if (!chineseAction) return "unfolds in dramatic cinematic composition";
-  // If already pure English
   if (/^[a-zA-Z0-9\s,.'":;-]+$/.test(chineseAction) && chineseAction.length > 10) {
     return chineseAction.trim();
   }
@@ -325,9 +328,9 @@ export function synthesizeEnglishVisualAction(chineseAction: string, genre: stri
   else if (/深秋|金秋|红叶|落叶|霜降/.test(act)) {
     fragments.push("breathtaking autumn red and golden foliage fluttering across ancient stone pathways and mountain ridge");
   }
-  // Winter / Snow
-  else if (/寒冬|大雪|积雪|飞雪|冰封|霜雪/.test(act)) {
-    fragments.push("pristine winter blizzard snow blanketing cold ancient stone battlements under crisp overcast sky");
+  // Winter / Snow / Crying Meng Jiangnu
+  else if (/寒冬|大雪|积雪|飞雪|冰封|霜雪|哭倒|悲恸|寻夫/.test(act)) {
+    fragments.push("emotional dramatic scene in winter blizzard with snow falling over cold stone fortress walls");
   }
   // Starry sky / Galaxy
   else if (/星轨|银河|斗转星移|星辰|夜空/.test(act)) {
@@ -342,12 +345,12 @@ export function synthesizeEnglishVisualAction(chineseAction: string, genre: stri
     fragments.push("accelerating forward in high-speed dynamic dash with kinetic motion blur on periphery");
   }
   // Close-up / Expression
-  else if (/特写|神态|眼神|蓄势|微表情|凝重/.test(act)) {
-    fragments.push("intimate close-up capturing intense determined gaze and refined facial lighting");
+  else if (/特写|神态|眼神|蓄势|微表情|凝重|泪光/.test(act)) {
+    fragments.push("intimate close-up capturing intense emotional tearful expression and dramatic lighting");
   }
   // Stepping in
-  else if (/步入|亮相|登场|伫立|入画/.test(act)) {
-    fragments.push("commanding presence as subject steps into frame with cinematic depth");
+  else if (/步入|亮相|登场|伫立|入画|前行/.test(act)) {
+    fragments.push("commanding presence walking forward along mountain path with cinematic depth");
   }
   // Resolution / Final
   else if (/定格|余韵|平息|从容|远去/.test(act)) {
@@ -434,7 +437,7 @@ export function formatDirectorImagePrompt(
     contextualAnti = "The creature is the solitary protagonist. Strictly NO human beings, NO people, NO actors in frame,";
   }
 
-  const negativeClause = `no poster frame, no decorative golden borders, no ornate card borders, no trading card frame, no franchise logo, no text watermark, no typography, ${contextualAnti} full bleed widescreen film still, edge-to-edge diegetic scene, 16:9 widescreen`;
+  const negativeClause = `no poster frame, no decorative golden borders, no ornate card borders, no trading card frame, no franchise logo, no text watermark, no speech bubbles, no comic dialogue bubble, no text balloon, no subtitle bar, no english subtitles, no captions, no typography, no letters, no words, ${contextualAnti} full bleed widescreen film still, edge-to-edge diegetic scene, 16:9 widescreen`;
 
   return cleanPromptOfMetaPollution(`${promptCore} ${negativeClause}`);
 }
@@ -472,7 +475,7 @@ export function formatDirectorVideoPrompt(
   return `[Camera]: ${cameraTraj}. [Action]: ${subjectName} presents ${cleanAction}, maintaining continuous visual momentum across the 16:9 frame in ${screenDir} trajectory. [Dynamics]: Natural atmospheric environmental flow, dynamic weather physics, volumetric lighting shifts. [Quality]: Smooth 24fps cinematic temporal motion, realistic momentum physics, continuous seamless trajectory, no morphing, no distortion.`;
 }
 
-// Generate story-adaptive storyboard with genre-aware cinematic beats
+// Generate story-adaptive storyboard with genre-aware cinematic beats, vivid dialogues & full audio design
 export function generateAdaptiveStoryShots(storyText: string, targetDuration: number = 30.0): ShotPlan[] {
   const cleanStory = normalizeAndPreprocessStory(storyText);
   const scene = parseSemanticScene(cleanStory);
@@ -485,206 +488,410 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
 
   const durPerShot = Number((targetDuration / targetCount).toFixed(1)) || 2.5;
 
-  let baseArcs: Array<{ size: string; angle: string; mov: string; func: string; act: string; lighting?: string }> = [];
+  let baseArcs: Array<{
+    size: string;
+    angle: string;
+    mov: string;
+    func: string;
+    act: string;
+    dialogue: string;
+    sfx: string;
+    music: string;
+    lighting?: string;
+  }> = [];
 
-  // Branch 1: Landscape / Heritage / Four Seasons Time-Lapse (e.g. 《长城脚下日升日落寒来暑往》)
-  if (scene.isLandscape) {
+  // Special Branch: Meng Jiangnu / Classical Historical Tragedy
+  if (/孟姜女/i.test(cleanStory)) {
+    baseArcs = [
+      {
+        size: "extreme_wide_shot",
+        angle: "high_angle",
+        mov: "crane",
+        func: "空间建立",
+        act: `孟姜女身着粗布破衣，伫立在蜿蜒崎岖的寒风山路上，遥望着远方巍峨冷峻的万里古城墙。`,
+        dialogue: `旁白：“秋风萧瑟，万里迢迢，孟姜女携寒衣千里寻夫至关隘。”`,
+        sfx: "呼啸北风声、枯枝折断声、衣袂猎猎作响",
+        music: "凄清低回的古箫与悲壮大提琴",
+        lighting: "阴郁苍凉的灰暗天光，远山烟岚薄雾弥漫",
+      },
+      {
+        size: "wide_shot",
+        angle: "low_angle",
+        mov: "tracking_right",
+        func: "艰难跋涉",
+        act: `孟姜女背着破旧包裹，沿崎岖乱石山路坚定前行，脚下草鞋磨破，身形瘦弱却步履坚韧。`,
+        dialogue: `孟姜女：“夫君……无论千山万水，我定要寻到你。”`,
+        sfx: "沉重的踩石脚步声、微弱喘息声、远方筑城劳役的号子声",
+        music: "节奏沉重缓慢的古琴与低沉打击乐",
+        lighting: "冷色调漫射日光，乱石山脊质感嶙峋",
+      },
+      {
+        size: "medium_shot",
+        angle: "eye_level",
+        mov: "push_in",
+        func: "惊闻噩耗",
+        act: `孟姜女停下脚步，向修城劳役打听夫君下落，得知万杞梁已劳累身亡筑入城墙，手中寒衣跌落尘土。`,
+        dialogue: `老劳役：“姑娘莫找了……万杞梁他早已累死，尸骨就埋在这城墙下了……”`,
+        sfx: "寒衣落地轻响、心跳重击声、瞬间耳鸣失真",
+        music: "琵琶悲音骤断，转入极度压抑的悬疑低音弦乐",
+        lighting: "斜阳如血，将二人影子拉得极长极深",
+      },
+      {
+        size: "close_up",
+        angle: "eye_level",
+        mov: "push_in",
+        func: "悲恸欲绝",
+        act: `特写孟姜女双眼泛起泪光，眼神从难以置信转为撕心裂肺的绝望，泪水决堤滑落脸颊。`,
+        dialogue: `孟姜女：“杞梁……天呐！还我夫君来啊——！”`,
+        sfx: "悲恸哭泣声、雷声隐隐自天际滚滚而来",
+        music: "高亢凄厉的二胡独奏，如泣如诉，直刺人心",
+        lighting: "乌云压顶，暗调光影打在泪流满面的面部轮廓上",
+      },
+      {
+        size: "full_shot",
+        angle: "low_angle",
+        mov: "tilt_up",
+        func: "哭倒长城",
+        act: `孟姜女扑倒在巍峨城墙脚下痛哭失声，天昏地暗，狂风大作，坚固的古城墙轰然崩塌八百里。`,
+        dialogue: `旁白：“天地同悲，风云变色，一哭城崩八百里，白骨累累现荒野。”`,
+        sfx: "狂暴雷霆霹雳声、古城巨石崩塌轰鸣巨响、漫天尘土呼啸",
+        music: "全乐团悲壮交响齐鸣，情绪爆发至最高峰",
+        lighting: "雷电划破苍穹的闪烁高反差白光，尘土飞扬",
+      },
+      {
+        size: "extreme_wide_shot",
+        angle: "high_angle",
+        mov: "pull_out",
+        func: "千古余韵",
+        act: `风暴渐息，夕阳残血映照着崩塌的长城废墟与跪伏的身影，镜头缓缓升起拉远，定格千古绝唱。`,
+        dialogue: `旁白：“千古长城今犹在，何处再寻孟姜女。”`,
+        sfx: "凄清晚风吹过荒野废墟声、远方归鸦哀鸣",
+        music: "悠远空灵的洞箫独奏，余音袅袅",
+        lighting: "苍凉壮阔的残阳晚霞，天地一片血红与金黄",
+      },
+    ];
+  }
+  // Branch 1: Pure Landscape / Four Seasons Time-Lapse (e.g. 《长城脚下日升日落寒来暑往》)
+  else if (scene.isLandscape) {
     if (targetCount <= 3) {
-      baseArcs = [
-        {
-          size: "extreme_wide_shot",
-          angle: "high_angle",
-          mov: "crane",
-          func: "晨曦破晓与宏大建立",
-          act: `晨曦破晓 · 金色朝阳穿透连绵云海，照亮群山间蜿蜒万里的${hero}，建立宏大壮丽的空间格局`,
-          lighting: "清晨第一缕金色阳光穿透薄雾，侧逆光勾勒山脊与古老石砖轮廓",
-        },
-        {
-          size: "wide_shot",
-          angle: "eye_level",
-          mov: "tracking_right",
-          func: "四季光影与岁月流转",
-          act: `岁月流转 · 春夏郁郁葱葱与深秋漫山红叶在时光延时中交替，${hero}在苍茫天地间傲然屹立`,
-          lighting: "温暖通透的自然日光，四季斑斓的大地色彩与层次分明的大气透视",
-        },
-        {
-          size: "medium_close_up",
-          angle: "low_angle",
-          mov: "pull_out",
-          func: "星轨流转与千古余韵",
-          act: `千古定格 · 寒冬瑞雪与夜幕星轨在${hero}上空缓缓流转，镜头缓缓拉升，形成永恒史诗感的电影定格`,
-          lighting: "冷峻幽蓝的夜空与璀璨星河银光，静谧沉稳的电影质感",
-        },
-      ];
-    } else if (targetCount <= 6) {
       baseArcs = [
         {
           size: "extreme_wide_shot",
           angle: "high_angle",
           mov: "crane",
           func: "晨曦破晓",
-          act: `晨曦日出 · 破晓时分，金色朝阳穿透连绵云海，照亮群山间巍峨蜿蜒的${hero}全貌`,
-          lighting: "清晨第一缕金色阳光穿透山岚薄雾，漫射光柔和照亮山巅",
+          act: `晨曦破晓 · 金色朝阳穿透连绵云海，照亮群山间蜿蜒万里的${hero}，建立宏大壮丽的空间格局。`,
+          dialogue: `旁白：“万里长城，千载沧桑，破晓金光普照山河。”`,
+          sfx: "清晨山风呼啸、晨鸟清脆啼鸣",
+          music: "宏大悠扬的古风交响乐起势",
+          lighting: "清晨第一缕金色阳光穿透薄雾，侧逆光勾勒山脊与古老石砖轮廓",
+        },
+        {
+          size: "wide_shot",
+          angle: "eye_level",
+          mov: "tracking_right",
+          func: "四季流转",
+          act: `岁月流转 · 春夏郁郁葱葱与深秋漫山红叶在时光延时中交替，${hero}在苍茫天地间傲然屹立。`,
+          dialogue: `旁白：“寒来暑往，春华秋实，古老烽燧见证岁月流转。”`,
+          sfx: "林间风吹树叶沙沙声、落叶飘零声",
+          music: "温暖抒情的笛声与弦乐交织",
+          lighting: "温暖通透的自然日光，四季斑斓的大地色彩",
+        },
+        {
+          size: "medium_close_up",
+          angle: "low_angle",
+          mov: "pull_out",
+          func: "千古定格",
+          act: `千古定格 · 寒冬瑞雪与夜幕星轨在${hero}上空缓缓流转，镜头缓缓拉升，形成永恒史诗感的电影定格。`,
+          dialogue: `旁白：“斗转星移，江山依旧，巍峨长城屹立千秋。”`,
+          sfx: "夜空静谧微风声、悠远回音",
+          music: "空灵深邃的史诗终章余韵",
+          lighting: "冷峻幽蓝的夜空与璀璨星河银光",
+        },
+      ];
+    } else {
+      baseArcs = [
+        {
+          size: "extreme_wide_shot",
+          angle: "high_angle",
+          mov: "crane",
+          func: "晨曦破晓",
+          act: `晨曦日出 · 破晓时分，金色朝阳穿透连绵云海，照亮群山间巍峨蜿蜒的${hero}全貌。`,
+          dialogue: `旁白：“破晓时分，第一缕晨曦破云而出，洒在苍茫大地之上。”`,
+          sfx: "清晨山风声、群鸟飞掠长空清鸣",
+          music: "悠远清亮的古琴与弦乐缓缓铺陈",
+          lighting: "清晨金色朝阳，漫射光柔和照亮山巅",
         },
         {
           size: "wide_shot",
           angle: "eye_level",
           mov: "tracking_right",
           func: "春夏生机",
-          act: `春夏时节 · 阳光明媚洒在葱郁苍翠的群山山峦，古老烽火台在蓝天白云下威严屹立`,
-          lighting: "明亮清澈的正午自然光，山间草木葱绿，生机盎然",
+          act: `春夏时节 · 阳光明媚洒在葱郁苍翠的群山山峦，古老烽火台在蓝天白云下威严屹立。`,
+          dialogue: `旁白：“春夏交替，绿树漫山，古老的关隘焕发蓬勃生机。”`,
+          sfx: "微风吹拂树梢沙沙声、山间流水声",
+          music: "明朗温婉的笛声与轻快弦乐",
+          lighting: "明亮清澈的正午自然光，生机盎然",
         },
         {
           size: "medium_shot",
           angle: "low_angle",
           mov: "push_in",
           func: "晚霞暮色",
-          act: `晚霞余晖 · 傍晚时分，绚烂金红色的夕阳余晖洒在沧桑斑驳的青砖石垛口上，光影拉长`,
-          lighting: "浓郁温暖的黄金时刻（Golden Hour）逆光，暖橙色斜阳与深长阴影交错",
+          act: `晚霞余晖 · 傍晚时分，绚烂金红色的夕阳余晖洒在沧桑斑驳的青砖石垛口上，光影拉长。`,
+          dialogue: `旁白：“夕阳如血，残阳晚照，斑驳城砖印刻着无声的历史。”`,
+          sfx: "归鸦啼鸣、暮风沉重掠过垛口",
+          music: "沧桑厚重的大提琴与古埙乐",
+          lighting: "黄金时刻（Golden Hour）暖橙色斜阳逆光",
         },
         {
           size: "medium_close_up",
           angle: "eye_level",
           mov: "static",
           func: "深秋霜降",
-          act: `深秋红叶 · 石阶两侧漫山红叶如火，秋风卷起金黄落叶掠过古老石阶与箭楼垛口`,
-          lighting: "秋日通透的斜射光，红叶与黄叶色彩饱和明艳，空气通透清爽",
+          act: `深秋红叶 · 石阶两侧漫山红叶如火，秋风卷起金黄落叶掠过古老石阶与箭楼垛口。`,
+          dialogue: `旁白：“霜降秋深，层林尽染，落叶随风飘向天际。”`,
+          sfx: "秋风扫落叶声、萧瑟风鸣",
+          music: "凄清深情的琵琶与抒情弦乐",
+          lighting: "秋日通透斜射光，红叶饱和明艳",
         },
         {
           size: "close_up",
           angle: "low_angle",
           mov: "push_in",
           func: "寒冬大雪",
-          act: `寒冬积雪 · 寒冬腊月，漫天鹅毛大雪覆盖冰封的烽火台垛口与苍茫山脊，冷峻庄严`,
-          lighting: "清冷苍茫的雪天漫射天光，白雪与深灰色古砖形成鲜明高反差",
+          act: `寒冬积雪 · 寒冬腊月，漫天鹅毛大雪覆盖冰封的烽火台垛口与苍茫山脊，冷峻庄严。`,
+          dialogue: `旁白：“隆冬飞雪，千里冰封，天地苍茫唯此长城屹立。”`,
+          sfx: "暴风雪呼啸声、冰雪碎落声",
+          music: "肃穆冰冷的低音管弦乐",
+          lighting: "清冷雪天漫射天光，高反差白雪与古砖",
         },
         {
           size: "extreme_wide_shot",
           angle: "high_angle",
           mov: "pull_out",
           func: "星轨余韵",
-          act: `斗转星移 · 璀璨银河与绚烂星轨在古老${hero}上空缓缓流转，镜头升起拉远，定格岁月沧桑`,
-          lighting: "静谧深邃的浩瀚星空与银河微光，电影级大片余韵",
+          act: `斗转星移 · 璀璨银河与绚烂星轨在古老${hero}上空缓缓流转，镜头升起拉远，定格岁月沧桑。`,
+          dialogue: `旁白：“斗转星移，山河永固，历史的长卷在此永恒定格。”`,
+          sfx: "夜空静谧微风声、浩渺空灵回音",
+          music: "壮丽恢弘的史诗终章交响乐",
+          lighting: "浩瀚星空与银河微光",
         },
-      ];
-    } else {
-      baseArcs = [
-        { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "春之破晓", act: `早春破晓 · 初升朝阳穿透春雾，${hero}在初融积雪与嫩绿山岭间苏醒` },
-        { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "山花烂漫", act: `山花绽放 · 烂漫山花在${hero}石墙两侧迎风盛开，蜂蝶飞舞，春意盎然` },
-        { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "盛夏雷雨", act: `盛夏风云 · 乌云翻滚与壮丽雷暴掠过山脉，暴雨洗刷古老砖石，雄浑壮烈` },
-        { size: "full_shot", angle: "eye_level", mov: "pan_right", func: "雨过天晴", act: `雨后初霁 · 阳光冲破云层，一道绚丽彩虹横跨在苍翠山峦与${hero}之上` },
-        { size: "medium_close_up", angle: "eye_level", mov: "static", func: "初秋晨霜", act: `初秋清晨 · 晶莹晨露凝聚在古老城砖缝隙的草叶上，微风拂动` },
-        { size: "wide_shot", angle: "high_angle", mov: "tracking_left", func: "万山红遍", act: `金秋盛景 · 漫山红叶与金黄落叶铺满山谷，群山层林尽染，气势磅礴` },
-        { size: "medium_shot", angle: "dutch_angle", mov: "tilt_up", func: "秋风肃杀", act: `晚秋夕照 · 苍茫晚霞映照烽火台古老箭孔，古老砖石承载岁月斑驳` },
-        { size: "close_up", angle: "low_angle", mov: "push_in", func: "初雪降临", act: `初冬飞雪 · 第一场雪花静静飘落在坚固的城垛上，冷峻肃穆` },
-        { size: "medium_close_up", angle: "eye_level", mov: "static", func: "冰封雪裹", act: `深冬严寒 · 冰棱倒挂在烽火台挑檐，白雪皑皑覆盖整片山脉脊线` },
-        { size: "full_shot", angle: "low_angle", mov: "tilt_up", func: "雪霁天晴", act: `雪后晴空 · 极度通透的蔚蓝天空下，银装素裹的长城如巨龙蜿蜒` },
-        { size: "wide_shot", angle: "high_angle", mov: "arc_rotate", func: "暮色沉降", act: `日暮黄昏 · 最后一抹夕阳将雪白山脊染成金红色，天地苍茫` },
-        { size: "extreme_wide_shot", angle: "high_angle", mov: "pull_out", func: "千古星辰", act: `星移斗转 · 璀璨银河星海在古老长城上空缓缓旋转流逝，余韵悠长定格` },
       ];
     }
   }
-  // Branch 2: Character / Action / Martial Arts / Sci-Fi
+  // Branch 2: Character / Action / Classical / Sci-Fi
   else if (scene.genre === "action" || scene.genre === "classical" || scene.genre === "scifi") {
-    if (targetCount <= 3) {
-      baseArcs = [
-        { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "世界观建立", act: `空间建立 · ${hero}置身于${env}中，气场冷峻内敛，建立宏大对决格局` },
-        { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "核心交锋", act: `核心交锋 · ${hero}迅猛发力展开凌厉身法，招式破风而出，光影激烈变幻` },
-        { size: "medium_close_up", angle: "eye_level", mov: "pull_out", func: "胜负定格", act: `胜负定格 · 激战平息，特写${hero}沉稳自信的眼神，镜头缓缓拉开定格` },
-      ];
-    } else if (targetCount <= 6) {
-      baseArcs = [
-        { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "世界观建立", act: `环境建立 · ${hero}伫立在${env}的开阔视野中，气氛凝重蓄势待发` },
-        { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "步入战场", act: `步入对局 · ${hero}稳步向前移动，周身环境与光影随脚步动态流转` },
-        { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "冲突起势", act: `动势交锋 · 冲突骤然爆发，${hero}侧身避让并展开迅疾反制，身法凌厉` },
-        { size: "medium_close_up", angle: "eye_level", mov: "static", func: "眼神蓄力", act: `专注蓄势 · 特写${hero}坚毅沉着的眼神与肌肉微表情，逆光勾勒轮廓` },
-        { size: "close_up", angle: "low_angle", mov: "push_in", func: "核心高潮", act: `终极爆发 · ${hero}全力出击施展核心绝技，视觉冲击力与动作张力拉满` },
-        { size: "wide_shot", angle: "eye_level", mov: "pull_out", func: "余韵定格", act: `尘埃落定 · 招式收尾气流渐平，${hero}傲然屹立，镜头拉远形成电影感定格` },
-      ];
-    } else {
-      baseArcs = [
-        { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "起 · 宏观建立", act: `远景建立 · 展现${env}的宏伟格局与氛围基调` },
-        { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "起 · 主角亮相", act: `主角亮相 · ${hero}步入场景，展现沉稳身姿` },
-        { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "承 · 探索推进", act: `环境交互 · ${hero}观察周围动静，身形敏捷穿梭` },
-        { size: "medium_close_up", angle: "eye_level", mov: "static", func: "承 · 危机察觉", act: `察觉异常 · ${hero}骤然停步，视线敏锐锁定目标` },
-        { size: "close_up", angle: "low_angle", mov: "push_in", func: "转 · 决意迎战", act: `战意确立 · 特写坚决神态，摆出迎战起手势` },
-        { size: "full_shot", angle: "eye_level", mov: "tracking_left", func: "转 · 疾速冲刺", act: `急速突进 · ${hero}身形如电向前发起高速冲刺` },
-        { size: "medium_shot", angle: "dutch_angle", mov: "pan_right", func: "转 · 空中机动", act: `腾空机动 · 在复杂空间中灵活腾挪翻转避开阻碍` },
-        { size: "extreme_close_up", angle: "eye_level", mov: "push_in", func: "转 · 瞬间聚焦", act: `极致特写 · 瞳孔中倒映出的光芒与决绝意念` },
-        { size: "medium_close_up", angle: "eye_level", mov: "arc_rotate", func: "转 · 环绕高光", act: `环绕镜头 · 360度环绕捕捉动作蓄力最高峰` },
-        { size: "full_shot", angle: "low_angle", mov: "tilt_up", func: "激 · 核心高潮", act: `核心爆发 · 全力爆发终极决招，视觉张力拉满` },
-        { size: "wide_shot", angle: "high_angle", mov: "pull_out", func: "合 · 局势平息", act: `胜负平息 · 冲击波散去，${hero}从容收势伫立` },
-        { size: "extreme_wide_shot", angle: "eye_level", mov: "crane", func: "合 · 史诗定格", act: `余韵悠长 · 镜头升起拉远融入壮丽背景，定格余韵` },
-      ];
-    }
+    baseArcs = [
+      {
+        size: "extreme_wide_shot",
+        angle: "high_angle",
+        mov: "crane",
+        func: "世界观建立",
+        act: `环境建立 · ${hero}伫立在${env}的开阔视野中，气氛凝重蓄势待发。`,
+        dialogue: `旁白：“风云际会，宿命之战终将在此展开。”`,
+        sfx: "风雷隐隐、沉重脚步踏地声",
+        music: "低沉压抑的战鼓与急促弦乐",
+        lighting: "阴郁沉稳的电影主光源",
+      },
+      {
+        size: "wide_shot",
+        angle: "eye_level",
+        mov: "tracking_right",
+        func: "步入战场",
+        act: `步入对局 · ${hero}稳步向前移动，周身环境与光影随脚步动态流转。`,
+        dialogue: `${hero}：“既然来了，便不必多言，拔剑吧。”`,
+        sfx: "兵刃出鞘清脆龙吟声、气流呼啸",
+        music: "快节奏琵琶与激烈律动古琴",
+        lighting: "侧逆光勾勒坚毅身影",
+      },
+      {
+        size: "medium_shot",
+        angle: "low_angle",
+        mov: "push_in",
+        func: "冲突起势",
+        act: `动势交锋 · 冲突骤然爆发，${hero}侧身避让并展开迅疾反制，身法凌厉如电。`,
+        dialogue: `对手：“好身法！再接我一招！”`,
+        sfx: "破空拳风声、兵刃激烈撞击金铁交鸣声",
+        music: "高燃紧凑的动作打击乐",
+        lighting: "激烈交锋动态光影变幻",
+      },
+      {
+        size: "medium_close_up",
+        angle: "eye_level",
+        mov: "static",
+        func: "眼神蓄力",
+        act: `专注蓄势 · 特写${hero}坚毅沉着的眼神与肌肉微表情，逆光勾勒轮廓。`,
+        dialogue: `${hero}：“一招，定乾坤。”`,
+        sfx: "真气凝聚嗡鸣声、沉重心跳重音",
+        music: "配乐瞬间静止，唯留紧张心跳声",
+        lighting: "极具张力的高反差硬光",
+      },
+      {
+        size: "close_up",
+        angle: "low_angle",
+        mov: "push_in",
+        func: "核心高潮",
+        act: `终极爆发 · ${hero}全力出击施展核心绝技，视觉冲击力与动作张力拉满。`,
+        dialogue: `${hero}：“破——！”`,
+        sfx: "气劲爆裂巨响、地面碎石飞溅破空声",
+        music: "全乐团高潮交响齐奏",
+        lighting: "高亮能量冲击光芒",
+      },
+      {
+        size: "wide_shot",
+        angle: "eye_level",
+        mov: "pull_out",
+        func: "余韵定格",
+        act: `尘埃落定 · 招式收尾气流渐平，${hero}傲然屹立，镜头拉远形成电影感定格。`,
+        dialogue: `旁白：“胜负已分，尘埃落定，江湖唯余此豪迈传奇。”`,
+        sfx: "微风吹动衣襟声、尘埃落地轻响",
+        music: "悠远舒缓的古风余韵终曲",
+        lighting: "暖色夕阳柔光洒满大地",
+      },
+    ];
   }
   // Branch 3: Animal / Creature / Animation
   else if (scene.isNonHuman || scene.genre === "creature") {
-    if (targetCount <= 3) {
-      baseArcs = [
-        { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "空间建立", act: `空镜入画 · 灵巧可爱的${hero}在美丽的${env}中登场，建立萌趣世界观` },
-        { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "动态探索", act: `灵动穿梭 · ${hero}好奇地在场景中敏捷穿行探索，动作轻盈灵巧` },
-        { size: "medium_close_up", angle: "low_angle", mov: "push_in", func: "高光回眸", act: `高光回眸 · ${hero}停下回眸，眼神纯真自信，微风拂动毛发，镜头缓缓拉开定格` },
-      ];
-    } else if (targetCount <= 6) {
-      baseArcs = [
-        { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "空间建立", act: `全景建立 · 展现${env}的优美风光，${hero}轻快登场` },
-        { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "场景探索", act: `好奇探索 · ${hero}在环境中灵巧穿行，展现生动可爱的动作细节` },
-        { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "意外发现", act: `意外惊喜 · ${hero}突然发现前方有趣的目标，好奇心爆棚` },
-        { size: "medium_close_up", angle: "eye_level", mov: "static", func: "神态专注", act: `神态特写 · 特写${hero}专注坚毅的小眼神与精致微表情，萌态十足` },
-        { size: "close_up", angle: "low_angle", mov: "push_in", func: "高光奔跑", act: `全力冲刺 · ${hero}全力向前冲刺跃起，动作轻盈充满活力` },
-        { size: "wide_shot", angle: "eye_level", mov: "pull_out", func: "余韵定格", act: `惬意定格 · ${hero}成功达成目标，在阳光下惬意享受，镜头拉远定格` },
-      ];
-    } else {
-      baseArcs = [
-        { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "世界建立", act: `全景建立 · 美丽温馨的${env}全貌建立` },
-        { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "萌趣亮相", act: `萌趣亮相 · ${hero}欢快步入画面，展示可爱外貌` },
-        { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "环境互动", act: `趣味互动 · ${hero}与环境中的物件好奇互动` },
-        { size: "medium_close_up", angle: "eye_level", mov: "static", func: "萌态发现", act: `发现线索 · ${hero}耳朵微动，视线锁定前方` },
-        { size: "close_up", angle: "low_angle", mov: "push_in", func: "下定决心", act: `笃定眼神 · 特写${hero}充满斗志的小眼神` },
-        { size: "full_shot", angle: "eye_level", mov: "tracking_left", func: "轻巧跃进", act: `轻巧跃进 · ${hero}敏捷向前轻盈奔跑` },
-        { size: "medium_shot", angle: "dutch_angle", mov: "pan_right", func: "翻越障碍", act: `翻越障碍 · 灵巧避开途中障碍，动作行云流水` },
-        { size: "extreme_close_up", angle: "eye_level", mov: "push_in", func: "毛发细节", act: `纤细特写 · 特写柔软毛发与晶莹纯真的瞳孔` },
-        { size: "medium_close_up", angle: "eye_level", mov: "arc_rotate", func: "环绕高光", act: `环绕高光 · 环绕运镜展现${hero}悬停或驻足的高光瞬间` },
-        { size: "full_shot", angle: "low_angle", mov: "tilt_up", func: "活力冲刺", act: `精彩冲刺 · 全力一跃突破终点，活力四射` },
-        { size: "wide_shot", angle: "high_angle", mov: "pull_out", func: "欢欣满足", act: `欢欣庆祝 · ${hero}开心驻足，阳光洒满周身` },
-        { size: "extreme_wide_shot", angle: "eye_level", mov: "crane", func: "温馨定格", act: `温馨定格 · ${hero}向着远方阳光前行，镜头缓缓拉开定格` },
-      ];
-    }
+    baseArcs = [
+      {
+        size: "extreme_wide_shot",
+        angle: "high_angle",
+        mov: "crane",
+        func: "空间建立",
+        act: `全景建立 · 展现${env}的优美风光，${hero}轻快登场，充满萌趣。`,
+        dialogue: `旁白：“在阳光明媚的森林里，住着一只充满好奇心的小家伙。”`,
+        sfx: "清晨鸟鸣声、欢快溪水流动声",
+        music: "轻快活泼的木管乐与铃铛声",
+        lighting: "温暖通透的童话晨光",
+      },
+      {
+        size: "wide_shot",
+        angle: "eye_level",
+        mov: "tracking_right",
+        func: "场景探索",
+        act: `好奇探索 · ${hero}在环境中灵巧穿行，展现生动可爱的动作细节。`,
+        dialogue: `${hero}：“哇！今天一定要去山那边看看新世界！”`,
+        sfx: "轻快的小脚步哒哒声、草丛沙沙声",
+        music: "充满弹性的跳跃节奏打击乐",
+        lighting: "斑驳树影与温暖阳光",
+      },
+      {
+        size: "medium_shot",
+        angle: "low_angle",
+        mov: "push_in",
+        func: "意外发现",
+        act: `意外惊喜 · ${hero}突然发现前方有趣的目标，好奇心爆棚。`,
+        dialogue: `${hero}：“咦？那是藏在花丛里的神秘宝物吗？”`,
+        sfx: "魔法微光叮咚声、清脆风铃声",
+        music: "悬疑俏皮的八音盒旋律",
+        lighting: "局部发光高光轮廓",
+      },
+      {
+        size: "medium_close_up",
+        angle: "eye_level",
+        mov: "static",
+        func: "神态专注",
+        act: `神态特写 · 特写${hero}专注坚毅的小眼神与精致微表情，萌态十足。`,
+        dialogue: `${hero}：“看我的，我一定能做到！”`,
+        sfx: "深吸气声、蓄势发力轻微哼声",
+        music: "逐渐激昂坚定的上行旋律",
+        lighting: "柔和眼神光，毛发质感细腻",
+      },
+      {
+        size: "close_up",
+        angle: "low_angle",
+        mov: "push_in",
+        func: "高光奔跑",
+        act: `全力冲刺 · ${hero}全力向前冲刺跃起，动作轻盈充满活力。`,
+        dialogue: `${hero}：“冲啊——！我们成功啦！”`,
+        sfx: "破风呼啸声、欢快的笑声",
+        music: "热烈欢快的高潮交响",
+        lighting: "金光灿烂的逆光飞跃",
+      },
+      {
+        size: "wide_shot",
+        angle: "eye_level",
+        mov: "pull_out",
+        func: "余韵定格",
+        act: `惬意定格 · ${hero}成功达成目标，在阳光下惬意享受，镜头拉远定格。`,
+        dialogue: `旁白：“最美好的冒险，永远在充满勇气的旅途之中。”`,
+        sfx: "微风拂过草地声、小兽满足的呼吸声",
+        music: "温馨治愈的摇篮曲余韵",
+        lighting: "温暖黄昏夕阳天光",
+      },
+    ];
   }
-  // Branch 4: Modern Urban / Commercial / General Narrative
+  // Branch 4: Modern Urban / Commercial
   else {
-    if (targetCount <= 3) {
-      baseArcs = [
-        { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "都市建立", act: `空间建立 · 展现${env}的现代开阔空间，${hero}从容入画` },
-        { size: "medium_shot", angle: "eye_level", mov: "push_in", func: "专注交互", act: `专注行动 · ${hero}专注投入当前核心事项，动作专业干练` },
-        { size: "medium_close_up", angle: "low_angle", mov: "pull_out", func: "高光定格", act: `自信定格 · 特写${hero}从容自信的神态，镜头平稳拉开定格` },
-      ];
-    } else if (targetCount <= 6) {
-      baseArcs = [
-        { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "空间建立", act: `全景建立 · 现代都市与开阔${env}全景，建立故事空间` },
-        { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "步入场景", act: `从容步入 · ${hero}步入场景，展现干练优雅的气场` },
-        { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "专注行动", act: `深度投入 · ${hero}专注操作或互动，细节展现专业与专注` },
-        { size: "medium_close_up", angle: "eye_level", mov: "static", func: "灵感触动", act: `灵感闪现 · 特写${hero}沉思微表情，眼中闪烁出自信光芒` },
-        { size: "close_up", angle: "low_angle", mov: "push_in", func: "核心突破", act: `突破高光 · 关键成果达成，神采奕奕，动作笃定有力` },
-        { size: "wide_shot", angle: "eye_level", mov: "pull_out", func: "从容收尾", act: `从容定格 · ${hero}展现释怀微笑，镜头拉开形成现代电影感定格` },
-      ];
-    } else {
-      baseArcs = [
-        { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "起 · 城市建立", act: `城市全景 · 晨光中的现代都市天际线与开阔${env}` },
-        { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "起 · 人物步入", act: `人物登场 · ${hero}步伐坚定步入空间` },
-        { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "承 · 空间互动", act: `环境交互 · ${hero}与空间中的核心元素展开互动` },
-        { size: "medium_close_up", angle: "eye_level", mov: "static", func: "承 · 专注投入", act: `专注神态 · 特写沉稳干练的专业工作/生活状态` },
-        { size: "close_up", angle: "low_angle", mov: "push_in", func: "承 · 细节捕捉", act: `精细操作 · 手部动作与工具/道具的高清细节呈现` },
-        { size: "full_shot", angle: "eye_level", mov: "tracking_left", func: "转 · 节奏提速", act: `步伐加快 · 节奏转换，${hero}快速推进关键行动` },
-        { size: "medium_shot", angle: "dutch_angle", mov: "pan_right", func: "转 · 攻克难题", act: `沉着应对 · 面对突发情况展现敏锐决策力` },
-        { size: "extreme_close_up", angle: "eye_level", mov: "push_in", func: "转 · 眼神聚焦", act: `眼神特写 · 瞳孔中倒映出清晰成果与专注光芒` },
-        { size: "medium_close_up", angle: "eye_level", mov: "arc_rotate", func: "转 · 灵感高光", act: `环绕镜头 · 弧线运镜捕捉突破时刻的高光神态` },
-        { size: "full_shot", angle: "low_angle", mov: "tilt_up", func: "合 · 完美收官", act: `成果展现 · 核心目标圆满达成，气场全开` },
-        { size: "wide_shot", angle: "high_angle", mov: "pull_out", func: "合 · 释怀从容", act: `从容驻足 · 阳光透过玻璃窗洒满空间，氛围温暖舒适` },
-        { size: "extreme_wide_shot", angle: "eye_level", mov: "crane", func: "合 · 现代定格", act: `余韵悠长 · 镜头徐徐拉远与现代都市空间融为一体，定格` },
-      ];
-    }
+    baseArcs = [
+      {
+        size: "extreme_wide_shot",
+        angle: "high_angle",
+        mov: "crane",
+        func: "空间建立",
+        act: `全景建立 · 现代都市与开阔${env}全景，建立故事空间。`,
+        dialogue: `旁白：“城市的每一个清晨，都始于一份对完美的执着。”`,
+        sfx: "远方城市车流声、咖啡机研磨萃取声",
+        music: "现代律动电子爵士乐",
+        lighting: "现代通透大落地窗晨光",
+      },
+      {
+        size: "wide_shot",
+        angle: "eye_level",
+        mov: "tracking_right",
+        func: "步入场景",
+        act: `从容步入 · ${hero}步入场景，展现干练优雅的气场。`,
+        dialogue: `${hero}：“今天，把每一个细节做到极致。”`,
+        sfx: "清脆高跟鞋/皮鞋脚步声、文件翻阅声",
+        music: "充满前进感的现代节奏律动",
+        lighting: "柔和室内漫射光",
+      },
+      {
+        size: "medium_shot",
+        angle: "low_angle",
+        mov: "push_in",
+        func: "专注行动",
+        act: `深度投入 · ${hero}专注操作或互动，细节展现专业与专注。`,
+        dialogue: `${hero}：“关键核心点就在这里，重新构架。”`,
+        sfx: "键盘敲击声、光标点击确认音",
+        music: "富有张力的合成器低音",
+        lighting: "屏幕光映衬面部轮廓",
+      },
+      {
+        size: "medium_close_up",
+        angle: "eye_level",
+        mov: "static",
+        func: "灵感触动",
+        act: `灵感闪现 · 特写${hero}沉思微表情，眼中闪烁出自信光芒。`,
+        dialogue: `${hero}：“找到了，这就是最好的解法。”`,
+        sfx: "灵感叮响声、平稳呼吸声",
+        music: "明亮上扬的高频钢琴音符",
+        lighting: "柔和眼神光，专业自信神态",
+      },
+      {
+        size: "close_up",
+        angle: "low_angle",
+        mov: "push_in",
+        func: "核心突破",
+        act: `突破高光 · 关键成果达成，神采奕奕，动作笃定有力。`,
+        dialogue: `旁白：“每一次突破，都在重新定义无限可能。”`,
+        sfx: "成果确认音效、掌声回音",
+        music: "激昂大气的现代商业交响",
+        lighting: "明亮透彻的高光打光",
+      },
+      {
+        size: "wide_shot",
+        angle: "eye_level",
+        mov: "pull_out",
+        func: "从容收尾",
+        act: `从容定格 · ${hero}展现释怀微笑，镜头拉开形成现代电影感定格。`,
+        dialogue: `旁白：“创想无界，从此刻出发。”`,
+        sfx: "城市远景环境声",
+        music: "温暖通透的品牌声音标识",
+        lighting: "落日余晖洒满现代建筑",
+      },
+    ];
   }
 
   return baseArcs.map((arc, idx) => {
@@ -723,11 +930,12 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
       },
       subject: hero,
       action: arc.act,
+      dialogue: arc.dialogue || "",
       narrative_function: arc.func,
       lighting: arc.lighting || (scene.isLandscape ? "通透自然光影，层次分明的大气透视" : "电影级通透主光源与柔和轮廓光"),
       audio: {
-        sfx: scene.isLandscape ? "自然风声、鸟鸣与岁月风霜音效" : "环境音效与影视原声配乐",
-        music: scene.isLandscape ? "雄浑壮阔的史诗弦乐配乐" : "节奏紧凑的电影原声",
+        sfx: arc.sfx || "环境音效与现场音效",
+        music: arc.music || "影视原声配乐",
       },
       image_prompt: imagePrompt,
       video_prompt: videoPrompt,
@@ -833,7 +1041,7 @@ export async function generateDirectorPipeline(
                   contextualAnti = "The creature is the solitary protagonist. Strictly NO humans, NO actors,";
                 }
                 finalImgPrompt = cleanPromptOfMetaPollution(
-                  `${parsedScene.heroEn}. ${globalAnchor}. ${rawImgPrompt}. no poster frame, no decorative golden borders, no ornate card borders, no trading card frame, no franchise logo, no text watermark, no typography, ${contextualAnti} full bleed widescreen film still, edge-to-edge diegetic scene, 16:9 widescreen`
+                  `${parsedScene.heroEn}. ${globalAnchor}. ${rawImgPrompt}. no poster frame, no decorative golden borders, no ornate card borders, no trading card frame, no franchise logo, no text watermark, no speech bubbles, no dialogue subtitles, no typography, ${contextualAnti} full bleed widescreen film still, edge-to-edge diegetic scene, 16:9 widescreen`
                 );
               }
 
@@ -871,7 +1079,7 @@ export async function generateDirectorPipeline(
                 dialogue: s.dialogue || "",
                 narrative_function: s.narrative_function || "主体动作与场景展现",
                 lighting: s.lighting || "通透电影光影，主光源分明，侧逆光轮廓光清晰",
-                audio: typeof s.audio === "object" ? s.audio : { sfx: "环境音效、优美配乐" },
+                audio: typeof s.audio === "object" ? s.audio : { sfx: "环境音效、现场音效", music: "影视配乐" },
                 image_prompt: finalImgPrompt,
                 video_prompt: finalVidPrompt,
                 continuity_data: continuityData,
