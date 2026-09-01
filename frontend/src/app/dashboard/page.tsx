@@ -16,6 +16,9 @@ import {
   Trash2,
   Search,
   Download,
+  Copy,
+  User,
+  Loader2,
 } from "lucide-react";
 import { api, ProjectListItem, normalizeAssetUrl } from "@/lib/api";
 import { SettingsModal } from "@/components/modals/SettingsModal";
@@ -23,6 +26,7 @@ import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { ProjectCreationProgress } from "@/components/modals/ProjectCreationProgress";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
 
 const STARTER_TEMPLATES = [
@@ -66,6 +70,8 @@ const STARTER_TEMPLATES = [
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore();
+
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -76,6 +82,7 @@ export default function DashboardPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [exportingProjectId, setExportingProjectId] = useState<string | null>(null);
+  const [cloningProjectId, setCloningProjectId] = useState<string | null>(null);
 
   const [newTitle, setNewTitle] = useState("");
   const [newStory, setNewStory] = useState("");
@@ -107,7 +114,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadProjects();
-  }, []);
+  }, [user]);
 
   const handleApplyTemplate = (tmpl: typeof STARTER_TEMPLATES[0]) => {
     setNewTitle(tmpl.storyTitle);
@@ -118,63 +125,83 @@ export default function DashboardPage() {
     setIsCreating(true);
   };
 
-  const handleCreate = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!newTitle.trim()) return;
 
     setIsSubmittingProject(true);
-    setCreationError(null);
-    setCreationComplete(false);
+    setCreationElapsed(0);
     setCreationProgress(5);
     setCreationStage(0);
-    setCreationElapsed(0);
+    setCreationComplete(false);
+    setCreationError(null);
 
     const startTime = Date.now();
-
     progressIntervalRef.current = setInterval(() => {
-      const elapsed = Number(((Date.now() - startTime) / 1000).toFixed(1));
-      setCreationElapsed(elapsed);
+      const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+      setCreationElapsed(elapsedSec);
 
-      if (elapsed < 0.4) {
+      if (elapsedSec < 3) {
         setCreationStage(0);
-        setCreationProgress(Math.min(25, Math.round(5 + (elapsed / 0.4) * 20)));
-      } else {
+        setCreationProgress(Math.min(25, elapsedSec * 8 + 5));
+      } else if (elapsedSec < 8) {
         setCreationStage(1);
-        const thinkingProgress = Math.min(78, Math.round(25 + (1 - Math.exp(-(elapsed - 0.4) / 3.0)) * 53));
-        setCreationProgress(thinkingProgress);
+        setCreationProgress(Math.min(60, 25 + (elapsedSec - 3) * 7));
+      } else if (elapsedSec < 14) {
+        setCreationStage(2);
+        setCreationProgress(Math.min(90, 60 + (elapsedSec - 8) * 5));
+      } else {
+        setCreationStage(3);
+        setCreationProgress(95);
       }
-    }, 50);
+    }, 500);
 
     try {
       const created = await api.createProject({
-        title: newTitle,
-        story: newStory,
+        title: newTitle.trim(),
+        story: newStory.trim() || undefined,
         target_duration: targetDuration,
       });
 
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-
-      setCreationStage(2);
-      setCreationProgress(88);
-      await new Promise((r) => setTimeout(r, 100));
-
-      setCreationStage(3);
-      setCreationProgress(96);
-      await new Promise((r) => setTimeout(r, 100));
-
-      setCreationStage(4);
+      clearInterval(progressIntervalRef.current);
       setCreationProgress(100);
+      setCreationStage(3);
       setCreationComplete(true);
 
       setTimeout(() => {
         setIsCreating(false);
         setIsSubmittingProject(false);
         router.push(`/workspace?id=${created.id}`);
-      }, 200);
+      }, 800);
     } catch (err: any) {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      console.error("Failed to create project", err);
-      setCreationError(err?.message || "创建项目失败，请检查网络或点击配置 API Key");
+      clearInterval(progressIntervalRef.current);
+      console.error("Failed to create project:", err);
+      setCreationError(err?.response?.data?.detail || err?.message || "创建工程失败，请重试");
+    }
+  };
+
+  const handleCloneProject = async (e: React.MouseEvent, proj: ProjectListItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isAuthenticated) {
+      notify.info("💡 请先登录或注册，即可将官方 Demo 克隆至您的私有工作区");
+      openAuthModal("login");
+      return;
+    }
+
+    try {
+      setCloningProjectId(proj.id);
+      notify.info("正在克隆项目至您的私有工作区...");
+      const cloned = await api.cloneProject(proj.id);
+      notify.success("🎉 项目克隆成功！已切换至您的私有副本。");
+      await loadProjects();
+      router.push(`/workspace?id=${cloned.id}`);
+    } catch (err: any) {
+      console.error("Clone project error:", err);
+      notify.error(err?.response?.data?.detail || "克隆项目失败");
+    } finally {
+      setCloningProjectId(null);
     }
   };
 
@@ -183,20 +210,24 @@ export default function DashboardPage() {
     e.stopPropagation();
 
     if (exportingProjectId) return;
+
     try {
       setExportingProjectId(proj.id);
-      notify.info(`🎨 正在为《${proj.title}》极速合成 16:9 故事板打样单...`);
+      notify.info("🎨 正在加载全量分镜数据并合成 16:9 打样单...");
+
       const fullProject = await api.getProject(proj.id);
       const shots = fullProject.sequences?.[0]?.shots || [];
+
       if (shots.length === 0) {
-        notify.error("该项目中暂无镜头数据，无法导出");
+        notify.error("该项目中暂无分镜头，请进入工作台先进行 AI 拆镜。");
         return;
       }
+
       await exportStoryboardSheetToPng(fullProject, shots, { includeHud: true });
-      notify.success(`🎉《${proj.title}》故事板打样单 (PNG) 已成功导出！`);
+      notify.success("🎉 故事板草图打样单 (PNG) 已成功下载！");
     } catch (err: any) {
       console.error("Quick export error:", err);
-      notify.error(err?.message || "导出失败");
+      notify.error(err?.message || "导出故事板打样单失败");
     } finally {
       setExportingProjectId(null);
     }
@@ -268,6 +299,31 @@ export default function DashboardPage() {
           >
             <Settings className="w-4 h-4" />
           </button>
+
+          {/* User Profile / Auth Button */}
+          {isAuthenticated && user ? (
+            <button
+              onClick={openProfileModal}
+              className="flex items-center gap-2 p-1.5 pl-2 pr-3 rounded-xl border border-border bg-secondary/60 hover:bg-secondary transition-colors"
+              title="个人设置与专属 API Key"
+            >
+              <img
+                src={user.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username)}`}
+                alt={user.username}
+                className="w-5 h-5 rounded-full bg-primary/20"
+              />
+              <span className="text-xs font-semibold text-foreground max-w-[90px] truncate">{user.username}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => openAuthModal("login")}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 border border-sky-500/30 transition-colors shadow-2xs"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>登录 / 注册</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               setNewTitle("");
@@ -321,22 +377,18 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                <div className="mt-3 pt-2.5 border-t border-border/40 flex items-center justify-between text-[11px] font-medium">
-                  <span className="text-muted-foreground group-hover:text-current transition-colors">
-                    ⏱️ 目标 {tmpl.duration}s
-                  </span>
-                  <span className="flex items-center gap-1 group-hover:translate-x-0.5 transition-transform text-foreground">
-                    一键起步 <ArrowRight className="w-3 h-3" />
-                  </span>
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-current/15 text-[11px] font-medium">
+                  <span className="opacity-80">一键套用剧本</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </div>
               </button>
             ))}
           </div>
         </section>
 
-        {/* Section 2: Projects Overview Header & Stats */}
+        {/* Section 2: User Projects List */}
         <section className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
+          <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
                 <Film className="w-5 h-5 text-sky-400" />
@@ -346,7 +398,7 @@ export default function DashboardPage() {
                 </span>
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                累计已构建 {totalShotsCount} 个好莱坞预演镜头 · 支持双向剧本协同与 16:9 打样导出
+                累计已构建 {totalShotsCount} 个好莱坞预演镜头 · 支持多租户数据隔离与 16:9 打样导出
               </p>
             </div>
 
@@ -439,6 +491,7 @@ export default function DashboardPage() {
               {filteredProjects.map((proj) => {
                 const isBuiltIn = proj.id === "demo" || proj.id === "demo-matrix-cyber-master";
                 const coverImg = normalizeAssetUrl(proj.cover_image_url);
+                const isCloningThis = cloningProjectId === proj.id;
 
                 return (
                   <Link
@@ -477,7 +530,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-1.5">
                           {isBuiltIn && (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-primary text-primary-foreground shadow-sm">
-                              系统内置
+                              官方示范
                             </span>
                           )}
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-black/80 text-sky-400 border border-sky-400/30 backdrop-blur-md">
@@ -513,13 +566,27 @@ export default function DashboardPage() {
                       {/* Footer Actions */}
                       <div className="pt-4 mt-4 border-t border-border/50 flex items-center justify-between">
                         <div className="flex items-center gap-2">
+                          {/* 1-Click Clone Demo button (if Demo) */}
+                          {isBuiltIn && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleCloneProject(e, proj)}
+                              disabled={isCloningThis}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 transition-colors disabled:opacity-50"
+                              title="一键克隆该官方演示工程至您的私有工作区"
+                            >
+                              {isCloningThis ? <Loader2 className="w-3 h-3 animate-spin" /> : <Copy className="w-3 h-3" />}
+                              <span>克隆</span>
+                            </button>
+                          )}
+
                           {/* Quick Export PNG Button */}
                           <button
                             type="button"
                             onClick={(e) => handleQuickExport(e, proj)}
                             disabled={exportingProjectId === proj.id}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors disabled:opacity-50"
-                            title="快速导出 16:9 Contact Sheet 故事板打样单"
+                            title="快速导出 16:9 故事板草图打样单"
                           >
                             <Download className="w-3 h-3 text-sky-400" />
                             <span>{exportingProjectId === proj.id ? "合成中..." : "导出单"}</span>
@@ -557,98 +624,115 @@ export default function DashboardPage() {
         </section>
       </main>
 
-      {/* Create Modal / Creation Progress Flow */}
+      {/* Create Project Modal */}
       {isCreating && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl p-6 max-w-lg w-full shadow-2xl transition-all duration-300">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
             {isSubmittingProject ? (
               <ProjectCreationProgress
                 title={newTitle}
                 story={newStory}
                 targetDuration={targetDuration}
                 progressPercent={creationProgress}
-                elapsedSeconds={creationElapsed}
                 activeStageIndex={creationStage}
+                elapsedSeconds={creationElapsed}
                 isComplete={creationComplete}
                 errorMessage={creationError}
-                onRetry={() => handleCreate()}
                 onCancel={handleCancelCreate}
-                onSkipToWorkspace={() => {
-                  if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-                  setIsCreating(false);
-                  setIsSubmittingProject(false);
-                  router.push("/workspace");
-                }}
-                onOpenSettings={() => {
-                  setIsCreating(false);
-                  setIsSubmittingProject(false);
-                  setIsSettingsOpen(true);
-                }}
               />
             ) : (
-              <>
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  <span>新建好莱坞导演分镜项目</span>
-                </h2>
-                <form onSubmit={handleCreate} className="space-y-4">
+              <form onSubmit={handleCreateProject} className="space-y-4">
+                <div className="flex items-center gap-2.5 pb-2 border-b border-border">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1.5">项目名称</label>
+                    <h3 className="font-semibold text-base">新建好莱坞分镜工程</h3>
+                    <p className="text-xs text-muted-foreground">输入灵感梗概，AI 导演将自动完成剧情拆镜与视觉预演</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-foreground/90 block mb-1">
+                      工程标题 <span className="text-primary">*</span>
+                    </label>
                     <input
                       type="text"
                       required
-                      placeholder="例如：特立独行的小飞猪 (Flying Piglet)"
+                      placeholder="例如：《黑客帝国：雨夜茶馆决战》"
                       value={newTitle}
                       onChange={(e) => setNewTitle(e.target.value)}
-                      className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1.5">故事描述 (可选)</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-foreground/90">
+                        故事剧本 / 场景设定 (可选)
+                      </label>
+                      <span className="text-[11px] text-muted-foreground font-mono">
+                        {newStory.length}/500 字
+                      </span>
+                    </div>
                     <textarea
-                      rows={3}
-                      placeholder="输入剧本故事梗概或创意简述，稍后将由 AI 导演自动规划分镜头节拍..."
+                      rows={4}
+                      placeholder="描述主角身份、核心冲突、环境氛围与关键动作... (留空将基于标题自动构思)"
                       value={newStory}
                       onChange={(e) => setNewStory(e.target.value)}
-                      className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary resize-none"
+                      className="w-full bg-background border border-border rounded-lg p-3 text-xs leading-relaxed focus:outline-none focus:border-primary resize-none font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1.5">目标总时长 (秒)</label>
-                    <input
-                      type="number"
-                      min="5"
-                      max="600"
-                      value={targetDuration}
-                      onChange={(e) => setTargetDuration(Number(e.target.value))}
-                      className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
-                    />
+                    <label className="text-xs font-medium text-foreground/90 block mb-1">
+                      目标成片时长 (秒)
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[8, 15, 20, 30].map((dur) => (
+                        <button
+                          key={dur}
+                          type="button"
+                          onClick={() => setTargetDuration(dur)}
+                          className={cn(
+                            "py-2 rounded-lg text-xs font-mono font-medium border transition-all",
+                            targetDuration === dur
+                              ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                              : "bg-secondary/60 text-muted-foreground border-border hover:text-foreground"
+                          )}
+                        >
+                          {dur}s ({dur <= 8 ? "3 镜" : dur <= 20 ? "6 镜" : "12 镜"})
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-                    <button
-                      type="button"
-                      onClick={() => setIsCreating(false)}
-                      className="px-4 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      取消
-                    </button>
-                    <button
-                      type="submit"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>创建并进入工作台</span>
-                    </button>
-                  </div>
-                </form>
-              </>
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreating(false)}
+                    className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>立即开始 AI 智能拆镜</span>
+                  </button>
+                </div>
+              </form>
             )}
           </div>
         </div>
       )}
+
+      {/* Settings Modal */}
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
       {/* Delete Project Confirmation Modal */}
       <DeleteProjectModal
@@ -659,15 +743,6 @@ export default function DashboardPage() {
         }}
         project={projectToDelete}
         onConfirmDelete={handleConfirmDelete}
-      />
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => {
-          setIsSettingsOpen(false);
-          loadProjects();
-        }}
       />
     </div>
   );

@@ -50,10 +50,16 @@ const apiClient = axios.create({
   },
 });
 
-// Dynamically inject latest base URL on every request
+// Dynamically inject latest base URL and Authorization Bearer Token on every request
 apiClient.interceptors.request.use((config) => {
   const baseUrl = getApiBaseUrl();
   config.baseURL = baseUrl ? `${baseUrl}/api` : "/api";
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("storyboard_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
   return config;
 });
 
@@ -78,6 +84,27 @@ export const api = {
     return data;
   },
 
+  // Auth & User System
+  async register(email: string, username: string, pass: string): Promise<{ token: string; user: any }> {
+    const { data } = await apiClient.post("/auth/register", { email, username, password: pass });
+    return data;
+  },
+
+  async login(account: string, pass: string): Promise<{ token: string; user: any }> {
+    const { data } = await apiClient.post("/auth/login", { account, password: pass });
+    return data;
+  },
+
+  async getMe(): Promise<any> {
+    const { data } = await apiClient.get("/auth/me");
+    return data;
+  },
+
+  async updateProfile(payload: any): Promise<any> {
+    const { data } = await apiClient.put("/auth/profile", payload);
+    return data;
+  },
+
   // Projects
   async getProjects(): Promise<ProjectModel[]> {
     const { data } = await apiClient.get("/projects");
@@ -91,6 +118,11 @@ export const api = {
 
   async createProject(payload: { title: string; story?: string; target_duration?: number }): Promise<ProjectModel> {
     const { data } = await apiClient.post("/projects", payload);
+    return data;
+  },
+
+  async cloneProject(id: string): Promise<ProjectModel> {
+    const { data } = await apiClient.post(`/projects/${id}/clone`);
     return data;
   },
 
@@ -118,32 +150,51 @@ export const api = {
     await apiClient.delete(`/shots/${id}`);
   },
 
-  // AI Director Generation
-  async generateFromStory(payload: {
-    project_id: string;
-    story: string;
-    target_duration?: number;
-  }): Promise<GenerationResponse> {
-    const { data } = await apiClient.post("/generate/from-story", payload);
+  async reorderShots(sequenceId: string, shotIds: string[]): Promise<void> {
+    await apiClient.post(`/shots/reorder`, { sequence_id: sequenceId, shot_ids: shotIds });
+  },
+
+  // Generation & AI Director
+  async generateStoryboard(projectId: string, story: string, targetDuration: number = 30.0): Promise<GenerationResponse> {
+    const { data } = await apiClient.post(`/generate/storyboard`, {
+      project_id: projectId,
+      story,
+      target_duration: targetDuration,
+    });
     return data;
   },
 
-  async generateFromScript(payload: {
-    project_id: string;
-    script_text: string;
-  }): Promise<GenerationResponse> {
-    const { data } = await apiClient.post("/generate/from-script", payload);
+  async generateFromStory(payload: { project_id: string; story: string; target_duration?: number }): Promise<GenerationResponse> {
+    const { data } = await apiClient.post(`/generate/storyboard`, payload);
+    return data;
+  },
+
+  async generateFromScript(payload: { project_id: string; script_text: string }): Promise<GenerationResponse> {
+    const { data } = await apiClient.post(`/generate/storyboard`, {
+      project_id: payload.project_id,
+      story: payload.script_text,
+    });
     return data;
   },
 
   async generateShotImage(shotId: string): Promise<ShotImageResponse> {
-    const { data } = await apiClient.post(`/generate/images/${shotId}`);
+    const { data } = await apiClient.post(`/generate/shot-image/${shotId}`);
     return data;
   },
 
-  // Settings
+  async generateAllShotImages(projectId: string): Promise<{ status: string; total_rendered: number }> {
+    const { data } = await apiClient.post(`/generate/all-shot-images/${projectId}`);
+    return data;
+  },
+
+  // System Settings
+  async getSettings() {
+    const { data } = await apiClient.get("/settings");
+    return data;
+  },
+
   async getProviderConfig() {
-    const { data } = await apiClient.get("/settings/providers");
+    const { data } = await apiClient.get("/settings");
     return data;
   },
 

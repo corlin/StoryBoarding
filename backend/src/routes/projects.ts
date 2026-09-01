@@ -1,22 +1,34 @@
 import { Hono } from "hono";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or, isNull } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
-import { projects, sequences, shots, systemSettings } from "../db/schema";
+import { projects, sequences, shots, systemSettings, users } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, generateAdaptiveStoryShots } from "../agents/director/pipeline";
 import { generateCinematicStoryboardImage, runConcurrentTasks, getProjectBaseSeed } from "./generation";
+import { getAuthUser } from "../lib/auth";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
-// Helper to get active API keys from D1 system_settings or env
-async function getActiveSettings(db: any, env: Bindings) {
-  const setting = await db.select().from(systemSettings).where(eq(systemSettings.id, "default")).get();
+// Helper to get active API keys (prioritizing user personal settings > system settings > env defaults)
+async function getActiveSettings(db: any, env: Bindings, userId?: string) {
+  let userSettings: any = {};
+  if (userId) {
+    const user = await db.select().from(users).where(eq(users.id, userId)).get();
+    if (user?.customSettings) {
+      try {
+        userSettings = JSON.parse(user.customSettings);
+      } catch (e) {}
+    }
+  }
+
+  const sysSetting = await db.select().from(systemSettings).where(eq(systemSettings.id, "default")).get();
+
   return {
-    llmApiKey: setting?.llmApiKey || "",
-    llmApiBase: setting?.llmApiBase || env.DEFAULT_LLM_API_BASE || "https://openrouter.ai/api/v1",
-    llmModel: setting?.llmModel || env.DEFAULT_LLM_MODEL || "deepseek/deepseek-chat",
-    imageApiKey: setting?.imageApiKey || setting?.llmApiKey || "",
-    imageApiBase: setting?.imageApiBase || "https://openrouter.ai/api/v1",
-    imageModel: setting?.imageModel || env.DEFAULT_IMAGE_MODEL || "google/imagen-3",
+    llmApiKey: userSettings.llmApiKey || sysSetting?.llmApiKey || "",
+    llmApiBase: userSettings.llmApiBase || sysSetting?.llmApiBase || env.DEFAULT_LLM_API_BASE || "https://openrouter.ai/api/v1",
+    llmModel: userSettings.llmModel || sysSetting?.llmModel || env.DEFAULT_LLM_MODEL || "deepseek/deepseek-chat",
+    imageApiKey: userSettings.imageApiKey || userSettings.llmApiKey || sysSetting?.imageApiKey || sysSetting?.llmApiKey || "",
+    imageApiBase: userSettings.imageApiBase || sysSetting?.imageApiBase || "https://openrouter.ai/api/v1",
+    imageModel: userSettings.imageModel || sysSetting?.imageModel || env.DEFAULT_IMAGE_MODEL || "google/imagen-3",
   };
 }
 
@@ -93,12 +105,32 @@ async function ensureDemoProject(db: any) {
   }
 }
 
-// GET /api/projects
+// GET /api/projects (Scoped by authenticated user + Demo)
 router.get("/", async (c) => {
   const db = getDb(c.env.DB);
   await ensureDemoProject(db);
 
-  const allProjects = await db.select().from(projects).orderBy(desc(projects.createdAt)).all();
+  const authHeader = c.req.header("Authorization");
+  const authUser = await getAuthUser(authHeader);
+
+  let allProjects: any[] = [];
+  if (authUser) {
+    // Authenticated user: Private projects + public demo
+    allProjects = await db
+      .select()
+      .from(projects)
+      .where(or(eq(projects.userId, authUser.userId), eq(projects.id, "demo")))
+      .orderBy(desc(projects.createdAt))
+      .all();
+  } else {
+    // Guest user: Public demo + unassigned projects
+    allProjects = await db
+      .select()
+      .from(projects)
+      .where(or(isNull(projects.userId), eq(projects.id, "demo")))
+      .orderBy(desc(projects.createdAt))
+      .all();
+  }
 
   const enriched = await Promise.all(
     allProjects.map(async (p) => {
@@ -120,6 +152,7 @@ router.get("/", async (c) => {
 
       return {
         id: p.id,
+        user_id: p.userId,
         title: p.title,
         story: p.story,
         target_duration: p.targetDuration,
@@ -188,6 +221,7 @@ router.get("/:id", async (c) => {
 
   return c.json({
     id: proj.id,
+    user_id: proj.userId,
     title: proj.title,
     story: proj.story,
     target_duration: proj.targetDuration,
@@ -195,6 +229,83 @@ router.get("/:id", async (c) => {
     updated_at: proj.updatedAt,
     sequences: enrichedSeqs,
   });
+});
+
+// POST /api/projects/:id/clone (1-Click Clone Demo or Project for Authenticated User)
+router.post("/:id/clone", async (c) => {
+  const db = getDb(c.env.DB);
+  const srcId = c.req.param("id");
+  const authHeader = c.req.header("Authorization");
+  const authUser = await getAuthUser(authHeader);
+
+  if (srcId === "demo") {
+    await ensureDemoProject(db);
+  }
+
+  const srcProj = await db.select().from(projects).where(eq(projects.id, srcId)).get();
+  if (!srcProj) {
+    return c.json({ detail: "源项目不存在" }, 404);
+  }
+
+  const newProjId = crypto.randomUUID();
+  const newTitle = `${srcProj.title} (我的副本)`;
+
+  const [clonedProj] = await db
+    .insert(projects)
+    .values({
+      id: newProjId,
+      userId: authUser ? authUser.userId : null,
+      title: newTitle,
+      story: srcProj.story,
+      targetDuration: srcProj.targetDuration,
+    })
+    .returning();
+
+  const srcSeqs = await db.select().from(sequences).where(eq(sequences.projectId, srcId)).orderBy(sequences.order).all();
+
+  for (const seq of srcSeqs) {
+    const newSeqId = crypto.randomUUID();
+    await db.insert(sequences).values({
+      id: newSeqId,
+      projectId: newProjId,
+      title: seq.title,
+      order: seq.order,
+    });
+
+    const srcShots = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).orderBy(shots.order).all();
+    for (const s of srcShots) {
+      await db.insert(shots).values({
+        id: crypto.randomUUID(),
+        sequenceId: newSeqId,
+        order: s.order,
+        duration: s.duration,
+        shotSize: s.shotSize,
+        cameraAngle: s.cameraAngle,
+        cameraMovement: s.cameraMovement,
+        subject: s.subject,
+        action: s.action,
+        dialogue: s.dialogue,
+        narrativeFunction: s.narrativeFunction,
+        lighting: s.lighting,
+        audio: s.audio,
+        imagePrompt: s.imagePrompt,
+        videoPrompt: s.videoPrompt,
+        continuityData: s.continuityData,
+        storyboardImageUrl: s.storyboardImageUrl,
+        isDirty: false,
+        isLocked: s.isLocked,
+      });
+    }
+  }
+
+  return c.json({
+    id: clonedProj.id,
+    user_id: clonedProj.userId,
+    title: clonedProj.title,
+    story: clonedProj.story,
+    target_duration: clonedProj.targetDuration,
+    created_at: clonedProj.createdAt,
+  }, 201);
 });
 
 // POST /api/projects (Auto-generate real AI visual storyboards concurrently with seed chain)
@@ -206,10 +317,14 @@ router.post("/", async (c) => {
   const story = body.story || "";
   const targetDuration = Number(body.target_duration) || 30.0;
 
+  const authHeader = c.req.header("Authorization");
+  const authUser = await getAuthUser(authHeader);
+
   const [newProj] = await db
     .insert(projects)
     .values({
       id,
+      userId: authUser ? authUser.userId : null,
       title,
       story,
       targetDuration,
@@ -229,7 +344,7 @@ router.post("/", async (c) => {
   const baseSeed = getProjectBaseSeed(id);
 
   try {
-    const settings = await getActiveSettings(db, c.env);
+    const settings = await getActiveSettings(db, c.env, authUser?.userId);
     
     // 10s strict timeout wrapper with graceful adaptive fallback
     const directorPromise = runDirectorPipeline(effectiveStory, targetDuration, {
@@ -336,32 +451,16 @@ router.delete("/:id", async (c) => {
   const db = getDb(c.env.DB);
   const id = c.req.param("id");
 
-  if (id === "demo" || id === "demo-matrix-cyber-master") {
-    return c.json({ detail: "系统内置 Demo 项目受保护，禁止删除" }, 403);
+  if (id === "demo") {
+    return c.json({ detail: "官方演示项目不允许删除" }, 403);
   }
 
-  const proj = await db.select().from(projects).where(eq(projects.id, id)).get();
-  if (!proj) {
+  const [deleted] = await db.delete(projects).where(eq(projects.id, id)).returning();
+  if (!deleted) {
     return c.json({ detail: "Project not found" }, 404);
   }
 
-  const seqs = await db.select().from(sequences).where(eq(sequences.projectId, id)).all();
-  for (const seq of seqs) {
-    const shotList = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).all();
-    if (c.env.STORAGE) {
-      for (const s of shotList) {
-        try {
-          await c.env.STORAGE.delete(`shots/${s.id}.jpg`);
-        } catch (_) {}
-      }
-    }
-    await db.delete(shots).where(eq(shots.sequenceId, seq.id));
-  }
-
-  await db.delete(sequences).where(eq(sequences.projectId, id));
-  await db.delete(projects).where(eq(projects.id, id));
-
-  return c.json({ status: "success", deleted_id: id });
+  return c.json({ success: true });
 });
 
 export default router;

@@ -22,6 +22,10 @@ import {
   History,
   Columns2,
   LayoutGrid,
+  User,
+  LogOut,
+  Sliders,
+  Loader2,
 } from "lucide-react";
 import { ExportDeliverablesModal } from "@/components/modals/ExportDeliverablesModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
@@ -30,6 +34,7 @@ import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
 import { ShotModel } from "@/types/shot";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +64,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenCreateSnapshot,
 }) => {
   const router = useRouter();
+  const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore();
+
   const [isOpenModal, setIsOpenModal] = useState(false);
   const [isOpenSettingsModal, setIsOpenSettingsModal] = useState(false);
   const [isOpenBibleModal, setIsOpenBibleModal] = useState(false);
@@ -68,6 +75,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [bibleMode, setBibleMode] = useState<"bible" | "style">("bible");
   const [storyText, setStoryText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCloning, setIsCloning] = useState(false);
 
   const isBuiltIn = !project || project.id === "demo" || project.id === "demo-matrix-cyber-master";
 
@@ -85,6 +93,27 @@ export const TopBar: React.FC<TopBarProps> = ({
   const handleConfirmDelete = async (projectId: string) => {
     await api.deleteProject(projectId);
     router.push("/dashboard");
+  };
+
+  const handleCloneDemo = async () => {
+    if (!project) return;
+    if (!isAuthenticated) {
+      notify.info("💡 请先登录或注册，即可将官方 Demo 克隆至您的私有工作区");
+      openAuthModal("login");
+      return;
+    }
+    try {
+      setIsCloning(true);
+      notify.info("正在克隆演示工程至您的私有仓库...");
+      const cloned = await api.cloneProject(project.id);
+      notify.success("🎉 工程克隆成功！已切换至您的私有副本。");
+      router.push(`/workspace/${cloned.id}`);
+    } catch (e: any) {
+      console.error("Clone error:", e);
+      notify.error(e?.response?.data?.detail || "克隆工程失败");
+    } finally {
+      setIsCloning(false);
+    }
   };
 
   const isOverDuration = totalDuration > (project?.target_duration || 30);
@@ -118,62 +147,74 @@ export const TopBar: React.FC<TopBarProps> = ({
               </button>
             )}
 
-            <span className="text-xs text-muted-foreground font-mono">
-              {totalDuration.toFixed(1)}s / {project?.target_duration || 30}s
-            </span>
-            {isOverDuration && (
-              <span className="flex items-center gap-1 text-xs text-amber-500 font-medium bg-amber-500/10 px-2 py-0.5 rounded">
-                <AlertCircle className="w-3 h-3" />
-                超时 {(totalDuration - (project?.target_duration || 30)).toFixed(1)}s
+            {isBuiltIn && (
+              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                官方演示
               </span>
             )}
           </div>
         </div>
 
-        {/* Middle: Genuine Workspace View Mode Switcher (Equal Granularity) */}
-        <div className="hidden md:flex items-center gap-1 bg-background/60 p-1 rounded-lg border border-border text-xs">
-          <button
-            onClick={() => onToggleLeftPanel && isLeftPanelCollapsed && onToggleLeftPanel()}
-            className={cn(
-              "px-3 py-1 rounded transition-all flex items-center gap-1.5 font-medium",
-              !isLeftPanelCollapsed
-                ? "bg-accent text-foreground border border-border/60 shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-            title="剧本与分镜双向协同对照视图 (左右 5:5 均等分栏)"
-          >
-            <Columns2 className="w-3.5 h-3.5 text-sky-400" />
-            <span>双向协同 (Split)</span>
-          </button>
-          <button
-            onClick={() => onToggleLeftPanel && !isLeftPanelCollapsed && onToggleLeftPanel()}
-            className={cn(
-              "px-3 py-1 rounded transition-all flex items-center gap-1.5 font-medium",
-              isLeftPanelCollapsed
-                ? "bg-accent text-foreground border border-border/60 shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-            title="全宽纯分镜网格视图"
-          >
-            <LayoutGrid className="w-3.5 h-3.5 text-emerald-400" />
-            <span>全景分镜 (Grid)</span>
-          </button>
+        {/* Middle Stats Badges */}
+        <div className="hidden lg:flex items-center gap-3 text-xs">
+          {onToggleLeftPanel && (
+            <button
+              onClick={onToggleLeftPanel}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors",
+                isLeftPanelCollapsed
+                  ? "bg-secondary text-muted-foreground border-border hover:text-foreground hover:bg-secondary/80"
+                  : "bg-primary/10 text-primary border-primary/30 hover:bg-primary/20"
+              )}
+              title={isLeftPanelCollapsed ? "展开左侧剧本分镜列表" : "折叠左侧面板，全屏预览故事板"}
+            >
+              {isLeftPanelCollapsed ? <Columns2 className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
+              <span>{isLeftPanelCollapsed ? "展开双栏" : "沉浸全屏"}</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-2 px-3 py-1 bg-secondary/50 rounded-lg border border-border">
+            <span className="text-muted-foreground">镜头总数:</span>
+            <span className="font-mono font-medium">{shots.length} 镜</span>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1 bg-secondary/50 rounded-lg border border-border">
+            <span className="text-muted-foreground">总时长:</span>
+            <span className={cn("font-mono font-medium", isOverDuration ? "text-amber-400" : "text-foreground")}>
+              {totalDuration.toFixed(1)}s / {project?.target_duration || 30}s
+            </span>
+          </div>
         </div>
 
+        {/* Right Action Tools */}
         <div className="flex items-center gap-2">
-          {/* Project Bible Asset Tool */}
+          {/* 1-Click Clone Demo button (if built-in demo) */}
+          {isBuiltIn && (
+            <button
+              onClick={handleCloneDemo}
+              disabled={isCloning}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 transition-colors shadow-2xs"
+              title="一键克隆该官方演示工程至您的私有工作区"
+            >
+              {isCloning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>克隆为我的项目</span>
+            </button>
+          )}
+
+          {/* Style Bible Button */}
           <button
             onClick={() => {
               setBibleMode("bible");
               setIsOpenBibleModal(true);
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors shadow-sm"
-            title="查看与管理项目设定集 (角色DNA、世界观场景、视觉风格美学)"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors shadow-sm"
+            title="查看视觉导演设定集 (Character & Scene Bible)"
           >
-            <BookOpen className="w-3.5 h-3.5 text-sky-400" />
-            <span>设定集 (Bible)</span>
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>设定集</span>
           </button>
 
+          {/* Snapshot Button */}
           {onOpenCreateSnapshot && (
             <button
               onClick={onOpenCreateSnapshot}
@@ -220,6 +261,30 @@ export const TopBar: React.FC<TopBarProps> = ({
           >
             <Settings className="w-4 h-4" />
           </button>
+
+          {/* User Profile / Auth Button */}
+          {isAuthenticated && user ? (
+            <button
+              onClick={openProfileModal}
+              className="flex items-center gap-1.5 p-1 pl-1.5 pr-2.5 rounded-full bg-secondary/80 hover:bg-secondary border border-border/80 transition-colors"
+              title="个人设置与专属 API Key"
+            >
+              <img
+                src={user.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username)}`}
+                alt={user.username}
+                className="w-5 h-5 rounded-full bg-primary/20"
+              />
+              <span className="text-xs font-medium text-foreground max-w-[80px] truncate">{user.username}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => openAuthModal("login")}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 border border-sky-500/30 transition-colors shadow-2xs"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>登录</span>
+            </button>
+          )}
 
           {/* Delete Project (Non-demo) */}
           {!isBuiltIn && (
