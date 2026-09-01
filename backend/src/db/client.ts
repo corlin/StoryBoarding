@@ -49,7 +49,7 @@ export async function ensureSchema(d1: D1Database) {
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
         title TEXT NOT NULL,
-        order_num INTEGER NOT NULL DEFAULT 1,
+        "order" INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
         updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
       );
@@ -60,7 +60,7 @@ export async function ensureSchema(d1: D1Database) {
       CREATE TABLE IF NOT EXISTS shots (
         id TEXT PRIMARY KEY,
         sequence_id TEXT NOT NULL REFERENCES sequences(id) ON DELETE CASCADE,
-        order_num INTEGER NOT NULL DEFAULT 1,
+        "order" INTEGER NOT NULL DEFAULT 1,
         duration REAL NOT NULL DEFAULT 2.5,
         shot_size TEXT NOT NULL DEFAULT 'medium_shot',
         camera_angle TEXT NOT NULL DEFAULT 'eye_level',
@@ -114,17 +114,11 @@ export async function ensureSchema(d1: D1Database) {
     `).run();
 
     // 7. Safe Alter Table migrations
-    try {
-      await d1.prepare(`ALTER TABLE projects ADD COLUMN user_id TEXT;`).run();
-    } catch (_) {}
-
-    try {
-      await d1.prepare(`ALTER TABLE shots ADD COLUMN dialogue TEXT DEFAULT '';`).run();
-    } catch (_) {}
-
-    try {
-      await d1.prepare(`ALTER TABLE shots ADD COLUMN is_locked INTEGER NOT NULL DEFAULT 0;`).run();
-    } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE projects ADD COLUMN user_id TEXT;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN dialogue TEXT DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN is_locked INTEGER NOT NULL DEFAULT 0;`).run(); } catch (_) {}
 
     schemaInitialized = true;
   } catch (e) {
