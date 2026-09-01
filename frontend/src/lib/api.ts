@@ -184,11 +184,6 @@ export const api = {
   },
 
   // Export URLs
-  getExportSheetUrl(projectId: string): string {
-    const base = getApiBaseUrl();
-    return base ? `${base}/api/export/storyboard-sheet/${projectId}` : `/api/export/storyboard-sheet/${projectId}`;
-  },
-
   getExportScriptUrl(projectId: string): string {
     const base = getApiBaseUrl();
     return base ? `${base}/api/export/script-markdown/${projectId}` : `/api/export/script-markdown/${projectId}`;

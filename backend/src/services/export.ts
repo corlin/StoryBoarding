@@ -109,11 +109,11 @@ This is a functional pre-production previsualization drawing, NOT a finished col
 - Sequence Flow: Strict chronological reading order (Panel 01 to Panel ${String(count).padStart(2, "0")}, left-to-right, top-to-bottom) forming a continuous ~${dur}-second film sequence.
 - Panel Header: Each panel clearly displays an unobtrusive top badge: "SHOT 01" to "SHOT ${String(count).padStart(2, "0")}" with camera abbreviations.
 
-## 2. ART STYLE & MEDIUM (STORYBOARD PREVIZ)
-- Medium: Monochrome grayscale rough graphite pencil linework with selective light ink wash shading.
-- Aesthetic: Fast gestural director's sketch, readable structural anatomy, clean loose contours, lightweight unfinished previsualization draft quality.
-- Value Hierarchy: Grayscale tonal contrast (black, white, mid-gray) defining primary light source, cast shadows, depth planes, and subject silhouettes.
-- Explicit Exclusion: NO full-color rendering, NO digital airbrush gloss, NO colorful comic-book effects, NO dialogue speech balloons.
+## 2. ART STYLE & MEDIUM (CINEMATIC CONCEPT ART STORYBOARD)
+- Medium: Cinematic film still concept art, professional pre-visualization keyframes, vivid color palette, three-point lighting.
+- Aesthetic: Dynamic cinematic composition, clear readable structural anatomy, crisp silhouettes, volumetric atmosphere and lens depth.
+- Value Hierarchy: Dramatic lighting contrast defining primary light source, edge rim light, depth planes, and subject focus.
+- Explicit Exclusion: NO unfinished scribbles, NO comic book speech bubbles, NO watermark logos.
 
 ## 3. DUAL-REFERENCE ANCHOR RULES (ZERO DRIFT)
 - Character Continuity ([Reference Image 1]): Strictly preserve the exact character design, facial silhouette, proportions, hairstyle, and signature wardrobe across ALL panels. Zero character face/clothing drift.
@@ -127,11 +127,11 @@ This is a functional pre-production previsualization drawing, NOT a finished col
 ${shotsSummary.join("\n")}
 
 ## 5. RESOLUTION & TOKEN CONSTRAINTS
-- Standard 16:9 pre-production contact sheet draft resolution.
-- Low-resolution structural line art (512x288 per panel feel). No wasteful micro-textures or 4K/8K clutter.
+- Standard 16:9 widescreen pre-production contact sheet format.
+- Professional clarity, high readability per panel, vivid lighting atmosphere.
 
 ## 6. NEGATIVE CONSTRAINTS
-Avoid: Full color, saturated colors, 4k, 8k, photorealistic CGI, comic book speech bubbles, stylized sound effect texts (SFX), single enlarged hero frame, messy unreadable scribbles, deformed hands/anatomy, character drift, discontinuous background.
+Avoid: Comic book speech bubbles, stylized sound effect texts (SFX), messy unreadable scribbles, deformed hands/anatomy, character drift, blurry details.
 `;
 }
 

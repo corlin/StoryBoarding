@@ -293,26 +293,26 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
 
             <div className="space-y-3 pt-1">
-              {/* Deliverable 1: Storyboard Sheet (1:1 Multi-Panel Grid) */}
+              {/* Deliverable 1: Generation Package ZIP */}
               <a
-                href={project ? api.getExportSheetUrl(project.id) : "#"}
+                href={project ? api.getExportPackageUrl(project.id) : "#"}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/60 hover:bg-accent/40 hover:border-primary/50 transition-all group"
+                className="flex items-center justify-between p-3 rounded-lg border border-primary/40 bg-primary/10 hover:bg-primary/20 transition-all group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded bg-primary/10 text-primary">
-                    <ImageIcon className="w-4 h-4" />
+                  <div className="p-2 rounded bg-primary/20 text-primary">
+                    <Archive className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">1. Storyboard Page (PNG)</h4>
-                    <p className="text-[11px] text-muted-foreground">1:1 像素级对齐完整故事板打样单（包含景别角标与动作描述）</p>
+                    <h4 className="text-xs font-semibold text-primary">1. 📦 全套工业交付包 (Generation Package ZIP)</h4>
+                    <p className="text-[11px] text-muted-foreground">包含 Shot Spec JSON、AI 视频批量生成 Manifest、Markdown 剧本与高清资产清单</p>
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
               </a>
 
-              {/* Deliverable 5: Storyboard Images Pack (ZIP) */}
+              {/* Deliverable 2: Storyboard Images Pack (ZIP) */}
               <a
                 href={project ? api.getExportImagesZipUrl(project.id) : "#"}
                 target="_blank"
@@ -324,14 +324,14 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <Images className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold text-emerald-400">5. Storyboard Images Pack (ZIP)</h4>
-                    <p className="text-[11px] text-muted-foreground">每个镜头的 1080P 高清原图（按 SHOT_01_WS_... 严格规则命名打包）</p>
+                    <h4 className="text-xs font-semibold text-emerald-400">2. 🖼️ 高清分镜图包 (Storyboard Images ZIP)</h4>
+                    <p className="text-[11px] text-muted-foreground">每个镜头的 1080P/16:9 高清原图（按 SHOT_01_WS_... 严格规范命名打包）</p>
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
               </a>
 
-              {/* Deliverable 2: Shot Script Markdown */}
+              {/* Deliverable 3: Shot Script Markdown */}
               <a
                 href={project ? api.getExportScriptUrl(project.id) : "#"}
                 target="_blank"
@@ -343,7 +343,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <FileText className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">2. Shot Script (Markdown)</h4>
+                    <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">3. 🎬 导演分镜头脚本文档 (Shot Script Markdown)</h4>
                     <p className="text-[11px] text-muted-foreground">标准好莱坞分镜头台本（包含视听语言、机位运动与对白列表）</p>
                   </div>
                 </div>
@@ -351,14 +351,14 @@ export const TopBar: React.FC<TopBarProps> = ({
               </a>
 
               {/* Deliverable 4: Professional Director's Storyboard Global Prompt */}
-              <div className="flex items-center justify-between p-3 rounded-lg border border-primary/40 bg-primary/5 hover:bg-primary/10 transition-all group">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-sky-500/40 bg-sky-500/5 hover:bg-sky-500/10 transition-all group">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded bg-sky-500/20 text-sky-400">
                     <Terminal className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold text-sky-300">4. Professional Director's Global Prompt</h4>
-                    <p className="text-[11px] text-muted-foreground">好莱坞 12 格总控 Prompt（支持 Midjourney 单图整版）</p>
+                    <h4 className="text-xs font-semibold text-sky-300">4. 🌐 导演全局总控提示词 (Global Prompt)</h4>
+                    <p className="text-[11px] text-muted-foreground">好莱坞多格总控 Prompt（支持 Midjourney 单图整版）</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -366,7 +366,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                     onClick={handleCopyGlobalPrompt}
                     disabled={isCopyingPrompt}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-medium border border-sky-500/40 transition-colors"
-                    title="一键复制完整 12 格 Prompt 到剪贴板"
+                    title="一键复制完整 Prompt 到剪贴板"
                   >
                     {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{isCopied ? "已复制" : "复制"}</span>
@@ -382,25 +382,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                   </a>
                 </div>
               </div>
-
-              {/* Deliverable 3: Generation Package ZIP */}
-              <a
-                href={project ? api.getExportPackageUrl(project.id) : "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/60 hover:bg-accent/40 hover:border-primary/50 transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded bg-primary/10 text-primary">
-                    <Archive className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">3. AI 视频批量生产与分镜全套包 (ZIP)</h4>
-                    <p className="text-[11px] text-muted-foreground">包含可灵/Runway 专用批量生视频清单 (TXT/JSON)、首帧图片直链与 JSON Spec</p>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
-              </a>
             </div>
 
             <div className="flex justify-end pt-4 mt-2 border-t border-border">
