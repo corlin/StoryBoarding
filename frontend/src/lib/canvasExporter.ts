@@ -72,13 +72,44 @@ function wrapText(
   ctx.fillText(line, x, y);
 }
 
+function getMovementBadgeText(movType: string): string {
+  switch (movType) {
+    case "push_in":
+      return "PUSH IN ➔ (推进)";
+    case "pull_out":
+      return "PULL OUT ⤺ (拉远)";
+    case "tracking_right":
+    case "pan_right":
+      return "TRACKING R ━━━━►";
+    case "tracking_left":
+    case "pan_left":
+      return "◄━━━━ TRACKING L";
+    case "crane":
+    case "tilt_up":
+      return "▲ CRANE / TILT UP";
+    case "tilt_down":
+      return "▼ TILT DOWN";
+    case "arc_rotate":
+      return "⟳ 360° ARC";
+    default:
+      return "⊡ LOCKED STATIC";
+  }
+}
+
+export interface ExportOptions {
+  includeHud?: boolean;
+}
+
 export async function exportStoryboardSheetToPng(
   project: ProjectModel,
-  shots: ShotModel[]
+  shots: ShotModel[],
+  options: ExportOptions = { includeHud: true }
 ): Promise<void> {
   if (!shots || shots.length === 0) {
     throw new Error("项目中暂无分镜头数据");
   }
+
+  const includeHud = options.includeHud ?? true;
 
   // Pre-load all shot images in parallel
   const imagePromises = shots.map((s) =>
@@ -226,6 +257,64 @@ export async function exportStoryboardSheetToPng(
       ctx.fillText("分镜画面待渲染", cellX + cellWidth / 2, cellY + cellImgHeight / 2);
       ctx.textAlign = "left";
     }
+
+    const movType =
+      typeof shot.camera_movement === "object"
+        ? (shot.camera_movement as any)?.type || "static"
+        : shot.camera_movement || "static";
+
+    // Optional: Draw Previz HUD Overlay on Canvas Image Area
+    if (includeHud) {
+      // Rule of Thirds Lines
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+      ctx.lineWidth = 1;
+      const w3 = cellWidth / 3;
+      const h3 = cellImgHeight / 3;
+      ctx.beginPath();
+      ctx.moveTo(cellX + w3, cellY); ctx.lineTo(cellX + w3, cellY + cellImgHeight);
+      ctx.moveTo(cellX + w3 * 2, cellY); ctx.lineTo(cellX + w3 * 2, cellY + cellImgHeight);
+      ctx.moveTo(cellX, cellY + h3); ctx.lineTo(cellX + cellWidth, cellY + h3);
+      ctx.moveTo(cellX, cellY + h3 * 2); ctx.lineTo(cellX + cellWidth, cellY + h3 * 2);
+      ctx.stroke();
+
+      // Focus Crosshairs (Center Reticle)
+      const centerX = cellX + cellWidth / 2;
+      const centerY = cellY + cellImgHeight / 2;
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.6)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "#38bdf8";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Motion Vector Pill at bottom of image
+      const movBadgeText = getMovementBadgeText(movType);
+      ctx.fillStyle = "rgba(12, 15, 23, 0.88)";
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.6)";
+      ctx.lineWidth = 1;
+      const badgeW = 150;
+      const badgeH = 22;
+      const badgeX = cellX + (cellWidth - badgeW) / 2;
+      const badgeY = cellY + cellImgHeight - 30;
+      ctx.beginPath();
+      if (typeof (ctx as any).roundRect === "function") {
+        (ctx as any).roundRect(badgeX, badgeY, badgeW, badgeH, 11);
+      } else {
+        ctx.rect(badgeX, badgeY, badgeW, badgeH);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#38bdf8";
+      ctx.font = "bold 10px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(movBadgeText, cellX + cellWidth / 2, badgeY + 15);
+      ctx.textAlign = "left";
+    }
+
     ctx.restore();
 
     // Image Top Badge: SHOT No · Shot Size · Duration
@@ -269,12 +358,6 @@ export async function exportStoryboardSheetToPng(
     ctx.fillStyle = "#f8fafc";
     ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
     wrapText(ctx, shot.action || "镜头动作推进中...", cellX + 16, textY, cellWidth - 32, 20, 2);
-
-    // Camera movement & narrative info at bottom of text box
-    const movType =
-      typeof shot.camera_movement === "object"
-        ? (shot.camera_movement as any)?.type || "static"
-        : shot.camera_movement || "static";
 
     ctx.fillStyle = "#64748b";
     ctx.font = "11px system-ui, monospace";

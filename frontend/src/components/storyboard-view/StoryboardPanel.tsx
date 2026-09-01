@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ShotModel } from "@/types/shot";
 import { StoryboardCell } from "./StoryboardCell";
-import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, RefreshCw, XCircle } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, RefreshCw, XCircle, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StoryboardPanelProps {
@@ -32,6 +32,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   onAbortBatchRendering,
 }) => {
   const [gridCols, setGridCols] = useState<2 | 3 | 4>(3);
+  const [showHudGuide, setShowHudGuide] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const missingImageCount = shots.filter((s) => !s.storyboard_image_url || s.is_dirty).length;
@@ -116,6 +117,22 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
             </button>
           )}
 
+          {/* Previz HUD Guide Overlay Toggle Button */}
+          <button
+            onClick={() => setShowHudGuide(!showHudGuide)}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono transition-all border",
+              showHudGuide
+                ? "bg-sky-500/15 border-sky-500/40 text-sky-300 font-semibold shadow-xs"
+                : "bg-secondary/40 border-border/60 text-muted-foreground hover:text-foreground"
+            )}
+            title="一键开关专业导演视听执行辅助线（运镜矢量箭头、焦点靶心与九宫格安全框）"
+          >
+            <Crosshair className="w-3.5 h-3.5 text-sky-400" />
+            <span className="hidden sm:inline">视听辅助线 (HUD)</span>
+            <span className={cn("w-1.5 h-1.5 rounded-full", showHudGuide ? "bg-sky-400 animate-pulse" : "bg-muted-foreground/40")} />
+          </button>
+
           {/* Grid Layout Switcher */}
           <div className="flex items-center bg-secondary/50 p-0.5 rounded-lg border border-border/60 text-xs text-muted-foreground">
             <button
@@ -189,11 +206,11 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
               <button
                 type="button"
                 onClick={onAbortBatchRendering}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/40 transition-colors shadow-xs"
-                title="停止后台批量冲印队列"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/40 transition-colors shadow-xs"
+                title="中止当前冲印队列"
               >
                 <XCircle className="w-3.5 h-3.5 text-red-400" />
-                <span>中止队列</span>
+                <span>⏹️ 中止队列</span>
               </button>
             )}
           </div>
@@ -219,6 +236,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                   shot={shot}
                   index={idx}
                   isSelected={shot.id === selectedShotId}
+                  showHudGuide={showHudGuide}
                   onSelect={() => onSelectShot(shot.id)}
                   onRegenerateImage={() => onRegenerateShotImage && onRegenerateShotImage(shot.id)}
                   onToggleLock={onToggleLock}

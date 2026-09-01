@@ -65,6 +65,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [isCopyingPrompt, setIsCopyingPrompt] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isExportingPng, setIsExportingPng] = useState(false);
+  const [exportWithHud, setExportWithHud] = useState(true);
 
   const isBuiltIn = !project || project.id === "demo" || project.id === "demo-matrix-cyber-master";
 
@@ -78,7 +79,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     try {
       setIsExportingPng(true);
       notify.info("🎨 正在使用 Canvas 极速合成 16:9 故事板打样单，稍候...");
-      await exportStoryboardSheetToPng(project, currentShots);
+      await exportStoryboardSheetToPng(project, currentShots, { includeHud: exportWithHud });
       notify.success("🎉 完整故事板打样单 (PNG) 已成功生成并下载！");
     } catch (e: any) {
       console.error("Export PNG error:", e);
@@ -320,6 +321,22 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
 
             <div className="space-y-3 pt-1">
+              {/* Previz HUD Export Option Toggle */}
+              <div className="flex items-center justify-between px-1 py-1 bg-secondary/30 rounded-lg border border-border/60">
+                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer select-none px-2">
+                  <input
+                    type="checkbox"
+                    checked={exportWithHud}
+                    onChange={(e) => setExportWithHud(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+                  />
+                  <span>包含导演视听执行辅助图层 (Previz HUD: 运镜箭头/焦点靶心/九宫格)</span>
+                </label>
+                <span className="text-[11px] font-mono text-sky-400 px-2">
+                  {exportWithHud ? "🎯 HUD 已启用" : "纯净无辅助线"}
+                </span>
+              </div>
+
               {/* Deliverable 1: Storyboard Sheet (1:1 Multi-Panel Grid) via Canvas Exporter (100% Zero 404) */}
               <button
                 type="button"

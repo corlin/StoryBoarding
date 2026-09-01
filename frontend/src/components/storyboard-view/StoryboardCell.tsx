@@ -8,6 +8,7 @@ interface StoryboardCellProps {
   shot: ShotModel;
   index: number;
   isSelected: boolean;
+  showHudGuide?: boolean;
   onSelect: () => void;
   onRegenerateImage?: () => Promise<void> | void;
   onToggleLock?: (shotId: string, locked: boolean) => void;
@@ -25,10 +26,122 @@ const SHOT_SIZE_ABBR: Record<string, string> = {
   extreme_close_up: "ECU",
 };
 
+function PrevizHudOverlay({ shot }: { shot: ShotModel }) {
+  const movType =
+    typeof shot.camera_movement === "object"
+      ? (shot.camera_movement as any)?.type || "static"
+      : shot.camera_movement || "static";
+
+  const renderMovementBadge = () => {
+    switch (movType) {
+      case "push_in":
+        return {
+          label: "PUSH IN ➔ (推进)",
+          color: "text-amber-300 border-amber-400/60 bg-amber-950/70",
+        };
+      case "pull_out":
+        return {
+          label: "PULL OUT ⤺ (拉远)",
+          color: "text-sky-300 border-sky-400/60 bg-sky-950/70",
+        };
+      case "tracking_right":
+      case "pan_right":
+        return {
+          label: "TRACK RIGHT ━━━━► (右移)",
+          color: "text-emerald-300 border-emerald-400/60 bg-emerald-950/70",
+        };
+      case "tracking_left":
+      case "pan_left":
+        return {
+          label: "◄━━━━ TRACK LEFT (左移)",
+          color: "text-emerald-300 border-emerald-400/60 bg-emerald-950/70",
+        };
+      case "crane":
+      case "tilt_up":
+        return {
+          label: "▲ CRANE / TILT UP (升机位)",
+          color: "text-purple-300 border-purple-400/60 bg-purple-950/70",
+        };
+      case "tilt_down":
+        return {
+          label: "▼ TILT DOWN (俯视降机位)",
+          color: "text-purple-300 border-purple-400/60 bg-purple-950/70",
+        };
+      case "arc_rotate":
+        return {
+          label: "⟳ 360° ARC (环绕旋转)",
+          color: "text-rose-300 border-rose-400/60 bg-rose-950/70",
+        };
+      default:
+        return {
+          label: "⊡ LOCKED STATIC (固定机位)",
+          color: "text-slate-300 border-slate-400/60 bg-slate-950/70",
+        };
+    }
+  };
+
+  const badge = renderMovementBadge();
+  const screenDir = shot.character_direction || (shot as any).continuity?.screen_direction || "L➔R";
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-15 select-none overflow-hidden">
+      {/* 1. Rule-of-Thirds Grid */}
+      <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
+        <div className="border-r border-b border-white/[0.08]" />
+        <div className="border-r border-b border-white/[0.08]" />
+        <div className="border-b border-white/[0.08]" />
+        <div className="border-r border-b border-white/[0.08]" />
+        <div className="border-r border-b border-white/[0.08]" />
+        <div className="border-b border-white/[0.08]" />
+        <div className="border-r border-white/[0.08]" />
+        <div className="border-r border-white/[0.08]" />
+        <div />
+      </div>
+
+      {/* 2. 16:9 Cinema Safe Title Corner Crop Marks */}
+      <div className="absolute top-2.5 left-2.5 w-2.5 h-2.5 border-t-2 border-l-2 border-sky-400/70" />
+      <div className="absolute top-2.5 right-2.5 w-2.5 h-2.5 border-t-2 border-r-2 border-sky-400/70" />
+      <div className="absolute bottom-2.5 left-2.5 w-2.5 h-2.5 border-b-2 border-l-2 border-sky-400/70" />
+      <div className="absolute bottom-2.5 right-2.5 w-2.5 h-2.5 border-b-2 border-r-2 border-sky-400/70" />
+
+      {/* 3. Central Focus Crosshairs & AF Marker */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="relative flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border border-dashed border-sky-400/40" />
+          <div className="absolute w-1.5 h-1.5 rounded-full bg-sky-400 ring-2 ring-sky-400/20" />
+          <div className="absolute w-5 h-[1px] bg-sky-400/60" />
+          <div className="absolute h-5 w-[1px] bg-sky-400/60" />
+          <span className="absolute -top-3.5 text-[8px] font-mono font-bold text-sky-300 bg-black/80 px-1 rounded border border-sky-400/30">
+            ⨁ FOCUS
+          </span>
+        </div>
+      </div>
+
+      {/* 4. Bottom Center: Dynamic Camera Movement Trajectory Vector */}
+      <div className="absolute bottom-2.5 inset-x-0 flex items-center justify-center">
+        <div
+          className={cn(
+            "flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold shadow-md backdrop-blur-md",
+            badge.color
+          )}
+        >
+          <span>{badge.label}</span>
+        </div>
+      </div>
+
+      {/* 5. Bottom Right: 180° Action Axis & Screen Direction */}
+      <div className="absolute bottom-2.5 right-2.5 hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/80 border border-white/20 text-[9px] font-mono text-slate-300">
+        <span>AXIS 180° · {screenDir}</span>
+      </div>
+    </div>
+  );
+}
+
 export const StoryboardCell: React.FC<StoryboardCellProps> = ({
   shot,
   index,
   isSelected,
+  showHudGuide = true,
   onSelect,
   onRegenerateImage,
   onToggleLock,
@@ -137,12 +250,16 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
         title={imgSrc ? "点击放大进入影院动态播放模式" : isActivelyDeveloping ? "云端暗房显影中..." : "未生成画面"}
       >
         {imgSrc && !isActivelyDeveloping ? (
-          /* Real Film Storyboard Artwork with Smooth 400ms Exposure Fade-in */
-          <img
-            src={imgSrc}
-            alt={`Shot ${index + 1}`}
-            className="w-full h-full object-cover transition-all duration-500 animate-in fade-in zoom-in-95 group-hover:scale-[1.02]"
-          />
+          <>
+            {/* Real Film Storyboard Artwork with Smooth 400ms Exposure Fade-in */}
+            <img
+              src={imgSrc}
+              alt={`Shot ${index + 1}`}
+              className="w-full h-full object-cover transition-all duration-500 animate-in fade-in zoom-in-95 group-hover:scale-[1.02]"
+            />
+            {/* Director Previz HUD Visual Auxiliary Guide Overlay */}
+            {showHudGuide && <PrevizHudOverlay shot={shot} />}
+          </>
         ) : isActivelyDeveloping ? (
           /* Active Developing Chamber with Stopwatch (Max 45s) */
           <div className="absolute inset-0 bg-neutral-950 flex flex-col items-center justify-center p-3 text-center z-10 select-none overflow-hidden">

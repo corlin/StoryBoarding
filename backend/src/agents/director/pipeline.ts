@@ -91,7 +91,7 @@ ${pacingGuidance}
   2) 三层景深视差构图 (3-Plane Depth: Foreground Framing + Midground Subject + Background Vanishing Point)
   3) 清晰动作起势定格 (Kinetic Anticipation Pose: 动作爆发前 0.1s 定格，关节分明无黏连)
   4) 电影级通透光影与轮廓光 (Dramatic Three-point Lighting & Rim Light)
-  5) 去模糊与质量后缀: "16:9 widescreen composition, professional pre-viz keyframe, sharp focus, zero motion blur, clean proportions, vivid atmosphere, no speech bubbles, no text, ready for I2V video keyframe"
+  5) 防器材穿帮与质量后缀 (严格禁止画面出现摄影机器材): "16:9 widescreen composition, professional pre-viz keyframe, sharp focus, zero motion blur, clean proportions, vivid atmosphere, no cameras in frame, no film equipment, no camera crane, no tripod, no film crew, no speech bubbles, no text, ready for I2V video keyframe"
 - video_prompt: 专业的【4段式 AI 视频生动提示词 (English)】(专为 Runway Gen-3 / 可灵 Kling 1.5 / Minimax 优化)，格式严格包含：
   1) [Camera Trajectory & Velocity]: 运镜轨迹与物理动量
   2) [Subject Starting Pose & Dynamic Evolution]: 角色从首帧起势姿态到动作演变
@@ -152,9 +152,23 @@ export function formatDirectorImagePrompt(
     birds_eye: "overhead bird's eye view, geometric layout",
     worms_eye: "ground-level worm's eye perspective, explosive scale",
   };
+  const movViewpointMap: Record<string, string> = {
+    push_in: "dramatic forward dynamic viewpoint",
+    pull_out: "expansive wide viewpoint",
+    tracking_right: "dynamic lateral tracking viewpoint",
+    tracking_left: "dynamic lateral tracking viewpoint",
+    pan_right: "wide lateral vantage point",
+    pan_left: "wide lateral vantage point",
+    tilt_up: "grounded low vantage perspective",
+    tilt_down: "elevated high vantage perspective",
+    arc_rotate: "three-quarter orbital viewpoint",
+    crane: "elevated high-angle aerial vantage point",
+    static: "locked-off balanced composition",
+  };
 
   const readableSize = sizeMap[size] || size || "medium shot";
   const readableAngle = angleMap[angle] || angle || "eye level shot";
+  const readableViewpoint = movViewpointMap[mov] || "cinematic perspective";
   const shotNo = context?.order ? `Shot #${String(context.order).padStart(2, "0")}` : "Shot";
   const dir = context?.screenDirection || "left_to_right";
   const subject = context?.subject ? `Subject: ${context.subject}. ` : "";
@@ -168,7 +182,7 @@ export function formatDirectorImagePrompt(
 
   const baseStyle = detectStyleKeywords(`${globalAnchor} ${action} ${context?.storyContext || ""}`);
 
-  return `${baseStyle}. ${globalAnchor ? `Visual Anchor: ${globalAnchor}. ` : ""}${readableSize}, ${readableAngle}, camera ${mov}. ${continuityClause}${shotNo} - ${subject}Anticipation Pose & Action: ${action}. Screen direction: ${dir}, 180-degree action axis locked. Sharp focus, zero motion blur, clean proportions, crisp silhouette lighting, vivid atmosphere, high production value, no text, no speech bubbles, ready for I2V video keyframe.`;
+  return `${baseStyle}. ${globalAnchor ? `Visual Anchor: ${globalAnchor}. ` : ""}${readableSize}, ${readableAngle}, ${readableViewpoint}. ${continuityClause}${shotNo} - ${subject}Anticipation Pose & Action: ${action}. Screen direction: ${dir}, 180-degree action axis locked. Sharp focus, zero motion blur, clean proportions, crisp silhouette lighting, vivid atmosphere, high production value, no cameras in frame, no film equipment, no camera crane rig, no tripods, clean diegetic scene, no text, no speech bubbles, ready for I2V video keyframe.`;
 }
 
 export function formatDirectorVideoPrompt(
