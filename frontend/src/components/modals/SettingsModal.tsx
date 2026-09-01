@@ -401,7 +401,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <span>文生图 / Storyboard Image Generator (图像模型)</span>
               </div>
               <span className="text-[10px] font-mono text-sky-400/90 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
-                推荐: seedream-4.5 / gpt-image-2 (16:9 原生画幅)
+                推荐: seedream-5-0-pro / seedream-4.5 / qwen-image-3-pro
               </span>
             </div>
 
@@ -415,7 +415,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     setImageProvider(val);
                     if (val === "openrouter") {
                       setImageApiBase("https://openrouter.ai/api/v1");
-                      setImageModel("openai/gpt-image-2");
+                      setImageModel("bytedance-seed/seedream-4.5");
                     } else if (val === "openai_compatible") {
                       setImageApiBase("https://api.openai.com/v1");
                       setImageModel("dall-e-3");
@@ -436,7 +436,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
                 >
                   <option value="bytedance-seed/seedream-4.5">bytedance-seed/seedream-4.5 (字节跳动 Seedream 4.5 电影级生图 · 推荐)</option>
-                  <option value="openai/gpt-image-2">openai/gpt-image-2 (OpenAI 最新超清电影分镜 · 推荐)</option>
+                  <option value="bytedance-seed/seedream-5-0-lite">bytedance-seed/seedream-5-0-lite (字节跳动 Seedream 5.0 Lite 极速轻量)</option>
+                  <option value="bytedance-seed/seedream-5-0-pro">bytedance-seed/seedream-5-0-pro (字节跳动 Seedream 5.0 Pro 旗舰超清 · 推荐)</option>
+                  <option value="qwen/qwen-image-3-pro">qwen/qwen-image-3-pro (阿里千问 Qwen Image 3 Pro 旗舰生图 · 推荐)</option>
+                  <option value="openai/gpt-image-2">openai/gpt-image-2 (OpenAI 最新超清电影分镜)</option>
                   <option value="google/gemini-3.1-flash-image">google/gemini-3.1-flash-image (Google 最新超快分镜生图)</option>
                   <option value="google/gemini-2.5-flash-image">google/gemini-2.5-flash-image (Google 纳米香蕉生图)</option>
                   <option value="x-ai/grok-imagine-image-2.0">x-ai/grok-imagine-image-2.0 (极快高保真)</option>
