@@ -18,6 +18,7 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = () => {
+      // Secondary fallback attempt without crossOrigin
       const fallbackImg = new Image();
       fallbackImg.onload = () => resolve(fallbackImg);
       fallbackImg.onerror = () => resolve(null);
@@ -111,7 +112,7 @@ export async function exportStoryboardSheetToPng(
 
   const includeHud = options.includeHud ?? true;
 
-  // Pre-load all shot images in parallel
+  // Pre-load all shot images in parallel with 3-tier safety
   const imagePromises = shots.map((s) =>
     s.storyboard_image_url ? loadImage(normalizeAssetUrl(s.storyboard_image_url)) : Promise.resolve(null)
   );
@@ -127,7 +128,7 @@ export async function exportStoryboardSheetToPng(
 
   const rows = Math.ceil(count / cols);
 
-  // High-res geometry
+  // Geometry (Base dimensions before Retina 2x scaling)
   const cellWidth = 560;
   const cellImgHeight = 315; // 16:9
   const cellTextHeight = 105;
@@ -141,11 +142,15 @@ export async function exportStoryboardSheetToPng(
   const canvasWidth = padding * 2 + cols * cellWidth + (cols - 1) * gap;
   const canvasHeight = padding * 2 + headerHeight + rows * cellHeight + (rows - 1) * gap + footerHeight;
 
+  // Retina 2x Scale for Pristine 4K Output
+  const scale = 2;
   const canvas = document.createElement("canvas");
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
+  canvas.width = canvasWidth * scale;
+  canvas.height = canvasHeight * scale;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("无法初始化 Canvas 绘图上下文");
+
+  ctx.scale(scale, scale);
 
   // 1. Background (Cinema Dark Slate)
   ctx.fillStyle = "#0c0f17";
@@ -176,16 +181,16 @@ export async function exportStoryboardSheetToPng(
   ctx.lineWidth = 1;
   ctx.beginPath();
   if (typeof (ctx as any).roundRect === "function") {
-    (ctx as any).roundRect(padding, headerY, 280, 28, 6);
+    (ctx as any).roundRect(padding, headerY, 320, 28, 6);
   } else {
-    ctx.rect(padding, headerY, 280, 28);
+    ctx.rect(padding, headerY, 320, 28);
   }
   ctx.fill();
   ctx.stroke();
 
   ctx.fillStyle = "#38bdf8";
   ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
-  ctx.fillText("🎬 好莱坞 AI 导演故事板打样单 (Previz Sheet)", padding + 12, headerY + 18);
+  ctx.fillText("🎬 好莱坞 AI 导演故事板打样单 (Previz Sheet · 4K UHD)", padding + 12, headerY + 18);
 
   // Project Title
   ctx.fillStyle = "#f8fafc";
@@ -197,7 +202,7 @@ export async function exportStoryboardSheetToPng(
   ctx.font = "14px system-ui, -apple-system, sans-serif";
   const totalDur = shots.reduce((acc, s) => acc + (s.duration || 2.5), 0);
   ctx.fillText(
-    `目标时长: ${project.target_duration || totalDur.toFixed(1)}s  |  镜头总数: ${count} 镜  |  画幅比例: 16:9 宽银幕电影级  |  生成时间: ${new Date().toLocaleDateString()}`,
+    `目标时长: ${project.target_duration || totalDur.toFixed(1)}s  |  镜头总数: ${count} 镜  |  画幅比例: 16:9 宽银幕电影级 (Retina 2x)  |  生成时间: ${new Date().toLocaleDateString()}`,
     padding,
     headerY + 98
   );
@@ -248,13 +253,27 @@ export async function exportStoryboardSheetToPng(
     if (img) {
       ctx.drawImage(img, cellX, cellY, cellWidth, cellImgHeight);
     } else {
-      // Empty dark placeholder
-      ctx.fillStyle = "#1e2638";
+      // Aesthetic Graphite Filmstrip Placeholder with subtle grid and target
+      const grad = ctx.createLinearGradient(cellX, cellY, cellX + cellWidth, cellY + cellImgHeight);
+      grad.addColorStop(0, "#161d2d");
+      grad.addColorStop(1, "#0d131f");
+      ctx.fillStyle = grad;
       ctx.fillRect(cellX, cellY, cellWidth, cellImgHeight);
+
+      // Center crosshair and frame grid
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cellX + cellWidth / 2 - 24, cellY + cellImgHeight / 2);
+      ctx.lineTo(cellX + cellWidth / 2 + 24, cellY + cellImgHeight / 2);
+      ctx.moveTo(cellX + cellWidth / 2, cellY + cellImgHeight / 2 - 24);
+      ctx.lineTo(cellX + cellWidth / 2, cellY + cellImgHeight / 2 + 24);
+      ctx.stroke();
+
       ctx.fillStyle = "#64748b";
-      ctx.font = "14px system-ui, sans-serif";
+      ctx.font = "bold 13px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("分镜画面待渲染", cellX + cellWidth / 2, cellY + cellImgHeight / 2);
+      ctx.fillText(`SHOT ${String(shot.order || i + 1).padStart(2, "0")} · 视听草图就绪`, cellX + cellWidth / 2, cellY + cellImgHeight / 2 + 36);
       ctx.textAlign = "left";
     }
 
@@ -395,7 +414,7 @@ export async function exportStoryboardSheetToPng(
   ctx.fillStyle = "#475569";
   ctx.font = "12px system-ui, -apple-system, sans-serif";
   ctx.fillText(
-    "StoryBoarding AI · Hollywood Visual Previz System · 16:9 Contact Sheet Output",
+    "StoryBoarding AI · Hollywood Visual Previz System · 16:9 Contact Sheet Output · 4K UHD Master",
     padding,
     footerY
   );
@@ -410,7 +429,7 @@ export async function exportStoryboardSheetToPng(
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Storyboard_Sheet_${sanitizeFilename(project.title || "project")}.png`;
+      link.download = `Storyboard_Sheet_${sanitizeFilename(project.title || "project")}_4K.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

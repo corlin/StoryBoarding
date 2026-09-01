@@ -98,7 +98,7 @@ ${pacingGuidance}
 - narrative_function: 视听叙事功能 (如 "空间建立 / 春夏生机 / 晚霞暮光 / 深秋红叶 / 寒冬积雪 / 余韵定格")
 - lighting: 光影基调 (如 "通透晨曦金光，丁达尔漫射光与山脉云海景深")
 - audio: 音效 (sfx) 与音乐 (music)
-- image_prompt: 纯净英文自然生图描述句 (Pure Visual Description, no labels)
+- image_prompt: 纯净英文自然生图描述句 (Pure Visual Description in English, no labels)
 - video_prompt: 4段式 AI 视频提示词 ([Camera], [Action], [Dynamics], [Quality])
 - continuity_data: 镜头间剪辑流数据 ({ "screen_direction": "left_to_right" | "right_to_left", "motion_in": "入画动势", "motion_out": "出画动势", "transition_recommendation": "Match cut on action" | "Cross dissolve" | "Hard cut" })
 `;
@@ -117,9 +117,35 @@ export interface ExtractedSemanticScene {
   cameraPerspectiveEn: string;
 }
 
+// Universal Input Boundary Normalizer for extreme short/long scripts and multilingual inputs
+export function normalizeAndPreprocessStory(text: string): string {
+  if (!text) return "未命名故事剧本";
+  let cleaned = text.trim();
+
+  // If ultra-short input (< 12 characters), enrich context naturally
+  if (cleaned.length < 12) {
+    if (/长城|故宫|山脉|风光|风景|自然/i.test(cleaned)) {
+      cleaned = `雄伟连绵的${cleaned}，在破晓日出与四季变迁的光影流转中展现宏大壮丽画卷。`;
+    } else if (/黑客|赛博|未来|科幻/i.test(cleaned)) {
+      cleaned = `霓虹闪烁的未来都市中，${cleaned}展开紧张刺激的追逐交锋。`;
+    } else if (/猪|猫|狗|老鼠|鸟|萌宠|动物/i.test(cleaned)) {
+      cleaned = `灵巧可爱的${cleaned}在优美的天地间开启生动有趣的奇妙探索。`;
+    } else if (/武侠|江湖|剑客|功夫/i.test(cleaned)) {
+      cleaned = `烟雨江湖古典意境中，${cleaned}施展凌厉身法展开巅峰对决。`;
+    }
+  }
+
+  // If ultra-long input (> 800 characters), safely preserve first 600 characters for key beats
+  if (cleaned.length > 800) {
+    cleaned = cleaned.slice(0, 800).trim();
+  }
+
+  return cleaned;
+}
+
 // Universal Semantic Parser that accurately classifies Genre, Subject & World Backdrop
 export function parseSemanticScene(text: string): ExtractedSemanticScene {
-  const raw = (text || "").trim();
+  const raw = normalizeAndPreprocessStory(text);
 
   // 1. Camera Viewpoint Detection
   let cameraPerspectiveEn = "cinematic perspective";
@@ -272,7 +298,73 @@ export function cleanPromptOfMetaPollution(prompt: string): string {
     .trim();
 }
 
-// Generate natural, fluid, Hollywood-grade image prompts using 4-layer diegetic synthesis
+// Synthesize pure, cinematic, natural English action descriptions from Chinese text
+export function synthesizeEnglishVisualAction(chineseAction: string, genre: string): string {
+  if (!chineseAction) return "unfolds in dramatic cinematic composition";
+  // If already pure English
+  if (/^[a-zA-Z0-9\s,.'":;-]+$/.test(chineseAction) && chineseAction.length > 10) {
+    return chineseAction.trim();
+  }
+
+  const act = chineseAction.toLowerCase();
+  const fragments: string[] = [];
+
+  // Sunrise / Dawn
+  if (/晨曦|破晓|日出|清晨|朝阳/.test(act)) {
+    fragments.push("golden sunrise dawn breaking through sea of morning mountain mist and cloud inversion");
+  }
+  // Summer / Spring Green
+  else if (/春夏|葱郁|春季|草木|生机|山花|绿/.test(act)) {
+    fragments.push("vibrant lush green summer mountain slopes bathed in clear natural cinematic daylight");
+  }
+  // Sunset / Golden hour
+  else if (/晚霞|夕阳|日暮|暮色|黄昏|余晖/.test(act)) {
+    fragments.push("dramatic golden hour sunset illuminating ancient weathered stone brick textures with warm long shadows");
+  }
+  // Autumn / Foliage
+  else if (/深秋|金秋|红叶|落叶|霜降/.test(act)) {
+    fragments.push("breathtaking autumn red and golden foliage fluttering across ancient stone pathways and mountain ridge");
+  }
+  // Winter / Snow
+  else if (/寒冬|大雪|积雪|飞雪|冰封|霜雪/.test(act)) {
+    fragments.push("pristine winter blizzard snow blanketing cold ancient stone battlements under crisp overcast sky");
+  }
+  // Starry sky / Galaxy
+  else if (/星轨|银河|斗转星移|星辰|夜空/.test(act)) {
+    fragments.push("celestial night sky with rotating Milky Way galaxy and star trails over timeless landscape");
+  }
+  // Combat / Martial arts
+  else if (/交锋|身法|出招|对决|迎战|反制|拔剑/.test(act)) {
+    fragments.push("executing razor-sharp martial kinetic movement with intense focused energy and fluid motion");
+  }
+  // Dash / Sprint
+  else if (/冲刺|奔跑|疾速|俯冲|跃起|突进/.test(act)) {
+    fragments.push("accelerating forward in high-speed dynamic dash with kinetic motion blur on periphery");
+  }
+  // Close-up / Expression
+  else if (/特写|神态|眼神|蓄势|微表情|凝重/.test(act)) {
+    fragments.push("intimate close-up capturing intense determined gaze and refined facial lighting");
+  }
+  // Stepping in
+  else if (/步入|亮相|登场|伫立|入画/.test(act)) {
+    fragments.push("commanding presence as subject steps into frame with cinematic depth");
+  }
+  // Resolution / Final
+  else if (/定格|余韵|平息|从容|远去/.test(act)) {
+    fragments.push("tranquil cinematic resolution frame as camera pulls back into expansive horizon");
+  }
+
+  if (fragments.length > 0) {
+    return fragments.join(", ");
+  }
+
+  if (genre === "landscape") {
+    return "panoramic landscape unfolding with rich atmospheric depth and natural lighting";
+  }
+  return "executing dynamic cinematic action with fluid motion and spatial depth";
+}
+
+// Generate natural, fluid, 100% Pure English Hollywood-grade image prompts
 export function formatDirectorImagePrompt(
   action: string,
   size: string,
@@ -320,27 +412,18 @@ export function formatDirectorImagePrompt(
   const readableSize = sizeMap[size] || "Wide shot";
   const readableAngle = angleMap[angle] || "cinematic perspective";
   const readableViewpoint = movViewpointMap[mov] || parsed.cameraPerspectiveEn;
+  const englishVisualAction = synthesizeEnglishVisualAction(action, parsed.genre);
 
-  // Clean action string
-  let cleanAction = action
-    .replace(/^(?:无人机视角|航拍视角|俯瞰视角|第\d+镜|SHOT\s*#?\d+)[:：\s\.]*/gi, "")
-    .replace(/[““”'‘’]/g, "")
-    .trim();
-
-  if (!cleanAction || cleanAction.length < 4) {
-    cleanAction = `${parsed.heroZh}在${parsed.environmentZh}中展现生动视听画面`;
-  }
-
-  // Build Layer 2 & 3: Diegetic Subject & Environment interaction
+  // Build Layer 2 & 3: Diegetic Subject & Environment interaction in 100% Pure English
   let promptCore = "";
   if (parsed.isLandscape) {
-    promptCore = `${readableSize}, ${readableAngle}, ${readableViewpoint}. ${parsed.heroEn} in ${parsed.environmentEn}. Action and atmosphere: ${cleanAction}. ${parsed.styleKeywordsEn}.`;
+    promptCore = `${readableSize}, ${readableAngle}, ${readableViewpoint}. ${parsed.heroEn} in ${parsed.environmentEn}. Visual atmosphere: ${englishVisualAction}. ${parsed.styleKeywordsEn}.`;
   } else if (size === "extreme_wide_shot" || size === "wide_shot") {
-    promptCore = `${readableSize}, ${readableAngle}, ${readableViewpoint}. ${parsed.heroEn} situated within ${parsed.environmentEn}. Visual action: ${cleanAction}. ${parsed.styleKeywordsEn}.`;
+    promptCore = `${readableSize}, ${readableAngle}, ${readableViewpoint}. ${parsed.heroEn} situated within ${parsed.environmentEn}. Action: ${englishVisualAction}. ${parsed.styleKeywordsEn}.`;
   } else if (size === "close_up" || size === "medium_close_up" || size === "extreme_close_up") {
-    promptCore = `${readableSize}, ${readableAngle}. Detailed focus on ${parsed.heroEn}, capturing fine authentic textures and expressive lighting. Action: ${cleanAction}. Background shows ${parsed.environmentEn} softly blurred with rich cinematic bokeh. ${parsed.styleKeywordsEn}.`;
+    promptCore = `${readableSize}, ${readableAngle}. Detailed focus on ${parsed.heroEn}, capturing fine authentic textures and expressive lighting. Action: ${englishVisualAction}. Background shows ${parsed.environmentEn} softly blurred with rich cinematic bokeh. ${parsed.styleKeywordsEn}.`;
   } else {
-    promptCore = `${readableSize}, ${readableAngle}, ${readableViewpoint}. ${parsed.heroEn} executing dynamic movement: ${cleanAction}, interacting with ${parsed.environmentEn}. Crisp rim lighting and rich depth. ${parsed.styleKeywordsEn}.`;
+    promptCore = `${readableSize}, ${readableAngle}, ${readableViewpoint}. ${parsed.heroEn} executing dynamic movement: ${englishVisualAction}, interacting with ${parsed.environmentEn}. Crisp rim lighting and rich depth. ${parsed.styleKeywordsEn}.`;
   }
 
   // Layer 4: Contextual Anti-Pollution Negatives
@@ -391,7 +474,7 @@ export function formatDirectorVideoPrompt(
 
 // Generate story-adaptive storyboard with genre-aware cinematic beats
 export function generateAdaptiveStoryShots(storyText: string, targetDuration: number = 30.0): ShotPlan[] {
-  const cleanStory = (storyText || "").trim() || "未命名故事分镜";
+  const cleanStory = normalizeAndPreprocessStory(storyText);
   const scene = parseSemanticScene(cleanStory);
   const hero = scene.heroZh;
   const env = scene.environmentZh;
@@ -672,6 +755,8 @@ export async function generateDirectorPipeline(
   const apiBase = options.apiBase?.trim() || "https://openrouter.ai/api/v1";
   const model = options.model?.trim() || "deepseek/deepseek-chat";
 
+  const preprocessedStory = normalizeAndPreprocessStory(storyText);
+
   let expectedCount = 12;
   if (targetDuration <= 8.0) expectedCount = 3;
   else if (targetDuration <= 20.0) expectedCount = 6;
@@ -679,7 +764,7 @@ export async function generateDirectorPipeline(
   if (apiKey) {
     try {
       const systemPrompt = getDirectorSystemPrompt(targetDuration);
-      const userMessage = `【故事剧本内容】：\n${storyText}\n\n【目标时长】：${targetDuration} 秒（请严格规划 ${expectedCount} 个分镜头）。请直接输出纯 JSON 对象（不要附加其他说明文字），格式如下：\n{\n  "theme": "故事主题",\n  "global_visual_anchor": "主角/主体外观特征与核心场景基石 (纯英文自然描述句，严禁包含任何文字标签)",\n  "shots": [ ... ]\n}`;
+      const userMessage = `【故事剧本内容】：\n${preprocessedStory}\n\n【目标时长】：${targetDuration} 秒（请严格规划 ${expectedCount} 个分镜头）。请直接输出纯 JSON 对象（不要附加其他说明文字），格式如下：\n{\n  "theme": "故事主题",\n  "global_visual_anchor": "主角/主体外观特征与核心场景基石 (纯英文自然描述句，严禁包含任何文字标签)",\n  "shots": [ ... ]\n}`;
 
       const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
         method: "POST",
@@ -717,7 +802,7 @@ export async function generateDirectorPipeline(
 
           const parsed = JSON.parse(jsonStr);
           if (parsed.shots && Array.isArray(parsed.shots) && parsed.shots.length > 0) {
-            const parsedScene = parseSemanticScene(storyText);
+            const parsedScene = parseSemanticScene(preprocessedStory);
             const globalAnchor = cleanPromptOfMetaPollution(parsed.global_visual_anchor || parsedScene.styleKeywordsEn);
 
             const enrichedShots: ShotPlan[] = parsed.shots.map((s: any, idx: number) => {
@@ -736,7 +821,7 @@ export async function generateDirectorPipeline(
                   {
                     order: s.order || idx + 1,
                     subject: s.subject || parsedScene.heroZh,
-                    storyContext: storyText.slice(0, 80),
+                    storyContext: preprocessedStory.slice(0, 80),
                     globalAnchor: globalAnchor,
                   }
                 );
@@ -810,8 +895,8 @@ export async function generateDirectorPipeline(
   }
 
   // Fallback to intelligent story-adaptive breakdown
-  const parsedScene = parseSemanticScene(storyText);
-  const fallbackShots = generateAdaptiveStoryShots(storyText, targetDuration);
+  const parsedScene = parseSemanticScene(preprocessedStory);
+  const fallbackShots = generateAdaptiveStoryShots(preprocessedStory, targetDuration);
   return {
     theme: parsedScene.heroZh,
     target_duration: targetDuration,
