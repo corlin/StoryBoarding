@@ -23,14 +23,13 @@ import {
   Columns2,
   LayoutGrid,
 } from "lucide-react";
+import { ExportDeliverablesModal } from "@/components/modals/ExportDeliverablesModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { BibleModal } from "@/components/modals/BibleModal";
 import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { api } from "@/lib/api";
-import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
-import { Loader2 } from "lucide-react";
 import { ShotModel } from "@/types/shot";
 import { cn } from "@/lib/utils";
 
@@ -69,32 +68,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [bibleMode, setBibleMode] = useState<"bible" | "style">("bible");
   const [storyText, setStoryText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCopyingPrompt, setIsCopyingPrompt] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
-  const [isExportingPng, setIsExportingPng] = useState(false);
-  const [exportWithHud, setExportWithHud] = useState(true);
 
   const isBuiltIn = !project || project.id === "demo" || project.id === "demo-matrix-cyber-master";
-
-  const handleExportStoryboardSheetPNG = async () => {
-    if (!project || isExportingPng) return;
-    const currentShots = (shots && shots.length > 0) ? shots : project.sequences?.[0]?.shots || [];
-    if (currentShots.length === 0) {
-      notify.error("项目中暂无镜头数据，无法导出故事板打样单");
-      return;
-    }
-    try {
-      setIsExportingPng(true);
-      notify.info("🎨 正在使用 Canvas 极速合成 16:9 故事板打样单，稍候...");
-      await exportStoryboardSheetToPng(project, currentShots, { includeHud: exportWithHud });
-      notify.success("🎉 完整故事板打样单 (PNG) 已成功生成并下载！");
-    } catch (e: any) {
-      console.error("Export PNG error:", e);
-      notify.error(e?.message || "导出故事板打样单失败");
-    } finally {
-      setIsExportingPng(false);
-    }
-  };
 
   const handleGenerate = async () => {
     if (!storyText.trim()) return;
@@ -104,21 +79,6 @@ export const TopBar: React.FC<TopBarProps> = ({
       setIsOpenModal(false);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleCopyGlobalPrompt = async () => {
-    if (!project) return;
-    try {
-      setIsCopyingPrompt(true);
-      const promptText = await api.fetchDirectorGlobalPrompt(project.id);
-      await navigator.clipboard.writeText(promptText);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (e) {
-      console.error("Failed to copy global prompt:", e);
-    } finally {
-      setIsCopyingPrompt(false);
     }
   };
 
@@ -326,164 +286,12 @@ export const TopBar: React.FC<TopBarProps> = ({
       )}
 
       {/* Export Deliverables Modal */}
-      {isOpenExportModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl w-full max-w-xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2">
-                <Download className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold text-base">工业级分镜全套交付物导出</h3>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-1">
-              {/* Previz HUD Export Option Toggle */}
-              <div className="flex items-center justify-between px-1 py-1 bg-secondary/30 rounded-lg border border-border/60">
-                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer select-none px-2">
-                  <input
-                    type="checkbox"
-                    checked={exportWithHud}
-                    onChange={(e) => setExportWithHud(e.target.checked)}
-                    className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
-                  />
-                  <span>包含导演视听执行辅助图层 (Previz HUD: 运镜箭头/焦点靶心/九宫格)</span>
-                </label>
-                <span className="text-[11px] font-mono text-sky-400 px-2">
-                  {exportWithHud ? "🎯 HUD 已启用" : "纯净无辅助线"}
-                </span>
-              </div>
-
-              {/* Deliverable 1: Storyboard Sheet (1:1 Multi-Panel Grid) via Canvas Exporter (100% Zero 404) */}
-              <button
-                type="button"
-                onClick={handleExportStoryboardSheetPNG}
-                disabled={isExportingPng || (shots?.length === 0 && (!project?.sequences?.[0]?.shots || project.sequences[0].shots.length === 0))}
-                className="w-full flex items-center justify-between p-3 rounded-lg border border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 transition-all group text-left disabled:opacity-50"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded bg-sky-500/20 text-sky-400">
-                    {isExportingPng ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-sky-300">
-                      1. 🖼️ 完整故事板打样单 (PNG)
-                    </h4>
-                    <p className="text-[11px] text-muted-foreground">
-                      1:1 像素级对齐完整故事板打样大图（纯前端 Canvas 极速合成，包含景别角标与动作描述）
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-sky-400 font-medium">
-                  {isExportingPng ? (
-                    <span className="text-sky-300 text-[11px]">合成中...</span>
-                  ) : (
-                    <Download className="w-4 h-4 text-sky-400 group-hover:scale-110 transition-transform" />
-                  )}
-                </div>
-              </button>
-
-              {/* Deliverable 2: Generation Package ZIP */}
-              <a
-                href={project ? api.getExportPackageUrl(project.id) : "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between p-3 rounded-lg border border-primary/40 bg-primary/10 hover:bg-primary/20 transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded bg-primary/20 text-primary">
-                    <Archive className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-primary">2. 📦 全套工业交付包 (Generation Package ZIP)</h4>
-                    <p className="text-[11px] text-muted-foreground">包含 Shot Spec JSON、AI 视频批量生成 Manifest、Markdown 剧本与高清资产清单</p>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
-              </a>
-
-              {/* Deliverable 3: Storyboard Images Pack (ZIP) */}
-              <a
-                href={project ? api.getExportImagesZipUrl(project.id) : "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between p-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded bg-emerald-500/20 text-emerald-400">
-                    <Images className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-emerald-400">3. 🖼️ 高清分镜图包 (Storyboard Images ZIP)</h4>
-                    <p className="text-[11px] text-muted-foreground">每个镜头的 1080P/16:9 高清原图（按 SHOT_01_WS_... 严格规范命名打包）</p>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
-              </a>
-
-              {/* Deliverable 4: Shot Script Markdown */}
-              <a
-                href={project ? api.getExportScriptUrl(project.id) : "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/60 hover:bg-accent/40 hover:border-primary/50 transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded bg-primary/10 text-primary">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">4. 🎬 导演分镜头脚本文档 (Shot Script Markdown)</h4>
-                    <p className="text-[11px] text-muted-foreground">标准好莱坞分镜头台本（包含视听语言、机位运动与对白列表）</p>
-                  </div>
-                </div>
-                <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
-              </a>
-
-              {/* Deliverable 5: Professional Director's Storyboard Global Prompt */}
-              <div className="flex items-center justify-between p-3 rounded-lg border border-sky-500/40 bg-sky-500/5 hover:bg-sky-500/10 transition-all group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded bg-sky-500/20 text-sky-400">
-                    <Terminal className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-sky-300">5. 🌐 导演全局总控提示词 (Global Prompt)</h4>
-                    <p className="text-[11px] text-muted-foreground">好莱坞多格总控 Prompt（支持 Midjourney 单图整版）</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleCopyGlobalPrompt}
-                    disabled={isCopyingPrompt}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-medium border border-sky-500/40 transition-colors"
-                    title="一键复制完整 Prompt 到剪贴板"
-                  >
-                    {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{isCopied ? "已复制" : "复制"}</span>
-                  </button>
-                  <a
-                    href={project ? api.getExportDirectorGlobalPromptUrl(project.id) : "#"}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-1.5 text-muted-foreground hover:text-primary"
-                    title="下载 Markdown 文件"
-                  >
-                    <Download className="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4 mt-2 border-t border-border">
-              <button
-                onClick={() => setIsOpenExportModal(false)}
-                className="px-4 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              >
-                关闭
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExportDeliverablesModal
+        isOpen={isOpenExportModal}
+        onClose={() => setIsOpenExportModal(false)}
+        project={project}
+        shots={shots}
+      />
 
       {/* Delete Project Confirmation Modal */}
       <DeleteProjectModal

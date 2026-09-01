@@ -36,57 +36,47 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       
       const enrichedSequences: SequenceModel[] = (project.sequences || []).map((seq: any) => ({
         id: seq.id,
-        project_id: seq.project_id || seq.projectId || project.id,
-        name: seq.name || seq.title || "主场次",
+        project_id: seq.project_id || project.id,
+        name: seq.title || seq.name || "主场次",
         order: Number(seq.order) || 1,
-        shots: (seq.shots || []).map((shot: any): ShotModel => {
-          const size = shot.shot_size || shot.shotSize || "medium_shot";
-          const angle = shot.camera_angle || shot.cameraAngle || "eye_level";
-          const action = shot.action || "";
-          const subject = shot.subject || "";
-          const order = Number(shot.order) || 1;
-
-          return {
-            id: shot.id,
-            sequence_id: shot.sequence_id || shot.sequenceId || seq.id,
-            order,
-            duration: Number(shot.duration) || 2.5,
-            shot_size: size,
-            camera_angle: angle,
-            camera_movement: typeof shot.camera_movement === "object" ? shot.camera_movement : (typeof shot.cameraMovement === "object" ? shot.cameraMovement : { type: "static" }),
-            subject,
-            action,
-            dialogue: shot.dialogue || "",
-            composition: typeof shot.composition === "object" ? shot.composition : {},
-            character_direction: shot.character_direction || "facing_camera",
-            narrative_function: shot.narrative_function || shot.narrativeFunction || "动作推进",
-            lighting: shot.lighting || "自然光影",
-            audio: typeof shot.audio === "object" ? shot.audio : {},
-            transition: shot.transition || "cut",
-            image_prompt: shot.image_prompt || shot.imagePrompt || "",
-            video_prompt: shot.video_prompt || shot.videoPrompt || "",
-            continuity_data: typeof shot.continuity_data === "object" ? shot.continuity_data : (typeof shot.continuityData === "object" ? shot.continuityData : {}),
-            storyboard_image_url:
-              shot.storyboard_image_url ||
-              shot.storyboardImageUrl ||
-              "",
-            is_dirty: typeof shot.is_dirty === "boolean" ? shot.is_dirty : (typeof shot.isDirty === "boolean" ? shot.isDirty : false),
-            created_at: shot.created_at || shot.createdAt || new Date().toISOString(),
-            updated_at: shot.updated_at || shot.updatedAt || new Date().toISOString(),
-          };
-        }),
+        shots: (seq.shots || []).map((shot: any): ShotModel => ({
+          id: shot.id,
+          sequence_id: shot.sequence_id || seq.id,
+          order: Number(shot.order) || 1,
+          duration: Number(shot.duration) || 2.5,
+          shot_size: shot.shot_size || "medium_shot",
+          camera_angle: shot.camera_angle || "eye_level",
+          camera_movement: typeof shot.camera_movement === "object" ? shot.camera_movement : { type: "static" },
+          subject: shot.subject || "",
+          action: shot.action || "",
+          dialogue: shot.dialogue || "",
+          composition: typeof shot.composition === "object" ? shot.composition : {},
+          character_direction: shot.character_direction || "facing_camera",
+          narrative_function: shot.narrative_function || "动作推进",
+          lighting: shot.lighting || "自然光影",
+          audio: typeof shot.audio === "object" ? shot.audio : {},
+          transition: shot.transition || "cut",
+          image_prompt: shot.image_prompt || "",
+          video_prompt: shot.video_prompt || "",
+          continuity_data: typeof shot.continuity_data === "object" ? shot.continuity_data : {},
+          storyboard_image_url: shot.storyboard_image_url || "",
+          is_dirty: Boolean(shot.is_dirty),
+          created_at: shot.created_at || new Date().toISOString(),
+          updated_at: shot.updated_at || new Date().toISOString(),
+        })),
       }));
 
       const enrichedProject: ProjectModel = {
         id: project.id,
-        user_id: (project as any).user_id || "default",
+        user_id: project.user_id || "default",
         title: project.title,
         story: project.story || "",
-        style_config: (project as any).style_config || {},
-        target_duration: Number(project.target_duration || (project as any).targetDuration) || 30.0,
-        shot_count: (project as any).shot_count || enrichedSequences.reduce((acc, s) => acc + s.shots.length, 0),
-        created_at: project.created_at || (project as any).createdAt || new Date().toISOString(),
-        updated_at: project.updated_at || (project as any).updatedAt || new Date().toISOString(),
+        style_config: project.style_config || {},
+        target_duration: Number(project.target_duration) || 30.0,
+        shot_count: project.shot_count || enrichedSequences.reduce((acc, s) => acc + s.shots.length, 0),
+        cover_image_url: project.cover_image_url || "",
+        created_at: project.created_at || new Date().toISOString(),
+        updated_at: project.updated_at || new Date().toISOString(),
         sequences: enrichedSequences,
       };
 
