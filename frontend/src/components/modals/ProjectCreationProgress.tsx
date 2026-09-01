@@ -15,6 +15,7 @@ interface ProjectCreationProgressProps {
   onRetry?: () => void;
   onCancel?: () => void;
   onOpenSettings?: () => void;
+  onSkipToWorkspace?: () => void;
 }
 
 const CREATION_STAGES = [
@@ -52,6 +53,7 @@ export const ProjectCreationProgress: React.FC<ProjectCreationProgressProps> = (
   onRetry,
   onCancel,
   onOpenSettings,
+  onSkipToWorkspace,
 }) => {
   return (
     <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
@@ -184,6 +186,23 @@ export const ProjectCreationProgress: React.FC<ProjectCreationProgressProps> = (
           );
         })}
       </div>
+
+      {/* Fast Enter / Skip Wait Button (Appears when >= 3.0s to give user control) */}
+      {!errorMessage && !isComplete && elapsedSeconds >= 3.0 && onSkipToWorkspace && (
+        <div className="flex items-center justify-between p-3 rounded-xl border border-sky-500/40 bg-sky-500/10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center gap-2 text-xs text-sky-300 min-w-0">
+            <Sparkles className="w-4 h-4 text-sky-400 shrink-0" />
+            <span className="truncate">大模型正在后台规划分镜，您可直接进入工作台</span>
+          </div>
+          <button
+            type="button"
+            onClick={onSkipToWorkspace}
+            className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500 hover:bg-sky-400 text-black shadow-xs transition-colors"
+          >
+            <span>⚡ 直接进入工作台</span>
+          </button>
+        </div>
+      )}
 
       {/* Error Callout & In-place Recovery Buttons */}
       {errorMessage && (

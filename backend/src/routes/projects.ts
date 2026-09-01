@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { eq, desc } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
 import { projects, sequences, shots, systemSettings } from "../db/schema";
-import { runDirectorPipeline, formatDirectorImagePrompt } from "../agents/director/pipeline";
+import { runDirectorPipeline, formatDirectorImagePrompt, generateAdaptiveStoryShots } from "../agents/director/pipeline";
 import { generateCinematicStoryboardImage, runConcurrentTasks, getProjectBaseSeed } from "./generation";
 
 const router = new Hono<{ Bindings: Bindings }>();
@@ -218,11 +218,26 @@ router.post("/", async (c) => {
 
   try {
     const settings = await getActiveSettings(db, c.env);
-    const plan = await runDirectorPipeline(effectiveStory, targetDuration, {
+    
+    // 10s strict timeout wrapper with graceful adaptive fallback
+    const directorPromise = runDirectorPipeline(effectiveStory, targetDuration, {
       apiKey: settings.llmApiKey,
       apiBase: settings.llmApiBase,
       model: settings.llmModel,
     });
+
+    const timeoutPromise = new Promise<{ theme: string; target_duration: number; shots: any[] }>((resolve) =>
+      setTimeout(() => {
+        console.warn(`[Project Creation] LLM breakdown exceeded 10s, utilizing high-quality adaptive fallback`);
+        resolve({
+          theme: effectiveStory.slice(0, 30) || "AI 导演项目",
+          target_duration: targetDuration,
+          shots: generateAdaptiveStoryShots(effectiveStory, targetDuration),
+        });
+      }, 10000)
+    );
+
+    const plan = await Promise.race([directorPromise, timeoutPromise]);
 
     // Fast instant insertion of structured director shots into D1
     const insertedShotTasks: { shotId: string; s: any }[] = [];

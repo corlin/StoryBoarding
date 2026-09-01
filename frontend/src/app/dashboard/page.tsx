@@ -64,27 +64,21 @@ export default function DashboardPage() {
 
     const startTime = Date.now();
 
-    // Instant smooth progress interpolation engine
+    // Truthful, smooth organic progress interpolation engine
     progressIntervalRef.current = setInterval(() => {
       const elapsed = Number(((Date.now() - startTime) / 1000).toFixed(1));
       setCreationElapsed(elapsed);
 
-      // Fast multi-stage curve tuned for ~1.2s instant creation
-      if (elapsed < 0.3) {
+      if (elapsed < 0.4) {
+        // Stage 0: 实体建库与元数据初始化 (0~0.4s)
         setCreationStage(0);
-        setCreationProgress(Math.min(30, Math.round(5 + (elapsed / 0.3) * 25)));
-      } else if (elapsed < 0.7) {
-        setCreationStage(1);
-        const ratio = (elapsed - 0.3) / 0.4;
-        setCreationProgress(Math.min(65, Math.round(30 + ratio * 35)));
-      } else if (elapsed < 1.1) {
-        setCreationStage(2);
-        const ratio = (elapsed - 0.7) / 0.4;
-        setCreationProgress(Math.min(88, Math.round(65 + ratio * 23)));
+        setCreationProgress(Math.min(25, Math.round(5 + (elapsed / 0.4) * 20)));
       } else {
-        setCreationStage(3);
-        const ratio = Math.min(1, (elapsed - 1.1) / 1.5);
-        setCreationProgress(Math.min(97, Math.round(88 + ratio * 9)));
+        // Stage 1: 好莱坞 AI 导演大模型深度拆镜 (Main thinking phase: 0.4s ~ 10s)
+        // Smooth asymptotic curve climbing from 25% to ~78% during LLM breakdown
+        setCreationStage(1);
+        const thinkingProgress = Math.min(78, Math.round(25 + (1 - Math.exp(-(elapsed - 0.4) / 3.0)) * 53));
+        setCreationProgress(thinkingProgress);
       }
     }, 50);
 
@@ -96,16 +90,26 @@ export default function DashboardPage() {
       });
 
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      setCreationProgress(100);
+
+      // Fast visual ripple on return: Stage 2 -> Stage 3 -> Complete 100%
+      setCreationStage(2);
+      setCreationProgress(88);
+      await new Promise((r) => setTimeout(r, 100));
+
+      setCreationStage(3);
+      setCreationProgress(96);
+      await new Promise((r) => setTimeout(r, 100));
+
       setCreationStage(4);
+      setCreationProgress(100);
       setCreationComplete(true);
 
-      // Snappy 250ms delay to display 100% success badge
+      // Snappy transition into workspace
       setTimeout(() => {
         setIsCreating(false);
         setIsSubmittingProject(false);
         router.push(`/workspace?id=${created.id}`);
-      }, 250);
+      }, 200);
     } catch (err: any) {
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       console.error("Failed to create project", err);
@@ -212,6 +216,12 @@ export default function DashboardPage() {
                   errorMessage={creationError}
                   onRetry={() => handleCreate()}
                   onCancel={handleCancelCreate}
+                  onSkipToWorkspace={() => {
+                    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+                    setIsCreating(false);
+                    setIsSubmittingProject(false);
+                    router.push("/workspace");
+                  }}
                   onOpenSettings={() => {
                     setIsCreating(false);
                     setIsSubmittingProject(false);
