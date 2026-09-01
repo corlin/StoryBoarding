@@ -329,26 +329,119 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
             </div>
           </div>
 
-          {/* Section 4: AI Generation Prompts */}
+          {/* Section 4: Layered Visual Inspector & AI Generation Prompts */}
           <div className="p-5 rounded-xl border border-border/80 bg-background/50 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span>AI 生图与视频 Prompt (可微调)</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span>分层视听检查器 (Layered Visual Inspector)</span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                5维工业级解构
+              </span>
             </div>
 
-            <div className="space-y-4">
+            {/* 5 Layered Visual Modules */}
+            <div className="space-y-3 bg-muted/20 p-3.5 rounded-xl border border-border/60">
+              {/* Module 1: Hero & DNA */}
+              <div className="flex items-start gap-2.5">
+                <div className="p-1 rounded bg-amber-500/10 text-amber-400 text-xs font-mono shrink-0 mt-0.5">
+                  🧬 基因
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-foreground">主角实体与视觉基因 (Hero DNA)</span>
+                    <span className="text-[10px] text-muted-foreground">全片连续性基石</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                    {formData.subject || "默认主角实体 (由项目全局视觉基石锁定)"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="h-[1px] bg-border/40" />
+
+              {/* Module 2: Worldview & Environment */}
+              <div className="flex items-start gap-2.5">
+                <div className="p-1 rounded bg-sky-500/10 text-sky-400 text-xs font-mono shrink-0 mt-0.5">
+                  🏰 场景
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs font-medium text-foreground">世界观与环境空间 (Environment)</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {shot.lighting || "电影级通透环境光影，三层景深视差构图"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="h-[1px] bg-border/40" />
+
+              {/* Module 3: Framing & Vantage */}
+              <div className="flex items-start gap-2.5">
+                <div className="p-1 rounded bg-purple-500/10 text-purple-400 text-xs font-mono shrink-0 mt-0.5">
+                  📐 构图
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs font-medium text-foreground">景别构图与摄影机视角</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="px-2 py-0.5 rounded bg-background border border-border text-xs font-mono text-sky-400 font-semibold">
+                      {formData.shot_size?.toUpperCase()}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-background border border-border text-xs font-mono text-purple-400">
+                      {formData.camera_angle}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-background border border-border text-xs font-mono text-emerald-400">
+                      {movType}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-[1px] bg-border/40" />
+
+              {/* Module 4: Visual Action */}
+              <div className="flex items-start gap-2.5">
+                <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 text-xs font-mono shrink-0 mt-0.5">
+                  ⚡ 动作
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs font-medium text-foreground">具象动态台本 (Visual Action)</span>
+                  <p className="text-xs text-foreground/90 mt-0.5 leading-relaxed font-medium">
+                    {formData.action || "主角展开具体动态调度..."}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Generated Pure Image Prompt Textarea */}
+            <div className="space-y-4 pt-1">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Image Prompt (分镜绘图提示词)
-                  </label>
-                  <button
-                    onClick={() => handleCopy(formData.image_prompt || "", "img")}
-                    className="flex items-center gap-1 text-[11px] text-primary hover:underline"
-                  >
-                    {copiedKey === "img" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedKey === "img" ? "已复制" : "复制"}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-semibold text-foreground">
+                      纯净英文生图提示词 (Pure Visual Prompt)
+                    </label>
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
+                      去字样/防穿帮
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleCopy(formData.image_prompt || "", "img")}
+                      className="flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      {copiedKey === "img" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedKey === "img" ? "已复制" : "复制"}</span>
+                    </button>
+                    <button
+                      onClick={handleRegenerate}
+                      disabled={isRegenerating}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-all shadow-xs"
+                    >
+                      {isRegenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                      <span>重绘此镜</span>
+                    </button>
+                  </div>
                 </div>
                 <textarea
                   rows={3}
@@ -358,6 +451,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                 />
               </div>
 
+              {/* Video Prompt */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
