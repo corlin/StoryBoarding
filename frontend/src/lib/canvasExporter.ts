@@ -18,7 +18,6 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = () => {
-      // Secondary fallback attempt without crossOrigin
       const fallbackImg = new Image();
       fallbackImg.onload = () => resolve(fallbackImg);
       fallbackImg.onerror = () => resolve(null);
@@ -101,6 +100,7 @@ export interface ExportOptions {
   includeHud?: boolean;
 }
 
+// Lightweight, instant, 1K-standard Previz draft sheet
 export async function exportStoryboardSheetToPng(
   project: ProjectModel,
   shots: ShotModel[],
@@ -112,7 +112,7 @@ export async function exportStoryboardSheetToPng(
 
   const includeHud = options.includeHud ?? true;
 
-  // Pre-load all shot images in parallel with 3-tier safety
+  // Pre-load images in parallel
   const imagePromises = shots.map((s) =>
     s.storyboard_image_url ? loadImage(normalizeAssetUrl(s.storyboard_image_url)) : Promise.resolve(null)
   );
@@ -128,95 +128,58 @@ export async function exportStoryboardSheetToPng(
 
   const rows = Math.ceil(count / cols);
 
-  // Geometry (Base dimensions before Retina 2x scaling)
-  const cellWidth = 560;
-  const cellImgHeight = 315; // 16:9
-  const cellTextHeight = 105;
+  // Compact, fast, lightweight Previz Draft Dimensions (<1K total width)
+  const cellWidth = 380;
+  const cellImgHeight = 214; // 16:9 widescreen ratio
+  const cellTextHeight = 86;
   const cellHeight = cellImgHeight + cellTextHeight;
 
-  const padding = 48;
-  const headerHeight = 140;
-  const footerHeight = 60;
-  const gap = 24;
+  const padding = 28;
+  const headerHeight = 96;
+  const footerHeight = 44;
+  const gap = 16;
 
   const canvasWidth = padding * 2 + cols * cellWidth + (cols - 1) * gap;
   const canvasHeight = padding * 2 + headerHeight + rows * cellHeight + (rows - 1) * gap + footerHeight;
 
-  // Retina 2x Scale for Pristine 4K Output
-  const scale = 2;
   const canvas = document.createElement("canvas");
-  canvas.width = canvasWidth * scale;
-  canvas.height = canvasHeight * scale;
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("无法初始化 Canvas 绘图上下文");
 
-  ctx.scale(scale, scale);
-
-  // 1. Background (Cinema Dark Slate)
+  // 1. Background (Cinema Darkroom)
   ctx.fillStyle = "#0c0f17";
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // Subtle background grid pattern
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
-  ctx.lineWidth = 1;
-  for (let x = 0; x < canvasWidth; x += 40) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvasHeight);
-    ctx.stroke();
-  }
-  for (let y = 0; y < canvasHeight; y += 40) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(canvasWidth, y);
-    ctx.stroke();
-  }
+  // 2. Header
+  const headerY = padding + 8;
 
-  // 2. Header Bar
-  const headerY = padding + 20;
-
-  // Top Category Pill
-  ctx.fillStyle = "rgba(56, 189, 248, 0.15)";
-  ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  if (typeof (ctx as any).roundRect === "function") {
-    (ctx as any).roundRect(padding, headerY, 320, 28, 6);
-  } else {
-    ctx.rect(padding, headerY, 320, 28);
-  }
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.fillStyle = "#38bdf8";
-  ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
-  ctx.fillText("🎬 好莱坞 AI 导演故事板打样单 (Previz Sheet · 4K UHD)", padding + 12, headerY + 18);
-
-  // Project Title
+  // Header Title
   ctx.fillStyle = "#f8fafc";
-  ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
-  ctx.fillText(project.title || "未命名故事板工程", padding, headerY + 68);
+  ctx.font = "bold 20px system-ui, -apple-system, sans-serif";
+  ctx.fillText(project.title || "导演分镜头草图打样单", padding, headerY + 24);
 
-  // Project Metadata Subtitle
+  // Header Subtitle
   ctx.fillStyle = "#94a3b8";
-  ctx.font = "14px system-ui, -apple-system, sans-serif";
+  ctx.font = "12px system-ui, -apple-system, sans-serif";
   const totalDur = shots.reduce((acc, s) => acc + (s.duration || 2.5), 0);
   ctx.fillText(
-    `目标时长: ${project.target_duration || totalDur.toFixed(1)}s  |  镜头总数: ${count} 镜  |  画幅比例: 16:9 宽银幕电影级 (Retina 2x)  |  生成时间: ${new Date().toLocaleDateString()}`,
+    `Previz 草图  |  时长: ${project.target_duration || totalDur.toFixed(1)}s  |  共 ${count} 镜  |  16:9 故事板  |  ${new Date().toLocaleDateString()}`,
     padding,
-    headerY + 98
+    headerY + 48
   );
 
-  // Header Divider
+  // Divider line
   ctx.strokeStyle = "rgba(148, 163, 184, 0.2)";
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(padding, headerY + 115);
-  ctx.lineTo(canvasWidth - padding, headerY + 115);
+  ctx.moveTo(padding, headerY + 64);
+  ctx.lineTo(canvasWidth - padding, headerY + 64);
   ctx.stroke();
 
   // 3. Grid Panels
-  const gridStartY = padding + headerHeight + 10;
+  const gridStartY = padding + headerHeight;
 
   for (let i = 0; i < count; i++) {
     const shot = shots[i];
@@ -230,21 +193,21 @@ export async function exportStoryboardSheetToPng(
     // Cell Outer Card Container
     ctx.fillStyle = "#141923";
     ctx.strokeStyle = "#273142";
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     if (typeof (ctx as any).roundRect === "function") {
-      (ctx as any).roundRect(cellX, cellY, cellWidth, cellHeight, 10);
+      (ctx as any).roundRect(cellX, cellY, cellWidth, cellHeight, 8);
     } else {
       ctx.rect(cellX, cellY, cellWidth, cellHeight);
     }
     ctx.fill();
     ctx.stroke();
 
-    // Draw Image / Darkroom Frame
+    // Draw Image / Graphite Placeholder
     ctx.save();
     ctx.beginPath();
     if (typeof (ctx as any).roundRect === "function") {
-      (ctx as any).roundRect(cellX, cellY, cellWidth, cellImgHeight, [10, 10, 0, 0]);
+      (ctx as any).roundRect(cellX, cellY, cellWidth, cellImgHeight, [8, 8, 0, 0]);
     } else {
       ctx.rect(cellX, cellY, cellWidth, cellImgHeight);
     }
@@ -253,27 +216,24 @@ export async function exportStoryboardSheetToPng(
     if (img) {
       ctx.drawImage(img, cellX, cellY, cellWidth, cellImgHeight);
     } else {
-      // Aesthetic Graphite Filmstrip Placeholder with subtle grid and target
-      const grad = ctx.createLinearGradient(cellX, cellY, cellX + cellWidth, cellY + cellImgHeight);
-      grad.addColorStop(0, "#161d2d");
-      grad.addColorStop(1, "#0d131f");
-      ctx.fillStyle = grad;
+      // Clean graphite film draft placeholder
+      ctx.fillStyle = "#161d2d";
       ctx.fillRect(cellX, cellY, cellWidth, cellImgHeight);
 
-      // Center crosshair and frame grid
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.15)";
+      // Center crosshair
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.18)";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(cellX + cellWidth / 2 - 24, cellY + cellImgHeight / 2);
-      ctx.lineTo(cellX + cellWidth / 2 + 24, cellY + cellImgHeight / 2);
-      ctx.moveTo(cellX + cellWidth / 2, cellY + cellImgHeight / 2 - 24);
-      ctx.lineTo(cellX + cellWidth / 2, cellY + cellImgHeight / 2 + 24);
+      ctx.moveTo(cellX + cellWidth / 2 - 16, cellY + cellImgHeight / 2);
+      ctx.lineTo(cellX + cellWidth / 2 + 16, cellY + cellImgHeight / 2);
+      ctx.moveTo(cellX + cellWidth / 2, cellY + cellImgHeight / 2 - 16);
+      ctx.lineTo(cellX + cellWidth / 2, cellY + cellImgHeight / 2 + 16);
       ctx.stroke();
 
       ctx.fillStyle = "#64748b";
-      ctx.font = "bold 13px system-ui, sans-serif";
+      ctx.font = "11px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(`SHOT ${String(shot.order || i + 1).padStart(2, "0")} · 视听草图就绪`, cellX + cellWidth / 2, cellY + cellImgHeight / 2 + 36);
+      ctx.fillText(`SHOT ${String(shot.order || i + 1).padStart(2, "0")} · 草图`, cellX + cellWidth / 2, cellY + cellImgHeight / 2 + 24);
       ctx.textAlign = "left";
     }
 
@@ -282,36 +242,13 @@ export async function exportStoryboardSheetToPng(
         ? (shot.camera_movement as any)?.type || "static"
         : shot.camera_movement || "static";
 
-    // Optional: Draw Previz HUD Overlay on Canvas Image Area
+    // Optional: Draw Previz HUD
     if (includeHud) {
-      // Rule of Thirds Lines (Ultra subtle)
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+      // Safe Crop Marks
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
       ctx.lineWidth = 1;
-      const w3 = cellWidth / 3;
-      const h3 = cellImgHeight / 3;
-      ctx.beginPath();
-      ctx.moveTo(cellX + w3, cellY); ctx.lineTo(cellX + w3, cellY + cellImgHeight);
-      ctx.moveTo(cellX + w3 * 2, cellY); ctx.lineTo(cellX + w3 * 2, cellY + cellImgHeight);
-      ctx.moveTo(cellX, cellY + h3); ctx.lineTo(cellX + cellWidth, cellY + h3);
-      ctx.moveTo(cellX, cellY + h3 * 2); ctx.lineTo(cellX + cellWidth, cellY + h3 * 2);
-      ctx.stroke();
-
-      // Rule of Thirds 4 Golden Power Points (+)
-      ctx.fillStyle = "rgba(56, 189, 248, 0.4)";
-      ctx.font = "12px monospace";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("┼", cellX + w3, cellY + h3);
-      ctx.fillText("┼", cellX + w3 * 2, cellY + h3);
-      ctx.fillText("┼", cellX + w3, cellY + h3 * 2);
-      ctx.fillText("┼", cellX + w3 * 2, cellY + h3 * 2);
-      ctx.textBaseline = "alphabetic";
-
-      // 90% Action Safe Corner Crop Marks
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.5)";
-      ctx.lineWidth = 1.2;
-      const safeInset = 8;
-      const markLen = 6;
+      const safeInset = 6;
+      const markLen = 5;
       ctx.beginPath();
       // Top-Left
       ctx.moveTo(cellX + safeInset, cellY + safeInset + markLen);
@@ -331,18 +268,18 @@ export async function exportStoryboardSheetToPng(
       ctx.lineTo(cellX + cellWidth - safeInset, cellY + cellImgHeight - safeInset - markLen);
       ctx.stroke();
 
-      // Motion Vector Pill at bottom of image
+      // Motion Vector Badge at bottom
       const movBadgeText = getMovementBadgeText(movType);
-      ctx.fillStyle = "rgba(12, 15, 23, 0.88)";
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.5)";
+      ctx.fillStyle = "rgba(12, 15, 23, 0.85)";
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
       ctx.lineWidth = 1;
-      const badgeW = 160;
-      const badgeH = 22;
+      const badgeW = 130;
+      const badgeH = 18;
       const badgeX = cellX + (cellWidth - badgeW) / 2;
-      const badgeY = cellY + cellImgHeight - 30;
+      const badgeY = cellY + cellImgHeight - 24;
       ctx.beginPath();
       if (typeof (ctx as any).roundRect === "function") {
-        (ctx as any).roundRect(badgeX, badgeY, badgeW, badgeH, 11);
+        (ctx as any).roundRect(badgeX, badgeY, badgeW, badgeH, 9);
       } else {
         ctx.rect(badgeX, badgeY, badgeW, badgeH);
       }
@@ -350,15 +287,15 @@ export async function exportStoryboardSheetToPng(
       ctx.stroke();
 
       ctx.fillStyle = "#38bdf8";
-      ctx.font = "bold 10px monospace";
+      ctx.font = "bold 9px monospace";
       ctx.textAlign = "center";
-      ctx.fillText(movBadgeText, cellX + cellWidth / 2, badgeY + 15);
+      ctx.fillText(movBadgeText, cellX + cellWidth / 2, badgeY + 12);
       ctx.textAlign = "left";
     }
 
     ctx.restore();
 
-    // Image Top Badge: SHOT No · Shot Size · Duration
+    // Top Badge: SHOT No · Shot Size · Duration
     const shotNoStr = String(shot.order || i + 1).padStart(2, "0");
     const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || (shot.shot_size || "MS").toUpperCase().slice(0, 3);
     const durStr = `${(shot.duration || 2.5).toFixed(1)}s`;
@@ -368,58 +305,57 @@ export async function exportStoryboardSheetToPng(
     ctx.lineWidth = 1;
     ctx.beginPath();
     if (typeof (ctx as any).roundRect === "function") {
-      (ctx as any).roundRect(cellX + 12, cellY + 12, 160, 26, 6);
+      (ctx as any).roundRect(cellX + 8, cellY + 8, 128, 22, 4);
     } else {
-      ctx.rect(cellX + 12, cellY + 12, 160, 26);
+      ctx.rect(cellX + 8, cellY + 8, 128, 22);
     }
     ctx.fill();
     ctx.stroke();
 
     ctx.fillStyle = "#38bdf8";
-    ctx.font = "bold 12px monospace, monospace";
-    ctx.fillText(`${shotNoStr}`, cellX + 22, cellY + 29);
+    ctx.font = "bold 10px monospace";
+    ctx.fillText(`${shotNoStr}`, cellX + 16, cellY + 22);
 
     ctx.fillStyle = "#94a3b8";
-    ctx.fillText("·", cellX + 46, cellY + 29);
+    ctx.fillText("·", cellX + 36, cellY + 22);
 
     ctx.fillStyle = "#f1f5f9";
-    ctx.font = "bold 12px monospace, monospace";
-    ctx.fillText(sizeAbbr, cellX + 58, cellY + 29);
+    ctx.fillText(sizeAbbr, cellX + 46, cellY + 22);
 
     ctx.fillStyle = "#94a3b8";
-    ctx.fillText("·", cellX + 90, cellY + 29);
+    ctx.fillText("·", cellX + 72, cellY + 22);
 
     ctx.fillStyle = "#34d399";
-    ctx.fillText(durStr, cellX + 102, cellY + 29);
+    ctx.fillText(durStr, cellX + 82, cellY + 22);
 
     // Text Box Area
-    const textY = cellY + cellImgHeight + 18;
+    const textY = cellY + cellImgHeight + 14;
 
     // Action Description (2 lines max)
     ctx.fillStyle = "#f8fafc";
-    ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
-    wrapText(ctx, shot.action || "镜头动作推进中...", cellX + 16, textY, cellWidth - 32, 20, 2);
+    ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
+    wrapText(ctx, shot.action || "镜头动作推进中...", cellX + 10, textY, cellWidth - 20, 16, 2);
 
     ctx.fillStyle = "#64748b";
-    ctx.font = "11px system-ui, monospace";
+    ctx.font = "10px system-ui, monospace";
     ctx.fillText(
-      `📷 机位运镜: ${movType}  |  景别机位: ${shot.shot_size} / ${shot.camera_angle || "eye_level"}`,
-      cellX + 16,
-      cellY + cellHeight - 16
+      `机位: ${movType} · ${shot.shot_size} / ${shot.camera_angle || "eye_level"}`,
+      cellX + 10,
+      cellY + cellHeight - 10
     );
   }
 
   // 4. Footer
-  const footerY = canvasHeight - padding + 10;
+  const footerY = canvasHeight - padding + 8;
   ctx.fillStyle = "#475569";
-  ctx.font = "12px system-ui, -apple-system, sans-serif";
+  ctx.font = "11px system-ui, -apple-system, sans-serif";
   ctx.fillText(
-    "StoryBoarding AI · Hollywood Visual Previz System · 16:9 Contact Sheet Output · 4K UHD Master",
+    "StoryBoarding AI · 导演视觉故事板工作草图 (Previz Draft Sheet)",
     padding,
     footerY
   );
 
-  // 5. Convert to PNG Blob and Trigger Download
+  // 5. Convert to lightweight PNG Blob and trigger instant download (< 300KB)
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {
@@ -429,7 +365,7 @@ export async function exportStoryboardSheetToPng(
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Storyboard_Sheet_${sanitizeFilename(project.title || "project")}_4K.png`;
+      link.download = `Storyboard_Draft_${sanitizeFilename(project.title || "project")}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

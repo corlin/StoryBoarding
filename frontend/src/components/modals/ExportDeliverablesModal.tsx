@@ -124,9 +124,9 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
                 {isExportingPng ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
               </div>
               <div>
-                <h4 className="text-xs font-bold text-sky-300">1. 🖼️ 完整故事板打样单 (PNG)</h4>
+                <h4 className="text-xs font-bold text-sky-300">1. 🖼️ 导演故事板工作草图打样单 (PNG Draft)</h4>
                 <p className="text-[11px] text-muted-foreground">
-                  纯客户端 Canvas 极速合成，16:9 宽银幕排版，包含景别角标与动作描述（零 404）
+                  纯客户端 Canvas 极速合成轻量打样单（1K 级标准尺寸，小体积秒下载，零等待）
                 </p>
               </div>
             </div>
