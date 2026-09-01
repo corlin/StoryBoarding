@@ -253,6 +253,10 @@ router.post("/:id/clone", async (c) => {
     const authHeader = c.req.header("Authorization");
     const authUser = await getAuthUser(authHeader);
 
+    if (!authUser) {
+      return c.json({ detail: "请先登录或注册导演账号后再克隆工程" }, 401);
+    }
+
     if (srcId === "demo") {
       await ensureDemoProject(db);
     }
@@ -269,7 +273,7 @@ router.post("/:id/clone", async (c) => {
       .insert(projects)
       .values({
         id: newProjId,
-        userId: authUser ? authUser.userId : null,
+        userId: authUser.userId,
         title: newTitle,
         story: srcProj.story,
         targetDuration: srcProj.targetDuration,
@@ -344,11 +348,15 @@ router.post("/", async (c) => {
     const authHeader = c.req.header("Authorization");
     const authUser = await getAuthUser(authHeader);
 
+    if (!authUser) {
+      return c.json({ detail: "请先登录或注册导演账号后再创建分镜工程" }, 401);
+    }
+
     const [newProj] = await db
       .insert(projects)
       .values({
         id,
-        userId: authUser ? authUser.userId : null,
+        userId: authUser.userId,
         title,
         story,
         targetDuration,

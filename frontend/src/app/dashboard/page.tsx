@@ -116,7 +116,26 @@ export default function DashboardPage() {
     loadProjects();
   }, [user]);
 
+  const handleOpenCreateModal = () => {
+    if (!isAuthenticated) {
+      notify.info("🎬 请先登录或注册导演账号，即可创建并永久保存您的私有故事板工程");
+      openAuthModal("login");
+      return;
+    }
+    setNewTitle("");
+    setNewStory("");
+    setTargetDuration(30);
+    setIsSubmittingProject(false);
+    setCreationError(null);
+    setIsCreating(true);
+  };
+
   const handleApplyTemplate = (tmpl: typeof STARTER_TEMPLATES[0]) => {
+    if (!isAuthenticated) {
+      notify.info("🎬 请先登录或注册导演账号，即可一键套用模板创建私有工程");
+      openAuthModal("login");
+      return;
+    }
     setNewTitle(tmpl.storyTitle);
     setNewStory(tmpl.desc);
     setTargetDuration(tmpl.duration);
@@ -128,6 +147,12 @@ export default function DashboardPage() {
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
+
+    if (!isAuthenticated) {
+      notify.info("🎬 请先登录或注册导演账号后再创建工程");
+      openAuthModal("login");
+      return;
+    }
 
     setIsSubmittingProject(true);
     setCreationElapsed(0);
@@ -185,7 +210,7 @@ export default function DashboardPage() {
     e.stopPropagation();
 
     if (!isAuthenticated) {
-      notify.info("💡 请先登录或注册，即可将官方 Demo 克隆至您的私有工作区");
+      notify.info("🎬 请先登录或注册导演账号，即可将官方 Demo 克隆至您的私有工作区");
       openAuthModal("login");
       return;
     }
@@ -325,14 +350,7 @@ export default function DashboardPage() {
           )}
 
           <button
-            onClick={() => {
-              setNewTitle("");
-              setNewStory("");
-              setTargetDuration(30);
-              setIsSubmittingProject(false);
-              setCreationError(null);
-              setIsCreating(true);
-            }}
+            onClick={handleOpenCreateModal}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
           >
             <Plus className="w-4 h-4" />
@@ -471,12 +489,7 @@ export default function DashboardPage() {
                       <span>体验 Demo 矩阵对决</span>
                     </Link>
                     <button
-                      onClick={() => {
-                        setNewTitle("");
-                        setNewStory("");
-                        setTargetDuration(30);
-                        setIsCreating(true);
-                      }}
+                      onClick={handleOpenCreateModal}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
                     >
                       <Plus className="w-3.5 h-3.5" />
