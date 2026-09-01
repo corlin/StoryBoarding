@@ -104,16 +104,28 @@ router.get("/", async (c) => {
     allProjects.map(async (p) => {
       const seqs = await db.select().from(sequences).where(eq(sequences.projectId, p.id)).all();
       let totalShots = 0;
+      let coverImageUrl = "";
+      const previewImages: string[] = [];
+
       for (const s of seqs) {
-        const shotList = await db.select().from(shots).where(eq(shots.sequenceId, s.id)).all();
+        const shotList = await db.select().from(shots).where(eq(shots.sequenceId, s.id)).orderBy(shots.order).all();
         totalShots += shotList.length;
+        for (const shot of shotList) {
+          if (shot.storyboardImageUrl) {
+            if (!coverImageUrl) coverImageUrl = shot.storyboardImageUrl;
+            if (previewImages.length < 3) previewImages.push(shot.storyboardImageUrl);
+          }
+        }
       }
+
       return {
         id: p.id,
         title: p.title,
         story: p.story,
         target_duration: p.targetDuration,
         shot_count: totalShots,
+        cover_image_url: coverImageUrl,
+        preview_images: previewImages,
         created_at: p.createdAt,
         updated_at: p.updatedAt,
       };

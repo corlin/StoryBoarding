@@ -90,6 +90,8 @@ export interface ProjectModel {
   style_config: Record<string, any>;
   target_duration: number;
   shot_count?: number;
+  cover_image_url?: string;
+  preview_images?: string[];
   created_at: string;
   updated_at: string;
   sequences: SequenceModel[];
