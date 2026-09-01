@@ -27,6 +27,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
+  // Key Security state (never store plaintext keys in client state)
+  const [hasLlmKey, setHasLlmKey] = useState(false);
+  const [hasImageKey, setHasImageKey] = useState(false);
+
   // Model Diagnostics states
   const [llmTestStatus, setLlmTestStatus] = useState<"idle" | "testing" | "ok" | "err">("idle");
   const [llmTestMsg, setLlmTestMsg] = useState("");
@@ -42,16 +46,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       setImageTestStatus("idle");
 
       api.getProviderConfig()
-        .then((config) => {
+        .then((config: any) => {
           if (config) {
             setLlmProvider(config.llm_provider || "openrouter");
             setLlmApiBase(config.llm_api_base || "https://openrouter.ai/api/v1");
-            setLlmApiKey(config.llm_api_key || "");
+            setLlmApiKey(""); // Plaintext strictly not populated
+            setHasLlmKey(Boolean(config.has_llm_key || config.llm_api_key_masked));
             setLlmModel(config.llm_model || "deepseek/deepseek-chat");
             setImageProvider(config.image_provider || "openrouter");
             setImageApiBase(config.image_api_base || "https://openrouter.ai/api/v1");
-            setImageApiKey(config.image_api_key || "");
-            setImageModel(config.image_model || "x-ai/grok-imagine-image-2.0");
+            setImageApiKey(""); // Plaintext strictly not populated
+            setHasImageKey(Boolean(config.has_image_key || config.image_api_key_masked));
+            setImageModel(config.image_model || "openai/gpt-image-2");
           }
         })
         .catch(console.error);
@@ -147,16 +153,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     setApiBaseUrl(apiUrl);
     const finalImageKey = syncApiKey && llmApiKey ? llmApiKey : imageApiKey;
     try {
-      await api.updateProviderConfig({
+      const res = await api.updateProviderConfig({
         llm_provider: llmProvider,
         llm_api_base: llmApiBase,
-        llm_api_key: llmApiKey,
+        llm_api_key: llmApiKey.trim() || undefined,
         llm_model: llmModel,
         image_provider: imageProvider,
         image_api_base: imageApiBase,
-        image_api_key: finalImageKey,
+        image_api_key: finalImageKey.trim() || undefined,
         image_model: imageModel,
       });
+      if (res?.has_llm_key !== undefined) setHasLlmKey(res.has_llm_key);
+      if (res?.has_image_key !== undefined) setHasImageKey(res.has_image_key);
+      setLlmApiKey("");
+      setImageApiKey("");
       setIsSaved(true);
       notify.success("系统与 AI 模型配置已成功同步更新至云端 D1 数据库");
       setTimeout(() => {
@@ -326,7 +336,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
 
             <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">API Key</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] text-muted-foreground">API Key</label>
+                {hasLlmKey && (
+                  <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                    🔒 D1 密钥已脱敏保护
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type="password"
@@ -335,7 +352,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     setLlmApiKey(e.target.value);
                     setLlmTestStatus("idle");
                   }}
-                  placeholder="sk-or-v1-..."
+                  placeholder={hasLlmKey ? "● 已加密保存在云端 D1 数据库 (若不修改请留空)" : "输入 OpenRouter / OpenAI API Key..."}
                   className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 pl-8 focus:outline-none focus:border-primary"
                 />
                 <Key className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
@@ -384,7 +401,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <span>文生图 / Storyboard Image Generator (图像模型)</span>
               </div>
               <span className="text-[10px] font-mono text-sky-400/90 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
-                推荐: openai/gpt-image-2 (16:9 原生画幅)
+                推荐: seedream-4.5 / gpt-image-2 (16:9 原生画幅)
               </span>
             </div>
 
@@ -418,6 +435,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   onChange={(e) => setImageModel(e.target.value)}
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
                 >
+                  <option value="bytedance-seed/seedream-4.5">bytedance-seed/seedream-4.5 (字节跳动 Seedream 4.5 电影级生图 · 推荐)</option>
                   <option value="openai/gpt-image-2">openai/gpt-image-2 (OpenAI 最新超清电影分镜 · 推荐)</option>
                   <option value="google/gemini-3.1-flash-image">google/gemini-3.1-flash-image (Google 最新超快分镜生图)</option>
                   <option value="google/gemini-2.5-flash-image">google/gemini-2.5-flash-image (Google 纳米香蕉生图)</option>
@@ -462,18 +480,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 </label>
               </div>
               {!syncApiKey && (
-                <div className="relative">
-                  <input
-                    type="password"
-                    value={imageApiKey}
-                    onChange={(e) => {
-                      setImageApiKey(e.target.value);
-                      setImageTestStatus("idle");
-                    }}
-                    placeholder="输入单独的生图 API Key..."
-                    className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 pl-8 focus:outline-none focus:border-primary"
-                  />
-                  <Key className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
+                <div>
+                  {hasImageKey && (
+                    <div className="flex justify-end mb-1">
+                      <span className="text-[10px] text-sky-400 font-mono flex items-center gap-1">
+                        🔒 D1 生图密钥已脱敏保护
+                      </span>
+                    </div>
+                  )}
+                  <div className="relative">
+                    <input
+                      type="password"
+                      value={imageApiKey}
+                      onChange={(e) => {
+                        setImageApiKey(e.target.value);
+                        setImageTestStatus("idle");
+                      }}
+                      placeholder={hasImageKey ? "● 已加密保存在云端 D1 数据库 (若不修改请留空)" : "输入单独的生图 API Key..."}
+                      className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 pl-8 focus:outline-none focus:border-primary"
+                    />
+                    <Key className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
+                  </div>
                 </div>
               )}
             </div>

@@ -5,7 +5,15 @@ import { systemSettings } from "../db/schema";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
-// GET /api/settings/providers
+// Security Masking Helper: Never send raw API keys to browser
+function maskApiKey(key: string | null | undefined): string {
+  if (!key || typeof key !== "string") return "";
+  const trimmed = key.trim();
+  if (trimmed.length <= 8) return "••••••••";
+  return `${trimmed.slice(0, 6)}••••••••${trimmed.slice(-4)}`;
+}
+
+// GET /api/settings/providers (Secure Masked Output)
 router.get("/providers", async (c) => {
   const db = getDb(c.env.DB);
   let setting = await db.select().from(systemSettings).where(eq(systemSettings.id, "default")).get();
@@ -31,30 +39,53 @@ router.get("/providers", async (c) => {
 
   return c.json({
     llm_provider: s.llmProvider,
-    llm_api_key: s.llmApiKey,
+    has_llm_key: Boolean(s.llmApiKey && s.llmApiKey.trim()),
+    llm_api_key_masked: maskApiKey(s.llmApiKey),
+    llm_api_key: "", // Plaintext strictly zeroed
     llm_api_base: s.llmApiBase,
     llm_model: s.llmModel,
     image_provider: s.imageProvider,
-    image_api_key: s.imageApiKey,
+    has_image_key: Boolean(s.imageApiKey && s.imageApiKey.trim()),
+    image_api_key_masked: maskApiKey(s.imageApiKey),
+    image_api_key: "", // Plaintext strictly zeroed
     image_api_base: s.imageApiBase,
     image_model: s.imageModel || "openai/gpt-image-2",
   });
 });
 
-// POST & PUT /api/settings/providers (Update Provider Settings)
+// POST & PUT /api/settings/providers (Update Provider Settings with Smart Key Preservation)
 const handleUpdateProviders = async (c: any) => {
   const db = getDb(c.env.DB);
-  const body = await c.req.json();
+  const body = (await c.req.json().catch(() => ({}))) || {};
+
+  let existing = await db.select().from(systemSettings).where(eq(systemSettings.id, "default")).get();
+
+  // Smart Preservation: If client sends empty key or masked string, keep existing key in D1
+  let finalLlmKey = existing?.llmApiKey || "";
+  if (body.llm_api_key !== undefined && typeof body.llm_api_key === "string") {
+    const raw = body.llm_api_key.trim();
+    if (raw && !raw.includes("••••")) {
+      finalLlmKey = raw;
+    }
+  }
+
+  let finalImageKey = existing?.imageApiKey || "";
+  if (body.image_api_key !== undefined && typeof body.image_api_key === "string") {
+    const raw = body.image_api_key.trim();
+    if (raw && !raw.includes("••••")) {
+      finalImageKey = raw;
+    }
+  }
 
   const updateData = {
-    llmProvider: body.llm_provider || "openrouter",
-    llmApiKey: (body.llm_api_key !== undefined ? body.llm_api_key : "").trim(),
-    llmApiBase: (body.llm_api_base || "https://openrouter.ai/api/v1").trim(),
-    llmModel: (body.llm_model || "deepseek/deepseek-chat").trim(),
-    imageProvider: body.image_provider || "openrouter",
-    imageApiKey: (body.image_api_key !== undefined ? body.image_api_key : "").trim(),
-    imageApiBase: (body.image_api_base || "https://openrouter.ai/api/v1").trim(),
-    imageModel: (body.image_model || "openai/gpt-image-2").trim(),
+    llmProvider: body.llm_provider || existing?.llmProvider || "openrouter",
+    llmApiKey: finalLlmKey,
+    llmApiBase: (body.llm_api_base || existing?.llmApiBase || "https://openrouter.ai/api/v1").trim(),
+    llmModel: (body.llm_model || existing?.llmModel || "deepseek/deepseek-chat").trim(),
+    imageProvider: body.image_provider || existing?.imageProvider || "openrouter",
+    imageApiKey: finalImageKey,
+    imageApiBase: (body.image_api_base || existing?.imageApiBase || "https://openrouter.ai/api/v1").trim(),
+    imageModel: (body.image_model || existing?.imageModel || "openai/gpt-image-2").trim(),
     updatedAt: new Date().toISOString(),
   };
 
@@ -66,7 +97,16 @@ const handleUpdateProviders = async (c: any) => {
       set: updateData,
     });
 
-  return c.json({ status: "success", settings: updateData });
+  return c.json({
+    status: "success",
+    has_llm_key: Boolean(finalLlmKey),
+    has_image_key: Boolean(finalImageKey),
+    settings: {
+      ...updateData,
+      llmApiKey: maskApiKey(finalLlmKey),
+      imageApiKey: maskApiKey(finalImageKey),
+    },
+  });
 };
 
 router.post("/providers", handleUpdateProviders);
