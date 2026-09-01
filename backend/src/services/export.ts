@@ -135,6 +135,32 @@ Avoid: Full color, saturated colors, 4k, 8k, photorealistic CGI, comic book spee
 `;
 }
 
+export function generateAIVideoManifest(project: Project, shots: Shot[]): string {
+  const lines: string[] = [
+    `# ==============================================================================`,
+    `# AI 视频工业级批量生成清单 (Runway Gen-3 / 可灵 Kling 1.5 / Minimax / Sora)`,
+    `# 项目: ${project.title}`,
+    `# 总时长: ${project.targetDuration || 30}s | 镜头总数: ${shots.length} | 画面画幅: 16:9`,
+    `# ==============================================================================\n`,
+  ];
+
+  shots.forEach((s) => {
+    const shotNo = String(s.order).padStart(2, "0");
+    const imgUrl = s.storyboardImageUrl || "(等待首帧生成后填入直链)";
+    const cont = typeof s.continuityData === "object" ? (s.continuityData as any) : {};
+    lines.push(`## 【SHOT ${shotNo}】 (时长: ${s.duration}s | 景别: ${s.shotSize || "MS"} | 运镜: ${s.cameraMovement || "Push In"})`);
+    lines.push(`- I2V 黄金首帧垫图 (First Frame Image URL):`);
+    lines.push(`  ${imgUrl}`);
+    lines.push(`- 4段式 AI 视频生动运镜词 (Video Motion Prompt):`);
+    lines.push(`  ${s.videoPrompt || "Cinematic camera tracking, character executes action in 24fps motion"}`);
+    lines.push(`- 镜头叙事与动作描述: ${s.action || ""}`);
+    lines.push(`- 剪辑动势衔接: ${cont.motion_in || "Entry"} ➔ ${cont.motion_out || "Exit"} | 转场建议: ${cont.transition_recommendation || "Match cut on action"}`);
+    lines.push(`\n------------------------------------------------------------------------------\n`);
+  });
+
+  return lines.join("\n");
+}
+
 export async function generateGenerationPackageZip(project: Project, shots: Shot[]): Promise<Uint8Array> {
   const zip = new JSZip();
 
@@ -154,15 +180,32 @@ export async function generateGenerationPackageZip(project: Project, shots: Shot
       image_prompt: s.imagePrompt,
       video_prompt: s.videoPrompt,
       continuity_data: s.continuityData,
+      first_frame_asset_url: s.storyboardImageUrl || "",
     })),
   };
   zip.file("shot_spec_package.json", JSON.stringify(meta, null, 2));
 
-  // 2. Shot Script Markdown
+  // 2. AI Video Batch Prompts JSON (for external automation / API pipelines)
+  const videoBatchPrompts = shots.map((s) => ({
+    order: s.order,
+    duration: s.duration,
+    first_frame_image_url: s.storyboardImageUrl || "",
+    video_prompt: s.videoPrompt || "",
+    camera_movement: s.cameraMovement || "push_in",
+    action: s.action || "",
+    aspect_ratio: "16:9",
+  }));
+  zip.file("AI_VIDEO_BATCH_PROMPTS.json", JSON.stringify(videoBatchPrompts, null, 2));
+
+  // 3. AI Video Batch Manifest TXT (for human batch copy-pasting to Kling / Runway)
+  const videoManifestTxt = generateAIVideoManifest(project, shots);
+  zip.file("AI_VIDEO_GENERATION_MANIFEST.txt", videoManifestTxt);
+
+  // 4. Shot Script Markdown
   const scriptMd = generateShotScriptMarkdown(project, shots);
   zip.file("SHOT_SCRIPT.md", scriptMd);
 
-  // 3. Director Global Prompt Markdown
+  // 5. Director Global Prompt Markdown
   const globalPromptMd = generateDirectorGlobalPrompt(project, shots);
   zip.file("PROFESSIONAL_DIRECTOR_GLOBAL_PROMPT.md", globalPromptMd);
 

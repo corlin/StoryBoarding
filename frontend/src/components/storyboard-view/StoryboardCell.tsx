@@ -265,11 +265,16 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           )}
         </div>
 
-        {/* Footer Info: Camera Movement & Detail Trigger */}
+        {/* Footer Info: Camera Movement, Video Motion Indicator & Detail Trigger */}
         <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px] text-muted-foreground">
-          <div className="flex items-center gap-1 truncate max-w-[140px]" title={shot.camera_movement?.type || "固定机位"}>
-            <Camera className="w-3 h-3 shrink-0 text-muted-foreground/70" />
-            <span className="truncate">{shot.camera_movement?.type || "固定机位"}</span>
+          <div className="flex items-center gap-1.5 truncate max-w-[170px]" title={`运镜: ${shot.camera_movement?.type || "固定机位"} | 动量: ${shot.continuity_data?.motion_in || "连贯"}`}>
+            <Camera className="w-3 h-3 shrink-0 text-sky-400/80" />
+            <span className="truncate font-mono text-[10px] text-foreground/80">{shot.camera_movement?.type || "push_in"}</span>
+            {shot.duration && (
+              <span className="text-[9px] font-mono text-muted-foreground bg-muted/60 px-1 rounded">
+                {shot.duration}s
+              </span>
+            )}
           </div>
 
           {onOpenDetail && (
@@ -278,9 +283,9 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
                 e.stopPropagation();
                 onOpenDetail();
               }}
-              className="flex items-center gap-1 text-[11px] text-primary/80 hover:text-primary transition-colors font-medium ml-auto"
+              className="flex items-center gap-1 text-[11px] text-sky-400 hover:text-sky-300 transition-colors font-medium ml-auto"
             >
-              <span>参数</span>
+              <span>生视频参数</span>
               <Info className="w-3 h-3" />
             </button>
           )}

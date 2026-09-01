@@ -395,8 +395,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <Archive className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">3. Shot Generation Package (ZIP)</h4>
-                    <p className="text-[11px] text-muted-foreground">包含 JSON Spec、提示词包、打样图与全部 1080P 单图</p>
+                    <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">3. AI 视频批量生产与分镜全套包 (ZIP)</h4>
+                    <p className="text-[11px] text-muted-foreground">包含可灵/Runway 专用批量生视频清单 (TXT/JSON)、首帧图片直链与 JSON Spec</p>
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />

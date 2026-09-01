@@ -38,6 +38,9 @@ export interface ContinuityData {
   character_positions?: Record<string, string>;
   props?: string[];
   eyeline?: string;
+  motion_in?: string;
+  motion_out?: string;
+  transition_recommendation?: string;
 }
 
 export interface ShotModel {

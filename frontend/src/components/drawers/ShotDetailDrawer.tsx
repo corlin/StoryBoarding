@@ -358,25 +358,34 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                 />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Video Motion Prompt (视频运镜提示词)
-                  </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-semibold text-foreground">
+                      AI 视频运镜与动势提示词 (I2V / Runway · 可灵 · Minimax 专用)
+                    </label>
+                    <span className="text-[10px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded">
+                      4段式标准动态语法
+                    </span>
+                  </div>
                   <button
                     onClick={() => handleCopy(formData.video_prompt || "", "vid")}
-                    className="flex items-center gap-1 text-[11px] text-primary hover:underline"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-sky-600/20 text-sky-300 hover:bg-sky-600/30 border border-sky-500/30 transition-colors shadow-2xs"
                   >
-                    {copiedKey === "vid" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedKey === "vid" ? "已复制" : "复制"}</span>
+                    {copiedKey === "vid" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedKey === "vid" ? "已复制视频词" : "一键复制生动词"}</span>
                   </button>
                 </div>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={formData.video_prompt || ""}
                   onChange={(e) => handleChange("video_prompt", e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg p-3 text-xs font-mono leading-relaxed focus:outline-none focus:border-primary resize-none text-foreground/90"
+                  placeholder="[Camera]: ... [Action]: ... [Dynamics]: ... [Quality]: ..."
+                  className="w-full bg-background border border-border/80 rounded-lg p-3 text-xs font-mono leading-relaxed focus:outline-none focus:border-sky-500 resize-none text-foreground/90"
                 />
+                <p className="text-[11px] text-muted-foreground/80">
+                  💡 搭配上方首帧图片作为第一帧垫图，直接粘贴至可灵/Runway/海螺即可生成连贯电影级镜头。
+                </p>
               </div>
             </div>
           </div>
