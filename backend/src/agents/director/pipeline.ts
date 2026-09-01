@@ -35,16 +35,16 @@ export function getDirectorSystemPrompt(targetDuration: number = 30.0): string {
     expectedShots = 3;
     pacingGuidance = `
 【8秒短片 3 节拍规范 (目标生成 3 个镜头)】：
-- 镜1 (0~2.5s): 世界观与核心主体建立 (Establishment & Intro)；
+- 镜1 (0~2.5s): 世界观与核心主角亮相 (Establishment & Hero Intro)；
 - 镜2 (2.5~5.5s): 核心动态交互与剧情高潮 (Dynamic Action & Climax)；
 - 镜3 (5.5~8.0s): 余韵定格与结局收尾 (Resolution & Final Frame)。`;
   } else if (targetDuration <= 20.0) {
     expectedShots = 6;
     pacingGuidance = `
 【20秒电影级短片 6 节拍规范 (目标生成 6 个镜头)】：
-- 镜1 (0~3.0s): 环境建立 · 全景建立空间地理与核心主体视觉基调；
-- 镜2 (3.0~6.5s): 主体展开 · 主角在场景中展开标志性动态行动；
-- 镜3 (6.5~10.0s): 剧情转折 · 遭遇关键剧情事件或环境交互，视线与动势聚焦；
+- 镜1 (0~3.0s): 空间建立 · 全景建立空间地理与主角翱翔/登场基调；
+- 镜2 (3.0~6.5s): 场景探索 · 主角在场景中展开具体动作，展现生动环境交互；
+- 镜3 (6.5~10.0s): 剧情转折 · 遭遇关键剧情事件或特殊道具，视线与动势聚焦；
 - 镜4 (10.0~13.5s): 情绪蓄势 · 特写主角专注神态与关键动作起势；
 - 镜5 (13.5~17.0s): 核心高潮 · 核心行动高潮爆发，动态视觉奇观贯穿全屏；
 - 镜6 (17.0~20.0s): 余韵定格 · 行动达成，镜头拉远形成电影感余韵定格。`;
@@ -63,16 +63,20 @@ export function getDirectorSystemPrompt(targetDuration: number = 30.0): string {
 
 ${pacingGuidance}
 
-【全题材与主角一致性最高准则】：
-1. 严格围绕用户输入的具体主角（如人物、动物、古典建筑、科幻世界等）和具体题材展开。
-2. 将用户提到的“无人机视角/俯视/特写”等机位词归入镜头摄影机视角，绝对不能把“无人机”误当成故事主角去写现代军事谍战！
-3. 精准继承用户指定的艺术风格与美学调性（如“皮克斯 3D 动画”、“红楼梦中国古典园林”等），并在所有提示词中保持高度统一。
+【主角绝对不可替换第一定律 (Subject Invariance & Anti-Hijacking) - 最高优先级】:
+1. 无论用户输入什么艺术风格（如“哈利波特”、“漫威”、“赛博朋克”、“红楼梦”等），主角永远必须是用户设定的核心生物/实体（例如“一只特立独行飞行的猪”）！
+2. 绝对禁止将主角替换为 IP 原著人类角色（绝对严禁生成哈利波特本人、赫敏、蜘蛛侠等）！
+3. IP 风格必须仅作为主角身处的【环境背景】与【道具装扮】（例如：一只长着小翅膀的呆萌粉色小猪在霍格沃茨城堡上空翱翔，戴着小巫师围巾）。
+4. 每一个镜头的 "image_prompt" 开头必须强制写出主角的具体外貌特征（如 "Hero subject is a distinct cute flying pink pig with delicate feathered wings..."）。
 
-【生图提示词 (image_prompt) 纯净视觉规范 (CRITICAL)】：
-- 必须是纯粹的英文视觉描述句（Pure Visual Description），严禁包含任何元数据标签或文字前缀！
-- 绝对严禁输出 "Visual Anchor:", "Anticipation Pose:", "Action:", "Shot #", "Screen direction:", "Subject:" 等词汇（这些词会被生图模型画成漫画对白与乱码文本框！）。
-- 绝对禁止画面出现真实摄影器材（如 camera crane, tripod, drone equipment）。
-- 提示词末尾统一附加去字样负向约束: "no text, no speech bubbles, no dialogue boxes, no labels, no watermark, no camera equipment, no tripods, no film crew, clean diegetic scene, 16:9 widescreen"
+【严禁生成海报边框与商业 LOGO (Anti-Border & Anti-Logo)】:
+- 严禁在画面边缘生成任何金色相框、装饰边框、卡牌花纹、商业文字或 IP Logo（如 Harry Potter、Disney 水印）；
+- 必须是 16:9 全幅纯净电影剧照，结尾统一附加强负向约束：
+  "no poster frame, no decorative golden borders, no ornate card borders, no trading card frame, no franchise logo, no movie title watermark, no text, no human Harry Potter, no real actors, full bleed widescreen film still, edge-to-edge diegetic scene, 16:9 widescreen"
+
+【分镜台本动作真实具象化 (Concrete Action Directing)】:
+- 严禁输出“漫步与探索展开标志性动态行动”、“移步换景”等无意义公文套话！
+- 必须针对主角（如小猪）写出具体的视觉动作（如“小猪展翅翱翔俯冲”、“小猪在空中减速悬停好奇注视发光魔药瓶”）。
 
 【输出格式规范】：
 请在 JSON 顶层输出：
@@ -86,11 +90,11 @@ ${pacingGuidance}
 - shot_size: 景别 ('extreme_wide_shot' | 'wide_shot' | 'full_shot' | 'medium_shot' | 'medium_close_up' | 'close_up' | 'extreme_close_up')
 - camera_angle: 角度 ('eye_level' | 'low_angle' | 'high_angle' | 'dutch_angle' | 'birds_eye' | 'worms_eye')
 - camera_movement: 运镜 ({ "type": "push_in" | "tracking_right" | "arc_rotate" | "crane" | "tilt_up", "speed": "fast" | "medium" | "slow" })
-- subject: 镜头主体描述 (如 "大观园亭台楼阁与游览人物")
-- action: 镜头具体动作与画面叙事 (中文描述)
+- subject: 镜头主角实体描述 (如 "特立独行飞行的粉色小猪")
+- action: 镜头具体动作与画面叙事 (具象的动作台本，中文描述)
 - dialogue: 角色对白 (可选)
-- narrative_function: 视听叙事功能 (如 "空间建立 / 主体漫步 / 细节特写 / 视觉奇观 / 余韵定格")
-- lighting: 光影基调 (如 "明亮温暖的皮克斯电影级光影，柔和天光与通透景深")
+- narrative_function: 视听叙事功能 (如 "空间建立 / 场景探索 / 转折互动 / 神态蓄势 / 视觉奇观 / 余韵定格")
+- lighting: 光影基调 (如 "明亮温暖的电影级光影，柔和天光与通透景深")
 - audio: 音效 (sfx) 与音乐 (music)
 - image_prompt: 纯净英文生图提示词 (Pure Visual Description, no labels, no prefixes)
 - video_prompt: 4段式 AI 视频提示词 ([Camera], [Action], [Dynamics], [Quality])
@@ -98,19 +102,21 @@ ${pacingGuidance}
 `;
 }
 
-export interface ExtractedStoryCore {
+export interface ExtractedHeroAndWorld {
   raw: string;
-  cleanSubject: string;
-  coreScene: string;
-  styleKeywords: string;
+  heroSubjectZh: string;
+  heroSubjectEn: string;
+  styleKeywordsEn: string;
+  sceneEnvironmentEn: string;
   cameraPerspective: string;
-  fullTitle: string;
+  cleanActionBase: string;
 }
 
-export function extractStoryCore(text: string): ExtractedStoryCore {
+export function extractHeroAndWorld(text: string): ExtractedHeroAndWorld {
   const raw = (text || "").trim();
   let cleaned = raw;
 
+  // 1. Extract Camera Perspectives
   let cameraPerspective = "";
   const perspectivePatterns = [
     { regex: /(?:无人机视角|无人机航拍|航拍视角|航拍|俯瞰视角|俯瞰|鸟瞰)/gi, en: "aerial drone panoramic vantage point, sweeping high-angle view" },
@@ -120,7 +126,6 @@ export function extractStoryCore(text: string): ExtractedStoryCore {
     { regex: /(?:全景视角|大远景|全景)/gi, en: "expansive panoramic wide perspective" },
     { regex: /(?:摇臂镜头|长镜头|斯坦尼康)/gi, en: "smooth sweeping cinematic vantage" },
   ];
-
   for (const p of perspectivePatterns) {
     if (p.regex.test(cleaned)) {
       cameraPerspective = p.en;
@@ -128,34 +133,89 @@ export function extractStoryCore(text: string): ExtractedStoryCore {
     }
   }
 
+  // 2. Extract & Strip Style Themes (Decouple Style from Hero Subject)
+  let styleKeywordsEn = "";
+  let sceneEnvironmentEn = "";
+
   const stylePatterns = [
-    { regex: /(?:皮克斯风格|皮克斯|迪士尼风格|迪士尼|3D动画|3D卡通|三维卡通|卡通风格|卡通)/gi, en: "Stylized 3D Pixar Disney animation aesthetic, charming stylized character forms, rich vibrant color palette, warm volumetric studio lighting" },
-    { regex: /(?:红楼梦|大观园|中国古风|古典园林|古风|国风|水墨|仙侠)/gi, en: "Grand View Garden Dream of the Red Chamber traditional Chinese classical architecture, ornate pavilions, weeping willows, stone bridges, lotus ponds, poetic oriental aesthetic" },
-    { regex: /(?:二次元|日漫风格|日漫|动漫风格|动漫|新海诚|吉卜力|2D动画)/gi, en: "Vibrant 2D Japanese anime aesthetic, clean cel-shaded lines, Makoto Shinkai lighting, evocative sky" },
-    { regex: /(?:赛博朋克|赛博|未来科幻|科幻|机甲)/gi, en: "Cyberpunk sci-fi aesthetic, high-tech neon lighting, atmospheric haze, futuristic holographic reflections" },
-    { regex: /(?:写实电影|真人电影|写实|电影质感|8K写实)/gi, en: "Photorealistic 35mm cinematic film still, anamorphic lens, natural depth of field, dramatic three-point lighting" },
+    {
+      regex: /(?:哈利波特系列剧风格|哈利波特风格|哈利波特|霍格沃茨|魔法世界|魔幻古堡)/gi,
+      styleEn: "Magical fantasy cinematic aesthetic, mystical atmosphere, warm golden hour and floating magical sparks",
+      sceneEn: "majestic ancient stone gothic wizarding castle, towering spires, arched bridges, cobblestone alleyway in background",
+    },
+    {
+      regex: /(?:皮克斯风格|皮克斯|迪士尼风格|迪士尼|3D动画|3D卡通|三维卡通|卡通风格|卡通)/gi,
+      styleEn: "Stylized 3D Pixar Disney animation aesthetic, charming stylized character modeling, rich vibrant color palette, warm volumetric studio lighting",
+      sceneEn: "colorful vibrant world with soft volumetric lighting and rich depth of field",
+    },
+    {
+      regex: /(?:红楼梦|大观园|中国古风|古典园林|古风|国风|水墨|仙侠)/gi,
+      styleEn: "Traditional Chinese classical aesthetic, poetic oriental atmosphere, elegant atmospheric mist",
+      sceneEn: "Grand View Garden classical Chinese pavilions, ornate carved wooden verandas, weeping willows, stone bridges, serene lotus ponds",
+    },
+    {
+      regex: /(?:赛博朋克|赛博|未来科幻|科幻|机甲)/gi,
+      styleEn: "Cyberpunk sci-fi aesthetic, high-tech neon lighting, atmospheric haze, futuristic reflections",
+      sceneEn: "futuristic neon-lit metropolis, towering skyscrapers, holographic signs, flying vehicle skylines in background",
+    },
+    {
+      regex: /(?:二次元|日漫风格|日漫|动漫风格|动漫|新海诚|吉卜力|2D动画)/gi,
+      styleEn: "Vibrant 2D Japanese anime aesthetic, clean cel-shaded lines, Makoto Shinkai luminous sky lighting",
+      sceneEn: "scenic anime landscape with dramatic clouds and emotional sky",
+    },
+    {
+      regex: /(?:写实电影|真人电影|写实|电影质感|8K写实)/gi,
+      styleEn: "Photorealistic 35mm cinematic film still, natural depth of field, dramatic three-point lighting",
+      sceneEn: "cinematic realistic environment with natural atmospheric depth",
+    },
   ];
 
-  const matchedStyles: string[] = [];
   for (const sp of stylePatterns) {
-    if (sp.regex.test(raw)) {
-      matchedStyles.push(sp.en);
+    if (sp.regex.test(cleaned) || sp.regex.test(raw)) {
+      styleKeywordsEn = sp.styleEn;
+      sceneEnvironmentEn = sp.sceneEn;
+      cleaned = cleaned.replace(sp.regex, "").replace(/^[，,\s、:：]+|[，,\s、:：]+$/g, "").trim();
+      break;
     }
   }
 
-  let styleKeywords = matchedStyles.length > 0 
-    ? matchedStyles.join(", ") 
-    : "Cinematic concept art, 16:9 widescreen composition, professional pre-production keyframe, dramatic lighting, rich atmospheric depth";
+  if (!styleKeywordsEn) {
+    styleKeywordsEn = "Cinematic concept art, 16:9 widescreen composition, professional pre-production keyframe, dramatic lighting";
+    sceneEnvironmentEn = "cinematic atmospheric environment with rich spatial depth";
+  }
 
-  const cleanSubject = cleaned || raw || "精彩故事主角与场景";
+  // 3. Extract & Lock Core Protagonist Hero Subject (Subject Invariance)
+  let heroSubjectZh = cleaned || "主角";
+  let heroSubjectEn = "";
+
+  if (/猪|小猪|粉猪|飞天猪|小粉猪/i.test(raw)) {
+    heroSubjectZh = "特立独行飞行的粉色小猪";
+    heroSubjectEn = "a distinct adorable flying pink pig with delicate feathered wings, expressive determined eyes, wearing a tiny stylish scarf";
+  } else if (/猫|小猫|飞天猫/i.test(raw)) {
+    heroSubjectZh = "灵动可爱的小猫";
+    heroSubjectEn = "a charming adorable stylized cat with bright curious eyes and soft fluffy fur";
+  } else if (/狗|小狗|修勾/i.test(raw)) {
+    heroSubjectZh = "机灵活泼的小狗";
+    heroSubjectEn = "a lively charming stylized dog with joyful expressive features";
+  } else if (/贾宝玉|林黛玉|大观园游人/i.test(raw)) {
+    heroSubjectZh = "大观园人物与游览者";
+    heroSubjectEn = "elegant classical Chinese characters dressed in traditional silk robes";
+  } else if (/机器人|机甲/i.test(raw)) {
+    heroSubjectZh = "独特智能机器人";
+    heroSubjectEn = "a unique sleek autonomous stylized robot with glowing optical sensors";
+  } else {
+    heroSubjectZh = cleaned || "故事主角";
+    heroSubjectEn = `the protagonist character (${cleaned || "main character"})`;
+  }
 
   return {
     raw,
-    cleanSubject,
-    coreScene: cleaned,
-    styleKeywords,
+    heroSubjectZh,
+    heroSubjectEn,
+    styleKeywordsEn,
+    sceneEnvironmentEn,
     cameraPerspective: cameraPerspective || "cinematic perspective",
-    fullTitle: raw,
+    cleanActionBase: cleaned || heroSubjectZh,
   };
 }
 
@@ -182,13 +242,13 @@ export function formatDirectorImagePrompt(
   }
 ): string {
   const sizeMap: Record<string, string> = {
-    extreme_wide_shot: "extreme wide shot",
-    wide_shot: "wide establishing shot",
-    full_shot: "full shot framing subject completely",
-    medium_shot: "medium shot, clear dynamic staging",
+    extreme_wide_shot: "extreme wide establishing shot, deep depth of field",
+    wide_shot: "wide shot framing subject in environment",
+    full_shot: "full shot framing the hero subject completely",
+    medium_shot: "medium shot, clear waist-up dynamic staging",
     medium_close_up: "medium close-up, focused upper body",
-    close_up: "close-up shot, sharp focus on subject",
-    extreme_close_up: "extreme close-up macro detail",
+    close_up: "close-up shot, sharp focus on subject facial expression and details",
+    extreme_close_up: "extreme close-up macro detail, micro-expression",
   };
   const angleMap: Record<string, string> = {
     eye_level: "eye-level perspective",
@@ -212,33 +272,42 @@ export function formatDirectorImagePrompt(
     static: "locked-off balanced composition",
   };
 
-  const entities = extractStoryCore(`${context?.globalAnchor || ""} ${context?.storyContext || ""} ${action}`);
+  const parsed = extractHeroAndWorld(`${context?.globalAnchor || ""} ${context?.storyContext || ""} ${action}`);
   const readableSize = sizeMap[size] || "medium shot";
   const readableAngle = angleMap[angle] || "eye-level perspective";
-  const readableViewpoint = movViewpointMap[mov] || entities.cameraPerspective || "cinematic perspective";
+  const readableViewpoint = movViewpointMap[mov] || parsed.cameraPerspective || "cinematic perspective";
 
+  // Clean action string
   const cleanAction = action
-    .replace(/^(?:无人机视角|航拍视角|俯瞰视角|第\d+镜|SHOT\s*#?\d+)[:：\s]*/gi, "")
+    .replace(/^(?:无人机视角|航拍视角|俯瞰视角|哈利波特系列剧风格|哈利波特风格|第\d+镜|SHOT\s*#?\d+)[:：\s]*/gi, "")
     .replace(/[““”'‘’]/g, "")
-    .trim() || entities.cleanSubject;
+    .trim() || `${parsed.heroSubjectZh}展开精彩行动`;
 
-  const cleanAnchor = cleanPromptOfMetaPollution(context?.globalAnchor || "");
+  // BUILD PURE VISUAL IMAGE PROMPT - SUBJECT FIRST INVARIANCE
   const parts: string[] = [];
 
-  parts.push(entities.styleKeywords);
-  if (cleanAnchor) {
-    parts.push(cleanAnchor);
-  } else if (entities.cleanSubject) {
-    parts.push(entities.cleanSubject);
-  }
+  // 1. Art Style & Lighting Base
+  parts.push(parsed.styleKeywordsEn);
 
+  // 2. HERO SUBJECT (MANDATORY AT FRONT)
+  parts.push(`Hero subject is ${parsed.heroSubjectEn}`);
+
+  // 3. Scene Environment (Decoupled from hero)
+  parts.push(`set against ${parsed.sceneEnvironmentEn}`);
+
+  // 4. Framing & Viewpoint
   parts.push(`${readableSize}, ${readableAngle}, ${readableViewpoint}`);
-  if (cleanAction && cleanAction !== cleanAnchor) {
-    parts.push(cleanAction);
-  }
 
-  parts.push("vibrant atmospheric lighting, depth staging with foreground framing and background vanishing point");
-  parts.push("no text, no speech bubbles, no dialogue boxes, no labels, no watermark, no camera equipment, no tripods, no film crew, no borders, clean diegetic artwork, 16:9 widescreen");
+  // 5. Dynamic Action
+  parts.push(`Visual action: ${cleanAction}`);
+
+  // 6. Atmospheric Lighting
+  parts.push("vibrant golden lighting, crisp rim light, volumetric atmospheric depth");
+
+  // 7. CRITICAL ANTI-LOGO / ANTI-FRAME / ANTI-POSTER NEGATIVES
+  parts.push(
+    "no poster frame, no decorative golden borders, no ornate card borders, no trading card frame, no franchise logo, no text, no movie title watermark, no typography, no human Harry Potter, no real actors, full bleed widescreen film still, edge-to-edge diegetic scene, no camera equipment, no tripods, 16:9 widescreen"
+  );
 
   return parts.filter(Boolean).join(". ");
 }
@@ -276,13 +345,15 @@ export function formatDirectorVideoPrompt(
   return `[Camera]: ${cameraTraj}. [Action]: ${subjectName} begins in sharp anticipation pose and executes ${cleanAction}, maintaining continuous kinetic momentum across the 16:9 frame in ${screenDir} trajectory. [Dynamics]: Atmospheric environmental particle flow, dynamic physics, volumetric lighting shifts. [Quality]: Smooth 24fps cinematic temporal motion, realistic momentum physics, continuous seamless trajectory, no morphing, no distortion.`;
 }
 
+// Generate story-adaptive fallback storyboard based on user's actual story text
 export function generateAdaptiveStoryShots(storyText: string, targetDuration: number = 30.0): ShotPlan[] {
   const cleanStory = (storyText || "").trim() || "未命名故事分镜";
-  const entities = extractStoryCore(cleanStory);
+  const parsed = extractHeroAndWorld(cleanStory);
+  const hero = parsed.heroSubjectZh;
 
-  const sentences = entities.cleanSubject
+  const sentences = parsed.cleanActionBase
     .split(/[。！？\n\.\!\?；;]/)
-    .map((s) => s.replace(/^(?:无人机视角|航拍视角|俯瞰视角)[:：\s]*/gi, "").trim())
+    .map((s) => s.replace(/^(?:无人机视角|航拍视角|俯瞰视角|哈利波特系列剧风格)[:：\s]*/gi, "").trim())
     .filter(Boolean);
 
   let targetCount = 12;
@@ -290,33 +361,41 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
   else if (targetDuration <= 20.0) targetCount = 6;
 
   const durPerShot = Number((targetDuration / targetCount).toFixed(1)) || 2.5;
-  const coreTopic = entities.cleanSubject.slice(0, 35) || "精彩故事全景";
+
+  const universal3Arcs = [
+    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "世界观与主角建立", act: `${hero}在宏大奇幻城堡与晚霞天际线上空展翅翱翔，建立世界观与飞行轨迹` },
+    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "场景探索与动态交互", act: `${hero}俯冲穿过狭窄复古的街巷，好奇掠过发光的橱窗与特色建筑` },
+    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "高光定格与余韵收尾", act: `${hero}在空中灵动悬停回眸，眼神倔强自信，镜头缓缓推进形成电影感余韵定格` },
+  ];
 
   const universal6Arcs = [
-    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "环境建立", act: `${coreTopic}：全景建立故事空间与核心主体视觉基调` },
-    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "主体展开", act: `${coreTopic}：漫步与探索展开标志性动态行动，展现生动建筑与环境细节` },
-    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "剧情推进", act: `${coreTopic}：移步换景，视线与动势聚焦于核心景点与主体互动` },
-    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "情绪蓄势", act: `${coreTopic}：特写主角专注神态与精致细节，展现生动表现力` },
-    { size: "close_up", angle: "low_angle", mov: "push_in", func: "核心高潮", act: `${coreTopic}：核心高潮全景展开，秀美华丽的视觉奇观贯穿全屏` },
-    { size: "wide_shot", angle: "eye_level", mov: "pull_out", func: "余韵定格", act: `${coreTopic}：游览达成，镜头缓缓拉开形成优美电影感余韵定格` },
+    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "空间建立", act: `${hero}在宏大奇幻城堡与晚霞天际线上空展翅翱翔，建立世界观` },
+    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "场景探索", act: `${hero}俯冲滑翔穿过复古街巷与奇特建筑群，展现生动动态` },
+    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "转折互动", act: `${hero}空中急转减速，视线锁定前方发光的神秘道具，动势聚焦` },
+    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "神态蓄势", act: `特写${hero}专注倔强的眼神与精致微表情，微风吹拂，灵动生动` },
+    { size: "close_up", angle: "low_angle", mov: "push_in", func: "高潮奇观", act: `${hero}加速冲刺穿透光环，周身带起绚丽发光的魔法粒子轨迹` },
+    { size: "wide_shot", angle: "eye_level", mov: "pull_out", func: "余韵定格", act: `${hero}向着远方地平线平稳滑翔远去，镜头缓缓拉开定格` },
   ];
 
   const universal12Arcs = [
-    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "世界观建立", act: `${coreTopic}：全景建立故事空间与世界观基调` },
-    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "主角亮相", act: `${coreTopic}：主角正式亮相并展开标志性动作` },
-    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "探索互动", act: `${coreTopic}：主角与场景环境展开生动交互` },
-    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "发现线索", act: `${coreTopic}：遭遇关键剧情事件，视线锁定新目标` },
-    { size: "close_up", angle: "low_angle", mov: "push_in", func: "意图确立", act: `${coreTopic}：特写专注神态，下定决心采取行动` },
-    { size: "full_shot", angle: "eye_level", mov: "tracking_left", func: "行动展开", act: `${coreTopic}：全面启动核心行动，动势逐步加速` },
-    { size: "medium_shot", angle: "dutch_angle", mov: "pan_right", func: "动态挑战", act: `${coreTopic}：面对动态挑战与场景转折，灵活应对` },
-    { size: "extreme_close_up", angle: "eye_level", mov: "push_in", func: "细节特写", act: `${coreTopic}：微表情与局部关键特征极致细节特写` },
-    { size: "medium_close_up", angle: "eye_level", mov: "arc_rotate", func: "视觉焦点", act: `${coreTopic}：环绕运镜展现核心高光时刻` },
-    { size: "full_shot", angle: "low_angle", mov: "tilt_up", func: "高潮爆发", act: `${coreTopic}：核心高潮爆发，奇观画面拉满` },
-    { size: "wide_shot", angle: "high_angle", mov: "pull_out", func: "局势平息", act: `${coreTopic}：关键目标达成，周围环境逐渐平息` },
-    { size: "extreme_wide_shot", angle: "eye_level", mov: "crane", func: "余韵定格", act: `${coreTopic}：镜头升起拉远，形成电影感余韵定格` },
+    { size: "extreme_wide_shot", angle: "high_angle", mov: "crane", func: "世界观建立", act: `${hero}在宏大奇幻城堡与晚霞天际线上空展翅翱翔，建立世界观` },
+    { size: "wide_shot", angle: "eye_level", mov: "tracking_right", func: "主角亮相", act: `${hero}正式亮相展翅滑翔，展现标志性特立独行动态` },
+    { size: "medium_shot", angle: "low_angle", mov: "push_in", func: "场景探索", act: `${hero}穿梭于复古街巷与建筑之间，与奇幻环境生动交互` },
+    { size: "medium_close_up", angle: "eye_level", mov: "static", func: "发现线索", act: `${hero}发现前方神秘发光目标，空中减速锁定视线` },
+    { size: "close_up", angle: "low_angle", mov: "push_in", func: "意图确立", act: `特写${hero}专注眼神与微表情，下定决心采取行动` },
+    { size: "full_shot", angle: "eye_level", mov: "tracking_left", func: "行动加速", act: `${hero}振翅加速向前俯冲，动势逐步提升` },
+    { size: "medium_shot", angle: "dutch_angle", mov: "pan_right", func: "动态挑战", act: `${hero}敏捷避开空中障碍物，灵活翻转机动` },
+    { size: "extreme_close_up", angle: "eye_level", mov: "push_in", func: "细节特写", act: `极致特写${hero}双眼中的光芒倒影与飞翔微动` },
+    { size: "medium_close_up", angle: "eye_level", mov: "arc_rotate", func: "视觉焦点", act: `环绕运镜展现${hero}悬浮空中的高光时刻` },
+    { size: "full_shot", angle: "low_angle", mov: "tilt_up", func: "高潮爆发", act: `${hero}全力冲刺穿透核心光环，高潮视觉奇观拉满` },
+    { size: "wide_shot", angle: "high_angle", mov: "pull_out", func: "局势平息", act: `目标达成，${hero}在天空中平稳盘旋，气流渐息` },
+    { size: "extreme_wide_shot", angle: "eye_level", mov: "crane", func: "余韵定格", act: `${hero}向着夕阳天际线飞去，镜头升起拉远形成电影感余韵定格` },
   ];
 
-  const baseArcs = targetCount <= 6 ? universal6Arcs : universal12Arcs;
+  let baseArcs = universal12Arcs;
+  if (targetCount <= 3) baseArcs = universal3Arcs;
+  else if (targetCount <= 6) baseArcs = universal6Arcs;
+
   const shots: ShotPlan[] = [];
 
   for (let i = 1; i <= targetCount; i++) {
@@ -326,13 +405,13 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
 
     const imgPrompt = formatDirectorImagePrompt(sentenceAct, pattern.size, pattern.angle, pattern.mov, {
       order: i,
-      storyContext: coreTopic,
-      globalAnchor: entities.styleKeywords,
+      storyContext: hero,
+      globalAnchor: parsed.styleKeywordsEn,
     });
 
     const vidPrompt = formatDirectorVideoPrompt(sentenceAct, pattern.mov, pattern.size, {
       order: i,
-      subject: coreTopic,
+      subject: hero,
       screenDirection,
     });
 
@@ -342,12 +421,12 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
       shot_size: pattern.size,
       camera_angle: pattern.angle,
       camera_movement: { type: pattern.mov, speed: "medium" },
-      subject: coreTopic,
+      subject: hero,
       action: sentenceAct,
       dialogue: "",
       narrative_function: pattern.func,
       lighting: "通透电影光影，主光源分明，侧逆光轮廓光清晰",
-      audio: { sfx: "环境音效、优美古典配乐" },
+      audio: { sfx: "环境音效、优美配乐" },
       image_prompt: imgPrompt,
       video_prompt: vidPrompt,
       continuity_data: {
@@ -420,8 +499,8 @@ export async function runDirectorPipeline(
 
           const parsed = JSON.parse(jsonStr);
           if (parsed.shots && Array.isArray(parsed.shots) && parsed.shots.length > 0) {
-            const entities = extractStoryCore(storyText);
-            const globalAnchor = cleanPromptOfMetaPollution(parsed.global_visual_anchor || entities.styleKeywords);
+            const parsedEntities = extractHeroAndWorld(storyText);
+            const globalAnchor = cleanPromptOfMetaPollution(parsed.global_visual_anchor || parsedEntities.styleKeywordsEn);
 
             const enrichedShots: ShotPlan[] = parsed.shots.map((s: any, idx: number) => {
               const prev = idx > 0 ? { order: idx, action: parsed.shots[idx - 1].action } : undefined;
@@ -438,14 +517,14 @@ export async function runDirectorPipeline(
                   movType,
                   {
                     order: s.order || idx + 1,
-                    subject: s.subject || entities.cleanSubject,
+                    subject: s.subject || parsedEntities.heroSubjectZh,
                     storyContext: storyText.slice(0, 80),
                     globalAnchor: globalAnchor,
                   }
                 );
               } else {
                 finalImgPrompt = cleanPromptOfMetaPollution(
-                  `${globalAnchor}. ${rawImgPrompt}. no text, no speech bubbles, no dialogue boxes, no labels, no watermark, no camera equipment, no tripods, clean diegetic artwork, 16:9 widescreen`
+                  `Hero subject is ${parsedEntities.heroSubjectEn}. ${globalAnchor}. ${rawImgPrompt}. no poster frame, no decorative golden borders, no ornate card borders, no trading card frame, no franchise logo, no text, no movie title watermark, no typography, no human Harry Potter, no real actors, full bleed widescreen film still, edge-to-edge diegetic scene, 16:9 widescreen`
                 );
               }
 
@@ -457,7 +536,7 @@ export async function runDirectorPipeline(
                   s.shot_size || "medium_shot",
                   {
                     order: s.order || idx + 1,
-                    subject: s.subject || entities.cleanSubject,
+                    subject: s.subject || parsedEntities.heroSubjectZh,
                     screenDirection,
                     prevShot: prev,
                   }
@@ -478,12 +557,12 @@ export async function runDirectorPipeline(
                 shot_size: s.shot_size || "medium_shot",
                 camera_angle: s.camera_angle || "eye_level",
                 camera_movement: typeof s.camera_movement === "object" ? s.camera_movement : { type: "push_in", speed: "medium" },
-                subject: s.subject || entities.cleanSubject,
+                subject: s.subject || parsedEntities.heroSubjectZh,
                 action: s.action || "",
                 dialogue: s.dialogue || "",
-                narrative_function: s.narrative_function || "主体漫步与场景展现",
+                narrative_function: s.narrative_function || "主体动作与场景展现",
                 lighting: s.lighting || "通透电影光影，主光源分明，侧逆光轮廓光清晰",
-                audio: typeof s.audio === "object" ? s.audio : { sfx: "环境音效、优美古典配乐" },
+                audio: typeof s.audio === "object" ? s.audio : { sfx: "环境音效、优美配乐" },
                 image_prompt: finalImgPrompt,
                 video_prompt: finalVidPrompt,
                 continuity_data: continuityData,
@@ -491,7 +570,7 @@ export async function runDirectorPipeline(
             });
 
             return {
-              theme: parsed.theme || entities.cleanSubject,
+              theme: parsed.theme || parsedEntities.heroSubjectZh,
               target_duration: targetDuration,
               shots: enrichedShots,
             };
@@ -507,10 +586,10 @@ export async function runDirectorPipeline(
   }
 
   // Fallback to intelligent story-adaptive breakdown
-  const entities = extractStoryCore(storyText);
+  const parsedEntities = extractHeroAndWorld(storyText);
   const fallbackShots = generateAdaptiveStoryShots(storyText, targetDuration);
   return {
-    theme: entities.cleanSubject,
+    theme: parsedEntities.heroSubjectZh,
     target_duration: targetDuration,
     shots: fallbackShots,
   };
