@@ -20,6 +20,8 @@ import {
   ChevronLeft,
   Camera,
   History,
+  Columns2,
+  LayoutGrid,
 } from "lucide-react";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { BibleModal } from "@/components/modals/BibleModal";
@@ -30,12 +32,15 @@ import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { Loader2 } from "lucide-react";
 import { ShotModel } from "@/types/shot";
+import { cn } from "@/lib/utils";
 
 interface TopBarProps {
   project: ProjectModel | null;
   shots?: ShotModel[];
   totalDuration: number;
   activeVersionTag?: string;
+  isLeftPanelCollapsed?: boolean;
+  onToggleLeftPanel?: () => void;
   onGenerateFromStory: (story: string) => Promise<void>;
   onImportScript?: (scriptText: string) => Promise<void>;
   onOpenVersions?: () => void;
@@ -47,6 +52,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   shots = [],
   totalDuration,
   activeVersionTag = "v1.0",
+  isLeftPanelCollapsed = false,
+  onToggleLeftPanel,
   onGenerateFromStory,
   onImportScript,
   onOpenVersions,
@@ -125,7 +132,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <>
       <header className="h-14 border-b border-border bg-card/80 backdrop-blur px-4 flex items-center justify-between shrink-0 select-none z-20">
-        {/* Left: Project Title & Stats */}
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/dashboard"
@@ -141,7 +147,6 @@ export const TopBar: React.FC<TopBarProps> = ({
               {project?.title || "AI 导演分镜工作台"}
             </h1>
 
-            {/* Version Time Machine Capsule */}
             {onOpenVersions && (
               <button
                 onClick={onOpenVersions}
@@ -165,35 +170,50 @@ export const TopBar: React.FC<TopBarProps> = ({
           </div>
         </div>
 
-        {/* Middle: Mode Indicators */}
-        <div className="hidden md:flex items-center gap-1 bg-background/50 p-1 rounded-lg border border-border/50 text-xs">
-          <button className="px-3 py-1 rounded bg-accent text-foreground font-medium shadow-sm">
-            双向协同工作台
+        {/* Middle: Genuine Workspace View Mode Switcher (Equal Granularity) */}
+        <div className="hidden md:flex items-center gap-1 bg-background/60 p-1 rounded-lg border border-border text-xs">
+          <button
+            onClick={() => onToggleLeftPanel && isLeftPanelCollapsed && onToggleLeftPanel()}
+            className={cn(
+              "px-3 py-1 rounded transition-all flex items-center gap-1.5 font-medium",
+              !isLeftPanelCollapsed
+                ? "bg-accent text-foreground border border-border/60 shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title="剧本与分镜双向协同对照视图 (左右 5:5 均等分栏)"
+          >
+            <Columns2 className="w-3.5 h-3.5 text-sky-400" />
+            <span>双向协同 (Split)</span>
           </button>
+          <button
+            onClick={() => onToggleLeftPanel && !isLeftPanelCollapsed && onToggleLeftPanel()}
+            className={cn(
+              "px-3 py-1 rounded transition-all flex items-center gap-1.5 font-medium",
+              isLeftPanelCollapsed
+                ? "bg-accent text-foreground border border-border/60 shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title="全宽纯分镜网格视图"
+          >
+            <LayoutGrid className="w-3.5 h-3.5 text-emerald-400" />
+            <span>全景分镜 (Grid)</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Project Bible Asset Tool */}
           <button
             onClick={() => {
               setBibleMode("bible");
               setIsOpenBibleModal(true);
             }}
-            className="px-3 py-1 rounded text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors shadow-sm"
+            title="查看与管理项目设定集 (角色DNA、世界观场景、视觉风格美学)"
           >
-            <BookOpen className="w-3.5 h-3.5" />
+            <BookOpen className="w-3.5 h-3.5 text-sky-400" />
             <span>设定集 (Bible)</span>
           </button>
-          <button
-            onClick={() => {
-              setBibleMode("style");
-              setIsOpenBibleModal(true);
-            }}
-            className="px-3 py-1 rounded text-muted-foreground hover:text-foreground transition-colors"
-          >
-            视觉风格 (Style)
-          </button>
-        </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2">
-          {/* Manual Snapshot */}
           {onOpenCreateSnapshot && (
             <button
               onClick={onOpenCreateSnapshot}
@@ -205,7 +225,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             </button>
           )}
 
-          {/* Start Point B: Import Script */}
           <button
             onClick={() => setIsOpenScriptModal(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors shadow-sm"
@@ -215,7 +234,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span>导入脚本</span>
           </button>
 
-          {/* Start Point A: AI Director Story Generation */}
           <button
             onClick={() => {
               setStoryText(project?.story || "");
@@ -227,7 +245,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span>AI 导演智能拆镜</span>
           </button>
 
-          {/* Export Modal */}
           <button
             onClick={() => setIsOpenExportModal(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors shadow-sm"
@@ -236,7 +253,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span>导出</span>
           </button>
 
-          {/* Settings */}
           <button
             onClick={() => setIsOpenSettingsModal(true)}
             className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent border border-border/60 transition-colors"

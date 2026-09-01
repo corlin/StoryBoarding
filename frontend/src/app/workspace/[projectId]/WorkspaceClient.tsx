@@ -437,6 +437,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         shots={shots}
         totalDuration={totalDuration}
         activeVersionTag={previewVersion ? `预览中: ${previewVersion.version_tag}` : activeVersionTag}
+        isLeftPanelCollapsed={isLeftPanelCollapsed}
+        onToggleLeftPanel={() => setIsLeftPanelCollapsed((prev) => !prev)}
         onGenerateFromStory={handleGenerateFromStory}
         onImportScript={handleImportScript}
         onOpenVersions={() => setIsVersionsDrawerOpen(true)}
