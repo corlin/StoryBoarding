@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { Bindings } from "./db/client";
+import { Bindings, ensureSchema } from "./db/client";
 import projectsRouter from "./routes/projects";
 import shotsRouter from "./routes/shots";
 import generationRouter from "./routes/generation";
@@ -23,6 +23,14 @@ app.use(
   })
 );
 
+// Global Auto Schema Migration Middleware (Ensures D1 tables exist on all requests)
+app.use("*", async (c, next) => {
+  if (c.env?.DB) {
+    await ensureSchema(c.env.DB);
+  }
+  await next();
+});
+
 // Health check
 app.get("/api/health", (c) => {
   return c.json({
@@ -31,7 +39,7 @@ app.get("/api/health", (c) => {
     framework: "hono",
     database: "cloudflare-d1",
     storage: "cloudflare-r2",
-    version: "2.0.0",
+    version: "2.1.0",
   });
 });
 
@@ -44,5 +52,17 @@ app.route("/api/generate", generationRouter);
 app.route("/api/export", exportRouter);
 app.route("/api/settings", settingsRouter);
 app.route("/api/assets", assetsRouter);
+
+// Global Exception & Error Handler with Friendly JSON
+app.onError((err, c) => {
+  console.error("[Worker Global Error]:", err);
+  return c.json(
+    {
+      detail: err?.message || "服务器运行异常，请重试",
+      error: String(err),
+    },
+    500
+  );
+});
 
 export default app;

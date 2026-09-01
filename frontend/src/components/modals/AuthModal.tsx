@@ -39,7 +39,8 @@ export const AuthModal: React.FC = () => {
         notify.success("🎬 欢迎回来，导演！已成功登录。");
       } catch (err: any) {
         console.error("Login failed:", err);
-        notify.error(err?.response?.data?.detail || "登录失败，请检查账号与密码");
+        const detail = err?.response?.data?.detail || err?.response?.data?.error || err?.message;
+        notify.error(detail || "登录失败，请检查账号与密码");
       } finally {
         setIsSubmitting(false);
       }
@@ -66,7 +67,8 @@ export const AuthModal: React.FC = () => {
         notify.success("🎉 账号创建成功！已自动登录。");
       } catch (err: any) {
         console.error("Register failed:", err);
-        notify.error(err?.response?.data?.detail || "注册失败，该邮箱或昵称可能已被占用");
+        const detail = err?.response?.data?.detail || err?.response?.data?.error || err?.message;
+        notify.error(detail || "注册失败，请更换其他邮箱或昵称");
       } finally {
         setIsSubmitting(false);
       }
