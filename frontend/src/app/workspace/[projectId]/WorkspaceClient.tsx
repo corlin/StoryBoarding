@@ -434,6 +434,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       {/* Top Bar */}
       <TopBar
         project={displayProject}
+        shots={shots}
         totalDuration={totalDuration}
         activeVersionTag={previewVersion ? `预览中: ${previewVersion.version_tag}` : activeVersionTag}
         onGenerateFromStory={handleGenerateFromStory}

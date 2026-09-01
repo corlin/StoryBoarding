@@ -26,9 +26,14 @@ import { BibleModal } from "@/components/modals/BibleModal";
 import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { api } from "@/lib/api";
+import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
+import { notify } from "@/components/ui/ToastNotification";
+import { Loader2 } from "lucide-react";
+import { ShotModel } from "@/types/shot";
 
 interface TopBarProps {
   project: ProjectModel | null;
+  shots?: ShotModel[];
   totalDuration: number;
   activeVersionTag?: string;
   onGenerateFromStory: (story: string) => Promise<void>;
@@ -39,6 +44,7 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({
   project,
+  shots = [],
   totalDuration,
   activeVersionTag = "v1.0",
   onGenerateFromStory,
@@ -58,8 +64,29 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCopyingPrompt, setIsCopyingPrompt] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isExportingPng, setIsExportingPng] = useState(false);
 
   const isBuiltIn = !project || project.id === "demo" || project.id === "demo-matrix-cyber-master";
+
+  const handleExportStoryboardSheetPNG = async () => {
+    if (!project || isExportingPng) return;
+    const currentShots = (shots && shots.length > 0) ? shots : project.sequences?.[0]?.shots || [];
+    if (currentShots.length === 0) {
+      notify.error("项目中暂无镜头数据，无法导出故事板打样单");
+      return;
+    }
+    try {
+      setIsExportingPng(true);
+      notify.info("🎨 正在使用 Canvas 极速合成 16:9 故事板打样单，稍候...");
+      await exportStoryboardSheetToPng(project, currentShots);
+      notify.success("🎉 完整故事板打样单 (PNG) 已成功生成并下载！");
+    } catch (e: any) {
+      console.error("Export PNG error:", e);
+      notify.error(e?.message || "导出故事板打样单失败");
+    } finally {
+      setIsExportingPng(false);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!storyText.trim()) return;
@@ -293,7 +320,36 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
 
             <div className="space-y-3 pt-1">
-              {/* Deliverable 1: Generation Package ZIP */}
+              {/* Deliverable 1: Storyboard Sheet (1:1 Multi-Panel Grid) via Canvas Exporter (100% Zero 404) */}
+              <button
+                type="button"
+                onClick={handleExportStoryboardSheetPNG}
+                disabled={isExportingPng || (shots?.length === 0 && (!project?.sequences?.[0]?.shots || project.sequences[0].shots.length === 0))}
+                className="w-full flex items-center justify-between p-3 rounded-lg border border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 transition-all group text-left disabled:opacity-50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded bg-sky-500/20 text-sky-400">
+                    {isExportingPng ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-sky-300">
+                      1. 🖼️ 完整故事板打样单 (PNG)
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      1:1 像素级对齐完整故事板打样大图（纯前端 Canvas 极速合成，包含景别角标与动作描述）
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-sky-400 font-medium">
+                  {isExportingPng ? (
+                    <span className="text-sky-300 text-[11px]">合成中...</span>
+                  ) : (
+                    <Download className="w-4 h-4 text-sky-400 group-hover:scale-110 transition-transform" />
+                  )}
+                </div>
+              </button>
+
+              {/* Deliverable 2: Generation Package ZIP */}
               <a
                 href={project ? api.getExportPackageUrl(project.id) : "#"}
                 target="_blank"
@@ -305,14 +361,14 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <Archive className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold text-primary">1. 📦 全套工业交付包 (Generation Package ZIP)</h4>
+                    <h4 className="text-xs font-semibold text-primary">2. 📦 全套工业交付包 (Generation Package ZIP)</h4>
                     <p className="text-[11px] text-muted-foreground">包含 Shot Spec JSON、AI 视频批量生成 Manifest、Markdown 剧本与高清资产清单</p>
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
               </a>
 
-              {/* Deliverable 2: Storyboard Images Pack (ZIP) */}
+              {/* Deliverable 3: Storyboard Images Pack (ZIP) */}
               <a
                 href={project ? api.getExportImagesZipUrl(project.id) : "#"}
                 target="_blank"
@@ -324,14 +380,14 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <Images className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold text-emerald-400">2. 🖼️ 高清分镜图包 (Storyboard Images ZIP)</h4>
+                    <h4 className="text-xs font-semibold text-emerald-400">3. 🖼️ 高清分镜图包 (Storyboard Images ZIP)</h4>
                     <p className="text-[11px] text-muted-foreground">每个镜头的 1080P/16:9 高清原图（按 SHOT_01_WS_... 严格规范命名打包）</p>
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
               </a>
 
-              {/* Deliverable 3: Shot Script Markdown */}
+              {/* Deliverable 4: Shot Script Markdown */}
               <a
                 href={project ? api.getExportScriptUrl(project.id) : "#"}
                 target="_blank"
@@ -343,21 +399,21 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <FileText className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">3. 🎬 导演分镜头脚本文档 (Shot Script Markdown)</h4>
+                    <h4 className="text-xs font-semibold group-hover:text-primary transition-colors">4. 🎬 导演分镜头脚本文档 (Shot Script Markdown)</h4>
                     <p className="text-[11px] text-muted-foreground">标准好莱坞分镜头台本（包含视听语言、机位运动与对白列表）</p>
                   </div>
                 </div>
                 <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
               </a>
 
-              {/* Deliverable 4: Professional Director's Storyboard Global Prompt */}
+              {/* Deliverable 5: Professional Director's Storyboard Global Prompt */}
               <div className="flex items-center justify-between p-3 rounded-lg border border-sky-500/40 bg-sky-500/5 hover:bg-sky-500/10 transition-all group">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded bg-sky-500/20 text-sky-400">
                     <Terminal className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold text-sky-300">4. 🌐 导演全局总控提示词 (Global Prompt)</h4>
+                    <h4 className="text-xs font-semibold text-sky-300">5. 🌐 导演全局总控提示词 (Global Prompt)</h4>
                     <p className="text-[11px] text-muted-foreground">好莱坞多格总控 Prompt（支持 Midjourney 单图整版）</p>
                   </div>
                 </div>
