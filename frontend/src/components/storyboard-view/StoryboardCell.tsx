@@ -85,43 +85,44 @@ function PrevizHudOverlay({ shot }: { shot: ShotModel }) {
 
   return (
     <div className="absolute inset-0 pointer-events-none z-15 select-none overflow-hidden">
-      {/* 1. Rule-of-Thirds Grid */}
+      {/* 1. Rule-of-Thirds Grid (Ultra subtle 6% opacity) */}
       <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
-        <div className="border-r border-b border-white/[0.08]" />
-        <div className="border-r border-b border-white/[0.08]" />
-        <div className="border-b border-white/[0.08]" />
-        <div className="border-r border-b border-white/[0.08]" />
-        <div className="border-r border-b border-white/[0.08]" />
-        <div className="border-b border-white/[0.08]" />
-        <div className="border-r border-white/[0.08]" />
-        <div className="border-r border-white/[0.08]" />
+        <div className="border-r border-b border-white/[0.06]" />
+        <div className="border-r border-b border-white/[0.06]" />
+        <div className="border-b border-white/[0.06]" />
+        <div className="border-r border-b border-white/[0.06]" />
+        <div className="border-r border-b border-white/[0.06]" />
+        <div className="border-b border-white/[0.06]" />
+        <div className="border-r border-white/[0.06]" />
+        <div className="border-r border-white/[0.06]" />
         <div />
       </div>
 
-      {/* 2. 16:9 Cinema Safe Title Corner Crop Marks */}
-      <div className="absolute top-2.5 left-2.5 w-2.5 h-2.5 border-t-2 border-l-2 border-sky-400/70" />
-      <div className="absolute top-2.5 right-2.5 w-2.5 h-2.5 border-t-2 border-r-2 border-sky-400/70" />
-      <div className="absolute bottom-2.5 left-2.5 w-2.5 h-2.5 border-b-2 border-l-2 border-sky-400/70" />
-      <div className="absolute bottom-2.5 right-2.5 w-2.5 h-2.5 border-b-2 border-r-2 border-sky-400/70" />
-
-      {/* 3. Central Focus Crosshairs & AF Marker */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border border-dashed border-sky-400/40" />
-          <div className="absolute w-1.5 h-1.5 rounded-full bg-sky-400 ring-2 ring-sky-400/20" />
-          <div className="absolute w-5 h-[1px] bg-sky-400/60" />
-          <div className="absolute h-5 w-[1px] bg-sky-400/60" />
-          <span className="absolute -top-3.5 text-[8px] font-mono font-bold text-sky-300 bg-black/80 px-1 rounded border border-sky-400/30">
-            ⨁ FOCUS
-          </span>
-        </div>
+      {/* 2. Rule-of-Thirds 4 Golden Power Points (+) */}
+      <div className="absolute top-[33.33%] left-[33.33%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/40 select-none">
+        ┼
       </div>
+      <div className="absolute top-[33.33%] left-[66.67%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/40 select-none">
+        ┼
+      </div>
+      <div className="absolute top-[66.67%] left-[33.33%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/40 select-none">
+        ┼
+      </div>
+      <div className="absolute top-[66.67%] left-[66.67%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/40 select-none">
+        ┼
+      </div>
+
+      {/* 3. 90% Cinema Action Safe Corner Crop Marks */}
+      <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-sky-400/50" />
+      <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-sky-400/50" />
+      <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-sky-400/50" />
+      <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-sky-400/50" />
 
       {/* 4. Bottom Center: Dynamic Camera Movement Trajectory Vector */}
       <div className="absolute bottom-2.5 inset-x-0 flex items-center justify-center">
         <div
           className={cn(
-            "flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold shadow-md backdrop-blur-md",
+            "flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-semibold shadow-md backdrop-blur-md",
             badge.color
           )}
         >

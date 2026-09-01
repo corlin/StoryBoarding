@@ -265,8 +265,8 @@ export async function exportStoryboardSheetToPng(
 
     // Optional: Draw Previz HUD Overlay on Canvas Image Area
     if (includeHud) {
-      // Rule of Thirds Lines
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+      // Rule of Thirds Lines (Ultra subtle)
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
       ctx.lineWidth = 1;
       const w3 = cellWidth / 3;
       const h3 = cellImgHeight / 3;
@@ -277,25 +277,47 @@ export async function exportStoryboardSheetToPng(
       ctx.moveTo(cellX, cellY + h3 * 2); ctx.lineTo(cellX + cellWidth, cellY + h3 * 2);
       ctx.stroke();
 
-      // Focus Crosshairs (Center Reticle)
-      const centerX = cellX + cellWidth / 2;
-      const centerY = cellY + cellImgHeight / 2;
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.6)";
-      ctx.lineWidth = 1.5;
+      // Rule of Thirds 4 Golden Power Points (+)
+      ctx.fillStyle = "rgba(56, 189, 248, 0.4)";
+      ctx.font = "12px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("┼", cellX + w3, cellY + h3);
+      ctx.fillText("┼", cellX + w3 * 2, cellY + h3);
+      ctx.fillText("┼", cellX + w3, cellY + h3 * 2);
+      ctx.fillText("┼", cellX + w3 * 2, cellY + h3 * 2);
+      ctx.textBaseline = "alphabetic";
+
+      // 90% Action Safe Corner Crop Marks
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.5)";
+      ctx.lineWidth = 1.2;
+      const safeInset = 8;
+      const markLen = 6;
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+      // Top-Left
+      ctx.moveTo(cellX + safeInset, cellY + safeInset + markLen);
+      ctx.lineTo(cellX + safeInset, cellY + safeInset);
+      ctx.lineTo(cellX + safeInset + markLen, cellY + safeInset);
+      // Top-Right
+      ctx.moveTo(cellX + cellWidth - safeInset - markLen, cellY + safeInset);
+      ctx.lineTo(cellX + cellWidth - safeInset, cellY + safeInset);
+      ctx.lineTo(cellX + cellWidth - safeInset, cellY + safeInset + markLen);
+      // Bottom-Left
+      ctx.moveTo(cellX + safeInset, cellY + cellImgHeight - safeInset - markLen);
+      ctx.lineTo(cellX + safeInset, cellY + cellImgHeight - safeInset);
+      ctx.lineTo(cellX + safeInset + markLen, cellY + cellImgHeight - safeInset);
+      // Bottom-Right
+      ctx.moveTo(cellX + cellWidth - safeInset - markLen, cellY + cellImgHeight - safeInset);
+      ctx.lineTo(cellX + cellWidth - safeInset, cellY + cellImgHeight - safeInset);
+      ctx.lineTo(cellX + cellWidth - safeInset, cellY + cellImgHeight - safeInset - markLen);
       ctx.stroke();
-      ctx.fillStyle = "#38bdf8";
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 2.5, 0, Math.PI * 2);
-      ctx.fill();
 
       // Motion Vector Pill at bottom of image
       const movBadgeText = getMovementBadgeText(movType);
       ctx.fillStyle = "rgba(12, 15, 23, 0.88)";
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.6)";
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.5)";
       ctx.lineWidth = 1;
-      const badgeW = 150;
+      const badgeW = 160;
       const badgeH = 22;
       const badgeX = cellX + (cellWidth - badgeW) / 2;
       const badgeY = cellY + cellImgHeight - 30;
