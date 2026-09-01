@@ -126,7 +126,7 @@ export async function generateCinematicStoryboardImage(
     if (isOpenRouter) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s strict wait
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s strict wait
 
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images`, {
           method: "POST",
@@ -167,7 +167,7 @@ export async function generateCinematicStoryboardImage(
     if (isOpenRouter && !rawImageUrl) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
           method: "POST",
@@ -216,7 +216,7 @@ export async function generateCinematicStoryboardImage(
           console.warn(`OpenRouter image generation returned ${resp.status}`);
         }
       } catch (e: any) {
-        console.warn("OpenRouter image call failed or timed out (>30s):", e?.message || e);
+        console.warn("OpenRouter image call failed or timed out (>45s):", e?.message || e);
       }
     }
 
@@ -224,7 +224,7 @@ export async function generateCinematicStoryboardImage(
     if (!rawImageUrl) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images/generations`, {
           method: "POST",

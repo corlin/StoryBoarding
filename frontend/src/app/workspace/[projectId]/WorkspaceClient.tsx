@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { TopBar } from "@/components/workspace/TopBar";
@@ -261,8 +261,17 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     notify.info(locked ? "🔒 镜头已锁定（AI重构时将保持不变）" : "🔓 镜头已解锁");
   };
 
+  const abortBatchRenderRef = useRef(false);
+
+  const handleAbortBatchRendering = () => {
+    abortBatchRenderRef.current = true;
+    setIsBatchRendering(false);
+    notify.info("已中止后台冲印队列");
+  };
+
   const startClientRenderQueue = async (targetProjectId: string) => {
     try {
+      abortBatchRenderRef.current = false;
       setIsBatchRendering(true);
       const proj = await api.getProject(targetProjectId);
       const allShots = proj?.sequences?.[0]?.shots || [];
@@ -283,6 +292,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
       const runWorker = async () => {
         while (currentIndex < unrendered.length) {
+          if (abortBatchRenderRef.current) break;
           const indexToProcess = currentIndex++;
           const shot = unrendered[indexToProcess];
           if (!shot) break;
@@ -291,6 +301,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           } catch (err) {
             console.warn(`Shot ${shot.id} render error:`, err);
           }
+          if (abortBatchRenderRef.current) break;
           completed++;
           setBatchProgress({ current: completed, total: unrendered.length });
         }
@@ -299,7 +310,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       const workers = Array.from({ length: Math.min(concurrency, unrendered.length) }, () => runWorker());
       await Promise.all(workers);
       await fetchProject(targetProjectId);
-      notify.success(`🎨 全部 ${unrendered.length} 个镜头画面显影冲印完成！`);
+      if (!abortBatchRenderRef.current) {
+        notify.success(`🎨 全部 ${unrendered.length} 个镜头画面显影冲印完成！`);
+      }
     } catch (e: any) {
       console.error("Client render queue error:", e);
     } finally {
@@ -536,6 +549,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             onToggleLock={handleToggleLockShot}
             isBatchRendering={isBatchRendering}
             batchProgress={batchProgress}
+            onAbortBatchRendering={handleAbortBatchRendering}
           />
         </div>
       </div>

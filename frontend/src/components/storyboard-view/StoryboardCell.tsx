@@ -41,16 +41,16 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
 
   const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || "MS";
   const isLocked = Boolean(shot.is_locked);
-  const isDeveloping = !imgSrc || isRegenerating;
+  const isActivelyDeveloping = isRegenerating;
 
   useEffect(() => {
     setImgSrc(normalizeAssetUrl(shot.storyboard_image_url));
   }, [shot.storyboard_image_url]);
 
-  // Live Darkroom Developing Stopwatch (Tracks both single manual regenerate and initial background creation)
+  // Live Darkroom Developing Stopwatch (Only runs when actively regenerating)
   useEffect(() => {
     let timer: any;
-    if (isDeveloping) {
+    if (isActivelyDeveloping) {
       const start = Date.now();
       timer = setInterval(() => {
         setElapsed(Number(((Date.now() - start) / 1000).toFixed(1)));
@@ -59,13 +59,13 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
       setElapsed(0);
     }
     return () => clearInterval(timer);
-  }, [isDeveloping]);
+  }, [isActivelyDeveloping]);
 
-  // Determine dynamic 3-stage darkroom status text
+  // Determine dynamic 3-stage darkroom status text (Max 45s)
   const getDevelopingStage = (sec: number) => {
-    if (sec >= 30.0) {
+    if (sec >= 45.0) {
       return {
-        text: "⚠️ 显影等待超时 (点击右上角重绘)",
+        text: "⚠️ 显影等待超时 (点击重试)",
         icon: Sparkles,
         color: "text-red-400",
       };
@@ -77,9 +77,9 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
         color: "text-sky-400",
       };
     }
-    if (sec < 25.0) {
+    if (sec < 35.0) {
       return {
-        text: "电影级概念画面渲染中 (最长30s)",
+        text: "电影级概念画面渲染中 (最长45s)",
         icon: Palette,
         color: "text-amber-400",
       };
@@ -131,20 +131,20 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           }
         }}
         className={cn(
-          "relative aspect-video w-full bg-muted/40 flex items-center justify-center overflow-hidden",
+          "relative aspect-video w-full bg-neutral-950 flex items-center justify-center overflow-hidden",
           imgSrc ? "cursor-zoom-in" : "cursor-default"
         )}
-        title={imgSrc ? "点击放大进入影院动态播放模式" : "云端暗房显影中..."}
+        title={imgSrc ? "点击放大进入影院动态播放模式" : isActivelyDeveloping ? "云端暗房显影中..." : "未生成画面"}
       >
-        {imgSrc && !isRegenerating ? (
+        {imgSrc && !isActivelyDeveloping ? (
           /* Real Film Storyboard Artwork with Smooth 400ms Exposure Fade-in */
           <img
             src={imgSrc}
             alt={`Shot ${index + 1}`}
             className="w-full h-full object-cover transition-all duration-500 animate-in fade-in zoom-in-95 group-hover:scale-[1.02]"
           />
-        ) : (
-          /* 35mm Film Developing Chamber (Cinema Darkroom Monitor) */
+        ) : isActivelyDeveloping ? (
+          /* Active Developing Chamber with Stopwatch (Max 45s) */
           <div className="absolute inset-0 bg-neutral-950 flex flex-col items-center justify-center p-3 text-center z-10 select-none overflow-hidden">
             {/* Subtle 35mm film scan light beam */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/15 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
@@ -169,8 +169,30 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
 
             {/* Stopwatch Timer Badge */}
             <span className="relative text-[10px] font-mono text-muted-foreground/80 mt-1">
-              ⏱️ 耗时 {elapsed.toFixed(1)}s
+              ⏱️ 耗时 {elapsed.toFixed(1)}s / 45s
             </span>
+          </div>
+        ) : (
+          /* Idle Unrendered / Failed State: Big Center Button to Trigger Single-Shot Render */
+          <div className="absolute inset-0 bg-neutral-950/90 flex flex-col items-center justify-center p-3 text-center z-10 select-none">
+            <button
+              type="button"
+              onClick={handleRegenerate}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl border border-border/80 bg-background/80 hover:bg-primary/15 hover:border-primary/60 text-muted-foreground hover:text-primary transition-all group/btn shadow-sm"
+              title="点击单独为该镜头进行 45 秒 AI 电影生图"
+            >
+              <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover/btn:scale-110 transition-transform">
+                <Palette className="w-5 h-5" />
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-semibold text-foreground group-hover/btn:text-primary transition-colors">
+                  🎨 点击生成分镜画面
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  单镜 45s 电影级渲染
+                </p>
+              </div>
+            </button>
           </div>
         )}
 
@@ -214,16 +236,16 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           {onRegenerateImage && (
             <button
               onClick={handleRegenerate}
-              disabled={isDeveloping}
+              disabled={isActivelyDeveloping}
               className={cn(
                 "p-1.5 rounded-md backdrop-blur-md border transition-all duration-150 shadow-sm",
-                isDeveloping
+                isActivelyDeveloping
                   ? "bg-muted/80 text-muted-foreground border-border/40 cursor-not-allowed"
                   : "bg-background/80 border-border/60 text-muted-foreground hover:text-foreground hover:bg-background opacity-0 group-hover:opacity-100"
               )}
               title="重新打样当前分镜画面 (存入 R2)"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5", isDeveloping && "animate-spin text-primary")} />
+              <RefreshCw className={cn("w-3.5 h-3.5", isActivelyDeveloping && "animate-spin text-primary")} />
             </button>
           )}
 

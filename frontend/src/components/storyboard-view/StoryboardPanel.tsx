@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ShotModel } from "@/types/shot";
 import { StoryboardCell } from "./StoryboardCell";
-import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, RefreshCw } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, RefreshCw, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StoryboardPanelProps {
@@ -15,6 +15,7 @@ interface StoryboardPanelProps {
   onOpenDrawer?: (shotId: string) => void;
   isBatchRendering?: boolean;
   batchProgress?: { current: number; total: number };
+  onAbortBatchRendering?: () => void;
 }
 
 export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
@@ -28,6 +29,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   onOpenDrawer,
   isBatchRendering = false,
   batchProgress,
+  onAbortBatchRendering,
 }) => {
   const [gridCols, setGridCols] = useState<2 | 3 | 4>(3);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -70,12 +72,16 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
         {/* Actions & Layout Controls */}
         <div className="flex items-center gap-2">
           {/* Darkroom Status Capsule */}
-          {missingImageCount > 0 ? (
+          {isBatchRendering ? (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[11px] font-mono text-amber-400 animate-pulse">
               <Loader2 className="w-3 h-3 animate-spin" />
               <span>
-                云端暗房显影中: {shots.length - missingImageCount}/{shots.length} 镜 ({Math.round(((shots.length - missingImageCount) / Math.max(1, shots.length)) * 100)}%)
+                冲印队列执行中 ({batchProgress?.current || 0}/{batchProgress?.total || shots.length})
               </span>
+            </div>
+          ) : missingImageCount > 0 ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/80 border border-border text-[11px] font-mono text-muted-foreground">
+              <span>{shots.length - missingImageCount}/{shots.length} 镜已就绪</span>
             </div>
           ) : shots.length > 0 ? (
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400">
@@ -155,7 +161,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
         </div>
       </div>
 
-      {/* Batch Rendering Dynamic Floating Progress Banner */}
+      {/* Batch Rendering Dynamic Floating Progress Banner with Abort Button */}
       {isBatchRendering && batchProgress && (
         <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between gap-4 z-20 animate-in slide-in-from-top duration-200">
           <div className="flex items-center gap-2 text-xs text-amber-300 font-medium min-w-0">
@@ -165,7 +171,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
             </span>
           </div>
 
-          {/* Progress bar */}
+          {/* Progress bar and Abort Action */}
           <div className="flex items-center gap-3 shrink-0">
             <div className="w-24 sm:w-36 h-2 rounded-full bg-background/60 overflow-hidden border border-amber-500/20">
               <div
@@ -178,6 +184,18 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
             <span className="text-xs font-mono font-bold text-amber-400">
               {Math.round((batchProgress.current / Math.max(batchProgress.total, 1)) * 100)}%
             </span>
+
+            {onAbortBatchRendering && (
+              <button
+                type="button"
+                onClick={onAbortBatchRendering}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/40 transition-colors shadow-xs"
+                title="停止后台批量冲印队列"
+              >
+                <XCircle className="w-3.5 h-3.5 text-red-400" />
+                <span>中止队列</span>
+              </button>
+            )}
           </div>
         </div>
       )}
