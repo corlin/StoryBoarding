@@ -163,6 +163,19 @@ export default function DashboardPage() {
       return;
     }
 
+    // Pre-flight check: ensure user has configured an OpenRouter Key
+    const hasKey = Boolean(
+      user?.custom_settings?.has_llm_key ||
+      user?.custom_settings?.llmApiKey ||
+      user?.custom_settings?.llm_api_key
+    );
+
+    if (!hasKey) {
+      notify.info("🔑 请先配置您的专属 OpenRouter API Key，即可开启好莱坞 AI 故事板创作");
+      openSettingsModal();
+      return;
+    }
+
     setIsSubmittingProject(true);
     setCreationElapsed(0);
     setCreationProgress(5);
@@ -592,7 +605,17 @@ export default function DashboardPage() {
                 elapsedSeconds={creationElapsed}
                 isComplete={creationComplete}
                 errorMessage={creationError}
+                onRetry={() => {
+                  const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+                  handleCreateProject(fakeEvent);
+                }}
+                onOpenSettings={() => {
+                  setIsSubmittingProject(false);
+                  setIsCreating(false);
+                  openSettingsModal();
+                }}
                 onCancel={handleCancelCreate}
+                onClose={handleCancelCreate}
               />
             ) : (
               <form onSubmit={handleCreateProject} className="space-y-4">

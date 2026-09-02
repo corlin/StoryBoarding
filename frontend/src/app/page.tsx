@@ -104,8 +104,14 @@ const FEATURED_SKILLS: FeaturedSkill[] = [
 
 export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated, user, openAuthModal, isSettingsModalOpen, closeSettingsModal } =
-    useAuthStore();
+  const {
+    isAuthenticated,
+    user,
+    openAuthModal,
+    isSettingsModalOpen,
+    openSettingsModal,
+    closeSettingsModal,
+  } = useAuthStore();
 
   const [promptText, setPromptText] = useState("");
   const [targetDuration, setTargetDuration] = useState<number>(30);
@@ -167,6 +173,19 @@ export default function HomePage() {
       );
       notify.info("🎬 请先登录或注册导演账号，登录后将自动开工！");
       openAuthModal("login");
+      return;
+    }
+
+    // Pre-flight check: ensure user has configured an OpenRouter Key
+    const hasKey = Boolean(
+      user?.custom_settings?.has_llm_key ||
+      user?.custom_settings?.llmApiKey ||
+      user?.custom_settings?.llm_api_key
+    );
+
+    if (!hasKey) {
+      notify.info("🔑 请先配置您的专属 OpenRouter API Key，即可开启好莱坞 AI 故事板创作");
+      openSettingsModal();
       return;
     }
 
@@ -499,6 +518,11 @@ export default function HomePage() {
         isComplete={creationComplete}
         errorMessage={creationError}
         onRetry={handleStartCreation}
+        onCancel={() => setIsCreating(false)}
+        onOpenSettings={() => {
+          setIsCreating(false);
+          openSettingsModal();
+        }}
         onClose={() => setIsCreating(false)}
       />
     </div>

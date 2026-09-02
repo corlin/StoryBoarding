@@ -14,6 +14,8 @@ import {
   Settings,
   Clock,
   ArrowRight,
+  Key,
+  X,
 } from "lucide-react";
 
 export interface DirectorPipelineProgressProps {
@@ -83,6 +85,19 @@ export const DirectorPipelineProgress: React.FC<DirectorPipelineProgressProps> =
     }, 100);
     return () => clearInterval(timer);
   }, [isOpen, externalElapsed]);
+
+  // Handle ESC key to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (onCancel) onCancel();
+        else if (onClose) onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onCancel, onClose]);
 
   if (!isOpen) return null;
 
@@ -238,39 +253,49 @@ export const DirectorPipelineProgress: React.FC<DirectorPipelineProgressProps> =
 
       {/* Error state and rescue actions */}
       {errorMessage && (
-        <div className="p-3.5 rounded-lg bg-destructive/10 border border-destructive/30 space-y-2">
-          <p className="text-xs text-destructive font-medium leading-relaxed">{errorMessage}</p>
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            {onRetry && (
-              <button
-                type="button"
-                onClick={onRetry}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>重试创建</span>
-              </button>
-            )}
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 space-y-3 animate-in fade-in duration-200">
+          <div className="flex items-start gap-2.5 text-destructive">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <p className="text-xs font-medium leading-relaxed">{errorMessage}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-destructive/20">
             {onOpenSettings && (
               <button
                 type="button"
                 onClick={onOpenSettings}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-secondary text-foreground hover:bg-secondary/80 border border-border transition-colors"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
               >
-                <Settings className="w-3.5 h-3.5" />
-                <span>检查配置</span>
+                <Key className="w-3.5 h-3.5" />
+                <span>⚙️ 立即配置 API Key</span>
+              </button>
+            )}
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary text-foreground hover:bg-secondary/80 border border-border transition-colors shadow-2xs"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>重试创建</span>
               </button>
             )}
             {onSkipToWorkspace && (
               <button
                 type="button"
                 onClick={onSkipToWorkspace}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-secondary text-foreground hover:bg-secondary/80 border border-border transition-colors ml-auto"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary text-foreground hover:bg-secondary/80 border border-border transition-colors"
               >
                 <span>直接进入</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
+            <button
+              type="button"
+              onClick={onCancel || onClose}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-transparent hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors ml-auto"
+            >
+              <span>关闭窗口</span>
+            </button>
           </div>
         </div>
       )}
@@ -278,10 +303,10 @@ export const DirectorPipelineProgress: React.FC<DirectorPipelineProgressProps> =
       {/* Footer controls */}
       <div className="flex items-center justify-between pt-2 border-t border-border/50 text-xs text-muted-foreground">
         <span>基于好莱坞 6 阶段戏剧节拍与 Previz 工业规范</span>
-        {onCancel && !isComplete && (
+        {(onCancel || onClose) && !isComplete && (
           <button
             type="button"
-            onClick={onCancel}
+            onClick={onCancel || onClose}
             className="text-muted-foreground hover:text-foreground hover:underline"
           >
             取消
@@ -294,8 +319,25 @@ export const DirectorPipelineProgress: React.FC<DirectorPipelineProgressProps> =
   // If used as modal (with backdrop)
   if (isOpen && onClose) {
     return (
-      <div className="fixed inset-0 bg-background/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div
+        className="fixed inset-0 bg-background/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            if (onCancel) onCancel();
+            else if (onClose) onClose();
+          }
+        }}
+      >
         <div className="bg-card border border-primary/40 rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative overflow-hidden">
+          {/* Top-Right Absolute Close Button */}
+          <button
+            type="button"
+            onClick={onCancel || onClose}
+            className="absolute top-4 right-4 p-1.5 rounded-full bg-secondary/70 hover:bg-secondary text-muted-foreground hover:text-foreground transition-all z-10"
+            title="关闭窗口 (Esc)"
+          >
+            <X className="w-4 h-4" />
+          </button>
           {content}
         </div>
       </div>
