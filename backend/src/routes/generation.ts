@@ -1,22 +1,36 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
-import { projects, sequences, shots, systemSettings, projectVersions } from "../db/schema";
+import { projects, sequences, shots, systemSettings, projectVersions, users } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, cleanPromptOfMetaPollution } from "../agents/director/pipeline";
 import { captureProjectSnapshot } from "./versions";
+import { getAuthUser } from "../lib/auth";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
-// Helper to get active API keys from D1 system_settings or env
-export async function getActiveSettings(db: any, env: Bindings) {
-  const setting = await db.select().from(systemSettings).where(eq(systemSettings.id, "default")).get();
+// Helper to get active API keys strictly from user personal settings (Zero Public Fallback)
+export async function getActiveSettings(db: any, env: Bindings, userId?: string) {
+  let userSettings: any = {};
+  if (userId) {
+    try {
+      const user = await db.select().from(users).where(eq(users.id, userId)).get();
+      if (user?.customSettings) {
+        userSettings = JSON.parse(user.customSettings);
+      }
+    } catch (e) {}
+  }
+
+  const llmApiKey = (userSettings.llmApiKey || "").trim();
+  const imageApiKey = (userSettings.imageApiKey || userSettings.llmApiKey || "").trim();
+
   return {
-    llmApiKey: setting?.llmApiKey || "",
-    llmApiBase: setting?.llmApiBase || env.DEFAULT_LLM_API_BASE || "https://openrouter.ai/api/v1",
-    llmModel: setting?.llmModel || env.DEFAULT_LLM_MODEL || "deepseek/deepseek-chat",
-    imageApiKey: setting?.imageApiKey || setting?.llmApiKey || "",
-    imageApiBase: setting?.imageApiBase || "https://openrouter.ai/api/v1",
-    imageModel: setting?.imageModel || env.DEFAULT_IMAGE_MODEL || "x-ai/grok-imagine-image-2.0",
+    hasKey: !!llmApiKey,
+    llmApiKey,
+    llmApiBase: userSettings.llmApiBase || "https://openrouter.ai/api/v1",
+    llmModel: userSettings.llmModel || "deepseek/deepseek-chat",
+    imageApiKey,
+    imageApiBase: userSettings.imageApiBase || "https://openrouter.ai/api/v1",
+    imageModel: userSettings.imageModel || "google/imagen-3",
   };
 }
 
@@ -333,7 +347,17 @@ router.post("/from-story", async (c) => {
     });
   }
 
-  const settings = await getActiveSettings(db, c.env);
+  const authHeader = c.req.header("Authorization");
+  const authUser = await getAuthUser(authHeader);
+  if (!authUser) {
+    return c.json({ detail: "请先登录导演账号" }, 401);
+  }
+
+  const settings = await getActiveSettings(db, c.env, authUser.userId);
+  if (!settings.hasKey) {
+    return c.json({ detail: "请先在个人设置中配置您的专属 OpenRouter API Key 后再开启 AI 智能拆镜" }, 400);
+  }
+
   const result = await runDirectorPipeline(storyText, targetDuration, {
     apiKey: settings.llmApiKey,
     apiBase: settings.llmApiBase,
@@ -501,7 +525,17 @@ router.post("/from-script", async (c) => {
     });
   }
 
-  const settings = await getActiveSettings(db, c.env);
+  const authHeader = c.req.header("Authorization");
+  const authUser = await getAuthUser(authHeader);
+  if (!authUser) {
+    return c.json({ detail: "请先登录导演账号" }, 401);
+  }
+
+  const settings = await getActiveSettings(db, c.env, authUser.userId);
+  if (!settings.hasKey) {
+    return c.json({ detail: "请先在个人设置中配置您的专属 OpenRouter API Key 后再进行剧本解析" }, 400);
+  }
+
   const result = await runDirectorPipeline(scriptText, 30.0, {
     apiKey: settings.llmApiKey,
     apiBase: settings.llmApiBase,
@@ -640,7 +674,17 @@ router.post("/images/:shotId", async (c) => {
     return c.json({ detail: "Shot not found" }, 404);
   }
 
-  const settings = await getActiveSettings(db, c.env);
+  const authHeader = c.req.header("Authorization");
+  const authUser = await getAuthUser(authHeader);
+  if (!authUser) {
+    return c.json({ detail: "请先登录导演账号" }, 401);
+  }
+
+  const settings = await getActiveSettings(db, c.env, authUser.userId);
+  if (!settings.hasKey) {
+    return c.json({ detail: "请先在个人设置中配置您的专属 OpenRouter API Key 后再生成 AI 画面" }, 400);
+  }
+
   const prompt = shot.imagePrompt || formatDirectorImagePrompt(shot.action, shot.shotSize, shot.cameraAngle, "static");
   const seed = Math.floor(Math.random() * 9000000) + Date.now() % 10000;
 

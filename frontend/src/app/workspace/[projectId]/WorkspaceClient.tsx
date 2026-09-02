@@ -13,6 +13,7 @@ import { DirectorPipelineModal } from "@/components/workspace/DirectorPipelineMo
 import { VersionHistoryDrawer } from "@/components/drawers/VersionHistoryDrawer";
 import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
 import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { ProjectVersion, ProjectModel } from "@/types/shot";
@@ -321,6 +322,19 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   };
 
   const handleGenerateFromStory = async (story: string) => {
+    const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore.getState();
+    if (!isAuthenticated) {
+      notify.info("🎬 请先登录或注册导演账号");
+      openAuthModal("login");
+      return;
+    }
+    const hasKey = !!user?.custom_settings?.llmApiKey;
+    if (!hasKey) {
+      notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
+      openProfileModal();
+      return;
+    }
+
     if (previewVersion) {
       setPreviewVersion(null);
     }
@@ -350,13 +364,26 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       startClientRenderQueue(targetProjectId);
     } catch (err: any) {
       console.error("AI拆镜失败:", err);
-      notify.error(err?.message || "AI 导演拆镜失败，请检查网络或在右上角「设置」中配置 OpenRouter API Key");
+      notify.error(err?.response?.data?.detail || err?.message || "AI 导演拆镜失败，请检查网络或在右上角头像「个人设置」中配置 OpenRouter API Key");
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleImportScript = async (scriptText: string) => {
+    const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore.getState();
+    if (!isAuthenticated) {
+      notify.info("🎬 请先登录或注册导演账号");
+      openAuthModal("login");
+      return;
+    }
+    const hasKey = !!user?.custom_settings?.llmApiKey;
+    if (!hasKey) {
+      notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启剧本解析服务");
+      openProfileModal();
+      return;
+    }
+
     if (previewVersion) {
       setPreviewVersion(null);
     }
@@ -385,7 +412,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       startClientRenderQueue(targetProjectId);
     } catch (err: any) {
       console.error("导入剧本解析失败:", err);
-      notify.error(err?.message || "剧本逆向解析失败，请检查网络或在右上角「设置」中配置 OpenRouter API Key");
+      notify.error(err?.response?.data?.detail || err?.message || "剧本逆向解析失败，请检查网络或在右上角头像「个人设置」中配置 OpenRouter API Key");
     } finally {
       setIsGenerating(false);
     }
@@ -394,6 +421,18 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const handleRegenerateDirty = async () => {
     if (previewVersion) {
       notify.info("当前处于历史版本只读预览模式，无法重绘");
+      return;
+    }
+    const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore.getState();
+    if (!isAuthenticated) {
+      notify.info("🎬 请先登录或注册导演账号");
+      openAuthModal("login");
+      return;
+    }
+    const hasKey = !!user?.custom_settings?.llmApiKey;
+    if (!hasKey) {
+      notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启 AI 画面生成服务");
+      openProfileModal();
       return;
     }
     if (!currentProject) return;
@@ -405,12 +444,24 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       notify.info("当前处于历史版本只读预览模式，无法重绘");
       return;
     }
+    const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore.getState();
+    if (!isAuthenticated) {
+      notify.info("🎬 请先登录或注册导演账号");
+      openAuthModal("login");
+      return;
+    }
+    const hasKey = !!user?.custom_settings?.llmApiKey;
+    if (!hasKey) {
+      notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启 AI 画面生成服务");
+      openProfileModal();
+      return;
+    }
 
     try {
       await regenerateShotImage(shotId);
       notify.success("🎨 镜头视觉画面冲印存盘完成！");
     } catch (e: any) {
-      notify.error("镜头冲印失败，请检查图像 API 设置");
+      notify.error(e?.response?.data?.detail || e?.message || "镜头冲印失败，请检查图像 API 设置");
     }
   };
 

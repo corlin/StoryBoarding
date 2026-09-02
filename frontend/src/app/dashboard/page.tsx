@@ -122,6 +122,12 @@ export default function DashboardPage() {
       openAuthModal("login");
       return;
     }
+    const hasKey = !!user?.custom_settings?.llmApiKey;
+    if (!hasKey) {
+      notify.info("🎬 请先在个人设置中填入您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
+      openProfileModal();
+      return;
+    }
     setNewTitle("");
     setNewStory("");
     setTargetDuration(30);
@@ -134,6 +140,12 @@ export default function DashboardPage() {
     if (!isAuthenticated) {
       notify.info("🎬 请先登录或注册导演账号，即可一键套用模板创建私有工程");
       openAuthModal("login");
+      return;
+    }
+    const hasKey = !!user?.custom_settings?.llmApiKey;
+    if (!hasKey) {
+      notify.info("🎬 请先在个人设置中填入您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
+      openProfileModal();
       return;
     }
     setNewTitle(tmpl.storyTitle);

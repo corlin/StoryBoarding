@@ -8,7 +8,7 @@ import { getAuthUser } from "../lib/auth";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
-// Helper to get active API keys (prioritizing user personal settings > system settings > env defaults)
+// Helper to get active API keys strictly from user personal settings (Zero Public Fallback)
 async function getActiveSettings(db: any, env: Bindings, userId?: string) {
   let userSettings: any = {};
   if (userId) {
@@ -20,18 +20,17 @@ async function getActiveSettings(db: any, env: Bindings, userId?: string) {
     } catch (e) {}
   }
 
-  let sysSetting: any = null;
-  try {
-    sysSetting = await db.select().from(systemSettings).where(eq(systemSettings.id, "default")).get();
-  } catch (e) {}
+  const llmApiKey = (userSettings.llmApiKey || "").trim();
+  const imageApiKey = (userSettings.imageApiKey || userSettings.llmApiKey || "").trim();
 
   return {
-    llmApiKey: userSettings.llmApiKey || sysSetting?.llmApiKey || "",
-    llmApiBase: userSettings.llmApiBase || sysSetting?.llmApiBase || env.DEFAULT_LLM_API_BASE || "https://openrouter.ai/api/v1",
-    llmModel: userSettings.llmModel || sysSetting?.llmModel || env.DEFAULT_LLM_MODEL || "deepseek/deepseek-chat",
-    imageApiKey: userSettings.imageApiKey || userSettings.llmApiKey || sysSetting?.imageApiKey || sysSetting?.llmApiKey || "",
-    imageApiBase: userSettings.imageApiBase || sysSetting?.imageApiBase || "https://openrouter.ai/api/v1",
-    imageModel: userSettings.imageModel || sysSetting?.imageModel || env.DEFAULT_IMAGE_MODEL || "google/imagen-3",
+    hasKey: !!llmApiKey,
+    llmApiKey,
+    llmApiBase: userSettings.llmApiBase || "https://openrouter.ai/api/v1",
+    llmModel: userSettings.llmModel || "deepseek/deepseek-chat",
+    imageApiKey,
+    imageApiBase: userSettings.imageApiBase || "https://openrouter.ai/api/v1",
+    imageModel: userSettings.imageModel || "google/imagen-3",
   };
 }
 
@@ -375,9 +374,12 @@ router.post("/", async (c) => {
     const effectiveStory = story.trim() || title.trim();
     const baseSeed = getProjectBaseSeed(id);
 
-    try {
-      const settings = await getActiveSettings(db, c.env, authUser?.userId);
+    const settings = await getActiveSettings(db, c.env, authUser.userId);
+    if (!settings.hasKey) {
+      return c.json({ detail: "请先在个人中心配置您的专属 OpenRouter API Key 后再使用 AI 导演服务" }, 400);
+    }
 
+    try {
       // 10s strict timeout wrapper with graceful adaptive fallback
       const directorPromise = runDirectorPipeline(effectiveStory, targetDuration, {
         apiKey: settings.llmApiKey,

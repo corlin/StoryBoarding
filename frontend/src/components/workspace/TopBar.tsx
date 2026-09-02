@@ -227,7 +227,20 @@ export const TopBar: React.FC<TopBarProps> = ({
           )}
 
           <button
-            onClick={() => setIsOpenScriptModal(true)}
+            onClick={() => {
+              if (!isAuthenticated) {
+                notify.info("🎬 请先登录或注册导演账号");
+                openAuthModal("login");
+                return;
+              }
+              const hasKey = !!user?.custom_settings?.llmApiKey;
+              if (!hasKey) {
+                notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启剧本解析服务");
+                openProfileModal();
+                return;
+              }
+              setIsOpenScriptModal(true);
+            }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors shadow-sm"
             title="导入已有剧本或分镜脚本"
           >
@@ -237,6 +250,17 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           <button
             onClick={() => {
+              if (!isAuthenticated) {
+                notify.info("🎬 请先登录或注册导演账号");
+                openAuthModal("login");
+                return;
+              }
+              const hasKey = !!user?.custom_settings?.llmApiKey;
+              if (!hasKey) {
+                notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
+                openProfileModal();
+                return;
+              }
               setStoryText(project?.story || "");
               setIsOpenModal(true);
             }}
