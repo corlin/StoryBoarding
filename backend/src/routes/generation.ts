@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
-import { projects, sequences, shots, systemSettings, projectVersions, users } from "../db/schema";
+import { projects, sequences, shots, projectVersions, users } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, cleanPromptOfMetaPollution } from "../agents/director/pipeline";
 import { captureProjectSnapshot } from "./versions";
 import { getAuthUser, getUserSettings } from "../lib/auth";

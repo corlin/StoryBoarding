@@ -16,7 +16,6 @@ import {
   Trash2,
   Search,
   Download,
-  Copy,
   User,
   Loader2,
 } from "lucide-react";
@@ -81,7 +80,6 @@ export default function DashboardPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [exportingProjectId, setExportingProjectId] = useState<string | null>(null);
-  const [cloningProjectId, setCloningProjectId] = useState<string | null>(null);
 
   const [newTitle, setNewTitle] = useState("");
   const [newStory, setNewStory] = useState("");
@@ -213,31 +211,6 @@ export default function DashboardPage() {
       clearInterval(progressIntervalRef.current);
       console.error("Failed to create project:", err);
       setCreationError(err?.response?.data?.detail || err?.message || "创建工程失败，请重试");
-    }
-  };
-
-  const handleCloneProject = async (e: React.MouseEvent, proj: ProjectListItem) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!isAuthenticated) {
-      notify.info("🎬 请先登录或注册导演账号，即可将官方 Demo 克隆至您的私有工作区");
-      openAuthModal("login");
-      return;
-    }
-
-    try {
-      setCloningProjectId(proj.id);
-      notify.info("正在克隆项目至您的私有工作区...");
-      const cloned = await api.cloneProject(proj.id);
-      notify.success("🎉 项目克隆成功！已切换至您的私有副本。");
-      await loadProjects();
-      router.push(`/workspace?id=${cloned.id}`);
-    } catch (err: any) {
-      console.error("Clone project error:", err);
-      notify.error(err?.response?.data?.detail || "克隆项目失败");
-    } finally {
-      setCloningProjectId(null);
     }
   };
 

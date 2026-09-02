@@ -68,19 +68,6 @@ export const projectVersions = sqliteTable("project_versions", {
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
 
-export const systemSettings = sqliteTable("system_settings", {
-  id: text("id").primaryKey().default("default"),
-  llmProvider: text("llm_provider").default("openrouter").notNull(),
-  llmApiKey: text("llm_api_key").default(""),
-  llmApiBase: text("llm_api_base").default("https://openrouter.ai/api/v1"),
-  llmModel: text("llm_model").default("deepseek/deepseek-chat"),
-  imageProvider: text("image_provider").default("openrouter").notNull(),
-  imageApiKey: text("image_api_key").default(""),
-  imageApiBase: text("image_api_base").default("https://openrouter.ai/api/v1"),
-  imageModel: text("image_model").default("google/imagen-3"),
-  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
-});
-
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
@@ -95,5 +82,3 @@ export type InsertShot = typeof shots.$inferInsert;
 
 export type ProjectVersion = typeof projectVersions.$inferSelect;
 export type InsertProjectVersion = typeof projectVersions.$inferInsert;
-
-export type SystemSetting = typeof systemSettings.$inferSelect;

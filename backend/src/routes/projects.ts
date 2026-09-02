@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq, desc, or, isNull } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
-import { projects, sequences, shots, systemSettings, users } from "../db/schema";
+import { projects, sequences, shots, users } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, generateAdaptiveStoryShots } from "../agents/director/pipeline";
 import { generateCinematicStoryboardImage, runConcurrentTasks, getProjectBaseSeed } from "./generation";
 import { getAuthUser, getUserSettings } from "../lib/auth";
@@ -131,92 +131,6 @@ router.get("/:id", async (c) => {
   } catch (err: any) {
     console.error("[Get Project Detail Error]:", err);
     return c.json({ detail: `获取项目详情失败: ${err?.message || err}` }, 500);
-  }
-});
-
-// POST /api/projects/:id/clone (1-Click Clone Demo or Project for Authenticated User)
-router.post("/:id/clone", async (c) => {
-  try {
-    await ensureSchema(c.env.DB);
-    const db = getDb(c.env.DB);
-    const srcId = c.req.param("id");
-    const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
-
-    if (!authUser) {
-      return c.json({ detail: "请先登录或注册导演账号后再克隆工程" }, 401);
-    }
-
-    const srcProj = await db.select().from(projects).where(eq(projects.id, srcId)).get();
-    if (!srcProj) {
-      return c.json({ detail: "源项目不存在" }, 404);
-    }
-
-    const newProjId = crypto.randomUUID();
-    const newTitle = `${srcProj.title} (我的副本)`;
-
-    const [clonedProj] = await db
-      .insert(projects)
-      .values({
-        id: newProjId,
-        userId: authUser.userId,
-        title: newTitle,
-        story: srcProj.story,
-        targetDuration: srcProj.targetDuration,
-      })
-      .returning();
-
-    const srcSeqs = await db.select().from(sequences).where(eq(sequences.projectId, srcId)).orderBy(sequences.order).all();
-
-    for (const seq of srcSeqs) {
-      const newSeqId = crypto.randomUUID();
-      await db.insert(sequences).values({
-        id: newSeqId,
-        projectId: newProjId,
-        title: seq.title,
-        order: seq.order,
-      });
-
-      const srcShots = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).orderBy(shots.order).all();
-      for (const s of srcShots) {
-        await db.insert(shots).values({
-          id: crypto.randomUUID(),
-          sequenceId: newSeqId,
-          order: s.order,
-          duration: s.duration,
-          shotSize: s.shotSize,
-          cameraAngle: s.cameraAngle,
-          cameraMovement: s.cameraMovement,
-          subject: s.subject,
-          action: s.action,
-          dialogue: s.dialogue,
-          narrativeFunction: s.narrativeFunction,
-          lighting: s.lighting,
-          audio: s.audio,
-          imagePrompt: s.imagePrompt,
-          videoPrompt: s.videoPrompt,
-          continuityData: s.continuityData,
-          storyboardImageUrl: s.storyboardImageUrl,
-          isDirty: false,
-          isLocked: s.isLocked,
-        });
-      }
-    }
-
-    return c.json(
-      {
-        id: clonedProj.id,
-        user_id: clonedProj.userId,
-        title: clonedProj.title,
-        story: clonedProj.story,
-        target_duration: clonedProj.targetDuration,
-        created_at: clonedProj.createdAt,
-      },
-      201
-    );
-  } catch (err: any) {
-    console.error("[Clone Project Error]:", err);
-    return c.json({ detail: `克隆项目失败: ${err?.message || err}` }, 500);
   }
 });
 

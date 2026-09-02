@@ -121,11 +121,6 @@ export const api = {
     return data;
   },
 
-  async cloneProject(id: string): Promise<ProjectModel> {
-    const { data } = await apiClient.post(`/projects/${id}/clone`);
-    return data;
-  },
-
   async updateProject(id: string, payload: Partial<ProjectModel>): Promise<ProjectModel> {
     const { data } = await apiClient.put(`/projects/${id}`, payload);
     return data;
