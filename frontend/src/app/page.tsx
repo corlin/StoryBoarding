@@ -1,157 +1,280 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Clapperboard,
   Sparkles,
   Film,
   ArrowRight,
+  ArrowUp,
+  Clock,
+  Palette,
+  FileText,
+  Flame,
   Zap,
-  Layers,
-  ShieldCheck,
-  Compass,
-  Download,
-  FileCode2,
-  Video,
-  Table,
-  Play,
-  Pause,
-  Eye,
-  CheckCircle2,
+  Check,
+  X,
+  User,
   Sliders,
   ChevronRight,
-  Camera,
-  Flame,
-  Volume2,
+  Loader2,
 } from "lucide-react";
+import { api } from "@/lib/api";
+import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
+import { AuthModal } from "@/components/modals/AuthModal";
+import { SettingsModal } from "@/components/modals/SettingsModal";
+import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
+import { ProjectCreationProgress } from "@/components/modals/ProjectCreationProgress";
 
-interface HeroShot {
+interface FeaturedSkill {
   id: string;
-  order: string;
-  phase: string;
-  size: string;
-  camera: string;
-  duration: string;
-  durationSec: number;
-  script: string;
-  dialogue?: string;
-  sfx: string;
-  lighting: string;
-  lens: string;
-  shutter: string;
-  hudVector: string;
-  imageUrl: string;
+  title: string;
+  tag: string;
+  author: string;
+  desc: string;
+  uses: string;
+  gradient: string;
+  borderHover: string;
+  coverImage: string;
+  presetStory: string;
+  targetDuration: number;
 }
 
-const HERO_SHOWCASE_SHOTS: HeroShot[] = [
+const FEATURED_SKILLS: FeaturedSkill[] = [
   {
-    id: "shot-01",
-    order: "#01",
-    phase: "ACT I · 空间建立",
-    size: "EXTREME WIDE 大远景",
-    camera: "CRANE DOWN 俯冲",
-    duration: "2.5s",
-    durationSec: 2.5,
-    script: "2.39:1 变形宽银幕。雨夜新东京，青瓦飞檐古楼悬挂赤红发光灯笼，全息金龙与暴雨雷光撕裂雨夜。",
-    dialogue: "旁白：“在矩阵最深处的古旧节点，数据洪流正悄然汇聚。”",
-    sfx: "暴雨雷鸣、全息龙吟低频嗡鸣",
-    lighting: "伦勃朗侧逆光 · 霓虹青红冷暖反差",
-    lens: "24mm T1.8 变形宽银幕",
-    shutter: "180.0° · ISO 800",
-    hudVector: "[ ▲ CRANE DOWN 俯冲 2.5s ]",
-    imageUrl: "/images/storyboard/shot_01_teahouse_rain.jpg",
+    id: "skill-cyberpunk",
+    title: "赛博雨夜 · 矩阵子弹时间",
+    tag: "动作科幻",
+    author: "AI Director 官方",
+    desc: "2.39:1 变形宽银幕、霓虹暴雨、机械瞳孔对焦与 0.1x 极限子弹时间对决",
+    uses: "12.8 k",
+    gradient: "from-purple-900/40 via-fuchsia-950/30 to-card",
+    borderHover: "hover:border-purple-500/50",
+    coverImage: "/images/storyboard/shot_02_katana_strike.jpg",
+    presetStory:
+      "暴雨夜新东京，青瓦飞檐古楼悬挂赤红发光灯笼。仿生特工右眼机械光圈收缩至 F1.2 锁定暗影，拔出高频武士刀斩出白色音爆激波。0.1x 极限子弹时间，侧身仰避超音速弹道，万千悬浮水滴与高压电火花在空中完全静止悬停。",
+    targetDuration: 30,
   },
   {
-    id: "shot-02",
-    order: "#02",
-    phase: "ACT II · 极限交锋",
-    size: "CLOSE-UP 特写",
-    camera: "TRACKING PUSH-IN 跟推",
-    duration: "2.0s",
-    durationSec: 2.0,
-    script: "低角极速推轨。仿生特工右眼机械光圈收缩至 F1.2 锁定暗影，拔刀瞬间激荡起白色音爆冲击波与破空裂鸣。",
-    dialogue: "特工：“目标锁定，执行彻底抹杀。”",
-    sfx: "机械关节暴响、超音速破空啸叫",
-    lighting: "强反差轮廓光 · 刀光冷白反射",
-    lens: "85mm T1.2 浅景深眼部对焦",
-    shutter: "180.0° · 24.000 FPS",
-    hudVector: "[ TRACKING IN 跟推 ━━━━► ]",
-    imageUrl: "/images/storyboard/shot_02_katana_strike.jpg",
+    id: "skill-suspense",
+    title: "悬疑暗房 · 芬奇低调冷光",
+    tag: "悬疑推理",
+    author: "AI Director 官方",
+    desc: "胶片密室、暖色台灯、高反差伦勃朗光与极具心理压迫感正反打特写",
+    uses: "8.6 k",
+    gradient: "from-sky-950/40 via-blue-950/30 to-card",
+    borderHover: "hover:border-sky-500/50",
+    coverImage: "/images/storyboard/shot_01_teahouse_rain.jpg",
+    presetStory:
+      "雨夜老旧暗房内，红光微弱暗淡。老刑警手指夹着燃尽的香烟，凝视墙上密密麻麻的照片连线。突然台灯无故闪烁，门轴发出刺耳吱呀声，地上投射出拉长的风衣黑影。",
+    targetDuration: 30,
   },
   {
-    id: "shot-03",
-    order: "#03",
-    phase: "ACT III · 子弹时间高潮",
-    size: "MEDIUM SHOT 中景",
-    camera: "360° ARC ROTATE 环绕",
-    duration: "3.5s",
-    durationSec: 3.5,
-    script: "0.1x 极限升格子弹时间。墨客侧身避开撕裂空气的弹道，刀锋切断超音速轨迹，飞溅水滴与电火花在空中完全静止悬停。",
-    dialogue: "墨客：“天下武功，唯快不破。”",
-    sfx: "水滴悬停共振谐波、超慢动作音爆",
-    lighting: "频闪白光 · 悬浮水滴丁达尔光斑",
-    lens: "50mm T1.4 环绕防抖矩阵",
-    shutter: "90.0° · 240 FPS (0.1x 升格)",
-    hudVector: "[ 360° ARC ROTATE 环绕 ↺ ]",
-    imageUrl: "/images/storyboard/shot_03_bullet_time_climax.jpg",
+    id: "skill-scifi",
+    title: "科幻史诗 · 星际黑洞跃迁",
+    tag: "太空史诗",
+    author: "AI Director 官方",
+    desc: "超大质量黑洞吸积盘、宇航员面罩倒影与空间曲率奇点跃迁",
+    uses: "9.4 k",
+    gradient: "from-amber-950/40 via-orange-950/30 to-card",
+    borderHover: "hover:border-amber-500/50",
+    coverImage: "/images/storyboard/shot_03_bullet_time_climax.jpg",
+    presetStory:
+      "探索舰穿越多维虫洞，舷窗外金黄色黑洞吸积盘撕裂时空。宇航员面罩上倒映着坍缩光晕，曲率引擎爆发刺目蓝白奇点脉冲，星舰瞬间切入多维裂缝完成时空跃迁。",
+    targetDuration: 30,
+  },
+  {
+    id: "skill-wuxia",
+    title: "东方写意 · 水墨竹林对决",
+    tag: "东方武侠",
+    author: "AI Director 官方",
+    desc: "泼墨写意长镜头、竹林疾风、一击必杀与东方古典留白美学",
+    uses: "6.2 k",
+    gradient: "from-emerald-950/40 via-teal-950/30 to-card",
+    borderHover: "hover:border-emerald-500/50",
+    coverImage: "/images/storyboard/shot_01_teahouse_rain.jpg",
+    presetStory:
+      "烟雨竹海，万竿翠竹随风倒伏。两名绝顶剑客在细密雨丝中相背而立，剑气激荡竹叶回旋。拔剑瞬间水墨晕染天地，一剑封喉，竹叶缓缓飘落于静止剑锋之上。",
+    targetDuration: 30,
   },
 ];
 
 export default function HomePage() {
-  const [activeShotIndex, setActiveShotIndex] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const [progress, setProgress] = useState<number>(0);
-  const [isHovered, setIsHovered] = useState<boolean>(false);
+  const router = useRouter();
+  const { isAuthenticated, user, openAuthModal, isSettingsModalOpen, closeSettingsModal } =
+    useAuthStore();
 
-  const currentActiveShot = HERO_SHOWCASE_SHOTS[activeShotIndex];
-  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [promptText, setPromptText] = useState("");
+  const [targetDuration, setTargetDuration] = useState<number>(30);
+  const [selectedStyle, setSelectedStyle] = useState<string>("电影级写实");
+  const [showBanner, setShowBanner] = useState<boolean>(true);
 
-  // Animatic Auto-Playback Loop
+  // Creation loading progress states
+  const [isCreating, setIsCreating] = useState(false);
+  const [creationElapsed, setCreationElapsed] = useState(0);
+  const [creationProgress, setCreationProgress] = useState(0);
+  const [creationStage, setCreationStage] = useState(0);
+  const [creationComplete, setCreationComplete] = useState(false);
+  const [creationError, setCreationError] = useState<string | null>(null);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Check and resume stashed creation upon login
   useEffect(() => {
-    if (!isPlaying || isHovered) {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    if (isAuthenticated) {
+      const stashed = sessionStorage.getItem("stashed_story_creation");
+      if (stashed) {
+        try {
+          const parsed = JSON.parse(stashed);
+          sessionStorage.removeItem("stashed_story_creation");
+          if (parsed.story) {
+            setPromptText(parsed.story);
+            if (parsed.duration) setTargetDuration(parsed.duration);
+            notify.info("🎬 检测到未完成的剧本创意，已为您自动恢复！");
+          }
+        } catch (_) {}
+      }
+    }
+  }, [isAuthenticated]);
+
+  const handleApplySkill = (skill: FeaturedSkill) => {
+    setPromptText(skill.presetStory);
+    setTargetDuration(skill.targetDuration);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    notify.success(`✨ 已填入「${skill.title}」剧本预设，点击 ↑ 即可直接生成！`);
+  };
+
+  const handleStartCreation = async () => {
+    const trimmedStory = promptText.trim();
+    if (!trimmedStory) {
+      notify.error("请输入你想创作的电影故事、镜头画面或脑洞灵感");
+      if (textareaRef.current) textareaRef.current.focus();
       return;
     }
 
-    const durationMs = (currentActiveShot.durationSec || 3.0) * 1000;
-    const intervalMs = 50;
-    const step = (intervalMs / durationMs) * 100;
+    if (!isAuthenticated) {
+      // Stash story & ask for login
+      sessionStorage.setItem(
+        "stashed_story_creation",
+        JSON.stringify({ story: trimmedStory, duration: targetDuration })
+      );
+      notify.info("🎬 请先登录或注册导演账号，登录后将自动开工！");
+      openAuthModal("login");
+      return;
+    }
 
-    progressTimerRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          setActiveShotIndex((current) => (current + 1) % HERO_SHOWCASE_SHOTS.length);
-          return 0;
+    // Start project creation flow
+    setIsCreating(true);
+    setCreationElapsed(0);
+    setCreationProgress(5);
+    setCreationStage(0);
+    setCreationComplete(false);
+    setCreationError(null);
+
+    const startTime = Date.now();
+    progressIntervalRef.current = setInterval(() => {
+      const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+      setCreationElapsed(elapsedSec);
+
+      setCreationProgress((prev) => {
+        if (prev < 25) return prev + 2;
+        if (prev < 50) {
+          setCreationStage(1);
+          return prev + 1.2;
         }
-        return prev + step;
+        if (prev < 80) {
+          setCreationStage(2);
+          return prev + 0.8;
+        }
+        if (prev < 95) {
+          setCreationStage(3);
+          return prev + 0.3;
+        }
+        return prev;
       });
-    }, intervalMs);
+    }, 400);
 
-    return () => {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    };
-  }, [activeShotIndex, isPlaying, isHovered, currentActiveShot.durationSec]);
+    try {
+      const autoTitle = trimmedStory.slice(0, 18).trim() + " · 电影预演";
+      const created = await api.createProject({
+        title: autoTitle,
+        story: trimmedStory,
+        target_duration: targetDuration,
+      });
 
-  const handleSelectShot = (idx: number) => {
-    setActiveShotIndex(idx);
-    setProgress(0);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      setCreationProgress(100);
+      setCreationStage(4);
+      setCreationComplete(true);
+
+      setTimeout(() => {
+        setIsCreating(false);
+        router.push(`/workspace?id=${created.id}`);
+      }, 800);
+    } catch (err: any) {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      console.error("Failed to create project from hero prompt:", err);
+      setCreationError(err?.response?.data?.detail || err?.message || "创建工程失败，请重试");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleStartCreation();
+    }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/30">
-      {/* Top Sticky Navigation */}
-      <header className="border-b border-border/60 backdrop-blur-md bg-background/80 sticky top-0 z-50 shadow-xs">
+    <div className="flex flex-col min-h-screen bg-[#0a0a0c] text-foreground selection:bg-primary/30 relative overflow-x-hidden">
+      {/* Background Dot Matrix Radial Glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(99,102,241,0.12),rgba(0,0,0,0)_60%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#1e1e28_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
+
+      {/* Top Banner */}
+      {showBanner && (
+        <div className="bg-gradient-to-r from-primary/20 via-purple-500/20 to-pink-500/20 border-b border-primary/20 text-xs py-2 px-4 text-center flex items-center justify-center gap-3 relative z-50 backdrop-blur-md">
+          <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold text-[10px]">
+            官方上线
+          </span>
+          <span className="text-foreground/90 font-medium">
+            🎬 好莱坞 AI 导演 2.0 正式就绪：一键剧本智能拆镜，直通 16:9 宽银幕预演画卷
+          </span>
+          <Link
+            href="/dashboard"
+            className="underline text-primary hover:text-primary/80 font-bold ml-1"
+          >
+            探索模板 →
+          </Link>
+          <button
+            onClick={() => setShowBanner(false)}
+            className="absolute right-4 text-muted-foreground hover:text-foreground p-1"
+            title="关闭通知"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Header Navigation */}
+      <header className="border-b border-border/40 backdrop-blur-md bg-[#0a0a0c]/80 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20 group-hover:scale-105 group-hover:bg-primary/20 transition-all shadow-inner">
               <Clapperboard className="w-5 h-5" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-base tracking-tight text-foreground">
+              <span className="font-extrabold text-lg tracking-tight text-foreground">
                 AI Director Studio
               </span>
-              <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
                 PRO
               </span>
             </div>
@@ -160,473 +283,186 @@ export default function HomePage() {
           <div className="flex items-center gap-4 text-xs font-medium">
             <Link
               href="/dashboard"
-              className="text-muted-foreground hover:text-foreground transition-colors hidden sm:flex items-center gap-1"
+              className="text-muted-foreground hover:text-foreground transition-colors hidden sm:flex items-center gap-1.5"
             >
               <Sparkles className="w-3.5 h-3.5 text-primary" />
               <span>4 大工业起步模板</span>
             </Link>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all shadow-sm"
-            >
-              <span>进入工作台</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+
+            {isAuthenticated ? (
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all shadow-sm"
+                >
+                  <Film className="w-3.5 h-3.5" />
+                  <span>分镜看板</span>
+                </Link>
+                <UserMenuDropdown />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => openAuthModal("login")}
+                  className="px-4 py-2 rounded-xl text-foreground/90 bg-secondary/80 hover:bg-secondary border border-border transition-colors font-semibold shadow-xs"
+                >
+                  登录 / 注册
+                </button>
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all shadow-sm"
+                >
+                  <span>立即开工</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <main className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-16 pb-24 max-w-6xl mx-auto space-y-12">
-        {/* Subtitle Pill */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/40 bg-primary/10 text-primary text-xs font-semibold shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>好莱坞影视级 6 阶段 AI 电影导演预演与故事板打样</span>
-        </div>
-
-        {/* Hero Main Heading */}
-        <div className="space-y-4 max-w-4xl">
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] bg-clip-text text-transparent bg-gradient-to-b from-foreground via-foreground/90 to-muted-foreground">
-            一句话灵感，直通好莱坞大片分镜画卷
+      {/* Main Hero Prompt-First Center Area */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pt-16 pb-24 max-w-5xl mx-auto w-full space-y-12 relative z-10">
+        {/* Center Inspiration Title */}
+        <div className="text-center space-y-3">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground">
+            灵感从这里开始！
           </h1>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            打通文字剧本与 16:9 宽银幕视觉画卷的边界。AI 导演自动规划 6 阶段戏剧节拍、机位动势与空间轴线，毫秒级双向台本重编译。
+          <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto">
+            描述你想创作的电影故事或输入文本剧本，好莱坞 AI 导演即刻为你生成全套分镜画卷与视听台本
           </p>
         </div>
 
-        {/* Dual CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto">
-          <Link
-            href="/dashboard"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5"
-          >
-            <Film className="w-4 h-4" />
-            <span>立即免费开始创作</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-          <Link
-            href="/dashboard"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-medium bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 transition-all shadow-xs"
-          >
-            <Zap className="w-4 h-4 text-amber-400" />
-            <span>探索 4 大工业起步模板</span>
-          </Link>
-        </div>
+        {/* Central Updream-Style Prompt Box */}
+        <div className="w-full max-w-3xl rounded-2xl border border-border/80 bg-card/70 backdrop-blur-xl p-4 shadow-2xl focus-within:border-primary/70 focus-within:ring-4 focus-within:ring-primary/10 transition-all space-y-3 relative group">
+          {/* Textarea Input */}
+          <textarea
+            ref={textareaRef}
+            rows={4}
+            value={promptText}
+            onChange={(e) => setPromptText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="描述你想创作的电影故事、影视镜头或脑洞灵感... (例如：暴雨夜新东京，仿生特工拔出高频武士刀斩出音爆激波，0.1x 极限子弹时间避开超音速弹道)"
+            className="w-full bg-transparent border-0 resize-none text-foreground placeholder:text-muted-foreground/60 text-sm sm:text-base focus:outline-hidden leading-relaxed px-1"
+          />
 
-        {/* Hero Interactive Studio Showcase (Hollywood Master Monitor + Timeline Track) */}
-        <div
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          className="w-full rounded-2xl border border-border/80 bg-card/80 backdrop-blur-xl p-3.5 sm:p-6 shadow-2xl overflow-hidden text-left relative group"
-        >
-          {/* Top Window & ARRI ALEXA LF Monitor Status Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 mb-4 border-b border-border/70 gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-              </div>
-              <span className="font-mono text-[11px] ml-2 text-foreground font-bold flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5 text-primary" />
-                <span>AI Director Studio · 好莱坞大画幅主监视器 (2.39:1 CinemaScope)</span>
-              </span>
-            </div>
-
-            {/* ARRI Professional Viewfinder Badges */}
-            <div className="flex flex-wrap items-center gap-2 font-mono text-[10px]">
+          {/* Bottom Action Ribbon */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-border/50">
+            {/* Left Quick Config Chips */}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {/* Duration Chip */}
               <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 font-bold transition-all"
+                type="button"
+                onClick={() => setTargetDuration(targetDuration === 30 ? 60 : 30)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary border border-border/80 text-foreground/90 font-mono transition-colors shadow-2xs"
+                title="点击切换目标片长"
               >
-                {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
-                <span>{isPlaying ? "LIVE PREVIZ 播放中" : "已暂停"}</span>
+                <Clock className="w-3.5 h-3.5 text-sky-400" />
+                <span>{targetDuration}s ({targetDuration === 30 ? "12 镜" : "24 镜"})</span>
               </button>
 
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                <span>● REC 24.000 FPS</span>
-              </span>
-              <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">
-                TC 00:01:24:08
-              </span>
-              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hidden md:inline">
-                LUT: ARRI LOG-C TO KODAK 2383
-              </span>
-            </div>
-          </div>
-
-          {/* Studio Split Layout: Left Script + Right Master Viewport */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-            {/* Left: Hollywood Director Script Panel (4 Cols) */}
-            <div className="lg:col-span-4 rounded-xl border border-border/80 bg-neutral-950/90 p-4 space-y-3 font-mono text-xs shadow-inner">
-              <div className="flex items-center justify-between text-muted-foreground pb-2 border-b border-border/50">
-                <span className="text-[11px] text-sky-400 font-bold flex items-center gap-1.5">
-                  <FileCode2 className="w-3.5 h-3.5" />
-                  <span>分镜头脚本 (Director Script)</span>
-                </span>
-                <span className="text-[10px] text-emerald-400">● 实时双向编译</span>
+              {/* Style Chip */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 border border-border/80 text-foreground/90 transition-colors shadow-2xs">
+                <Palette className="w-3.5 h-3.5 text-amber-400" />
+                <span>画风: {selectedStyle}</span>
               </div>
 
-              {/* Interactive Script Cards */}
-              <div className="space-y-2.5">
-                {HERO_SHOWCASE_SHOTS.map((shot, idx) => {
-                  const isSelected = activeShotIndex === idx;
-                  return (
-                    <div
-                      key={shot.id}
-                      onClick={() => handleSelectShot(idx)}
-                      className={`p-3 rounded-lg border transition-all cursor-pointer space-y-2 relative overflow-hidden ${
-                        isSelected
-                          ? "bg-primary/15 border-primary shadow-md shadow-primary/20 scale-[1.01]"
-                          : "bg-card/40 border-border/40 hover:bg-card/70 hover:border-border"
-                      }`}
-                    >
-                      {/* Active Progress Bar Underlay */}
-                      {isSelected && isPlaying && !isHovered && (
-                        <div
-                          className="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-75"
-                          style={{ width: `${progress}%` }}
-                        />
-                      )}
-
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span
-                          className={`font-bold flex items-center gap-1.5 ${
-                            isSelected ? "text-primary" : "text-foreground"
-                          }`}
-                        >
-                          <span>
-                            {shot.order} {shot.phase}
-                          </span>
-                          {isSelected && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" />
-                          )}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          {shot.duration}
-                        </span>
-                      </div>
-
-                      <p className="text-foreground/90 text-[11px] leading-relaxed line-clamp-2">
-                        {shot.script}
-                      </p>
-
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground/80 pt-1 border-t border-border/30">
-                        <span className="text-sky-300 font-mono truncate max-w-[130px]">
-                          {shot.camera}
-                        </span>
-                        <span className="text-[9px] font-mono text-amber-400/90">
-                          {shot.lens}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Mode Chip */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 border border-border/80 text-muted-foreground hidden sm:inline-flex shadow-2xs">
+                <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                <span>6 阶段戏剧拆镜</span>
               </div>
             </div>
 
-            {/* Right: Master Cinema Viewport + Timeline Filmstrip Track (8 Cols) */}
-            <div className="lg:col-span-8 flex flex-col space-y-3.5">
-              {/* 1. Large 2.39:1 Cinema Viewport */}
-              <div className="rounded-2xl border border-primary/50 overflow-hidden bg-neutral-950 relative group/viewport shadow-2xl">
-                <div className="aspect-[21/9] sm:aspect-[2.39/1] relative flex items-center justify-center overflow-hidden bg-neutral-900">
-                  <img
-                    src={currentActiveShot.imageUrl}
-                    alt={currentActiveShot.phase}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover/viewport:scale-[1.03]"
-                  />
-
-                  {/* Top-Left Viewfinder HUD */}
-                  <div className="absolute top-2.5 left-3 flex items-center gap-2 pointer-events-none">
-                    <span className="px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-[10px] font-mono text-primary font-bold border border-primary/40">
-                      {currentActiveShot.order} {currentActiveShot.phase}
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-[9px] font-mono text-sky-300 border border-sky-400/30">
-                      {currentActiveShot.size}
-                    </span>
-                  </div>
-
-                  {/* Top-Right Cinematic Lens Info */}
-                  <div className="absolute top-2.5 right-3 flex items-center gap-2 pointer-events-none">
-                    <span className="px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-[9px] font-mono text-amber-300 border border-amber-400/30">
-                      {currentActiveShot.lens}
-                    </span>
-                  </div>
-
-                  {/* Action Safe Overlay */}
-                  <div className="absolute inset-3 border border-sky-400/20 pointer-events-none" />
-
-                  {/* Bottom Motion Vector Pill */}
-                  <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between pointer-events-none">
-                    <span className="px-2.5 py-1 rounded bg-black/80 backdrop-blur-md text-[10px] font-mono text-emerald-300 font-bold border border-emerald-500/40 shadow-md">
-                      {currentActiveShot.hudVector}
-                    </span>
-                    <span className="px-2 py-1 rounded bg-black/80 backdrop-blur-md text-[9px] font-mono text-muted-foreground border border-border">
-                      {currentActiveShot.shutter}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. 3-Beat Filmstrip Timeline Track */}
-              <div className="grid grid-cols-3 gap-2.5">
-                {HERO_SHOWCASE_SHOTS.map((shot, idx) => {
-                  const isSelected = activeShotIndex === idx;
-                  return (
-                    <div
-                      key={shot.id}
-                      onClick={() => handleSelectShot(idx)}
-                      className={`rounded-xl border overflow-hidden bg-neutral-950 flex flex-col justify-between transition-all duration-200 cursor-pointer relative group/thumb ${
-                        isSelected
-                          ? "border-primary shadow-lg shadow-primary/25 scale-[1.02]"
-                          : "border-border/60 hover:border-border hover:scale-[1.01]"
-                      }`}
-                    >
-                      {/* Active Progress Bar on Thumbnail */}
-                      {isSelected && isPlaying && !isHovered && (
-                        <div
-                          className="absolute top-0 left-0 right-0 h-1 bg-primary z-10 transition-all duration-75"
-                          style={{ width: `${progress}%` }}
-                        />
-                      )}
-
-                      <div className="aspect-video bg-neutral-900 relative overflow-hidden">
-                        <img
-                          src={shot.imageUrl}
-                          alt={shot.phase}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-                        <span className="absolute bottom-1 left-1.5 text-[9px] font-mono text-foreground/90 font-bold pointer-events-none">
-                          {shot.order} {shot.camera.split(" ")[0]}
-                        </span>
-                      </div>
-
-                      <div
-                        className={`px-2 py-1 text-[9px] font-mono flex items-center justify-between border-t ${
-                          isSelected
-                            ? "bg-primary/15 border-primary/40 text-primary font-bold"
-                            : "bg-card/70 border-border/40 text-muted-foreground"
-                        }`}
-                      >
-                        <span className="truncate">{shot.phase.split("·")[1]?.trim()}</span>
-                        <span>{shot.duration}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* 3. Deep-Director Inspector Box */}
-              <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-primary text-xs">
-                      {currentActiveShot.order} 导演运镜核心解析:
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                      {currentActiveShot.camera}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    {currentActiveShot.script}
-                  </p>
-                </div>
-
-                <div className="shrink-0 space-y-0.5 text-right sm:border-l sm:border-border/60 sm:pl-3">
-                  <div className="text-[10px] text-sky-300">{currentActiveShot.lens}</div>
-                  <div className="text-[10px] text-amber-300/90">{currentActiveShot.lighting}</div>
-                  <div className="text-[9px] text-muted-foreground">{currentActiveShot.sfx}</div>
-                </div>
-              </div>
+            {/* Right Submit Circle Button */}
+            <div className="flex items-center justify-end gap-2">
+              <span className="text-[11px] text-muted-foreground hidden sm:inline font-mono">
+                Enter ↵ 发送
+              </span>
+              <button
+                type="button"
+                onClick={handleStartCreation}
+                disabled={isCreating}
+                className="w-10 h-10 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center transition-all shadow-md hover:scale-105 active:scale-95 disabled:opacity-50"
+                title="立即开始智能创作"
+              >
+                {isCreating ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <ArrowUp className="w-5 h-5 stroke-[2.5]" />
+                )}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Section 2: 4 Core Hollywood Moat Capabilities */}
-        <section className="pt-12 w-full space-y-8 text-left">
-          <div className="text-center max-w-2xl mx-auto space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              4 大影视工业级核心能力
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              为严肃影视创作者、动画团队与 AI 视频导演量身定制的专业护城河
-            </p>
+        {/* Bottom Section: 官方精选技能 (Featured Skills Deck) */}
+        <section className="w-full space-y-5 pt-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <h2 className="text-base sm:text-lg font-bold text-foreground">官方精选技能</h2>
+            </div>
+            <Link
+              href="/dashboard"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors font-medium"
+            >
+              <span>查看全部</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {/* Card 1: 6-Stage Beat Breakdown */}
-            <div className="p-6 rounded-2xl border border-border/70 bg-card/50 hover:bg-card hover:border-primary/50 transition-all flex flex-col justify-between space-y-4 shadow-xs hover:shadow-lg">
-              <div className="space-y-3">
-                <div className="p-3 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 w-fit">
-                  <Film className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-base text-foreground">
-                  🎬 6 阶段戏剧节拍拆镜
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  遵循好莱坞编剧规范，从空间建立、人物出场、动作交锋到高潮定格，全自动规划精准景别、角度与时长。
-                </p>
-              </div>
-              <div className="text-[11px] font-mono text-sky-400 font-medium">
-                Beat-by-Beat Staging →
-              </div>
-            </div>
-
-            {/* Card 2: Bi-directional Recompiler */}
-            <div className="p-6 rounded-2xl border border-border/70 bg-card/50 hover:bg-card hover:border-primary/50 transition-all flex flex-col justify-between space-y-4 shadow-xs hover:shadow-lg">
-              <div className="space-y-3">
-                <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 w-fit">
-                  <Zap className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-base text-foreground">
-                  ⚡ 毫秒级双向台本重编译
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  在剧本端改动动作文字，后台即时重编译生图与视频 Prompt；在分镜端调整构图机位，文字台本毫秒同步。
-                </p>
-              </div>
-              <div className="text-[11px] font-mono text-purple-400 font-medium">
-                Two-Way Sync Recompiler →
-              </div>
-            </div>
-
-            {/* Card 3: Hero DNA Lock & Anti-Human Isolation */}
-            <div className="p-6 rounded-2xl border border-border/70 bg-card/50 hover:bg-card hover:border-primary/50 transition-all flex flex-col justify-between space-y-4 shadow-xs hover:shadow-lg">
-              <div className="space-y-3">
-                <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 w-fit">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-base text-foreground">
-                  🧬 主角生物 DNA 强锁
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  全片强制锁定角色生物基因与场景特征，排他性隔离人类角色侵入，彻底根除跨镜头五官漂移与动物突变。
-                </p>
-              </div>
-              <div className="text-[11px] font-mono text-emerald-400 font-medium">
-                Hero Consistency Lock →
-              </div>
-            </div>
-
-            {/* Card 4: Previz Clean HUD & Flow Vector */}
-            <div className="p-6 rounded-2xl border border-border/70 bg-card/50 hover:bg-card hover:border-primary/50 transition-all flex flex-col justify-between space-y-4 shadow-xs hover:shadow-lg">
-              <div className="space-y-3">
-                <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 w-fit">
-                  <Compass className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-base text-foreground">
-                  📐 纯净视听动势引导
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  90% 动作安全标 ➕ 运镜动势流向胶囊（Push In / Track / Crane），画面 0 遮挡，为下游 AI 视频生成提供专业运镜标准。
-                </p>
-              </div>
-              <div className="text-[11px] font-mono text-amber-400 font-medium">
-                Action Safe & Camera Vector →
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 3: Hollywood 5 Deliverables Matrix */}
-        <section className="pt-12 w-full space-y-8 text-left border-t border-border/60">
-          <div className="text-center max-w-2xl mx-auto space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              5 大好莱坞工业级交付物
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              无需繁琐二次整理，全套高规格资产包一键直达拍摄现场与下游 AI 视频工作流
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Deliverable 1 */}
-            <div className="p-6 rounded-2xl border border-border/70 bg-card/40 hover:bg-card transition-all space-y-3">
-              <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 w-fit">
-                <Download className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-sm text-foreground">1. 16:9 故事板打样单 (PNG)</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                4K/2K 高清晰度九宫格排版打样单，附带专业机位编码、时长和动作描述，纯客户端 Canvas 零 404 毫秒级导出。
-              </p>
-            </div>
-
-            {/* Deliverable 2 */}
-            <div className="p-6 rounded-2xl border border-border/70 bg-card/40 hover:bg-card transition-all space-y-3">
-              <div className="p-2.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 w-fit">
-                <Video className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-sm text-foreground">2. AI 视频 Prompt 资产包 (JSON/TXT)</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                为 Sora、Runway Gen-3、Kling 与 Luma 定制的多镜头连续性运镜提示词包，精准保持机位动量。
-              </p>
-            </div>
-
-            {/* Deliverable 3 */}
-            <div className="p-6 rounded-2xl border border-border/70 bg-card/40 hover:bg-card transition-all space-y-3">
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 w-fit">
-                <FileCode2 className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-sm text-foreground">3. 导演执行级分镜头脚本 (Script)</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                符合工业标准的规范格式场次剧本，清晰标注镜头序号、景别、机位角度、动作描述与光影要求。
-              </p>
-            </div>
-
-            {/* Deliverable 4 */}
-            <div className="p-6 rounded-2xl border border-border/70 bg-card/40 hover:bg-card transition-all space-y-3">
-              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 w-fit">
-                <Table className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-sm text-foreground">4. 制作团队全量数据表 (CSV)</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                包含时长、对白、音效、情绪氛围与空间轴向（Screen Direction）的结构化表格，便于统筹制片管理。
-              </p>
-            </div>
-
-            {/* Deliverable 5 */}
-            <div className="p-6 rounded-2xl border border-border/70 bg-card/40 hover:bg-card transition-all space-y-3 md:col-span-2">
-              <div className="p-2.5 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 w-fit">
-                <Play className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-sm text-foreground">5. 全片动态预演时间线 (Animatic Player)</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                支持在网页端无缝按真实时长连续播放全部画面，直观评估剪辑节奏、视线交汇与戏剧高潮分布。
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 4: Final Call to Action */}
-        <section className="pt-16 pb-8 w-full">
-          <div className="p-8 sm:p-12 rounded-3xl border border-primary/40 bg-gradient-to-b from-primary/15 via-card/80 to-card text-center space-y-6 relative overflow-hidden shadow-2xl">
-            <div className="space-y-3 max-w-2xl mx-auto">
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-                让灵感在好莱坞分镜中即刻显影
-              </h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                无需任何繁杂配置，零门槛开启你的第一个好莱坞 AI 故事板工程
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/dashboard"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/25 hover:scale-105"
+          {/* 4 Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {FEATURED_SKILLS.map((skill) => (
+              <div
+                key={skill.id}
+                onClick={() => handleApplySkill(skill)}
+                className={`p-4 rounded-2xl border border-border/70 bg-gradient-to-b ${skill.gradient} ${skill.borderHover} transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 hover:shadow-xl hover:-translate-y-1 group relative overflow-hidden`}
               >
-                <Film className="w-4 h-4" />
-                <span>立即进入分镜看板</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+                <div className="space-y-3">
+                  {/* Top Pill & Author */}
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold border border-primary/30">
+                      {skill.tag}
+                    </span>
+                    <span className="text-muted-foreground text-[10px]">{skill.author}</span>
+                  </div>
+
+                  {/* Title & Description */}
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors flex items-center justify-between">
+                      <span>{skill.title}</span>
+                    </h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                      {skill.desc}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card Bottom: Thumbnail + Usage count */}
+                <div className="flex items-end justify-between gap-3 pt-2 border-t border-border/40">
+                  <div className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono">
+                    <Flame className="w-3.5 h-3.5 text-rose-400" />
+                    <span>使用次数 {skill.uses}</span>
+                  </div>
+
+                  <div className="w-16 h-10 rounded-lg overflow-hidden border border-border/80 bg-neutral-900 shrink-0 shadow-xs">
+                    <img
+                      src={skill.coverImage}
+                      alt={skill.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 py-8 bg-card/30 text-center text-xs text-muted-foreground">
+      <footer className="border-t border-border/40 py-8 bg-card/20 text-center text-xs text-muted-foreground relative z-10">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Clapperboard className="w-4 h-4 text-primary" />
@@ -648,6 +484,23 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Global Modals for Auth, Settings, and Creation Progress */}
+      <AuthModal />
+      <SettingsModal isOpen={isSettingsModalOpen} onClose={closeSettingsModal} />
+      <ProjectCreationProgress
+        isOpen={isCreating}
+        title={promptText.slice(0, 18).trim() || "新电影分镜预演"}
+        story={promptText}
+        targetDuration={targetDuration}
+        progressPercent={creationProgress}
+        activeStageIndex={creationStage}
+        elapsedSeconds={creationElapsed}
+        isComplete={creationComplete}
+        errorMessage={creationError}
+        onRetry={handleStartCreation}
+        onClose={() => setIsCreating(false)}
+      />
     </div>
   );
 }
