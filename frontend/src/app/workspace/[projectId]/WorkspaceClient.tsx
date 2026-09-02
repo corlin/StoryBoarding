@@ -322,7 +322,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   };
 
   const handleGenerateFromStory = async (story: string) => {
-    const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore.getState();
+    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
     if (!isAuthenticated) {
       notify.info("🎬 请先登录或注册导演账号");
       openAuthModal("login");
@@ -330,8 +330,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     }
     const hasKey = !!user?.custom_settings?.llmApiKey;
     if (!hasKey) {
-      notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
-      openProfileModal();
+      notify.info("🎬 请先在「设置」中配置您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
+      openSettingsModal();
       return;
     }
 
@@ -364,14 +364,14 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       startClientRenderQueue(targetProjectId);
     } catch (err: any) {
       console.error("AI拆镜失败:", err);
-      notify.error(err?.response?.data?.detail || err?.message || "AI 导演拆镜失败，请检查网络或在右上角头像「个人设置」中配置 OpenRouter API Key");
+      notify.error(err?.response?.data?.detail || err?.message || "AI 导演拆镜失败，请检查网络或在右上角「设置」中配置 OpenRouter API Key");
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleImportScript = async (scriptText: string) => {
-    const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore.getState();
+    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
     if (!isAuthenticated) {
       notify.info("🎬 请先登录或注册导演账号");
       openAuthModal("login");
@@ -379,8 +379,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     }
     const hasKey = !!user?.custom_settings?.llmApiKey;
     if (!hasKey) {
-      notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启剧本解析服务");
-      openProfileModal();
+      notify.info("🎬 请先在「设置」中配置您的专属 OpenRouter API Key，开启剧本解析服务");
+      openSettingsModal();
       return;
     }
 
@@ -423,7 +423,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       notify.info("当前处于历史版本只读预览模式，无法重绘");
       return;
     }
-    const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore.getState();
+    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
     if (!isAuthenticated) {
       notify.info("🎬 请先登录或注册导演账号");
       openAuthModal("login");
@@ -431,8 +431,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     }
     const hasKey = !!user?.custom_settings?.llmApiKey;
     if (!hasKey) {
-      notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启 AI 画面生成服务");
-      openProfileModal();
+      notify.info("🎬 请先在「设置」中配置您的专属 OpenRouter API Key，开启 AI 画面生成服务");
+      openSettingsModal();
       return;
     }
     if (!currentProject) return;
@@ -444,7 +444,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       notify.info("当前处于历史版本只读预览模式，无法重绘");
       return;
     }
-    const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore.getState();
+    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
     if (!isAuthenticated) {
       notify.info("🎬 请先登录或注册导演账号");
       openAuthModal("login");
@@ -452,8 +452,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     }
     const hasKey = !!user?.custom_settings?.llmApiKey;
     if (!hasKey) {
-      notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启 AI 画面生成服务");
-      openProfileModal();
+      notify.info("🎬 请先在「设置」中配置您的专属 OpenRouter API Key，开启 AI 画面生成服务");
+      openSettingsModal();
       return;
     }
 

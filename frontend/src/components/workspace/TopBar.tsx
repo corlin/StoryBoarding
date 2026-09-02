@@ -64,10 +64,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenCreateSnapshot,
 }) => {
   const router = useRouter();
-  const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore();
+  const { user, isAuthenticated, openAuthModal, openProfileModal, openSettingsModal } = useAuthStore();
 
   const [isOpenModal, setIsOpenModal] = useState(false);
-  const [isOpenSettingsModal, setIsOpenSettingsModal] = useState(false);
   const [isOpenBibleModal, setIsOpenBibleModal] = useState(false);
   const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
   const [isOpenExportModal, setIsOpenExportModal] = useState(false);
@@ -235,8 +234,8 @@ export const TopBar: React.FC<TopBarProps> = ({
               }
               const hasKey = !!user?.custom_settings?.llmApiKey;
               if (!hasKey) {
-                notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启剧本解析服务");
-                openProfileModal();
+                notify.info("🎬 请先在「设置」中配置您的专属 OpenRouter API Key，开启剧本解析服务");
+                openSettingsModal();
                 return;
               }
               setIsOpenScriptModal(true);
@@ -257,8 +256,8 @@ export const TopBar: React.FC<TopBarProps> = ({
               }
               const hasKey = !!user?.custom_settings?.llmApiKey;
               if (!hasKey) {
-                notify.info("🎬 请先在个人设置中配置您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
-                openProfileModal();
+                notify.info("🎬 请先在「设置」中配置您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
+                openSettingsModal();
                 return;
               }
               setStoryText(project?.story || "");
@@ -279,7 +278,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
 
           <button
-            onClick={() => setIsOpenSettingsModal(true)}
+            onClick={openSettingsModal}
             className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent border border-border/60 transition-colors"
             title="AI 模型与 API 设置"
           >
@@ -388,12 +387,6 @@ export const TopBar: React.FC<TopBarProps> = ({
         onClose={() => setIsDeleteOpen(false)}
         project={project}
         onConfirmDelete={handleConfirmDelete}
-      />
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={isOpenSettingsModal}
-        onClose={() => setIsOpenSettingsModal(false)}
       />
 
       {/* Bible & Style Modal */}

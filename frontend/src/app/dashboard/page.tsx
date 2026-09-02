@@ -70,13 +70,12 @@ const STARTER_TEMPLATES = [
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, openAuthModal, openProfileModal } = useAuthStore();
+  const { user, isAuthenticated, openAuthModal, openProfileModal, openSettingsModal } = useAuthStore();
 
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<ProjectListItem | null>(null);
 
@@ -124,8 +123,8 @@ export default function DashboardPage() {
     }
     const hasKey = !!user?.custom_settings?.llmApiKey;
     if (!hasKey) {
-      notify.info("🎬 请先在个人设置中填入您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
-      openProfileModal();
+      notify.info("🎬 请先在「设置」中填入您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
+      openSettingsModal();
       return;
     }
     setNewTitle("");
@@ -144,8 +143,8 @@ export default function DashboardPage() {
     }
     const hasKey = !!user?.custom_settings?.llmApiKey;
     if (!hasKey) {
-      notify.info("🎬 请先在个人设置中填入您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
-      openProfileModal();
+      notify.info("🎬 请先在「设置」中填入您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
+      openSettingsModal();
       return;
     }
     setNewTitle(tmpl.storyTitle);
@@ -330,7 +329,7 @@ export default function DashboardPage() {
 
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setIsSettingsOpen(true)}
+            onClick={openSettingsModal}
             className="p-2 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             title="后端连接与 AI 大模型设置"
           >
@@ -457,7 +456,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <button
-                onClick={() => setIsSettingsOpen(true)}
+                onClick={openSettingsModal}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500 text-black hover:bg-amber-400 transition-colors shrink-0"
               >
                 配置后端
@@ -755,9 +754,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Settings Modal */}
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
       {/* Delete Project Confirmation Modal */}
       <DeleteProjectModal

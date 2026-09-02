@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { CheckCircle2, AlertTriangle, Info, X, Sparkles, Loader2 } from "lucide-react";
 import { AuthModal } from "@/components/modals/AuthModal";
 import { UserProfileModal } from "@/components/modals/UserProfileModal";
+import { SettingsModal } from "@/components/modals/SettingsModal";
 import { useAuthStore } from "@/stores/authStore";
 
 export type ToastType = "success" | "info" | "error" | "loading";
@@ -39,7 +40,7 @@ export const notify = {
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const initAuth = useAuthStore((s) => s.initAuth);
+  const { initAuth, isSettingsModalOpen, closeSettingsModal, openSettingsModal } = useAuthStore();
 
   useEffect(() => {
     initAuth();
@@ -75,9 +76,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     >
       {children}
 
-      {/* Global Auth Modals */}
+      {/* Global Modals */}
       <AuthModal />
-      <UserProfileModal />
+      <UserProfileModal onOpenSettings={openSettingsModal} />
+      <SettingsModal isOpen={isSettingsModalOpen} onClose={closeSettingsModal} />
 
       {/* Floating Toast Notification Container */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2.5 max-w-sm pointer-events-none">

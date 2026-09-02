@@ -13,6 +13,8 @@ export interface UserProfile {
     imageApiKey?: string;
     imageApiBase?: string;
     imageModel?: string;
+    llm_api_key?: string;
+    image_api_key?: string;
   };
   created_at?: string;
 }
@@ -25,11 +27,14 @@ interface AuthState {
   isAuthModalOpen: boolean;
   authModalTab: "login" | "register";
   isProfileModalOpen: boolean;
+  isSettingsModalOpen: boolean;
 
   openAuthModal: (tab?: "login" | "register") => void;
   closeAuthModal: () => void;
   openProfileModal: () => void;
   closeProfileModal: () => void;
+  openSettingsModal: () => void;
+  closeSettingsModal: () => void;
 
   initAuth: () => Promise<void>;
   login: (account: string, pass: string) => Promise<void>;
@@ -46,11 +51,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthModalOpen: false,
   authModalTab: "login",
   isProfileModalOpen: false,
+  isSettingsModalOpen: false,
 
   openAuthModal: (tab = "login") => set({ isAuthModalOpen: true, authModalTab: tab }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),
   openProfileModal: () => set({ isProfileModalOpen: true }),
   closeProfileModal: () => set({ isProfileModalOpen: false }),
+  openSettingsModal: () => set({ isSettingsModalOpen: true }),
+  closeSettingsModal: () => set({ isSettingsModalOpen: false }),
 
   initAuth: async () => {
     if (typeof window === "undefined") {
@@ -107,6 +115,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       token: null,
       isAuthenticated: false,
       isProfileModalOpen: false,
+      isSettingsModalOpen: false,
     });
   },
 }));

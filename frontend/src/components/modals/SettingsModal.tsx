@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap, Globe, AlertCircle } from "lucide-react";
 import { api, getApiBaseUrl, setApiBaseUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -168,7 +169,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       setLlmApiKey("");
       setImageApiKey("");
       setIsSaved(true);
-      notify.success("系统与 AI 模型配置已成功同步更新至云端 D1 数据库");
+      await useAuthStore.getState().initAuth();
+      notify.success("AI 模型与密钥设置已成功同步生效！");
       setTimeout(() => {
         setIsSaved(false);
         onClose();
