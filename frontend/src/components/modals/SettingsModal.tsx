@@ -203,15 +203,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </button>
         </div>
 
-        {/* Server-Side D1 Persistence Badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono text-emerald-400 mb-3">
+        {/* Server-Side D1 Persistence Badge & Zero Fallback Notice */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono text-emerald-400 mb-2.5">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>☁️ 服务端统一持久化 (Cloudflare D1 · 跨设备多端实时同步)</span>
+          <span>☁️ 专属云端存储 (Cloudflare D1 · 登录后多设备自动漫游)</span>
         </div>
 
-        <p className="text-xs text-muted-foreground mb-4">
-          所有 API 密钥与模型参数均权威存储于云端 D1 数据库中，更换设备或使用无痕模式均可自动无缝读取。
-        </p>
+        <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200/90 text-xs leading-relaxed mb-4">
+          💡 <strong>自备 API Key 模式（无公共兜底 Key）</strong>：平台不提供共享兜底 Key，所有 AI 智能拆镜与生图均使用您个人的 OpenRouter Key。费用由 OpenRouter 按实际调用独立扣费，无中间商差价与并发限制。
+        </div>
 
         <form onSubmit={handleSave} className="space-y-4">
           {/* Section 0: Backend Server Endpoint */}
