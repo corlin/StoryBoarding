@@ -135,22 +135,33 @@ export async function getAuthUser(authHeader?: string | null): Promise<JwtPayloa
   return verifyJwt(match[1].trim());
 }
 
-// Single Source of Truth for User API Key & Model Settings (Zero Public Fallback)
+// Single Source of Truth for User API Key & Model Settings (Zero Public Fallback with AES-256-GCM Decryption)
 export async function getUserSettings(db: any, userId?: string) {
   let userSettings: any = {};
+  let userSalt = "";
+
   if (userId) {
     try {
       const { users } = await import("../db/schema");
       const { eq } = await import("drizzle-orm");
       const user = await db.select().from(users).where(eq(users.id, userId)).get();
-      if (user?.customSettings) {
-        userSettings = JSON.parse(user.customSettings);
+      if (user) {
+        userSalt = user.salt;
+        if (user.customSettings) {
+          userSettings = JSON.parse(user.customSettings);
+        }
       }
     } catch (e) {}
   }
 
-  const llmApiKey = (userSettings.llmApiKey || "").trim();
-  const imageApiKey = (userSettings.imageApiKey || userSettings.llmApiKey || "").trim();
+  const { decryptUserSecret } = await import("./crypto");
+
+  const rawLlmKey = (userSettings.llmApiKey || "").trim();
+  const rawImageKey = (userSettings.imageApiKey || "").trim();
+
+  // Decrypt ciphertext into in-memory plaintext
+  const llmApiKey = rawLlmKey ? await decryptUserSecret(rawLlmKey, userSalt) : "";
+  const imageApiKey = rawImageKey ? await decryptUserSecret(rawImageKey, userSalt) : llmApiKey;
 
   return {
     hasKey: !!llmApiKey,

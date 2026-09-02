@@ -7,6 +7,8 @@ export interface UserProfile {
   username: string;
   avatar_url?: string;
   custom_settings?: {
+    has_llm_key?: boolean;
+    has_image_key?: boolean;
     llmApiKey?: string;
     llmApiBase?: string;
     llmModel?: string;

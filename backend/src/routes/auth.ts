@@ -3,6 +3,7 @@ import { eq, or } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import { users } from "../db/schema";
 import { hashPassword, verifyPassword, signJwt, getAuthUser } from "../lib/auth";
+import { maskApiKey, encryptUserSecret } from "../lib/crypto";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -134,6 +135,25 @@ router.post("/login", async (c) => {
   }
 });
 
+// Masked custom settings helper for safe API responses
+function getSafeCustomSettings(customSettingsStr: string | null | undefined) {
+  let parsed: any = {};
+  try {
+    if (customSettingsStr) parsed = JSON.parse(customSettingsStr);
+  } catch (e) {}
+
+  const hasLlmKey = Boolean(parsed.llmApiKey && parsed.llmApiKey.trim());
+  const hasImageKey = Boolean(parsed.imageApiKey && parsed.imageApiKey.trim());
+
+  return {
+    ...parsed,
+    has_llm_key: hasLlmKey,
+    has_image_key: hasImageKey,
+    llmApiKey: hasLlmKey ? "••••••••" : "",
+    imageApiKey: hasImageKey ? "••••••••" : "",
+  };
+}
+
 // GET /api/auth/me
 router.get("/me", async (c) => {
   try {
@@ -156,7 +176,7 @@ router.get("/me", async (c) => {
       email: user.email,
       username: user.username,
       avatar_url: user.avatarUrl,
-      custom_settings: JSON.parse(user.customSettings || "{}"),
+      custom_settings: getSafeCustomSettings(user.customSettings),
       created_at: user.createdAt,
     });
   } catch (err: any) {
@@ -187,9 +207,6 @@ router.put("/profile", async (c) => {
     if (body.avatar_url !== undefined) {
       updates.avatarUrl = body.avatar_url;
     }
-    if (body.custom_settings !== undefined) {
-      updates.customSettings = typeof body.custom_settings === "object" ? JSON.stringify(body.custom_settings) : body.custom_settings;
-    }
     updates.updatedAt = new Date().toISOString();
 
     const [updatedUser] = await db.update(users).set(updates).where(eq(users.id, authUser.userId)).returning();
@@ -199,7 +216,7 @@ router.put("/profile", async (c) => {
       email: updatedUser.email,
       username: updatedUser.username,
       avatar_url: updatedUser.avatarUrl,
-      custom_settings: JSON.parse(updatedUser.customSettings || "{}"),
+      custom_settings: getSafeCustomSettings(updatedUser.customSettings),
       created_at: updatedUser.createdAt,
     });
   } catch (err: any) {

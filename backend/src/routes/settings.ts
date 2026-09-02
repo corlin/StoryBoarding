@@ -3,16 +3,9 @@ import { eq } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
 import { users } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
+import { encryptUserSecret, maskApiKey } from "../lib/crypto";
 
 const router = new Hono<{ Bindings: Bindings }>();
-
-// Security Masking Helper: Never send raw API keys to browser
-function maskApiKey(key: string | null | undefined): string {
-  if (!key || typeof key !== "string") return "";
-  const trimmed = key.trim();
-  if (trimmed.length <= 8) return "••••••••";
-  return `${trimmed.slice(0, 6)}••••••••${trimmed.slice(-4)}`;
-}
 
 // GET /api/settings/providers (Strictly User-Owned Settings with Secure Masked Output)
 router.get("/providers", async (c) => {
@@ -38,7 +31,7 @@ router.get("/providers", async (c) => {
   });
 });
 
-// POST & PUT /api/settings/providers (Update Provider Settings for Authenticated User Only)
+// POST & PUT /api/settings/providers (Update Provider Settings with AES-256-GCM Encryption)
 const handleUpdateProviders = async (c: any) => {
   const db = getDb(c.env.DB);
   const authHeader = c.req.header("Authorization");
@@ -48,40 +41,44 @@ const handleUpdateProviders = async (c: any) => {
     return c.json({ detail: "请先登录导演账号后再保存个人设置" }, 401);
   }
 
+  const user = await db.select().from(users).where(eq(users.id, authUser.userId)).get();
+  if (!user) {
+    return c.json({ detail: "用户不存在或已被注销" }, 404);
+  }
+
   const body = (await c.req.json().catch(() => ({}))) || {};
 
   let existingUserSettings: any = {};
-  try {
-    const user = await db.select().from(users).where(eq(users.id, authUser.userId)).get();
-    if (user?.customSettings) {
+  if (user.customSettings) {
+    try {
       existingUserSettings = JSON.parse(user.customSettings);
-    }
-  } catch (e) {}
+    } catch (e) {}
+  }
 
-  // Smart Key Preservation: If client sends empty key or masked string, preserve existing
-  let finalLlmKey = existingUserSettings.llmApiKey || "";
+  // Smart Key Preservation & AES-256-GCM Encryption
+  let finalEncryptedLlmKey = existingUserSettings.llmApiKey || "";
   if (body.llm_api_key !== undefined && typeof body.llm_api_key === "string") {
     const raw = body.llm_api_key.trim();
     if (raw && !raw.includes("••••")) {
-      finalLlmKey = raw;
+      finalEncryptedLlmKey = await encryptUserSecret(raw, user.salt);
     }
   }
 
-  let finalImageKey = existingUserSettings.imageApiKey || "";
+  let finalEncryptedImageKey = existingUserSettings.imageApiKey || "";
   if (body.image_api_key !== undefined && typeof body.image_api_key === "string") {
     const raw = body.image_api_key.trim();
     if (raw && !raw.includes("••••")) {
-      finalImageKey = raw;
+      finalEncryptedImageKey = await encryptUserSecret(raw, user.salt);
     }
   }
 
   const updateData = {
     llmProvider: body.llm_provider || existingUserSettings.llmProvider || "openrouter",
-    llmApiKey: finalLlmKey,
+    llmApiKey: finalEncryptedLlmKey,
     llmApiBase: (body.llm_api_base || existingUserSettings.llmApiBase || "https://openrouter.ai/api/v1").trim(),
     llmModel: (body.llm_model || existingUserSettings.llmModel || "deepseek/deepseek-chat").trim(),
     imageProvider: body.image_provider || existingUserSettings.imageProvider || "openrouter",
-    imageApiKey: finalImageKey,
+    imageApiKey: finalEncryptedImageKey,
     imageApiBase: (body.image_api_base || existingUserSettings.imageApiBase || "https://openrouter.ai/api/v1").trim(),
     imageModel: (body.image_model || existingUserSettings.imageModel || "google/imagen-3").trim(),
     updatedAt: new Date().toISOString(),
@@ -97,12 +94,12 @@ const handleUpdateProviders = async (c: any) => {
 
   return c.json({
     status: "success",
-    has_llm_key: Boolean(finalLlmKey),
-    has_image_key: Boolean(finalImageKey),
+    has_llm_key: Boolean(finalEncryptedLlmKey),
+    has_image_key: Boolean(finalEncryptedImageKey),
     settings: {
       ...updateData,
-      llmApiKey: maskApiKey(finalLlmKey),
-      imageApiKey: maskApiKey(finalImageKey),
+      llmApiKey: maskApiKey(body.llm_api_key || "••••••••"),
+      imageApiKey: maskApiKey(body.image_api_key || "••••••••"),
     },
   });
 };
