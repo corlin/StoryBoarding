@@ -155,15 +155,6 @@ export const api = {
   },
 
   // Generation & AI Director
-  async generateStoryboard(projectId: string, story: string, targetDuration: number = 30.0): Promise<GenerationResponse> {
-    const { data } = await apiClient.post(`/generate/storyboard`, {
-      project_id: projectId,
-      story,
-      target_duration: targetDuration,
-    });
-    return data;
-  },
-
   async generateFromStory(payload: { project_id: string; story: string; target_duration?: number }): Promise<GenerationResponse> {
     const { data } = await apiClient.post(`/generate/storyboard`, payload);
     return data;
@@ -182,19 +173,9 @@ export const api = {
     return data;
   },
 
-  async generateAllShotImages(projectId: string): Promise<{ status: string; total_rendered: number }> {
-    const { data } = await apiClient.post(`/generate/all-shot-images/${projectId}`);
-    return data;
-  },
-
-  // System Settings
-  async getSettings() {
-    const { data } = await apiClient.get("/settings");
-    return data;
-  },
-
+  // AI & Provider Settings
   async getProviderConfig() {
-    const { data } = await apiClient.get("/settings");
+    const { data } = await apiClient.get("/settings/providers");
     return data;
   },
 

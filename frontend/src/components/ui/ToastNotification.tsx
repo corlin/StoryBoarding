@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { CheckCircle2, AlertTriangle, Info, X, Sparkles, Loader2 } from "lucide-react";
 import { AuthModal } from "@/components/modals/AuthModal";
-import { UserProfileModal } from "@/components/modals/UserProfileModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -78,7 +77,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       {/* Global Modals */}
       <AuthModal />
-      <UserProfileModal onOpenSettings={openSettingsModal} />
       <SettingsModal isOpen={isSettingsModalOpen} onClose={closeSettingsModal} />
 
       {/* Floating Toast Notification Container */}

@@ -34,6 +34,7 @@ import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
+import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
 import { ShotModel } from "@/types/shot";
 import { cn } from "@/lib/utils";
@@ -64,7 +65,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenCreateSnapshot,
 }) => {
   const router = useRouter();
-  const { user, isAuthenticated, openAuthModal, openProfileModal, openSettingsModal } = useAuthStore();
+  const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
 
   const [isOpenModal, setIsOpenModal] = useState(false);
   const [isOpenBibleModal, setIsOpenBibleModal] = useState(false);
@@ -287,18 +288,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           {/* User Profile / Auth Button */}
           {isAuthenticated && user ? (
-            <button
-              onClick={openProfileModal}
-              className="flex items-center gap-1.5 p-1 pl-1.5 pr-2.5 rounded-full bg-secondary/80 hover:bg-secondary border border-border/80 transition-colors"
-              title="个人设置与专属 API Key"
-            >
-              <img
-                src={user.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username)}`}
-                alt={user.username}
-                className="w-5 h-5 rounded-full bg-primary/20"
-              />
-              <span className="text-xs font-medium text-foreground max-w-[80px] truncate">{user.username}</span>
-            </button>
+            <UserMenuDropdown />
           ) : (
             <button
               onClick={() => openAuthModal("login")}

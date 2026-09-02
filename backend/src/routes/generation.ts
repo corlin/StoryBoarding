@@ -4,35 +4,9 @@ import { getDb, Bindings } from "../db/client";
 import { projects, sequences, shots, systemSettings, projectVersions, users } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, cleanPromptOfMetaPollution } from "../agents/director/pipeline";
 import { captureProjectSnapshot } from "./versions";
-import { getAuthUser } from "../lib/auth";
+import { getAuthUser, getUserSettings } from "../lib/auth";
 
 const router = new Hono<{ Bindings: Bindings }>();
-
-// Helper to get active API keys strictly from user personal settings (Zero Public Fallback)
-export async function getActiveSettings(db: any, env: Bindings, userId?: string) {
-  let userSettings: any = {};
-  if (userId) {
-    try {
-      const user = await db.select().from(users).where(eq(users.id, userId)).get();
-      if (user?.customSettings) {
-        userSettings = JSON.parse(user.customSettings);
-      }
-    } catch (e) {}
-  }
-
-  const llmApiKey = (userSettings.llmApiKey || "").trim();
-  const imageApiKey = (userSettings.imageApiKey || userSettings.llmApiKey || "").trim();
-
-  return {
-    hasKey: !!llmApiKey,
-    llmApiKey,
-    llmApiBase: userSettings.llmApiBase || "https://openrouter.ai/api/v1",
-    llmModel: userSettings.llmModel || "deepseek/deepseek-chat",
-    imageApiKey,
-    imageApiBase: userSettings.imageApiBase || "https://openrouter.ai/api/v1",
-    imageModel: userSettings.imageModel || "google/imagen-3",
-  };
-}
 
 // Convert Base64 string to Uint8Array safely
 function base64ToUint8Array(base64: string): Uint8Array {
@@ -353,9 +327,9 @@ router.post("/from-story", async (c) => {
     return c.json({ detail: "请先登录导演账号" }, 401);
   }
 
-  const settings = await getActiveSettings(db, c.env, authUser.userId);
+  const settings = await getUserSettings(db, authUser.userId);
   if (!settings.hasKey) {
-    return c.json({ detail: "请先在个人设置中配置您的专属 OpenRouter API Key 后再开启 AI 智能拆镜" }, 400);
+    return c.json({ detail: "请先在「设置」中配置您的专属 OpenRouter API Key 后再开启 AI 智能拆镜" }, 400);
   }
 
   const result = await runDirectorPipeline(storyText, targetDuration, {
@@ -531,9 +505,9 @@ router.post("/from-script", async (c) => {
     return c.json({ detail: "请先登录导演账号" }, 401);
   }
 
-  const settings = await getActiveSettings(db, c.env, authUser.userId);
+  const settings = await getUserSettings(db, authUser.userId);
   if (!settings.hasKey) {
-    return c.json({ detail: "请先在个人设置中配置您的专属 OpenRouter API Key 后再进行剧本解析" }, 400);
+    return c.json({ detail: "请先在「设置」中配置您的专属 OpenRouter API Key 后再进行剧本解析" }, 400);
   }
 
   const result = await runDirectorPipeline(scriptText, 30.0, {
@@ -680,9 +654,9 @@ router.post("/images/:shotId", async (c) => {
     return c.json({ detail: "请先登录导演账号" }, 401);
   }
 
-  const settings = await getActiveSettings(db, c.env, authUser.userId);
+  const settings = await getUserSettings(db, authUser.userId);
   if (!settings.hasKey) {
-    return c.json({ detail: "请先在个人设置中配置您的专属 OpenRouter API Key 后再生成 AI 画面" }, 400);
+    return c.json({ detail: "请先在「设置」中配置您的专属 OpenRouter API Key 后再生成 AI 画面" }, 400);
   }
 
   const prompt = shot.imagePrompt || formatDirectorImagePrompt(shot.action, shot.shotSize, shot.cameraAngle, "static");

@@ -21,11 +21,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { api, ProjectListItem, normalizeAssetUrl } from "@/lib/api";
-import { SettingsModal } from "@/components/modals/SettingsModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { ProjectCreationProgress } from "@/components/modals/ProjectCreationProgress";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
+import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
 
@@ -70,7 +70,7 @@ const STARTER_TEMPLATES = [
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, openAuthModal, openProfileModal, openSettingsModal } = useAuthStore();
+  const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
 
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -338,18 +338,7 @@ export default function DashboardPage() {
 
           {/* User Profile / Auth Button */}
           {isAuthenticated && user ? (
-            <button
-              onClick={openProfileModal}
-              className="flex items-center gap-2 p-1.5 pl-2 pr-3 rounded-xl border border-border bg-secondary/60 hover:bg-secondary transition-colors"
-              title="个人设置与专属 API Key"
-            >
-              <img
-                src={user.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username)}`}
-                alt={user.username}
-                className="w-5 h-5 rounded-full bg-primary/20"
-              />
-              <span className="text-xs font-semibold text-foreground max-w-[90px] truncate">{user.username}</span>
-            </button>
+            <UserMenuDropdown />
           ) : (
             <button
               onClick={() => openAuthModal("login")}

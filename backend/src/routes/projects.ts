@@ -4,35 +4,9 @@ import { getDb, ensureSchema, Bindings } from "../db/client";
 import { projects, sequences, shots, systemSettings, users } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, generateAdaptiveStoryShots } from "../agents/director/pipeline";
 import { generateCinematicStoryboardImage, runConcurrentTasks, getProjectBaseSeed } from "./generation";
-import { getAuthUser } from "../lib/auth";
+import { getAuthUser, getUserSettings } from "../lib/auth";
 
 const router = new Hono<{ Bindings: Bindings }>();
-
-// Helper to get active API keys strictly from user personal settings (Zero Public Fallback)
-async function getActiveSettings(db: any, env: Bindings, userId?: string) {
-  let userSettings: any = {};
-  if (userId) {
-    try {
-      const user = await db.select().from(users).where(eq(users.id, userId)).get();
-      if (user?.customSettings) {
-        userSettings = JSON.parse(user.customSettings);
-      }
-    } catch (e) {}
-  }
-
-  const llmApiKey = (userSettings.llmApiKey || "").trim();
-  const imageApiKey = (userSettings.imageApiKey || userSettings.llmApiKey || "").trim();
-
-  return {
-    hasKey: !!llmApiKey,
-    llmApiKey,
-    llmApiBase: userSettings.llmApiBase || "https://openrouter.ai/api/v1",
-    llmModel: userSettings.llmModel || "deepseek/deepseek-chat",
-    imageApiKey,
-    imageApiBase: userSettings.imageApiBase || "https://openrouter.ai/api/v1",
-    imageModel: userSettings.imageModel || "google/imagen-3",
-  };
-}
 
 const FULL_DEMO_SHOTS = [
   { order: 1, duration: 2.5, size: "extreme_wide_shot", angle: "high_angle", mov: "crane", subj: "古风茶楼与赛博雨夜", act: "俯瞰赛博雨夜，青瓦飞檐的古风茶楼悬挂着发光的红灯笼，周围环绕着绿色全息数据流与密集的雨幕。", dialogue: "旁白：“在矩阵最深处的古旧节点，数据洪流正悄然汇聚。”", sfx: "暴雨倾盆声、全息数据流低鸣", music: "赛博古风电子合成器与低沉大提琴" },
@@ -374,9 +348,9 @@ router.post("/", async (c) => {
     const effectiveStory = story.trim() || title.trim();
     const baseSeed = getProjectBaseSeed(id);
 
-    const settings = await getActiveSettings(db, c.env, authUser.userId);
+    const settings = await getUserSettings(db, authUser.userId);
     if (!settings.hasKey) {
-      return c.json({ detail: "请先在个人中心配置您的专属 OpenRouter API Key 后再使用 AI 导演服务" }, 400);
+      return c.json({ detail: "请先在「设置」中配置您的专属 OpenRouter API Key 后再使用 AI 导演服务" }, 400);
     }
 
     try {

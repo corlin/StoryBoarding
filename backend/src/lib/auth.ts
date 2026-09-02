@@ -134,3 +134,31 @@ export async function getAuthUser(authHeader?: string | null): Promise<JwtPayloa
   if (!match || !match[1]) return null;
   return verifyJwt(match[1].trim());
 }
+
+// Single Source of Truth for User API Key & Model Settings (Zero Public Fallback)
+export async function getUserSettings(db: any, userId?: string) {
+  let userSettings: any = {};
+  if (userId) {
+    try {
+      const { users } = await import("../db/schema");
+      const { eq } = await import("drizzle-orm");
+      const user = await db.select().from(users).where(eq(users.id, userId)).get();
+      if (user?.customSettings) {
+        userSettings = JSON.parse(user.customSettings);
+      }
+    } catch (e) {}
+  }
+
+  const llmApiKey = (userSettings.llmApiKey || "").trim();
+  const imageApiKey = (userSettings.imageApiKey || userSettings.llmApiKey || "").trim();
+
+  return {
+    hasKey: !!llmApiKey,
+    llmApiKey,
+    llmApiBase: userSettings.llmApiBase || "https://openrouter.ai/api/v1",
+    llmModel: userSettings.llmModel || "deepseek/deepseek-chat",
+    imageApiKey,
+    imageApiBase: userSettings.imageApiBase || "https://openrouter.ai/api/v1",
+    imageModel: userSettings.imageModel || "google/imagen-3",
+  };
+}

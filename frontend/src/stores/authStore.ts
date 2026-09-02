@@ -26,13 +26,10 @@ interface AuthState {
   isLoading: boolean;
   isAuthModalOpen: boolean;
   authModalTab: "login" | "register";
-  isProfileModalOpen: boolean;
   isSettingsModalOpen: boolean;
 
   openAuthModal: (tab?: "login" | "register") => void;
   closeAuthModal: () => void;
-  openProfileModal: () => void;
-  closeProfileModal: () => void;
   openSettingsModal: () => void;
   closeSettingsModal: () => void;
 
@@ -50,13 +47,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
   isAuthModalOpen: false,
   authModalTab: "login",
-  isProfileModalOpen: false,
   isSettingsModalOpen: false,
 
   openAuthModal: (tab = "login") => set({ isAuthModalOpen: true, authModalTab: tab }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),
-  openProfileModal: () => set({ isProfileModalOpen: true }),
-  closeProfileModal: () => set({ isProfileModalOpen: false }),
   openSettingsModal: () => set({ isSettingsModalOpen: true }),
   closeSettingsModal: () => set({ isSettingsModalOpen: false }),
 
@@ -114,7 +108,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
-      isProfileModalOpen: false,
       isSettingsModalOpen: false,
     });
   },
