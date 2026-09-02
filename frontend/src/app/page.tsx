@@ -57,8 +57,7 @@ const HERO_SHOWCASE_SHOTS: HeroShot[] = [
     lens: "24mm T1.8 广角畸变校正",
     shutter: "180.0° · ISO 800",
     hudVector: "[ ▲ CRANE DOWN 俯冲 2.5s ]",
-    imageUrl:
-      "https://image.pollinations.ai/prompt/cinematic%202.39:1%20monochrome%20graphite%20film%20storyboard%20illustration,%20cyberpunk%20ancient%20tea%20house%20pagoda%20rain%20night%20glowing%20holographic%20neon%20mist,%20high%20contrast%20chiaroscuro%20masterpiece?width=768&height=432&seed=8841&model=flux&nologo=true",
+    imageUrl: "/images/storyboard/shot_01_teahouse_rain.jpg",
   },
   {
     id: "shot-02",
@@ -74,8 +73,7 @@ const HERO_SHOWCASE_SHOTS: HeroShot[] = [
     lens: "85mm T1.2 浅景深眼部对焦",
     shutter: "180.0° · 24.000 FPS",
     hudVector: "[ TRACKING IN 跟推 ━━━━► ]",
-    imageUrl:
-      "https://image.pollinations.ai/prompt/cinematic%202.39:1%20monochrome%20graphite%20film%20storyboard%20illustration,%20close%20up%20cyberpunk%20bionic%20agent%20glowing%20eye%20drawing%20katana%20blade%20sonic%20boom%20shockwave,%20dramatic%20shadows?width=768&height=432&seed=8842&model=flux&nologo=true",
+    imageUrl: "/images/storyboard/shot_02_katana_strike.jpg",
   },
   {
     id: "shot-03",
@@ -91,8 +89,7 @@ const HERO_SHOWCASE_SHOTS: HeroShot[] = [
     lens: "50mm T1.4 环绕防抖矩阵",
     shutter: "90.0° · 240 FPS (0.1x 升格)",
     hudVector: "[ 360° ARC ROTATE 环绕 ↺ ]",
-    imageUrl:
-      "https://image.pollinations.ai/prompt/cinematic%202.39:1%20monochrome%20graphite%20film%20storyboard%20illustration,%20bullet%20time%20slow%20motion%20water%20droplets%20suspended%20in%20mid-air,%20martial%20artist%20dodge%20supersonic%20bullet%20trajectory%20spark,%20masterpiece?width=768&height=432&seed=8843&model=flux&nologo=true",
+    imageUrl: "/images/storyboard/shot_03_bullet_time_climax.jpg",
   },
 ];
 
