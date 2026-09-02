@@ -480,31 +480,20 @@ export default function DashboardPage() {
                     清空搜索
                   </button>
                 ) : (
-                  <>
-                    <Link
-                      href="/workspace?id=demo"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 transition-colors"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-primary" />
-                      <span>体验 Demo 矩阵对决</span>
-                    </Link>
-                    <button
-                      onClick={handleOpenCreateModal}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>新建项目</span>
-                    </button>
-                  </>
+                  <button
+                    onClick={handleOpenCreateModal}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-md"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>立即新建分镜工程</span>
+                  </button>
                 )}
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProjects.map((proj) => {
-                const isBuiltIn = proj.id === "demo" || proj.id === "demo-matrix-cyber-master";
                 const coverImg = normalizeAssetUrl(proj.cover_image_url);
-                const isCloningThis = cloningProjectId === proj.id;
 
                 return (
                   <Link
@@ -541,11 +530,6 @@ export default function DashboardPage() {
                       {/* Top Badges on Poster */}
                       <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
                         <div className="flex items-center gap-1.5">
-                          {isBuiltIn && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-primary text-primary-foreground shadow-sm">
-                              官方示范
-                            </span>
-                          )}
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-black/80 text-sky-400 border border-sky-400/30 backdrop-blur-md">
                             {proj.target_duration}s
                           </span>
@@ -579,20 +563,6 @@ export default function DashboardPage() {
                       {/* Footer Actions */}
                       <div className="pt-4 mt-4 border-t border-border/50 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          {/* 1-Click Clone Demo button (if Demo) */}
-                          {isBuiltIn && (
-                            <button
-                              type="button"
-                              onClick={(e) => handleCloneProject(e, proj)}
-                              disabled={isCloningThis}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 transition-colors disabled:opacity-50"
-                              title="一键克隆该官方演示工程至您的私有工作区"
-                            >
-                              {isCloningThis ? <Loader2 className="w-3 h-3 animate-spin" /> : <Copy className="w-3 h-3" />}
-                              <span>克隆</span>
-                            </button>
-                          )}
-
                           {/* Quick Export PNG Button */}
                           <button
                             type="button"
@@ -605,22 +575,20 @@ export default function DashboardPage() {
                             <span>{exportingProjectId === proj.id ? "合成中..." : "导出单"}</span>
                           </button>
 
-                          {/* Delete Button (if not built-in) */}
-                          {!isBuiltIn && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setProjectToDelete(proj);
-                                setIsDeleteOpen(true);
-                              }}
-                              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                              title="删除项目"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setProjectToDelete(proj);
+                              setIsDeleteOpen(true);
+                            }}
+                            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="删除项目"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
 
                         <span className="text-xs font-semibold text-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">

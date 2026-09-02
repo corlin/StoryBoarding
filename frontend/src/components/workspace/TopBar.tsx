@@ -75,10 +75,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [bibleMode, setBibleMode] = useState<"bible" | "style">("bible");
   const [storyText, setStoryText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCloning, setIsCloning] = useState(false);
-
-  const isBuiltIn = !project || project.id === "demo" || project.id === "demo-matrix-cyber-master";
-
   const handleGenerate = async () => {
     if (!storyText.trim()) return;
     try {
@@ -93,27 +89,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   const handleConfirmDelete = async (projectId: string) => {
     await api.deleteProject(projectId);
     router.push("/dashboard");
-  };
-
-  const handleCloneDemo = async () => {
-    if (!project) return;
-    if (!isAuthenticated) {
-      notify.info("💡 请先登录或注册，即可将官方 Demo 克隆至您的私有工作区");
-      openAuthModal("login");
-      return;
-    }
-    try {
-      setIsCloning(true);
-      notify.info("正在克隆演示工程至您的私有仓库...");
-      const cloned = await api.cloneProject(project.id);
-      notify.success("🎉 工程克隆成功！已切换至您的私有副本。");
-      router.push(`/workspace/${cloned.id}`);
-    } catch (e: any) {
-      console.error("Clone error:", e);
-      notify.error(e?.response?.data?.detail || "克隆工程失败");
-    } finally {
-      setIsCloning(false);
-    }
   };
 
   const isOverDuration = totalDuration > (project?.target_duration || 30);
@@ -145,12 +120,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 <span>{activeVersionTag}</span>
               </button>
-            )}
-
-            {isBuiltIn && (
-              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                官方演示
-              </span>
             )}
           </div>
         </div>
@@ -188,19 +157,6 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Right Action Tools */}
         <div className="flex items-center gap-2">
-          {/* 1-Click Clone Demo button (if built-in demo) */}
-          {isBuiltIn && (
-            <button
-              onClick={handleCloneDemo}
-              disabled={isCloning}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 transition-colors shadow-2xs"
-              title="一键克隆该官方演示工程至您的私有工作区"
-            >
-              {isCloning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>克隆为我的项目</span>
-            </button>
-          )}
-
           {/* Style Bible Button */}
           <button
             onClick={() => {
@@ -299,16 +255,14 @@ export const TopBar: React.FC<TopBarProps> = ({
             </button>
           )}
 
-          {/* Delete Project (Non-demo) */}
-          {!isBuiltIn && (
-            <button
-              onClick={() => setIsDeleteOpen(true)}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/60 transition-colors"
-              title="删除此项目"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
+          {/* Delete Project */}
+          <button
+            onClick={() => setIsDeleteOpen(true)}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/60 transition-colors"
+            title="删除此项目"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </header>
 

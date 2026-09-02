@@ -34,7 +34,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     ? window.location.pathname.replace(/^\/workspace\/?/, "").split("/")[0].split("?")[0]
     : "";
 
-  const effectiveProjectId = queryId || (rawParamId && rawParamId !== "demo" ? rawParamId : "") || pathId || projectId || "demo";
+  const effectiveProjectId = queryId || rawParamId || pathId || projectId || "";
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStory, setGenerationStory] = useState("");
@@ -120,9 +120,13 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   // 100% Server-First: Always load directly from Cloudflare D1 backend
   useEffect(() => {
+    if (!effectiveProjectId || effectiveProjectId === "demo") {
+      router.replace("/dashboard");
+      return;
+    }
     fetchProject(effectiveProjectId);
     loadVersions();
-  }, [effectiveProjectId, fetchProject, loadVersions]);
+  }, [effectiveProjectId, fetchProject, loadVersions, router]);
 
   // When previewing a historical version, construct a virtual ProjectModel
   const displayProject: ProjectModel | null = previewVersion

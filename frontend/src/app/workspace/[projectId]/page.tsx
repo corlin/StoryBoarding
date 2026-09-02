@@ -8,7 +8,7 @@ interface WorkspacePageProps {
 }
 
 export function generateStaticParams() {
-  return [{ projectId: "demo" }];
+  return [{ projectId: "default" }];
 }
 
 export default function WorkspacePage({ params }: WorkspacePageProps) {
