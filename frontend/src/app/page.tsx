@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   Clapperboard,
@@ -20,9 +20,86 @@ import {
   CheckCircle2,
   Sliders,
   ChevronRight,
+  Crosshair,
+  Camera,
+  Flame,
 } from "lucide-react";
 
+interface HeroShot {
+  id: string;
+  order: string;
+  phase: string;
+  size: string;
+  camera: string;
+  duration: string;
+  script: string;
+  dialogue?: string;
+  sfx: string;
+  lighting: string;
+  lens: string;
+  shutter: string;
+  hudVector: string;
+  imageUrl: string;
+}
+
+const HERO_SHOWCASE_SHOTS: HeroShot[] = [
+  {
+    id: "shot-01",
+    order: "#01",
+    phase: "ACT I · 空间建立",
+    size: "EXTREME WIDE 大远景",
+    camera: "CRANE DOWN 俯冲",
+    duration: "2.5s",
+    script: "2.39:1 变形宽银幕。雨夜新东京，青瓦飞檐古楼悬挂赤红发光灯笼，全息金龙与暴雨雷光撕裂雨夜。",
+    dialogue: "旁白：“在矩阵最深处的古旧节点，数据洪流正悄然汇聚。”",
+    sfx: "暴雨雷鸣、全息龙吟低频嗡鸣",
+    lighting: "伦勃朗侧逆光 · 霓虹青红冷暖反差",
+    lens: "24mm T1.8 广角畸变校正",
+    shutter: "180.0° · ISO 800",
+    hudVector: "[ ▲ CRANE DOWN 俯冲 2.5s ]",
+    imageUrl:
+      "https://image.pollinations.ai/prompt/cinematic%202.39:1%20monochrome%20graphite%20film%20storyboard%20illustration,%20cyberpunk%20ancient%20tea%20house%20pagoda%20rain%20night%20glowing%20holographic%20neon%20mist,%20high%20contrast%20chiaroscuro%20masterpiece?width=768&height=432&seed=8841&model=flux&nologo=true",
+  },
+  {
+    id: "shot-02",
+    order: "#02",
+    phase: "ACT II · 极限交锋",
+    size: "CLOSE-UP 特写",
+    camera: "TRACKING PUSH-IN 跟推",
+    duration: "2.0s",
+    script: "低角极速推轨。仿生特工右眼机械光圈收缩至 F1.2 锁定暗影，拔刀瞬间激荡起白色音爆冲击波与破空裂鸣。",
+    dialogue: "特工：“目标锁定，执行彻底抹杀。”",
+    sfx: "机械关节暴响、超音速破空啸叫",
+    lighting: "强反差轮廓光 · 刀光冷白反射",
+    lens: "85mm T1.2 浅景深眼部对焦",
+    shutter: "180.0° · 24.000 FPS",
+    hudVector: "[ TRACKING IN 跟推 ━━━━► ]",
+    imageUrl:
+      "https://image.pollinations.ai/prompt/cinematic%202.39:1%20monochrome%20graphite%20film%20storyboard%20illustration,%20close%20up%20cyberpunk%20bionic%20agent%20glowing%20eye%20drawing%20katana%20blade%20sonic%20boom%20shockwave,%20dramatic%20shadows?width=768&height=432&seed=8842&model=flux&nologo=true",
+  },
+  {
+    id: "shot-03",
+    order: "#03",
+    phase: "ACT III · 子弹时间高潮",
+    size: "MEDIUM SHOT 中景",
+    camera: "360° ARC ROTATE 环绕",
+    duration: "3.5s",
+    script: "0.1x 极限升格子弹时间。墨客侧身避开撕裂空气的弹道，刀锋切断超音速轨迹，飞溅水滴与电火花在空中完全静止悬停。",
+    dialogue: "墨客：“天下武功，唯快不破。”",
+    sfx: "水滴悬停共振谐波、超慢动作音爆",
+    lighting: "频闪白光 · 悬浮水滴丁达尔光斑",
+    lens: "50mm T1.4 环绕防抖矩阵",
+    shutter: "90.0° · 240 FPS (0.1x 升格)",
+    hudVector: "[ 360° ARC ROTATE 环绕 ↺ ]",
+    imageUrl:
+      "https://image.pollinations.ai/prompt/cinematic%202.39:1%20monochrome%20graphite%20film%20storyboard%20illustration,%20bullet%20time%20slow%20motion%20water%20droplets%20suspended%20in%20mid-air,%20martial%20artist%20dodge%20supersonic%20bullet%20trajectory%20spark,%20masterpiece?width=768&height=432&seed=8843&model=flux&nologo=true",
+  },
+];
+
 export default function HomePage() {
+  const [activeShotIndex, setActiveShotIndex] = useState<number>(0);
+  const currentActiveShot = HERO_SHOWCASE_SHOTS[activeShotIndex];
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/30">
       {/* Top Sticky Navigation */}
@@ -44,11 +121,11 @@ export default function HomePage() {
 
           <div className="flex items-center gap-4 text-xs font-medium">
             <Link
-              href="/workspace?id=demo"
+              href="/dashboard"
               className="text-muted-foreground hover:text-foreground transition-colors hidden sm:flex items-center gap-1"
             >
               <Sparkles className="w-3.5 h-3.5 text-primary" />
-              <span>黑客帝国 Demo</span>
+              <span>4 大工业起步模板</span>
             </Link>
             <Link
               href="/dashboard"
@@ -62,17 +139,17 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <main className="flex-1 flex flex-col items-center justify-center text-center px-6 pt-16 pb-24 max-w-6xl mx-auto space-y-12">
+      <main className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-16 pb-24 max-w-6xl mx-auto space-y-12">
         {/* Subtitle Pill */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-semibold shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/40 bg-primary/10 text-primary text-xs font-semibold shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>好莱坞影视级 AI 分镜头打样与视频预演系统</span>
+          <span>好莱坞影视级 6 阶段 AI 电影导演预演与故事板打样</span>
         </div>
 
         {/* Hero Main Heading */}
         <div className="space-y-4 max-w-4xl">
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] bg-clip-text text-transparent bg-gradient-to-b from-foreground via-foreground/90 to-muted-foreground">
-            一句话灵感，直通好莱坞分镜打样
+            一句话灵感，直通好莱坞大片分镜画卷
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             打通文字剧本与 16:9 宽银幕视觉画卷的边界。AI 导演自动规划 6 阶段戏剧节拍、机位动势与空间轴线，毫秒级双向台本重编译。
@@ -90,112 +167,193 @@ export default function HomePage() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            href="/workspace?id=demo"
+            href="/dashboard"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-medium bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 transition-all shadow-xs"
           >
-            <PlayCircle className="w-4 h-4 text-sky-400" />
-            <span>体验 12 镜对决 Demo</span>
+            <Zap className="w-4 h-4 text-amber-400" />
+            <span>探索 4 大工业起步模板</span>
           </Link>
         </div>
 
-        {/* Hero Interactive Studio Showcase Mockup */}
-        <div className="w-full rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl p-3 sm:p-5 shadow-2xl overflow-hidden text-left relative group">
-          {/* Top Window Bar */}
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/60 text-xs text-muted-foreground">
+        {/* Hero Interactive Studio Showcase Mockup (Hollywood Director Monitor) */}
+        <div className="w-full rounded-2xl border border-border/80 bg-card/70 backdrop-blur-xl p-3 sm:p-5 shadow-2xl overflow-hidden text-left relative group">
+          {/* Top Window & ARRI ALEXA LF Monitor Status Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b border-border/70 gap-2 text-xs">
             <div className="flex items-center gap-2">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-rose-500/80" />
                 <div className="w-3 h-3 rounded-full bg-amber-500/80" />
                 <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
               </div>
-              <span className="font-mono text-[11px] ml-2 text-foreground/80 font-medium">
-                AI Director Studio · 双向协同工作台 (Split View 5:5)
+              <span className="font-mono text-[11px] ml-2 text-foreground font-bold flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-primary" />
+                <span>AI Director Studio · 好莱坞监视器双向工作台 (Previz 2.39:1)</span>
               </span>
             </div>
-            <div className="flex items-center gap-2 font-mono text-[11px]">
-              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                ● 16:9 PREVIZ SYNC
+
+            {/* ARRI Professional Viewfinder Badges */}
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[10px]">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                <span>REC 24.000 FPS</span>
+              </span>
+              <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">
+                TC 00:01:24:08
+              </span>
+              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hidden md:inline">
+                LUT: ARRI LOG-C TO KODAK 2383
+              </span>
+              <span className="px-2 py-0.5 rounded bg-secondary text-foreground/80 border border-border hidden sm:inline">
+                AUDIO CH1 -18dB
               </span>
             </div>
           </div>
 
           {/* Split Pane Demo Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            {/* Left: Script Editor Mockup */}
-            <div className="md:col-span-5 rounded-xl border border-border/70 bg-neutral-950/80 p-4 space-y-3 font-mono text-xs">
-              <div className="flex items-center justify-between text-muted-foreground pb-2 border-b border-border/40">
-                <span className="text-[11px] text-sky-400 font-semibold flex items-center gap-1.5">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            {/* Left: Hollywood Director Script Panel */}
+            <div className="lg:col-span-4 rounded-xl border border-border/80 bg-neutral-950/90 p-3.5 space-y-3 font-mono text-xs shadow-inner">
+              <div className="flex items-center justify-between text-muted-foreground pb-2 border-b border-border/50">
+                <span className="text-[11px] text-sky-400 font-bold flex items-center gap-1.5">
                   <FileCode2 className="w-3.5 h-3.5" />
-                  <span>分镜头脚本 (Script)</span>
+                  <span>分镜头脚本 (Director Script)</span>
                 </span>
-                <span className="text-[10px]">实时双向同步</span>
+                <span className="text-[10px] text-emerald-400">● 实时双向编译</span>
               </div>
 
+              {/* Interactive Script Cards */}
               <div className="space-y-2.5">
-                <div className="p-2.5 rounded-lg bg-card/40 border border-border/40 space-y-1">
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span className="text-primary font-bold">#01 大远景 · 俯角</span>
-                    <span>2.5s</span>
-                  </div>
-                  <p className="text-foreground text-[11px] leading-relaxed">
-                    俯瞰赛博雨夜，青瓦飞檐的古典茶楼悬挂着发光红灯笼，数据雨幕与街道倒影交织。
-                  </p>
-                </div>
+                {HERO_SHOWCASE_SHOTS.map((shot, idx) => {
+                  const isSelected = activeShotIndex === idx;
+                  return (
+                    <div
+                      key={shot.id}
+                      onClick={() => setActiveShotIndex(idx)}
+                      className={`p-2.5 rounded-lg border transition-all cursor-pointer space-y-1.5 relative ${
+                        isSelected
+                          ? "bg-primary/15 border-primary shadow-sm shadow-primary/20"
+                          : "bg-card/40 border-border/40 hover:bg-card/70 hover:border-border"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span
+                          className={`font-bold flex items-center gap-1.5 ${
+                            isSelected ? "text-primary" : "text-foreground"
+                          }`}
+                        >
+                          <span>
+                            {shot.order} {shot.phase}
+                          </span>
+                          {isSelected && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" />
+                          )}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {shot.duration}
+                        </span>
+                      </div>
 
-                <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/40 space-y-1 relative">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-primary font-bold flex items-center gap-1">
-                      <span>#02 全景 · 视平机位</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" />
-                    </span>
-                    <span className="text-primary font-mono">2.0s · 当前编辑</span>
-                  </div>
-                  <p className="text-foreground text-[11px] leading-relaxed">
-                    墨客身穿黑色立领风衣踏过水洼，皮靴带起慢动作水花涟漪，眼神冷峻锁定暗影。
-                  </p>
-                </div>
+                      <p className="text-foreground/90 text-[11px] leading-relaxed line-clamp-2">
+                        {shot.script}
+                      </p>
+
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground/80 pt-1 border-t border-border/30">
+                        <span className="text-sky-300 font-mono truncate max-w-[150px]">
+                          {shot.camera}
+                        </span>
+                        <span className="text-[9px] font-mono text-amber-400/90">
+                          {shot.lens}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Right: Storyboard Shot Cards Mockup */}
-            <div className="md:col-span-7 grid grid-cols-2 gap-3">
-              {/* Shot 1 Frame */}
-              <div className="rounded-xl border border-border/70 bg-neutral-950 overflow-hidden relative group/card flex flex-col justify-between">
-                <div className="aspect-video bg-neutral-900 relative flex items-center justify-center overflow-hidden">
-                  <img
-                    src="https://image.pollinations.ai/prompt/cinematic%202d%20monochrome%20graphite%20film%20storyboard%20illustration,%2016:9%20widescreen,%20cyberpunk%20tea%20house%20rain%20night%20gothic%20castle?width=512&height=288&seed=1042&model=flux&nologo=true"
-                    alt="Shot 1"
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Clean Hollywood HUD */}
-                  <div className="absolute inset-2 border border-sky-400/20 pointer-events-none" />
-                  <div className="absolute bottom-1.5 left-2 px-1.5 py-0.5 rounded bg-black/80 text-[9px] font-mono text-sky-300 border border-sky-400/30">
-                    [▲ CRANE DOWN]
-                  </div>
-                </div>
-                <div className="p-2.5 bg-card/70 border-t border-border/50 flex items-center justify-between text-[10px]">
-                  <span className="font-bold text-foreground">#01 空间建立</span>
-                  <span className="font-mono text-muted-foreground">EXTREME WIDE</span>
-                </div>
+            {/* Right: Triple-Shot Storyboard Filmstrip Canvas */}
+            <div className="lg:col-span-8 flex flex-col space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {HERO_SHOWCASE_SHOTS.map((shot, idx) => {
+                  const isSelected = activeShotIndex === idx;
+                  return (
+                    <div
+                      key={shot.id}
+                      onClick={() => setActiveShotIndex(idx)}
+                      className={`rounded-xl border overflow-hidden bg-neutral-950 flex flex-col justify-between transition-all duration-300 cursor-pointer group/card relative ${
+                        isSelected
+                          ? "border-primary shadow-lg shadow-primary/20 scale-[1.02]"
+                          : "border-border/70 hover:border-border hover:scale-[1.01]"
+                      }`}
+                    >
+                      {/* 16:9 Frame with Viewfinder Overlay */}
+                      <div className="aspect-video bg-neutral-900 relative flex items-center justify-center overflow-hidden">
+                        <img
+                          src={shot.imageUrl}
+                          alt={shot.phase}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
+                        />
+
+                        {/* ARRI Crosshair / Viewfinder Safe Action Grid Overlay */}
+                        <div className="absolute inset-2 border border-sky-400/20 pointer-events-none" />
+                        <div className="absolute top-1.5 right-2 text-[8px] font-mono text-emerald-400/80 bg-black/70 px-1 rounded pointer-events-none">
+                          2.39:1
+                        </div>
+
+                        {/* Motion Vector Pill */}
+                        <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between pointer-events-none">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-mono border backdrop-blur-md ${
+                              isSelected
+                                ? "bg-primary/90 text-primary-foreground border-primary font-bold shadow-xs"
+                                : "bg-black/80 text-sky-300 border-sky-400/30"
+                            }`}
+                          >
+                            {shot.hudVector}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Bottom Meta */}
+                      <div
+                        className={`p-2.5 border-t flex items-center justify-between text-[10px] font-mono transition-colors ${
+                          isSelected
+                            ? "bg-primary/10 border-primary/40 text-primary font-bold"
+                            : "bg-card/70 border-border/50 text-foreground"
+                        }`}
+                      >
+                        <span className="truncate max-w-[110px]">
+                          {shot.order} {shot.phase.split("·")[1]?.trim() || shot.phase}
+                        </span>
+                        <span className="text-muted-foreground text-[9px]">
+                          {shot.duration}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Shot 2 Frame */}
-              <div className="rounded-xl border border-primary/50 bg-neutral-950 overflow-hidden relative group/card flex flex-col justify-between shadow-md shadow-primary/5">
-                <div className="aspect-video bg-neutral-900 relative flex items-center justify-center overflow-hidden">
-                  <img
-                    src="https://image.pollinations.ai/prompt/cinematic%202d%20monochrome%20graphite%20film%20storyboard%20illustration,%2016:9%20widescreen,%20black%20trench%20coat%20martial%20artist%20walking%20rain%20water%20splashes?width=512&height=288&seed=2042&model=flux&nologo=true"
-                    alt="Shot 2"
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Clean Hollywood HUD */}
-                  <div className="absolute inset-2 border border-sky-400/20 pointer-events-none" />
-                  <div className="absolute bottom-1.5 left-2 px-1.5 py-0.5 rounded bg-black/80 text-[9px] font-mono text-sky-300 border border-sky-400/30">
-                    [TRACKING RIGHT ━━━━►]
+              {/* Active Shot Deep-Director Inspector Metadata Box */}
+              <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-primary text-xs">
+                      {currentActiveShot.order} 导演运镜核心解析:
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                      {currentActiveShot.camera}
+                    </span>
                   </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {currentActiveShot.script}
+                  </p>
                 </div>
-                <div className="p-2.5 bg-card/70 border-t border-border/50 flex items-center justify-between text-[10px]">
-                  <span className="font-bold text-primary">#02 人物建立 (DNA 锁定)</span>
-                  <span className="font-mono text-primary">WIDE SHOT</span>
+
+                <div className="shrink-0 space-y-0.5 text-right sm:border-l sm:border-border/60 sm:pl-3">
+                  <div className="text-[10px] text-sky-300">{currentActiveShot.lens}</div>
+                  <div className="text-[10px] text-amber-300/90">{currentActiveShot.lighting}</div>
+                  <div className="text-[9px] text-muted-foreground">{currentActiveShot.sfx}</div>
                 </div>
               </div>
             </div>
@@ -365,7 +523,7 @@ export default function HomePage() {
                 让灵感在好莱坞分镜中即刻显影
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                无需任何繁杂配置，零代码开启你的第一个好莱坞 AI 故事板工程
+                无需任何繁杂配置，零门槛开启你的第一个好莱坞 AI 故事板工程
               </p>
             </div>
 
@@ -377,12 +535,6 @@ export default function HomePage() {
                 <Film className="w-4 h-4" />
                 <span>立即进入分镜看板</span>
                 <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="/workspace?id=demo"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-medium bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 transition-colors"
-              >
-                <span>体验黑客帝国 Demo (12 镜)</span>
               </Link>
             </div>
           </div>
@@ -400,9 +552,6 @@ export default function HomePage() {
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="hover:text-foreground transition-colors">
               分镜看板
-            </Link>
-            <Link href="/workspace?id=demo" className="hover:text-foreground transition-colors">
-              Demo 工程
             </Link>
             <a
               href="https://github.com/corlin/StoryBoarding"
