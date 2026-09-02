@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Clapperboard,
@@ -15,14 +15,15 @@ import {
   FileCode2,
   Video,
   Table,
-  PlayCircle,
+  Play,
+  Pause,
   Eye,
   CheckCircle2,
   Sliders,
   ChevronRight,
-  Crosshair,
   Camera,
   Flame,
+  Volume2,
 } from "lucide-react";
 
 interface HeroShot {
@@ -32,6 +33,7 @@ interface HeroShot {
   size: string;
   camera: string;
   duration: string;
+  durationSec: number;
   script: string;
   dialogue?: string;
   sfx: string;
@@ -50,11 +52,12 @@ const HERO_SHOWCASE_SHOTS: HeroShot[] = [
     size: "EXTREME WIDE 大远景",
     camera: "CRANE DOWN 俯冲",
     duration: "2.5s",
+    durationSec: 2.5,
     script: "2.39:1 变形宽银幕。雨夜新东京，青瓦飞檐古楼悬挂赤红发光灯笼，全息金龙与暴雨雷光撕裂雨夜。",
     dialogue: "旁白：“在矩阵最深处的古旧节点，数据洪流正悄然汇聚。”",
     sfx: "暴雨雷鸣、全息龙吟低频嗡鸣",
     lighting: "伦勃朗侧逆光 · 霓虹青红冷暖反差",
-    lens: "24mm T1.8 广角畸变校正",
+    lens: "24mm T1.8 变形宽银幕",
     shutter: "180.0° · ISO 800",
     hudVector: "[ ▲ CRANE DOWN 俯冲 2.5s ]",
     imageUrl: "/images/storyboard/shot_01_teahouse_rain.jpg",
@@ -66,6 +69,7 @@ const HERO_SHOWCASE_SHOTS: HeroShot[] = [
     size: "CLOSE-UP 特写",
     camera: "TRACKING PUSH-IN 跟推",
     duration: "2.0s",
+    durationSec: 2.0,
     script: "低角极速推轨。仿生特工右眼机械光圈收缩至 F1.2 锁定暗影，拔刀瞬间激荡起白色音爆冲击波与破空裂鸣。",
     dialogue: "特工：“目标锁定，执行彻底抹杀。”",
     sfx: "机械关节暴响、超音速破空啸叫",
@@ -82,6 +86,7 @@ const HERO_SHOWCASE_SHOTS: HeroShot[] = [
     size: "MEDIUM SHOT 中景",
     camera: "360° ARC ROTATE 环绕",
     duration: "3.5s",
+    durationSec: 3.5,
     script: "0.1x 极限升格子弹时间。墨客侧身避开撕裂空气的弹道，刀锋切断超音速轨迹，飞溅水滴与电火花在空中完全静止悬停。",
     dialogue: "墨客：“天下武功，唯快不破。”",
     sfx: "水滴悬停共振谐波、超慢动作音爆",
@@ -95,7 +100,43 @@ const HERO_SHOWCASE_SHOTS: HeroShot[] = [
 
 export default function HomePage() {
   const [activeShotIndex, setActiveShotIndex] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [progress, setProgress] = useState<number>(0);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
+
   const currentActiveShot = HERO_SHOWCASE_SHOTS[activeShotIndex];
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Animatic Auto-Playback Loop
+  useEffect(() => {
+    if (!isPlaying || isHovered) {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      return;
+    }
+
+    const durationMs = (currentActiveShot.durationSec || 3.0) * 1000;
+    const intervalMs = 50;
+    const step = (intervalMs / durationMs) * 100;
+
+    progressTimerRef.current = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          setActiveShotIndex((current) => (current + 1) % HERO_SHOWCASE_SHOTS.length);
+          return 0;
+        }
+        return prev + step;
+      });
+    }, intervalMs);
+
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    };
+  }, [activeShotIndex, isPlaying, isHovered, currentActiveShot.durationSec]);
+
+  const handleSelectShot = (idx: number) => {
+    setActiveShotIndex(idx);
+    setProgress(0);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/30">
@@ -172,10 +213,14 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Hero Interactive Studio Showcase Mockup (Hollywood Director Monitor) */}
-        <div className="w-full rounded-2xl border border-border/80 bg-card/70 backdrop-blur-xl p-3 sm:p-5 shadow-2xl overflow-hidden text-left relative group">
+        {/* Hero Interactive Studio Showcase (Hollywood Master Monitor + Timeline Track) */}
+        <div
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          className="w-full rounded-2xl border border-border/80 bg-card/80 backdrop-blur-xl p-3.5 sm:p-6 shadow-2xl overflow-hidden text-left relative group"
+        >
           {/* Top Window & ARRI ALEXA LF Monitor Status Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b border-border/70 gap-2 text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 mb-4 border-b border-border/70 gap-2 text-xs">
             <div className="flex items-center gap-2">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-rose-500/80" />
@@ -184,15 +229,23 @@ export default function HomePage() {
               </div>
               <span className="font-mono text-[11px] ml-2 text-foreground font-bold flex items-center gap-1.5">
                 <Camera className="w-3.5 h-3.5 text-primary" />
-                <span>AI Director Studio · 好莱坞监视器双向工作台 (Previz 2.39:1)</span>
+                <span>AI Director Studio · 好莱坞大画幅主监视器 (2.39:1 CinemaScope)</span>
               </span>
             </div>
 
             {/* ARRI Professional Viewfinder Badges */}
             <div className="flex flex-wrap items-center gap-2 font-mono text-[10px]">
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 font-bold transition-all"
+              >
+                {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
+                <span>{isPlaying ? "LIVE PREVIZ 播放中" : "已暂停"}</span>
+              </button>
+
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                <span>REC 24.000 FPS</span>
+                <span>● REC 24.000 FPS</span>
               </span>
               <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">
                 TC 00:01:24:08
@@ -200,16 +253,13 @@ export default function HomePage() {
               <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hidden md:inline">
                 LUT: ARRI LOG-C TO KODAK 2383
               </span>
-              <span className="px-2 py-0.5 rounded bg-secondary text-foreground/80 border border-border hidden sm:inline">
-                AUDIO CH1 -18dB
-              </span>
             </div>
           </div>
 
-          {/* Split Pane Demo Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-            {/* Left: Hollywood Director Script Panel */}
-            <div className="lg:col-span-4 rounded-xl border border-border/80 bg-neutral-950/90 p-3.5 space-y-3 font-mono text-xs shadow-inner">
+          {/* Studio Split Layout: Left Script + Right Master Viewport */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            {/* Left: Hollywood Director Script Panel (4 Cols) */}
+            <div className="lg:col-span-4 rounded-xl border border-border/80 bg-neutral-950/90 p-4 space-y-3 font-mono text-xs shadow-inner">
               <div className="flex items-center justify-between text-muted-foreground pb-2 border-b border-border/50">
                 <span className="text-[11px] text-sky-400 font-bold flex items-center gap-1.5">
                   <FileCode2 className="w-3.5 h-3.5" />
@@ -225,13 +275,21 @@ export default function HomePage() {
                   return (
                     <div
                       key={shot.id}
-                      onClick={() => setActiveShotIndex(idx)}
-                      className={`p-2.5 rounded-lg border transition-all cursor-pointer space-y-1.5 relative ${
+                      onClick={() => handleSelectShot(idx)}
+                      className={`p-3 rounded-lg border transition-all cursor-pointer space-y-2 relative overflow-hidden ${
                         isSelected
-                          ? "bg-primary/15 border-primary shadow-sm shadow-primary/20"
+                          ? "bg-primary/15 border-primary shadow-md shadow-primary/20 scale-[1.01]"
                           : "bg-card/40 border-border/40 hover:bg-card/70 hover:border-border"
                       }`}
                     >
+                      {/* Active Progress Bar Underlay */}
+                      {isSelected && isPlaying && !isHovered && (
+                        <div
+                          className="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-75"
+                          style={{ width: `${progress}%` }}
+                        />
+                      )}
+
                       <div className="flex items-center justify-between text-[11px]">
                         <span
                           className={`font-bold flex items-center gap-1.5 ${
@@ -255,7 +313,7 @@ export default function HomePage() {
                       </p>
 
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground/80 pt-1 border-t border-border/30">
-                        <span className="text-sky-300 font-mono truncate max-w-[150px]">
+                        <span className="text-sky-300 font-mono truncate max-w-[130px]">
                           {shot.camera}
                         </span>
                         <span className="text-[9px] font-mono text-amber-400/90">
@@ -268,70 +326,99 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right: Triple-Shot Storyboard Filmstrip Canvas */}
-            <div className="lg:col-span-8 flex flex-col space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Right: Master Cinema Viewport + Timeline Filmstrip Track (8 Cols) */}
+            <div className="lg:col-span-8 flex flex-col space-y-3.5">
+              {/* 1. Large 2.39:1 Cinema Viewport */}
+              <div className="rounded-2xl border border-primary/50 overflow-hidden bg-neutral-950 relative group/viewport shadow-2xl">
+                <div className="aspect-[21/9] sm:aspect-[2.39/1] relative flex items-center justify-center overflow-hidden bg-neutral-900">
+                  <img
+                    src={currentActiveShot.imageUrl}
+                    alt={currentActiveShot.phase}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover/viewport:scale-[1.03]"
+                  />
+
+                  {/* Top-Left Viewfinder HUD */}
+                  <div className="absolute top-2.5 left-3 flex items-center gap-2 pointer-events-none">
+                    <span className="px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-[10px] font-mono text-primary font-bold border border-primary/40">
+                      {currentActiveShot.order} {currentActiveShot.phase}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-[9px] font-mono text-sky-300 border border-sky-400/30">
+                      {currentActiveShot.size}
+                    </span>
+                  </div>
+
+                  {/* Top-Right Cinematic Lens Info */}
+                  <div className="absolute top-2.5 right-3 flex items-center gap-2 pointer-events-none">
+                    <span className="px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-[9px] font-mono text-amber-300 border border-amber-400/30">
+                      {currentActiveShot.lens}
+                    </span>
+                  </div>
+
+                  {/* Action Safe Overlay */}
+                  <div className="absolute inset-3 border border-sky-400/20 pointer-events-none" />
+
+                  {/* Bottom Motion Vector Pill */}
+                  <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between pointer-events-none">
+                    <span className="px-2.5 py-1 rounded bg-black/80 backdrop-blur-md text-[10px] font-mono text-emerald-300 font-bold border border-emerald-500/40 shadow-md">
+                      {currentActiveShot.hudVector}
+                    </span>
+                    <span className="px-2 py-1 rounded bg-black/80 backdrop-blur-md text-[9px] font-mono text-muted-foreground border border-border">
+                      {currentActiveShot.shutter}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. 3-Beat Filmstrip Timeline Track */}
+              <div className="grid grid-cols-3 gap-2.5">
                 {HERO_SHOWCASE_SHOTS.map((shot, idx) => {
                   const isSelected = activeShotIndex === idx;
                   return (
                     <div
                       key={shot.id}
-                      onClick={() => setActiveShotIndex(idx)}
-                      className={`rounded-xl border overflow-hidden bg-neutral-950 flex flex-col justify-between transition-all duration-300 cursor-pointer group/card relative ${
+                      onClick={() => handleSelectShot(idx)}
+                      className={`rounded-xl border overflow-hidden bg-neutral-950 flex flex-col justify-between transition-all duration-200 cursor-pointer relative group/thumb ${
                         isSelected
-                          ? "border-primary shadow-lg shadow-primary/20 scale-[1.02]"
-                          : "border-border/70 hover:border-border hover:scale-[1.01]"
+                          ? "border-primary shadow-lg shadow-primary/25 scale-[1.02]"
+                          : "border-border/60 hover:border-border hover:scale-[1.01]"
                       }`}
                     >
-                      {/* 16:9 Frame with Viewfinder Overlay */}
-                      <div className="aspect-video bg-neutral-900 relative flex items-center justify-center overflow-hidden">
+                      {/* Active Progress Bar on Thumbnail */}
+                      {isSelected && isPlaying && !isHovered && (
+                        <div
+                          className="absolute top-0 left-0 right-0 h-1 bg-primary z-10 transition-all duration-75"
+                          style={{ width: `${progress}%` }}
+                        />
+                      )}
+
+                      <div className="aspect-video bg-neutral-900 relative overflow-hidden">
                         <img
                           src={shot.imageUrl}
                           alt={shot.phase}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
                         />
-
-                        {/* ARRI Crosshair / Viewfinder Safe Action Grid Overlay */}
-                        <div className="absolute inset-2 border border-sky-400/20 pointer-events-none" />
-                        <div className="absolute top-1.5 right-2 text-[8px] font-mono text-emerald-400/80 bg-black/70 px-1 rounded pointer-events-none">
-                          2.39:1
-                        </div>
-
-                        {/* Motion Vector Pill */}
-                        <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between pointer-events-none">
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-[9px] font-mono border backdrop-blur-md ${
-                              isSelected
-                                ? "bg-primary/90 text-primary-foreground border-primary font-bold shadow-xs"
-                                : "bg-black/80 text-sky-300 border-sky-400/30"
-                            }`}
-                          >
-                            {shot.hudVector}
-                          </span>
-                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                        <span className="absolute bottom-1 left-1.5 text-[9px] font-mono text-foreground/90 font-bold pointer-events-none">
+                          {shot.order} {shot.camera.split(" ")[0]}
+                        </span>
                       </div>
 
-                      {/* Card Bottom Meta */}
                       <div
-                        className={`p-2.5 border-t flex items-center justify-between text-[10px] font-mono transition-colors ${
+                        className={`px-2 py-1 text-[9px] font-mono flex items-center justify-between border-t ${
                           isSelected
-                            ? "bg-primary/10 border-primary/40 text-primary font-bold"
-                            : "bg-card/70 border-border/50 text-foreground"
+                            ? "bg-primary/15 border-primary/40 text-primary font-bold"
+                            : "bg-card/70 border-border/40 text-muted-foreground"
                         }`}
                       >
-                        <span className="truncate max-w-[110px]">
-                          {shot.order} {shot.phase.split("·")[1]?.trim() || shot.phase}
-                        </span>
-                        <span className="text-muted-foreground text-[9px]">
-                          {shot.duration}
-                        </span>
+                        <span className="truncate">{shot.phase.split("·")[1]?.trim()}</span>
+                        <span>{shot.duration}</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Active Shot Deep-Director Inspector Metadata Box */}
+              {/* 3. Deep-Director Inspector Box */}
               <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -502,7 +589,7 @@ export default function HomePage() {
             {/* Deliverable 5 */}
             <div className="p-6 rounded-2xl border border-border/70 bg-card/40 hover:bg-card transition-all space-y-3 md:col-span-2">
               <div className="p-2.5 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 w-fit">
-                <PlayCircle className="w-4 h-4" />
+                <Play className="w-4 h-4" />
               </div>
               <h3 className="font-bold text-sm text-foreground">5. 全片动态预演时间线 (Animatic Player)</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
