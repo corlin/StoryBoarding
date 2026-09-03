@@ -28,7 +28,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { AuthModal } from "@/components/modals/AuthModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
-import { ProjectCreationProgress } from "@/components/modals/ProjectCreationProgress";
+import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelineProgress";
 import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
 
 interface FeaturedSkill {
@@ -521,7 +521,7 @@ export default function HomePage() {
       {/* Global Modals for Auth, Settings, and Creation Progress */}
       <AuthModal />
       <SettingsModal isOpen={isSettingsModalOpen} onClose={closeSettingsModal} />
-      <ProjectCreationProgress
+      <DirectorPipelineProgress
         isOpen={isCreating}
         title={promptText.slice(0, 18).trim() || "新电影分镜预演"}
         story={promptText}

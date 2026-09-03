@@ -9,7 +9,7 @@ import { StoryboardPanel } from "@/components/storyboard-view/StoryboardPanel";
 import { TimelineBar } from "@/components/timeline/TimelineBar";
 import { CinemaTheaterModal } from "@/components/modals/CinemaTheaterModal";
 import { ShotDetailDrawer } from "@/components/drawers/ShotDetailDrawer";
-import { DirectorPipelineModal } from "@/components/workspace/DirectorPipelineModal";
+import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelineProgress";
 import { VersionHistoryDrawer } from "@/components/drawers/VersionHistoryDrawer";
 import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
 import { EpisodePillTrack } from "@/components/workspace/EpisodePillTrack";
@@ -629,10 +629,12 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       />
 
       {/* Modals & Drawers */}
-      <DirectorPipelineModal
+      <DirectorPipelineProgress
         isOpen={isGenerating}
-        storyPreview={generationStory}
+        title="AI 导演智能拆镜中"
+        story={generationStory}
         targetDuration={displayProject?.target_duration || 30.0}
+        onCancel={() => setIsGenerating(false)}
       />
 
       <CinemaTheaterModal

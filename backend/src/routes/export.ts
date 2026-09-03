@@ -11,17 +11,13 @@ import {
 const router = new Hono<{ Bindings: Bindings }>();
 
 async function getProjectAndShots(db: any, projectId: string) {
-  let proj = await db.select().from(projects).where(eq(projects.id, projectId)).get();
-  if (!proj) {
-    // If requesting demo
-    proj = await db.select().from(projects).limit(1).get();
-  }
+  const proj = await db.select().from(projects).where(eq(projects.id, projectId)).get();
   if (!proj) {
     return { proj: null, shotList: [] };
   }
 
-  const seqs = await db.select().from(sequences).where(eq(sequences.projectId, proj.id)).all();
-  const shotList = [];
+  const seqs = await db.select().from(sequences).where(eq(sequences.projectId, proj.id)).orderBy(sequences.order).all();
+  const shotList: any[] = [];
 
   for (const seq of seqs) {
     const list = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).orderBy(shots.order).all();

@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { api, ProjectListItem, normalizeAssetUrl } from "@/lib/api";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
-import { ProjectCreationProgress } from "@/components/modals/ProjectCreationProgress";
+import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelineProgress";
 import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
@@ -608,7 +608,7 @@ export default function DashboardPage() {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
             {isSubmittingProject ? (
-              <ProjectCreationProgress
+              <DirectorPipelineProgress
                 title={newTitle}
                 story={newStory}
                 targetDuration={targetDuration}
