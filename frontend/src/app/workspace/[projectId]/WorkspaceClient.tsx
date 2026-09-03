@@ -503,10 +503,17 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onImportScript={handleImportScript}
         onOpenVersions={() => setIsVersionsDrawerOpen(true)}
         onOpenCreateSnapshot={() => setIsCreateSnapshotModalOpen(true)}
+        onOpenTheater={() => {
+          setTheaterShotId(selectedShotId || shots[0]?.id || null);
+          setIsTheaterOpen(true);
+        }}
       />
 
       {/* Multi-Episode Series Track & Character Hub */}
-      <EpisodePillTrack onOpenCharacterHub={() => setIsCharacterHubOpen(true)} />
+      <EpisodePillTrack
+        onOpenCharacterHub={() => setIsCharacterHubOpen(true)}
+        onRefreshProject={() => fetchProject(effectiveProjectId)}
+      />
 
       {/* Time Travel Read-Only Banner */}
       {previewVersion && (
@@ -559,6 +566,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
               shots={shots}
               sequenceId={activeSequence?.id || ""}
               selectedShotId={selectedShotId}
+              characters={displayProject?.characters || []}
               onSelectShot={selectShot}
               onUpdateShot={saveShotRemote}
               onAddShot={() => activeSequence && addShot(activeSequence.id)}
@@ -607,6 +615,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           <StoryboardPanel
             shots={shots}
             selectedShotId={selectedShotId}
+            characters={displayProject?.characters || []}
             onSelectShot={(id) => selectShot(id)}
             onOpenDrawer={handleOpenDrawer}
             onOpenTheater={handleOpenTheater}
@@ -641,6 +650,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         isOpen={isTheaterOpen}
         shots={shots}
         initialShotId={theaterShotId}
+        onSelectShot={selectShot}
         onClose={() => setIsTheaterOpen(false)}
       />
 

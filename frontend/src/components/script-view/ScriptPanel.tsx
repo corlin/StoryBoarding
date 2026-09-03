@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { ShotModel } from "@/types/shot";
+import { ShotModel, CharacterModel } from "@/types/shot";
 import { ShotScriptCard } from "./ShotScriptCard";
 import { Plus } from "lucide-react";
 
@@ -7,6 +7,7 @@ interface ScriptPanelProps {
   shots: ShotModel[];
   sequenceId: string;
   selectedShotId: string | null;
+  characters?: CharacterModel[];
   onSelectShot: (shotId: string) => void;
   onUpdateShot: (shotId: string, updates: Partial<ShotModel>) => void;
   onAddShot: (sequenceId: string) => void;
@@ -18,6 +19,7 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
   shots,
   sequenceId,
   selectedShotId,
+  characters = [],
   onSelectShot,
   onUpdateShot,
   onAddShot,
@@ -84,6 +86,7 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
                 shot={shot}
                 index={idx}
                 isSelected={shot.id === selectedShotId}
+                characters={characters}
                 onSelect={() => onSelectShot(shot.id)}
                 onUpdate={(updates) => onUpdateShot(shot.id, updates)}
                 onDelete={() => onDeleteShot(shot.id)}

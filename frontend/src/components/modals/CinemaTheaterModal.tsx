@@ -129,6 +129,13 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
     };
   }, [isPlaying, playbackRate, totalDuration]);
 
+  const handleClose = () => {
+    if (shots[currentIndex] && onSelectShot) {
+      onSelectShot(shots[currentIndex].id);
+    }
+    onClose();
+  };
+
   // Keyboard navigation shortcuts
   useEffect(() => {
     if (!isOpen) return;
@@ -148,7 +155,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
         e.preventDefault();
         handleNextShot();
       } else if (e.code === "Escape") {
-        onClose();
+        handleClose();
       }
     };
 
@@ -226,7 +233,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 rounded-lg bg-white/10 hover:bg-red-500/80 text-white/80 hover:text-white transition-colors"
             title="关闭监看 (Esc)"
           >

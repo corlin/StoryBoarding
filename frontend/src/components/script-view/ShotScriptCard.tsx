@@ -1,12 +1,13 @@
 import React from "react";
-import { ShotModel, ShotSize, CameraAngle } from "@/types/shot";
-import { Trash2, Camera, AlertTriangle, MessageSquare, Volume2, Music, SlidersHorizontal, Lock, Unlock } from "lucide-react";
+import { ShotModel, ShotSize, CameraAngle, CharacterModel } from "@/types/shot";
+import { Trash2, Camera, AlertTriangle, MessageSquare, Volume2, Music, SlidersHorizontal, Lock, Unlock, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ShotScriptCardProps {
   shot: ShotModel;
   index: number;
   isSelected: boolean;
+  characters?: CharacterModel[];
   onSelect: () => void;
   onUpdate: (updates: Partial<ShotModel>) => void;
   onDelete: () => void;
@@ -36,6 +37,7 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
   shot,
   index,
   isSelected,
+  characters = [],
   onSelect,
   onUpdate,
   onDelete,
@@ -47,6 +49,17 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
     e.stopPropagation();
     onUpdate({ is_locked: !isLocked });
   };
+
+  // Extract featured characters in this shot
+  const featuredChars = characters.filter((ch) => {
+    const q = ch.name.trim().toLowerCase();
+    if (!q) return false;
+    return (
+      (shot.subject && shot.subject.toLowerCase().includes(q)) ||
+      (shot.action && shot.action.toLowerCase().includes(q)) ||
+      (shot.dialogue && shot.dialogue.toLowerCase().includes(q))
+    );
+  });
 
   // Helper to extract audio sfx/music strings
   const sfxText =
@@ -82,10 +95,22 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
     >
       {/* Header Info Bar */}
       <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2">
-          <span className="font-mono font-bold text-xs px-2.5 py-1 rounded-md bg-primary/15 text-primary border border-primary/30">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-mono font-bold text-xs px-2.5 py-1 rounded-md bg-primary/15 text-primary border border-primary/30 shrink-0">
             SHOT {String(index + 1).padStart(2, "0")}
           </span>
+
+          {/* Character Presence Micro Pills */}
+          {featuredChars.map((ch) => (
+            <span
+              key={ch.id}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/25 shrink-0"
+              title={`出镜角色: ${ch.name} (${ch.role})\nVisual DNA: ${ch.visual_anchor || ch.visualAnchor || ""}`}
+            >
+              <User className="w-3 h-3 text-sky-400" />
+              <span>{ch.name}</span>
+            </span>
+          ))}
 
           {isLocked && (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">

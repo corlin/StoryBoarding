@@ -83,6 +83,7 @@ export interface CharacterModel {
   name: string;
   role: "protagonist" | "antagonist" | "supporting";
   visual_anchor: string;
+  visualAnchor?: string;
   avatar_url?: string;
   personality?: string;
   created_at?: string;
@@ -93,6 +94,7 @@ export interface SequenceModel {
   project_id: string;
   order: number;
   name: string;
+  title?: string;
   description?: string;
   episode_number?: number;
   cliffhanger_summary?: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { ShotModel } from "@/types/shot";
-import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock, CheckCircle, Compass, Palette, CloudUpload } from "lucide-react";
+import { ShotModel, CharacterModel } from "@/types/shot";
+import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock, CheckCircle, Compass, Palette, CloudUpload, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeAssetUrl } from "@/lib/api";
 
@@ -9,6 +9,7 @@ interface StoryboardCellProps {
   index: number;
   isSelected: boolean;
   showHudGuide?: boolean;
+  characters?: CharacterModel[];
   onSelect: () => void;
   onRegenerateImage?: () => Promise<void> | void;
   onToggleLock?: (shotId: string, locked: boolean) => void;
@@ -143,6 +144,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
   index,
   isSelected,
   showHudGuide = true,
+  characters = [],
   onSelect,
   onRegenerateImage,
   onToggleLock,
@@ -156,6 +158,17 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
   const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || "MS";
   const isLocked = Boolean(shot.is_locked);
   const isActivelyDeveloping = isRegenerating;
+
+  // Extract featured characters in this shot
+  const featuredChars = characters.filter((ch) => {
+    const q = ch.name.trim().toLowerCase();
+    if (!q) return false;
+    return (
+      (shot.subject && shot.subject.toLowerCase().includes(q)) ||
+      (shot.action && shot.action.toLowerCase().includes(q)) ||
+      (shot.dialogue && shot.dialogue.toLowerCase().includes(q))
+    );
+  });
 
   useEffect(() => {
     setImgSrc(normalizeAssetUrl(shot.storyboard_image_url));
@@ -442,6 +455,22 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
               </div>
             );
           })()}
+
+          {/* Featured Characters Presence Pills */}
+          {featuredChars.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap mt-2 pt-1.5 border-t border-border/30">
+              {featuredChars.map((ch) => (
+                <span
+                  key={ch.id}
+                  className="inline-flex items-center gap-1 text-[10px] font-medium text-sky-300 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20 shrink-0"
+                  title={`出镜角色: ${ch.name} (${ch.role})\nVisual DNA: ${ch.visual_anchor || ch.visualAnchor || ""}`}
+                >
+                  <User className="w-2.5 h-2.5 text-sky-400" />
+                  <span>{ch.name}</span>
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Narrative OS Phase 1: Beat Type, Emotional Voltage & Information Gap */}
           {shot.beat_type && (

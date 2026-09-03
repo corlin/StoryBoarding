@@ -518,6 +518,162 @@ router.put("/:id", async (c) => {
   }
 });
 
+// POST /api/projects/:id/episodes (Add next episode in workspace, inheriting global character visual DNA)
+router.post("/:id/episodes", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const id = c.req.param("id");
+
+    const authHeader = c.req.header("Authorization");
+    const authUser = await getAuthUser(authHeader);
+    if (!authUser) {
+      return c.json({ detail: "请先登录导演账号" }, 401);
+    }
+
+    const proj = await db.select().from(projects).where(eq(projects.id, id)).get();
+    if (!proj) {
+      return c.json({ detail: "Project not found" }, 404);
+    }
+
+    const body = await c.req.json();
+    const episodeStory = (body.story || "").trim();
+    const targetDuration = Number(body.target_duration) || 60.0;
+
+    if (!episodeStory) {
+      return c.json({ detail: "请输入下一集的剧情梗概或剧本内容" }, 400);
+    }
+
+    // 1. Calculate next episode number
+    const existingSeqs = await db
+      .select()
+      .from(sequences)
+      .where(eq(sequences.projectId, id))
+      .orderBy(sequences.order)
+      .all();
+    const nextEpisodeNumber = existingSeqs.length + 1;
+    const episodeTitle = body.title?.trim() || `第 ${nextEpisodeNumber} 集 · 危机升级`;
+
+    // 2. Fetch all characters for this project to inherit Visual DNA
+    const projectChars = await db
+      .select()
+      .from(characters)
+      .where(eq(characters.projectId, id))
+      .all();
+
+    const charContext = projectChars.length > 0
+      ? `【全局全剧角色视觉基准】\n` +
+        projectChars.map((ch) => `- ${ch.name} (${ch.role}): ${ch.visualAnchor}`).join("\n") +
+        `\n\n【本集剧本/情节】\n${episodeStory}`
+      : episodeStory;
+
+    const settings = await getUserSettings(db, authUser.userId);
+    if (!settings.hasKey) {
+      return c.json({ detail: "请先在「设置」中配置您的专属 OpenRouter API Key 后再使用 AI 导演拆镜服务" }, 400);
+    }
+
+    // 3. Run director pipeline with timeout fallback
+    const directorPromise = runDirectorPipeline(charContext, targetDuration, {
+      apiKey: settings.llmApiKey,
+      apiBase: settings.llmApiBase,
+      model: settings.llmModel,
+    });
+
+    const timeoutPromise = new Promise<{ theme: string; target_duration: number; shots: any[] }>((resolve) =>
+      setTimeout(() => {
+        resolve({
+          theme: episodeTitle,
+          target_duration: targetDuration,
+          shots: generateAdaptiveStoryShots(episodeStory, targetDuration),
+        });
+      }, 12000)
+    );
+
+    const plan = await Promise.race([directorPromise, timeoutPromise]);
+
+    // 4. Create new sequence in database
+    const seqId = crypto.randomUUID();
+    await db.insert(sequences).values({
+      id: seqId,
+      projectId: id,
+      title: episodeTitle,
+      order: nextEpisodeNumber,
+      episodeNumber: nextEpisodeNumber,
+      cliffhangerSummary: body.cliffhanger_summary || "危机升级悬念卡点",
+      targetDuration,
+    });
+
+    // 5. Insert shots
+    const baseSeed = getProjectBaseSeed(id);
+    const insertedShotTasks: { shotId: string; s: any; slot: number }[] = [];
+
+    for (let slot = 0; slot < plan.shots.length; slot++) {
+      const s = plan.shots[slot];
+      const shotId = crypto.randomUUID();
+      insertedShotTasks.push({ shotId, s, slot: slot + 1 });
+
+      await db.insert(shots).values({
+        id: shotId,
+        sequenceId: seqId,
+        order: s.order || slot + 1,
+        duration: s.duration || 3.0,
+        shotSize: s.shot_size || "medium_shot",
+        cameraAngle: s.camera_angle || "eye_level",
+        cameraMovement: JSON.stringify(s.camera_movement || {}),
+        subject: s.subject || "",
+        action: s.action || "",
+        dialogue: s.dialogue || "",
+        narrativeFunction: s.narrative_function || "动作推进",
+        lighting: s.lighting || "自然电影光影",
+        audio: JSON.stringify(s.audio || {}),
+        imagePrompt: s.image_prompt || "",
+        videoPrompt: s.video_prompt || "",
+        continuityData: JSON.stringify(s.continuity_data || {}),
+        beatType: s.beat_type || "tension_build",
+        emotionalVoltage: Number(s.emotional_voltage) || 60.0,
+        informationGap: s.information_gap || "",
+        computeTier: s.compute_tier || "standard",
+        storyboardImageUrl: "",
+        isDirty: false,
+        isLocked: false,
+      });
+    }
+
+    // 6. Background R2 Image Generation
+    const backgroundJob = async () => {
+      try {
+        await runConcurrentTasks(insertedShotTasks, 3, async ({ shotId, s, slot }) => {
+          const seed = baseSeed + (nextEpisodeNumber * 10000) + (slot * 1000);
+          const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+          await db
+            .update(shots)
+            .set({ storyboardImageUrl: imageUrl, updatedAt: new Date().toISOString() })
+            .where(eq(shots.id, shotId));
+        });
+      } catch (err) {
+        console.error(`[Background Image Generation Episode ${nextEpisodeNumber} Error]:`, err);
+      }
+    };
+
+    if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+      c.executionCtx.waitUntil(backgroundJob());
+    } else {
+      backgroundJob();
+    }
+
+    return c.json({
+      status: "success",
+      episode_id: seqId,
+      episode_number: nextEpisodeNumber,
+      episode_title: episodeTitle,
+      shots_count: plan.shots.length,
+    });
+  } catch (err: any) {
+    console.error("[Add Episode Error]:", err);
+    return c.json({ detail: `新增短剧分集失败: ${err?.message || err}` }, 500);
+  }
+});
+
 // DELETE /api/projects/:id
 router.delete("/:id", async (c) => {
   try {

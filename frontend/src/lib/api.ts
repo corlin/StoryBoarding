@@ -156,6 +156,15 @@ export const api = {
     return data;
   },
 
+  // Add Next Episode in Workspace (inheriting global character Visual DNA)
+  async addEpisode(
+    projectId: string,
+    payload: { title?: string; story: string; target_duration?: number; cliffhanger_summary?: string }
+  ): Promise<{ status: string; episode_id: string; episode_number: number; episode_title: string; shots_count: number }> {
+    const { data } = await apiClient.post(`/projects/${projectId}/episodes`, payload);
+    return data;
+  },
+
   async updateProject(id: string, payload: Partial<ProjectModel>): Promise<ProjectModel> {
     const { data } = await apiClient.put(`/projects/${id}`, payload);
     return data;

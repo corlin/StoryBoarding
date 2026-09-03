@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ShotModel } from "@/types/shot";
+import { ShotModel, CharacterModel } from "@/types/shot";
 import { StoryboardCell } from "./StoryboardCell";
 import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, RefreshCw, XCircle, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 interface StoryboardPanelProps {
   shots: ShotModel[];
   selectedShotId: string | null;
+  characters?: CharacterModel[];
   onSelectShot: (shotId: string) => void;
   onRegenerateDirty?: () => void;
   onRegenerateShotImage?: (shotId: string) => Promise<void> | void;
@@ -21,6 +22,7 @@ interface StoryboardPanelProps {
 export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   shots,
   selectedShotId,
+  characters = [],
   onSelectShot,
   onRegenerateDirty,
   onRegenerateShotImage,
@@ -237,6 +239,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                   index={idx}
                   isSelected={shot.id === selectedShotId}
                   showHudGuide={showHudGuide}
+                  characters={characters}
                   onSelect={() => onSelectShot(shot.id)}
                   onRegenerateImage={() => onRegenerateShotImage && onRegenerateShotImage(shot.id)}
                   onToggleLock={onToggleLock}
