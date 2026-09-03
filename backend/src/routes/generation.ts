@@ -101,7 +101,7 @@ export async function generateCinematicStoryboardImage(
 ): Promise<string> {
   const apiKey = settings.imageApiKey?.trim();
   const apiBase = settings.imageApiBase?.trim() || "https://openrouter.ai/api/v1";
-  const model = settings.imageModel?.trim() || "x-ai/grok-imagine-image-2.0";
+  const model = settings.imageModel?.trim() || "bytedance-seed/seedream-5-0-lite";
   const r2Key = `shots/${shotId}.jpg`;
 
   let rawImageUrl = "";

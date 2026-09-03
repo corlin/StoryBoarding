@@ -80,7 +80,7 @@ const handleUpdateProviders = async (c: any) => {
     imageProvider: body.image_provider || existingUserSettings.imageProvider || "openrouter",
     imageApiKey: finalEncryptedImageKey,
     imageApiBase: (body.image_api_base || existingUserSettings.imageApiBase || "https://openrouter.ai/api/v1").trim(),
-    imageModel: (body.image_model || existingUserSettings.imageModel || "google/imagen-3").trim(),
+    imageModel: (body.image_model || existingUserSettings.imageModel || "bytedance-seed/seedream-5-0-lite").trim(),
     updatedAt: new Date().toISOString(),
   };
 
@@ -171,7 +171,7 @@ router.post("/test-image", async (c) => {
 
   const apiKey = (body.api_key || userSettings.imageApiKey || userSettings.llmApiKey || "").trim();
   const apiBase = (body.api_base || userSettings.imageApiBase || "https://openrouter.ai/api/v1").trim();
-  const model = (body.model || userSettings.imageModel || "google/imagen-3").trim();
+  const model = (body.model || userSettings.imageModel || "bytedance-seed/seedream-5-0-lite").trim();
 
   if (!apiKey) {
     return c.json({ ok: false, error: "未检测到图像 API Key，请先输入密钥" }, 400);

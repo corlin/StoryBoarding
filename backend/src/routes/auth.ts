@@ -54,7 +54,9 @@ router.post("/register", async (c) => {
         passwordHash: hash,
         salt,
         avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username)}`,
-        customSettings: JSON.stringify({}),
+        customSettings: JSON.stringify({
+          imageModel: "bytedance-seed/seedream-5-0-lite",
+        }),
       })
       .returning();
 

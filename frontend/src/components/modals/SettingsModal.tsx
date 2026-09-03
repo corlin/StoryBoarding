@@ -22,7 +22,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [imageProvider, setImageProvider] = useState("openrouter");
   const [imageApiBase, setImageApiBase] = useState("https://openrouter.ai/api/v1");
   const [imageApiKey, setImageApiKey] = useState("");
-  const [imageModel, setImageModel] = useState("x-ai/grok-imagine-image-2.0");
+  const [imageModel, setImageModel] = useState("bytedance-seed/seedream-5-0-lite");
   const [syncApiKey, setSyncApiKey] = useState(true);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +58,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             setImageApiBase(config.image_api_base || "https://openrouter.ai/api/v1");
             setImageApiKey(""); // Plaintext strictly not populated
             setHasImageKey(Boolean(config.has_image_key || config.image_api_key_masked));
-            setImageModel(config.image_model || "openai/gpt-image-2");
+            setImageModel(config.image_model || "bytedance-seed/seedream-5-0-lite");
           }
         })
         .catch(console.error);
@@ -403,7 +403,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <span>文生图 / Storyboard Image Generator (图像模型)</span>
               </div>
               <span className="text-[10px] font-mono text-sky-400/90 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
-                推荐: seedream-5-0-pro / seedream-4.5 / qwen-image-3-pro
+                默认: seedream-5-0-lite · 推荐: seedream-5-0-pro / seedream-4.5
               </span>
             </div>
 
@@ -417,7 +417,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     setImageProvider(val);
                     if (val === "openrouter") {
                       setImageApiBase("https://openrouter.ai/api/v1");
-                      setImageModel("bytedance-seed/seedream-4.5");
+                      setImageModel("bytedance-seed/seedream-5-0-lite");
                     } else if (val === "openai_compatible") {
                       setImageApiBase("https://api.openai.com/v1");
                       setImageModel("dall-e-3");
@@ -437,9 +437,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   onChange={(e) => setImageModel(e.target.value)}
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
                 >
-                  <option value="bytedance-seed/seedream-4.5">bytedance-seed/seedream-4.5 (字节跳动 Seedream 4.5 电影级生图 · 推荐)</option>
-                  <option value="bytedance-seed/seedream-5-0-lite">bytedance-seed/seedream-5-0-lite (字节跳动 Seedream 5.0 Lite 极速轻量)</option>
+                  <option value="bytedance-seed/seedream-5-0-lite">bytedance-seed/seedream-5-0-lite (字节跳动 Seedream 5.0 Lite 极速轻量 · 默认推荐)</option>
                   <option value="bytedance-seed/seedream-5-0-pro">bytedance-seed/seedream-5-0-pro (字节跳动 Seedream 5.0 Pro 旗舰超清 · 推荐)</option>
+                  <option value="bytedance-seed/seedream-4.5">bytedance-seed/seedream-4.5 (字节跳动 Seedream 4.5 电影级生图)</option>
                   <option value="qwen/qwen-image-3-pro">qwen/qwen-image-3-pro (阿里千问 Qwen Image 3 Pro 旗舰生图 · 推荐)</option>
                   <option value="openai/gpt-image-2">openai/gpt-image-2 (OpenAI 最新超清电影分镜)</option>
                   <option value="google/gemini-3.1-flash-image">google/gemini-3.1-flash-image (Google 最新超快分镜生图)</option>

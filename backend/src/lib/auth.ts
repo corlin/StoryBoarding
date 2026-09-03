@@ -186,6 +186,6 @@ export async function getUserSettings(db: any, userId?: string) {
     llmModel: userSettings.llmModel || "deepseek/deepseek-chat",
     imageApiKey,
     imageApiBase: userSettings.imageApiBase || "https://openrouter.ai/api/v1",
-    imageModel: userSettings.imageModel || "google/imagen-3",
+    imageModel: userSettings.imageModel || "bytedance-seed/seedream-5-0-lite",
   };
 }
