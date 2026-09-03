@@ -5,12 +5,14 @@ import { api } from "@/lib/api";
 interface WorkspaceState {
   currentProject: ProjectModel | null;
   selectedShotId: string | null;
+  activeEpisodeIndex: number;
   isLoading: boolean;
   error: string | null;
 
   // Actions
   setProject: (project: ProjectModel) => void;
   selectShot: (shotId: string | null) => void;
+  setActiveEpisodeIndex: (index: number) => void;
   fetchProject: (projectId: string) => Promise<void>;
   updateShotLocal: (shotId: string, updates: Partial<ShotModel>) => void;
   saveShotRemote: (shotId: string, updates: Partial<ShotModel>) => Promise<void>;
@@ -22,12 +24,23 @@ interface WorkspaceState {
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   currentProject: null,
   selectedShotId: null,
+  activeEpisodeIndex: 0,
   isLoading: false,
   error: null,
 
   setProject: (project) => set({ currentProject: project }),
 
   selectShot: (shotId) => set({ selectedShotId: shotId }),
+
+  setActiveEpisodeIndex: (index) => {
+    const { currentProject } = get();
+    const targetSeq = currentProject?.sequences[index];
+    const firstShot = targetSeq?.shots[0];
+    set({
+      activeEpisodeIndex: index,
+      selectedShotId: firstShot ? firstShot.id : null,
+    });
+  },
 
   fetchProject: async (projectId) => {
     set({ isLoading: true, error: null });
@@ -39,6 +52,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         project_id: seq.project_id || project.id,
         name: seq.title || seq.name || "主场次",
         order: Number(seq.order) || 1,
+        episode_number: Number(seq.episode_number) || 1,
+        cliffhanger_summary: seq.cliffhanger_summary || "",
+        target_duration: Number(seq.target_duration) || 60.0,
         shots: (seq.shots || []).map((shot: any): ShotModel => ({
           id: shot.id,
           sequence_id: shot.sequence_id || seq.id,
@@ -82,6 +98,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         cover_image_url: project.cover_image_url || "",
         created_at: project.created_at || new Date().toISOString(),
         updated_at: project.updated_at || new Date().toISOString(),
+        characters: Array.isArray(project.characters) ? project.characters : [],
         sequences: enrichedSequences,
       };
 

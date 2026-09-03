@@ -121,6 +121,41 @@ export const api = {
     return data;
   },
 
+  // Stage 1: Macro Narrative Series Scanner
+  async analyzeSeries(payload: { text: string; target_episodes?: number }): Promise<{
+    series_title: string;
+    logline: string;
+    characters: Array<{
+      name: string;
+      role: "protagonist" | "antagonist" | "supporting";
+      personality: string;
+      visual_anchor: string;
+    }>;
+    episodes: Array<{
+      episode_number: number;
+      title: string;
+      act_type: string;
+      target_duration: number;
+      synopsis: string;
+      cliffhanger_hook: string;
+      featured_characters: string[];
+    }>;
+  }> {
+    const { data } = await apiClient.post("/projects/analyze-series", payload);
+    return data;
+  },
+
+  // Stage 2: Create Multi-Episode Series Project
+  async createSeries(payload: {
+    title: string;
+    story?: string;
+    characters: any[];
+    episodes: any[];
+  }): Promise<ProjectModel> {
+    const { data } = await apiClient.post("/projects/create-series", payload);
+    return data;
+  },
+
   async updateProject(id: string, payload: Partial<ProjectModel>): Promise<ProjectModel> {
     const { data } = await apiClient.put(`/projects/${id}`, payload);
     return data;

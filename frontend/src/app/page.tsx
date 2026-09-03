@@ -20,6 +20,7 @@ import {
   Sliders,
   ChevronRight,
   Loader2,
+  BookOpen,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
@@ -28,6 +29,7 @@ import { AuthModal } from "@/components/modals/AuthModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { ProjectCreationProgress } from "@/components/modals/ProjectCreationProgress";
+import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
 
 interface FeaturedSkill {
   id: string;
@@ -117,6 +119,7 @@ export default function HomePage() {
   const [targetDuration, setTargetDuration] = useState<number>(30);
   const [selectedStyle, setSelectedStyle] = useState<string>("电影级写实");
   const [showBanner, setShowBanner] = useState<boolean>(true);
+  const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
 
   // Creation loading progress states
   const [isCreating, setIsCreating] = useState(false);
@@ -391,6 +394,17 @@ export default function HomePage() {
                 <FileText className="w-3.5 h-3.5 text-emerald-400" />
                 <span>6 阶段戏剧拆镜</span>
               </div>
+
+              {/* Novel / Long-form Series Button */}
+              <button
+                type="button"
+                onClick={() => setIsSeriesModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-medium transition-colors shadow-2xs"
+                title="导入万字长篇小说，一键切分 3~5 集短剧与全局角色库"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                <span>长篇/小说一键成剧</span>
+              </button>
             </div>
 
             {/* Right Submit Circle Button */}
@@ -524,6 +538,13 @@ export default function HomePage() {
           openSettingsModal();
         }}
         onClose={() => setIsCreating(false)}
+      />
+
+      {/* Multi-Episode Series Blueprint Modal */}
+      <SeriesBlueprintModal
+        isOpen={isSeriesModalOpen}
+        onClose={() => setIsSeriesModalOpen(false)}
+        onOpenSettings={openSettingsModal}
       />
     </div>
   );

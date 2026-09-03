@@ -298,9 +298,28 @@ router.post("/from-story", async (c) => {
   let seq = await db.select().from(sequences).where(eq(sequences.projectId, projectId)).get();
   if (!seq) {
     const seqId = crypto.randomUUID();
-    await db.insert(sequences).values({ id: seqId, projectId, title: "主场次", order: 1 });
-    seq = { id: seqId, projectId, title: "主场次", order: 1, createdAt: "", updatedAt: "" };
+    await db.insert(sequences).values({
+      id: seqId,
+      projectId,
+      title: "主场次",
+      order: 1,
+      episodeNumber: 1,
+      cliffhangerSummary: "",
+      targetDuration: 60.0,
+    });
+    seq = {
+      id: seqId,
+      projectId,
+      title: "主场次",
+      order: 1,
+      episodeNumber: 1,
+      cliffhangerSummary: "",
+      targetDuration: 60.0,
+      createdAt: "",
+      updatedAt: "",
+    };
   }
+  const currentSeq = seq!;
 
   // 1. Auto-capture pre-AI snapshot
   const preSnapshot = await captureProjectSnapshot(db, projectId);
@@ -341,7 +360,7 @@ router.post("/from-story", async (c) => {
   const baseSeed = getProjectBaseSeed(projectId);
 
   // 2. Check for locked shots
-  const existingShots = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).all();
+  const existingShots = await db.select().from(shots).where(eq(shots.sequenceId, currentSeq.id)).all();
   const lockedShots = existingShots.filter((s) => s.isLocked);
 
   if (lockedShots.length > 0) {
@@ -367,7 +386,7 @@ router.post("/from-story", async (c) => {
       insertedShotTasks.push({ shotId, s: item.planShot, slot: item.slot });
       await db.insert(shots).values({
         id: shotId,
-        sequenceId: seq.id,
+        sequenceId: currentSeq.id,
         order: item.slot,
         duration: item.planShot.duration,
         shotSize: item.planShot.shot_size,
@@ -406,7 +425,7 @@ router.post("/from-story", async (c) => {
       backgroundJob();
     }
   } else {
-    await db.delete(shots).where(eq(shots.sequenceId, seq.id));
+    await db.delete(shots).where(eq(shots.sequenceId, currentSeq.id));
 
     const insertedShotTasks: { shotId: string; s: any }[] = [];
     for (const s of result.shots) {
@@ -414,7 +433,7 @@ router.post("/from-story", async (c) => {
       insertedShotTasks.push({ shotId, s });
       await db.insert(shots).values({
         id: shotId,
-        sequenceId: seq.id,
+        sequenceId: currentSeq.id,
         order: s.order,
         duration: s.duration,
         shotSize: s.shot_size,
@@ -477,9 +496,28 @@ router.post("/from-script", async (c) => {
   let seq = await db.select().from(sequences).where(eq(sequences.projectId, projectId)).get();
   if (!seq) {
     const seqId = crypto.randomUUID();
-    await db.insert(sequences).values({ id: seqId, projectId, title: "导入剧本场次", order: 1 });
-    seq = { id: seqId, projectId, title: "导入剧本场次", order: 1, createdAt: "", updatedAt: "" };
+    await db.insert(sequences).values({
+      id: seqId,
+      projectId,
+      title: "导入剧本场次",
+      order: 1,
+      episodeNumber: 1,
+      cliffhangerSummary: "",
+      targetDuration: 60.0,
+    });
+    seq = {
+      id: seqId,
+      projectId,
+      title: "导入剧本场次",
+      order: 1,
+      episodeNumber: 1,
+      cliffhangerSummary: "",
+      targetDuration: 60.0,
+      createdAt: "",
+      updatedAt: "",
+    };
   }
+  const currentSeq = seq!;
 
   const preSnapshot = await captureProjectSnapshot(db, projectId);
   if (preSnapshot && preSnapshot.shotCount > 0) {
@@ -517,7 +555,7 @@ router.post("/from-script", async (c) => {
   });
 
   const baseSeed = getProjectBaseSeed(projectId);
-  const existingShots = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).all();
+  const existingShots = await db.select().from(shots).where(eq(shots.sequenceId, currentSeq.id)).all();
   const lockedShots = existingShots.filter((s) => s.isLocked);
 
   if (lockedShots.length > 0) {
@@ -543,7 +581,7 @@ router.post("/from-script", async (c) => {
       insertedShotTasks.push({ shotId, s: item.planShot, slot: item.slot });
       await db.insert(shots).values({
         id: shotId,
-        sequenceId: seq.id,
+        sequenceId: currentSeq.id,
         order: item.slot,
         duration: item.planShot.duration,
         shotSize: item.planShot.shot_size,
@@ -582,7 +620,7 @@ router.post("/from-script", async (c) => {
       backgroundJob();
     }
   } else {
-    await db.delete(shots).where(eq(shots.sequenceId, seq.id));
+    await db.delete(shots).where(eq(shots.sequenceId, currentSeq.id));
 
     const insertedShotTasks: { shotId: string; s: any }[] = [];
     for (const s of result.shots) {
@@ -590,7 +628,7 @@ router.post("/from-script", async (c) => {
       insertedShotTasks.push({ shotId, s });
       await db.insert(shots).values({
         id: shotId,
-        sequenceId: seq.id,
+        sequenceId: currentSeq.id,
         order: s.order,
         duration: s.duration,
         shotSize: s.shot_size,

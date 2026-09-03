@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { eq, desc, or, isNull } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
-import { projects, sequences, shots, users } from "../db/schema";
+import { projects, sequences, shots, users, characters } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, generateAdaptiveStoryShots } from "../agents/director/pipeline";
+import { scanLongformSeries } from "../agents/director/seriesScanner";
 import { generateCinematicStoryboardImage, runConcurrentTasks, getProjectBaseSeed } from "./generation";
 import { getAuthUser, getUserSettings } from "../lib/auth";
 
@@ -81,6 +82,8 @@ router.get("/:id", async (c) => {
       return c.json({ detail: "Project not found" }, 404);
     }
 
+    const charList = await db.select().from(characters).where(eq(characters.projectId, id)).all();
+
     const seqs = await db.select().from(sequences).where(eq(sequences.projectId, id)).orderBy(sequences.order).all();
 
     const enrichedSeqs = await Promise.all(
@@ -91,6 +94,9 @@ router.get("/:id", async (c) => {
           project_id: seq.projectId,
           title: seq.title,
           order: seq.order,
+          episode_number: seq.episodeNumber ?? 1,
+          cliffhanger_summary: seq.cliffhangerSummary || "",
+          target_duration: seq.targetDuration ?? 60.0,
           shots: shotList.map((s) => ({
             id: s.id,
             sequence_id: s.sequenceId,
@@ -130,6 +136,16 @@ router.get("/:id", async (c) => {
       target_duration: proj.targetDuration,
       created_at: proj.createdAt,
       updated_at: proj.updatedAt,
+      characters: charList.map((c) => ({
+        id: c.id,
+        project_id: c.projectId,
+        name: c.name,
+        role: c.role,
+        visual_anchor: c.visualAnchor,
+        avatar_url: c.avatarUrl,
+        personality: c.personality,
+        created_at: c.createdAt,
+      })),
       sequences: enrichedSeqs,
     });
   } catch (err: any) {
@@ -270,6 +286,209 @@ router.post("/", async (c) => {
   } catch (err: any) {
     console.error("[Create Project Error]:", err);
     return c.json({ detail: `创建工程失败: ${err?.message || err}` }, 500);
+  }
+});
+
+// POST /api/projects/analyze-series (Stage 1: Macro Narrative Scanner)
+router.post("/analyze-series", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const authHeader = c.req.header("Authorization");
+    const authUser = await getAuthUser(authHeader);
+    const settings = await getUserSettings(db, authUser?.userId);
+
+    const body = await c.req.json().catch(() => ({}));
+    const text = (body.text || body.story || "").trim();
+    const targetEpisodes = Number(body.target_episodes) || 3;
+
+    if (!text) {
+      return c.json({ detail: "请输入需要解构的长篇剧本或小说故事内容" }, 400);
+    }
+
+    const analysis = await scanLongformSeries(text, targetEpisodes, {
+      apiKey: settings.llmApiKey,
+      apiBase: settings.llmApiBase,
+      model: settings.llmModel,
+    });
+
+    return c.json(analysis);
+  } catch (err: any) {
+    console.error("[Analyze Series Error]:", err);
+    return c.json({ detail: `长篇宏观叙事扫描失败: ${err?.message || err}` }, 500);
+  }
+});
+
+// POST /api/projects/create-series (Stage 2: Multi-Episode Series Parallel Compilation)
+router.post("/create-series", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const authHeader = c.req.header("Authorization");
+    const authUser = await getAuthUser(authHeader);
+
+    if (!authUser) {
+      return c.json({ detail: "请先登录后再创建多集短剧工程" }, 401);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const title = (body.title || "新多集短剧工程").trim();
+    const story = (body.story || "").trim();
+    const rawCharacters = Array.isArray(body.characters) ? body.characters : [];
+    const rawEpisodes = Array.isArray(body.episodes) ? body.episodes : [];
+
+    if (rawEpisodes.length === 0) {
+      return c.json({ detail: "剧集列表不能为空，请至少保留 1 集" }, 400);
+    }
+
+    const settings = await getUserSettings(db, authUser.userId);
+    const projectId = crypto.randomUUID();
+    const baseSeed = getProjectBaseSeed(title);
+
+    // 1. Insert Project
+    const totalTargetDuration = rawEpisodes.reduce((acc: number, ep: any) => acc + (Number(ep.target_duration) || 60), 0);
+    await db.insert(projects).values({
+      id: projectId,
+      userId: authUser.userId,
+      title,
+      story,
+      targetDuration: totalTargetDuration,
+    });
+
+    // 2. Insert Characters
+    const insertedCharacters: any[] = [];
+    for (const char of rawCharacters) {
+      const charId = crypto.randomUUID();
+      const newChar = {
+        id: charId,
+        projectId,
+        name: char.name || "主要角色",
+        role: char.role || "protagonist",
+        visualAnchor: char.visual_anchor || "",
+        avatarUrl: char.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(char.name || "hero")}`,
+        personality: char.personality || "",
+      };
+      await db.insert(characters).values(newChar);
+      insertedCharacters.push(newChar);
+    }
+
+    // Global character visual context to inject into director pipeline
+    const characterAnchorContext = insertedCharacters
+      .filter((c) => c.visualAnchor)
+      .map((c) => `[Character: ${c.name} (${c.role})] ${c.visualAnchor}`)
+      .join(". ");
+
+    // 3. Process Episodes in Parallel (Concurrent Episode Breakdown)
+    const allInsertedShotTasks: { shotId: string; s: any }[] = [];
+    const createdEpisodes: any[] = [];
+
+    for (let i = 0; i < rawEpisodes.length; i++) {
+      const ep = rawEpisodes[i];
+      const seqId = crypto.randomUUID();
+      const epDuration = Number(ep.target_duration) || 60;
+      const epTitle = ep.title || `第 ${i + 1} 集`;
+
+      await db.insert(sequences).values({
+        id: seqId,
+        projectId,
+        title: epTitle,
+        order: i + 1,
+        episodeNumber: Number(ep.episode_number) || i + 1,
+        cliffhangerSummary: ep.cliffhanger_hook || "",
+        targetDuration: epDuration,
+      });
+
+      // Construct enriched episode context with character DNA
+      const epStory = `${ep.synopsis || story}. 集尾卡点悬念：${ep.cliffhanger_hook || "悬念未决"}. 核心出场角色：${(ep.featured_characters || []).join("、")}. ${characterAnchorContext}`;
+
+      // Call director pipeline for this episode
+      const epPlan = await runDirectorPipeline(epStory, epDuration, {
+        apiKey: settings.llmApiKey,
+        apiBase: settings.llmApiBase,
+        model: settings.llmModel,
+      });
+
+      for (const s of epPlan.shots) {
+        const shotId = crypto.randomUUID();
+        allInsertedShotTasks.push({ shotId, s });
+        await db.insert(shots).values({
+          id: shotId,
+          sequenceId: seqId,
+          order: s.order,
+          duration: s.duration,
+          shotSize: s.shot_size,
+          cameraAngle: s.camera_angle,
+          cameraMovement: JSON.stringify(s.camera_movement || {}),
+          subject: s.subject || "",
+          action: s.action,
+          dialogue: s.dialogue || "",
+          narrativeFunction: s.narrative_function || "动作推进",
+          lighting: s.lighting || "黑白灰石墨光影",
+          audio: JSON.stringify(s.audio || {}),
+          imagePrompt: s.image_prompt,
+          videoPrompt: s.video_prompt,
+          continuityData: JSON.stringify(s.continuity_data || {}),
+          beatType: s.beat_type || "tension_build",
+          emotionalVoltage: Number(s.emotional_voltage) || 50.0,
+          informationGap: s.information_gap || "",
+          computeTier: s.compute_tier || "standard",
+          storyboardImageUrl: "",
+          isDirty: false,
+          isLocked: false,
+        });
+      }
+
+      createdEpisodes.push({
+        id: seqId,
+        project_id: projectId,
+        title: epTitle,
+        order: i + 1,
+        episode_number: Number(ep.episode_number) || i + 1,
+        cliffhanger_summary: ep.cliffhanger_hook || "",
+        target_duration: epDuration,
+      });
+    }
+
+    // 4. Background image rendering across all episodes
+    const backgroundRenderJob = async () => {
+      try {
+        await runConcurrentTasks(allInsertedShotTasks, 3, async ({ shotId, s }) => {
+          const seed = baseSeed + s.order * 1000;
+          const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+          await db
+            .update(shots)
+            .set({
+              storyboardImageUrl: imageUrl,
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(shots.id, shotId));
+        });
+        console.log(`[Series Background Task] Rendered all ${allInsertedShotTasks.length} shots for series ${projectId}`);
+      } catch (bgErr) {
+        console.error(`[Series Background Task] Error rendering shots for series ${projectId}:`, bgErr);
+      }
+    };
+
+    if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+      c.executionCtx.waitUntil(backgroundRenderJob());
+    } else {
+      backgroundRenderJob();
+    }
+
+    return c.json(
+      {
+        id: projectId,
+        title,
+        story,
+        target_duration: totalTargetDuration,
+        characters: insertedCharacters,
+        sequences: createdEpisodes,
+      },
+      201
+    );
+  } catch (err: any) {
+    console.error("[Create Series Error]:", err);
+    return c.json({ detail: `多集短剧工程创建失败: ${err?.message || err}` }, 500);
   }
 });
 

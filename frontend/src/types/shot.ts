@@ -77,12 +77,26 @@ export interface ShotModel {
   updated_at: string;
 }
 
+export interface CharacterModel {
+  id: string;
+  project_id: string;
+  name: string;
+  role: "protagonist" | "antagonist" | "supporting";
+  visual_anchor: string;
+  avatar_url?: string;
+  personality?: string;
+  created_at?: string;
+}
+
 export interface SequenceModel {
   id: string;
   project_id: string;
   order: number;
   name: string;
   description?: string;
+  episode_number?: number;
+  cliffhanger_summary?: string;
+  target_duration?: number;
   shots: ShotModel[];
 }
 
@@ -99,6 +113,7 @@ export interface ProjectModel {
   preview_images?: string[];
   created_at: string;
   updated_at: string;
+  characters?: CharacterModel[];
   sequences: SequenceModel[];
 }
 

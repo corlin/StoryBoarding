@@ -12,6 +12,8 @@ import { ShotDetailDrawer } from "@/components/drawers/ShotDetailDrawer";
 import { DirectorPipelineModal } from "@/components/workspace/DirectorPipelineModal";
 import { VersionHistoryDrawer } from "@/components/drawers/VersionHistoryDrawer";
 import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
+import { EpisodePillTrack } from "@/components/workspace/EpisodePillTrack";
+import { CharacterHubDrawer } from "@/components/drawers/CharacterHubDrawer";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
@@ -45,6 +47,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [theaterShotId, setTheaterShotId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerShotId, setDrawerShotId] = useState<string | null>(null);
+  const [isCharacterHubOpen, setIsCharacterHubOpen] = useState(false);
+
+  const { activeEpisodeIndex } = useWorkspaceStore();
 
   // Resizable Split-Pane states (5:5 equal default split)
   const [leftPanelPercent, setLeftPanelPercent] = useState(50);
@@ -172,7 +177,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       }
     : currentProject;
 
-  const activeSequence = displayProject?.sequences[0];
+  const activeSequence = displayProject?.sequences[activeEpisodeIndex] || displayProject?.sequences[0];
   const shots = activeSequence?.shots || [];
   const totalDuration = shots.reduce((acc, s) => acc + (s.duration || 2.5), 0);
 
@@ -500,6 +505,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onOpenCreateSnapshot={() => setIsCreateSnapshotModalOpen(true)}
       />
 
+      {/* Multi-Episode Series Track & Character Hub */}
+      <EpisodePillTrack onOpenCharacterHub={() => setIsCharacterHubOpen(true)} />
+
       {/* Time Travel Read-Only Banner */}
       {previewVersion && (
         <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 flex items-center justify-between gap-4 z-30 animate-in slide-in-from-top-2 duration-200">
@@ -661,6 +669,12 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onClose={() => setIsCreateSnapshotModalOpen(false)}
         suggestedTag={`v1.${versions.length + 1}`}
         onConfirm={handleCreateSnapshot}
+      />
+
+      {/* Global Character Hub Drawer */}
+      <CharacterHubDrawer
+        isOpen={isCharacterHubOpen}
+        onClose={() => setIsCharacterHubOpen(false)}
       />
     </div>
   );

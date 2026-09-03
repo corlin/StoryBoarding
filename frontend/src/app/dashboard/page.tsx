@@ -18,10 +18,12 @@ import {
   Download,
   User,
   Loader2,
+  BookOpen,
 } from "lucide-react";
 import { api, ProjectListItem, normalizeAssetUrl } from "@/lib/api";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { ProjectCreationProgress } from "@/components/modals/ProjectCreationProgress";
+import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
@@ -84,6 +86,7 @@ export default function DashboardPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newStory, setNewStory] = useState("");
   const [targetDuration, setTargetDuration] = useState(30);
+  const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
 
   // Creation progress states
   const [isSubmittingProject, setIsSubmittingProject] = useState(false);
@@ -334,6 +337,15 @@ export default function DashboardPage() {
               <span>登录 / 注册</span>
             </button>
           )}
+
+          <button
+            onClick={() => setIsSeriesModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 transition-all shadow-2xs"
+            title="输入长篇小说或多集剧本，一键提炼角色与切分多集"
+          >
+            <BookOpen className="w-4 h-4 text-amber-400" />
+            <span>长篇/小说一键成剧</span>
+          </button>
 
           <button
             onClick={handleOpenCreateModal}
@@ -717,6 +729,16 @@ export default function DashboardPage() {
         }}
         project={projectToDelete}
         onConfirmDelete={handleConfirmDelete}
+      />
+
+      {/* Multi-Episode Series Blueprint Modal */}
+      <SeriesBlueprintModal
+        isOpen={isSeriesModalOpen}
+        onClose={() => {
+          setIsSeriesModalOpen(false);
+          loadProjects();
+        }}
+        onOpenSettings={openSettingsModal}
       />
     </div>
   );

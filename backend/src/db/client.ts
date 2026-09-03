@@ -97,9 +97,27 @@ export async function ensureSchema(d1: D1Database) {
       );
     `).run();
 
-    // 6. Safe Alter Table migrations
+    // 6. Ensure characters table exists (Global Character Roster)
+    await d1.prepare(`
+      CREATE TABLE IF NOT EXISTS characters (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'protagonist',
+        visual_anchor TEXT NOT NULL DEFAULT '',
+        avatar_url TEXT NOT NULL DEFAULT '',
+        personality TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+      );
+    `).run();
+
+    // 7. Safe Alter Table migrations
     try { await d1.prepare(`ALTER TABLE projects ADD COLUMN user_id TEXT;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN episode_number INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN cliffhanger_summary TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN target_duration REAL NOT NULL DEFAULT 60.0;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN dialogue TEXT DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN is_locked INTEGER NOT NULL DEFAULT 0;`).run(); } catch (_) {}

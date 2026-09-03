@@ -28,6 +28,23 @@ export const sequences = sqliteTable("sequences", {
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   order: integer("order").default(1).notNull(),
+  // Multi-Episode Series Enhancements
+  episodeNumber: integer("episode_number").default(1).notNull(),
+  cliffhangerSummary: text("cliffhanger_summary").default("").notNull(), // 集尾强悬念卡点
+  targetDuration: real("target_duration").default(60.0).notNull(), // 单集目标时长
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+// Global Character Roster Asset Table (Multi-Episode Visual DNA & Continuity Anchor)
+export const characters = sqliteTable("characters", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  role: text("role").default("protagonist").notNull(), // 'protagonist' | 'antagonist' | 'supporting'
+  visualAnchor: text("visual_anchor").notNull().default(""), // Pure English visual DNA prompt anchor
+  avatarUrl: text("avatar_url").default("").notNull(),
+  personality: text("personality").default("").notNull(),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -87,3 +104,6 @@ export type InsertShot = typeof shots.$inferInsert;
 
 export type ProjectVersion = typeof projectVersions.$inferSelect;
 export type InsertProjectVersion = typeof projectVersions.$inferInsert;
+
+export type Character = typeof characters.$inferSelect;
+export type InsertCharacter = typeof characters.$inferInsert;
