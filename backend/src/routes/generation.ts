@@ -280,8 +280,8 @@ export async function runConcurrentTasks<T, R>(
   return results;
 }
 
-// POST /api/generate/from-story (Real AI breakdown with 3-worker concurrent image generation & 4-pillar continuity)
-router.post("/from-story", async (c) => {
+// POST /api/generate/from-story & POST /api/generate/storyboard
+const handleGenerateFromStory = async (c: any) => {
   const db = getDb(c.env.DB);
   const body = await c.req.json();
   const projectId = body.project_id;
@@ -479,7 +479,10 @@ router.post("/from-story", async (c) => {
     shots_count: result.shots.length,
     target_duration: result.target_duration,
   });
-});
+};
+
+router.post("/from-story", handleGenerateFromStory);
+router.post("/storyboard", handleGenerateFromStory);
 
 // POST /api/generate/from-script (Real AI breakdown from script with server-side async image generation)
 router.post("/from-script", async (c) => {
@@ -676,8 +679,8 @@ router.post("/from-script", async (c) => {
   });
 });
 
-// POST /api/generate/images/:shotId (Dedicated single-shot real AI regeneration with project seed offset)
-router.post("/images/:shotId", async (c) => {
+// POST /api/generate/images/:shotId & POST /api/generate/shot-image/:shotId
+const handleGenerateSingleShotImage = async (c: any) => {
   const db = getDb(c.env.DB);
   const shotId = c.req.param("shotId");
 
@@ -713,6 +716,9 @@ router.post("/images/:shotId", async (c) => {
     shot_id: shotId,
     storyboard_image_url: imageUrl,
   });
-});
+};
+
+router.post("/images/:shotId", handleGenerateSingleShotImage);
+router.post("/shot-image/:shotId", handleGenerateSingleShotImage);
 
 export default router;
