@@ -41,17 +41,35 @@ export async function verifyPassword(password: string, salt: string, storedHash:
   return hash === storedHash;
 }
 
-// 2. Base64URL Encoding & Decoding for JWT
-function base64UrlEncode(str: string): string {
-  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+// 2. Base64URL Encoding & Decoding for JWT with full UTF-8 / Unicode support
+function base64UrlEncodeString(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function base64UrlDecode(str: string): string {
+function base64UrlEncodeBytes(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function base64UrlDecodeToString(str: string): string {
   let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
   while (base64.length % 4) {
     base64 += "=";
   }
-  return atob(base64);
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
 }
 
 // 3. JWT Signing & Verification (HMAC-SHA256)
@@ -73,8 +91,8 @@ export async function signJwt(payload: Omit<JwtPayload, "iat" | "exp">, expiresI
     exp: now + expiresInSeconds,
   };
 
-  const headerB64 = base64UrlEncode(JSON.stringify(header));
-  const payloadB64 = base64UrlEncode(JSON.stringify(fullPayload));
+  const headerB64 = base64UrlEncodeString(JSON.stringify(header));
+  const payloadB64 = base64UrlEncodeString(JSON.stringify(fullPayload));
   const dataToSign = `${headerB64}.${payloadB64}`;
 
   const key = await crypto.subtle.importKey(
@@ -86,9 +104,7 @@ export async function signJwt(payload: Omit<JwtPayload, "iat" | "exp">, expiresI
   );
 
   const signature = await crypto.subtle.sign("HMAC", key, enc.encode(dataToSign));
-  const signatureB64 = base64UrlEncode(
-    String.fromCharCode(...new Uint8Array(signature))
-  );
+  const signatureB64 = base64UrlEncodeBytes(new Uint8Array(signature));
 
   return `${dataToSign}.${signatureB64}`;
 }
@@ -115,7 +131,7 @@ export async function verifyJwt(token: string): Promise<JwtPayload | null> {
     const isValid = await crypto.subtle.verify("HMAC", key, binarySig, enc.encode(dataToVerify));
     if (!isValid) return null;
 
-    const payload: JwtPayload = JSON.parse(base64UrlDecode(payloadB64));
+    const payload: JwtPayload = JSON.parse(base64UrlDecodeToString(payloadB64));
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp && payload.exp < now) {
       return null; // Expired
