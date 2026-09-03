@@ -43,27 +43,48 @@ export function extractShotMeta(shot: Shot) {
   };
 }
 
-export function generateShotScriptMarkdown(project: Project, shots: Shot[]): string {
+export function generateShotScriptMarkdown(project: Project, shots: Shot[], sequences?: any[]): string {
   const lines = [
     `# ${project.title} — 导演分镜头脚本文档`,
-    `\n> **目标时长**: ${project.targetDuration} 秒 | **镜头总数**: ${shots.length} | **标准画幅**: 16:9\n`,
+    `\n> **目标时长**: ${project.targetDuration} 秒 | **分集总数**: ${sequences && sequences.length > 0 ? sequences.length : 1} 集 | **镜头总数**: ${shots.length} | **标准画幅**: 16:9\n`,
     `## 故事梗概\n${project.story || "未提供故事梗概"}\n`,
     "---\n",
-    "## 分镜头详细列表\n",
   ];
 
-  for (const s of shots) {
-    const meta = extractShotMeta(s);
-    lines.push(`### SHOT ${meta.shotNo} · ${meta.sizeAbbr} · ${meta.durStr}`);
-    lines.push(`- **景别机位**: ${s.shotSize} / ${s.cameraAngle}`);
-    lines.push(`- **运镜方式**: ${meta.movType}`);
-    lines.push(`- **动作调度**: ${s.action}`);
-    lines.push(`- **叙事功能**: ${s.narrativeFunction || "主动作推进"}`);
-    lines.push(`- **环境光影**: ${s.lighting || "黑白灰石墨光影"}`);
-    lines.push(`- **声音设计**: ${s.audio}`);
-    lines.push(`- **图像 Prompt**: \`${s.imagePrompt}\``);
-    lines.push(`- **视频 Prompt**: \`${s.videoPrompt}\``);
-    lines.push("\n---\n");
+  if (sequences && sequences.length > 1) {
+    for (const seq of sequences) {
+      const epNum = seq.episodeNumber || seq.order || 1;
+      const seqShots = shots.filter((s) => s.sequenceId === seq.id);
+      const epDuration = seqShots.reduce((acc, s) => acc + (s.duration || 2.5), 0);
+
+      lines.push(`## 🎬 EPISODE ${String(epNum).padStart(2, "0")}: ${seq.title || `第 ${epNum} 集`}`);
+      lines.push(`> **本集片长**: ${epDuration.toFixed(1)}s | **镜头数**: ${seqShots.length} 镜 | **集尾生死卡点**: ${seq.cliffhangerSummary || "危机推进"}\n`);
+
+      for (const s of seqShots) {
+        const meta = extractShotMeta(s);
+        lines.push(`### EP${epNum} · SHOT ${meta.shotNo} · ${meta.sizeAbbr} · ${meta.durStr}`);
+        lines.push(`- **景别机位**: ${s.shotSize} / ${s.cameraAngle}`);
+        lines.push(`- **运镜方式**: ${meta.movType}`);
+        lines.push(`- **动作调度**: ${s.action}`);
+        if (s.dialogue) lines.push(`- **角色台词**: “${s.dialogue}”`);
+        lines.push(`- **戏剧节拍**: ${s.beatType || "情绪推进"} (${s.emotionalVoltage || 50}V)`);
+        lines.push(`- **图像 Prompt**: \`${s.imagePrompt}\``);
+        lines.push("\n---\n");
+      }
+    }
+  } else {
+    lines.push("## 分镜头详细列表\n");
+    for (const s of shots) {
+      const meta = extractShotMeta(s);
+      lines.push(`### SHOT ${meta.shotNo} · ${meta.sizeAbbr} · ${meta.durStr}`);
+      lines.push(`- **景别机位**: ${s.shotSize} / ${s.cameraAngle}`);
+      lines.push(`- **运镜方式**: ${meta.movType}`);
+      lines.push(`- **动作调度**: ${s.action}`);
+      if (s.dialogue) lines.push(`- **角色台词**: “${s.dialogue}”`);
+      lines.push(`- **戏剧节拍**: ${s.beatType || "情绪推进"} (${s.emotionalVoltage || 50}V)`);
+      lines.push(`- **图像 Prompt**: \`${s.imagePrompt}\``);
+      lines.push("\n---\n");
+    }
   }
 
   return lines.join("\n");

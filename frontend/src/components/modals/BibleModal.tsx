@@ -1,12 +1,17 @@
-import React, { useState } from "react";
-import { BookOpen, Users, MapPin, Palette, Plus, Trash2, Lock, Sparkles, Check } from "lucide-react";
-import { ProjectModel } from "@/types/shot";
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { BookOpen, Users, MapPin, Palette, Plus, Trash2, Lock, Sparkles, Check, X, ShieldCheck, Loader2 } from "lucide-react";
+import { ProjectModel, CharacterModel } from "@/types/shot";
+import { api } from "@/lib/api";
+import { notify } from "@/components/ui/ToastNotification";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 
 interface BibleModalProps {
   isOpen: boolean;
   onClose: () => void;
   project: ProjectModel | null;
-  mode?: "bible" | "style";
+  mode?: "bible" | "style" | "characters" | "locations";
 }
 
 const STYLE_PRESETS = [
@@ -37,287 +42,364 @@ export const BibleModal: React.FC<BibleModalProps> = ({
   isOpen,
   onClose,
   project,
-  mode = "bible",
+  mode = "characters",
 }) => {
+  const { fetchProject } = useWorkspaceStore();
   const [activeTab, setActiveTab] = useState<"characters" | "locations" | "style">(
-    mode === "style" ? "style" : "characters"
+    mode === "style" ? "style" : mode === "locations" ? "locations" : "characters"
   );
 
-  // Reference 1: Character Reference Lock
-  const [characters, setCharacters] = useState([
-    {
-      name: "Reference 1: 主角墨客 (Moke)",
-      description:
-        "黑色立领长衫风衣，黑色墨镜，短发，体态挺拔沉稳，武术宗师气质。五官结构与服装道具严格锁定，严禁面部漂移。",
-      isAnchor: true,
-    },
-  ]);
-
-  // Reference 2: Environment Reference Lock
-  const [locations, setLocations] = useState([
-    {
-      name: "Reference 2: 古风赛博雨夜茶楼 (Cyber Tea House)",
-      description:
-        "赛博雨夜，青瓦飞檐古典中式茶楼，悬挂红色发光灯笼，周围全息绿色数据流雨幕与潮湿反射青石巷道。空间透视与光影方向严格锁定。",
-      isAnchor: true,
-    },
-  ]);
-
+  // Characters State from Project
+  const [characters, setCharacters] = useState<CharacterModel[]>([]);
+  // Scene Environment Anchor State
+  const [sceneAnchor, setSceneAnchor] = useState("");
+  // Style Prompt State
   const [stylePrompt, setStylePrompt] = useState(STYLE_PRESETS[0].prompt);
   const [selectedPresetId, setSelectedPresetId] = useState("graphite_previz");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // New character form
+  const [newCharName, setNewCharName] = useState("");
+  const [newCharRole, setNewCharRole] = useState<"protagonist" | "antagonist" | "supporting">("supporting");
+  const [newCharAnchor, setNewCharAnchor] = useState("");
+  const [newCharPersonality, setNewCharPersonality] = useState("");
+
+  useEffect(() => {
+    if (project) {
+      setCharacters(project.characters || []);
+      const styleConfig = typeof project.style_config === "string" ? JSON.parse(project.style_config) : project.style_config || {};
+      setSceneAnchor(styleConfig.scene_anchor || styleConfig.sceneAnchor || "古风赛博雨夜茶楼，青瓦飞檐古典中式建筑，悬挂红色发光灯笼，潮湿青石巷道反射荧光。");
+      if (styleConfig.director_style_prompt) {
+        setStylePrompt(styleConfig.director_style_prompt);
+      }
+    }
+  }, [project, isOpen]);
 
   if (!isOpen) return null;
 
+  const handleAddCharacter = () => {
+    if (!newCharName.trim()) {
+      notify.error("请输入角色名称");
+      return;
+    }
+    const newChar: CharacterModel = {
+      id: crypto.randomUUID(),
+      project_id: project?.id || "",
+      name: newCharName.trim(),
+      role: newCharRole,
+      visual_anchor: newCharAnchor.trim() || `${newCharName.trim()}, distinctive cinematic appearance, consistent face and attire`,
+      personality: newCharPersonality.trim() || "核心人物",
+    };
+    setCharacters([...characters, newChar]);
+    setNewCharName("");
+    setNewCharAnchor("");
+    setNewCharPersonality("");
+    notify.success(`已添加角色 ${newChar.name}`);
+  };
+
+  const handleRemoveCharacter = (id: string) => {
+    setCharacters(characters.filter((c) => c.id !== id));
+  };
+
+  const handleSaveBible = async () => {
+    if (!project) return;
+    try {
+      setIsSaving(true);
+      const existingStyle = typeof project.style_config === "string" ? JSON.parse(project.style_config) : project.style_config || {};
+      const updatedStyle = {
+        ...existingStyle,
+        scene_anchor: sceneAnchor.trim(),
+        director_style_prompt: stylePrompt.trim(),
+      };
+
+      await api.updateProject(project.id, {
+        style_config: updatedStyle,
+        characters: characters,
+      });
+
+      await fetchProject(project.id);
+      notify.success("🎬 全剧视听设定中枢已成功保存，全局生效！");
+      onClose();
+    } catch (err: any) {
+      console.error("Save Bible Error:", err);
+      notify.error(err?.message || "保存设定集失败");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-xl p-6 max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[88vh] animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+      <div className="bg-card border border-border rounded-2xl p-6 max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-border mb-3 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-foreground">
-                导演设定集 (Production Bible & Style Standards)
+              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                全剧视听设定中枢 (Unified Visual Bible)
+                <span className="text-[10px] font-mono bg-primary/15 text-primary border border-primary/30 px-1.5 py-0.5 rounded">
+                  单一真实数据源
+                </span>
               </h2>
               <p className="text-xs text-muted-foreground">
-                严格遵循好莱坞工业规范，固化 Reference 1（角色基准）与 Reference 2（场景基准）
+                锁定 Reference 1（角色视觉基因 Visual DNA）与 Reference 2（核心场景空间透视锁）
               </p>
             </div>
           </div>
+          <button onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 border-b border-border/80 pb-2 mb-4 shrink-0">
           <button
             onClick={() => setActiveTab("characters")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === "characters"
-                ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Reference 1: 角色基准锁</span>
+            <span>🎭 全剧角色定妆谱 ({characters.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab("locations")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === "locations"
-                ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
             }`}
           >
             <MapPin className="w-3.5 h-3.5" />
-            <span>Reference 2: 场景基准锁</span>
+            <span>🏛️ 核心场景空间锁</span>
           </button>
 
           <button
             onClick={() => setActiveTab("style")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === "style"
-                ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
             }`}
           >
             <Palette className="w-3.5 h-3.5" />
-            <span>分镜画风预设 (Style)</span>
+            <span>🎨 导演画风基准</span>
           </button>
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-          {/* Reference 1: Character Reference Lock */}
-          {activeTab === "characters" && (
-            <div className="space-y-4">
-              <div className="p-3 bg-sky-500/10 border border-sky-500/20 rounded-lg text-xs text-sky-300 flex items-start gap-2">
-                <Lock className="w-4 h-4 shrink-0 text-sky-400 mt-0.5" />
-                <span>
-                  <strong>Reference Image 1 是强制性角色连续性基准</strong>：锁定五官、发型、体态比例、服装配饰与专属道具，生成过程中严禁脸部漂移与服装突变。
-                </span>
-              </div>
+        {/* Tab Content: Characters */}
+        {activeTab === "characters" && (
+          <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+            <div className="p-3 bg-sky-500/10 border border-sky-500/20 rounded-xl flex items-start gap-2.5 text-xs text-sky-300">
+              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+              <p className="leading-relaxed text-[11px]">
+                <strong>全剧连续性总线：</strong>此处登记的所有角色，将在全剧所有集数生图时强制注入对应的纯英文 Visual DNA 提示词，实现面部五官、发型体态与标志性服装高度连贯锁死。
+              </p>
+            </div>
 
-              {characters.map((c, idx) => (
-                <div key={idx} className="p-4 rounded-xl border border-border bg-background/50 space-y-3">
+            {/* Character Cards List */}
+            <div className="space-y-3">
+              {characters.map((char, idx) => (
+                <div key={char.id || idx} className="p-4 bg-background border border-border/70 rounded-xl space-y-2 relative group">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <input
-                        type="text"
-                        value={c.name}
-                        onChange={(e) => {
-                          const next = [...characters];
-                          next[idx].name = e.target.value;
-                          setCharacters(next);
-                        }}
-                        className="text-xs font-semibold bg-transparent border-b border-border/60 pb-0.5 focus:outline-none focus:border-primary w-64 text-foreground"
-                      />
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center border border-border/60 overflow-hidden font-bold text-xs text-sky-400">
+                        {char.name.slice(0, 1)}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-foreground">{char.name}</span>
+                        <span className="text-[10px] text-muted-foreground ml-2">{char.personality || "出场人物"}</span>
+                      </div>
                     </div>
-                    {characters.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded font-mono ${
+                          char.role === "protagonist"
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            : char.role === "antagonist"
+                            ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                            : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                        }`}
+                      >
+                        {char.role === "protagonist" ? "主角" : char.role === "antagonist" ? "反派" : "配角"}
+                      </span>
                       <button
-                        onClick={() => setCharacters(characters.filter((_, i) => i !== idx))}
-                        className="text-muted-foreground hover:text-destructive p-1 rounded"
+                        onClick={() => handleRemoveCharacter(char.id)}
+                        className="p-1 rounded text-muted-foreground hover:text-red-400 transition-colors"
+                        title="移除该角色"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
-                    )}
+                    </div>
                   </div>
+
                   <div>
-                    <label className="text-[11px] font-medium text-muted-foreground block mb-1">
-                      不可漂移的视觉特征（五官、发型、服装、手持道具）
-                    </label>
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">纯英文生图锁定的视觉基因 (Visual DNA Prompt Anchor):</label>
                     <textarea
-                      rows={3}
-                      value={c.description}
+                      rows={2}
+                      value={char.visual_anchor || (char as any).visualAnchor || ""}
                       onChange={(e) => {
-                        const next = [...characters];
-                        next[idx].description = e.target.value;
-                        setCharacters(next);
+                        const val = e.target.value;
+                        setCharacters(characters.map((c) => (c.id === char.id ? { ...c, visual_anchor: val, visualAnchor: val } : c)));
                       }}
-                      className="w-full text-xs bg-background border border-border rounded-lg p-2.5 focus:outline-none focus:border-primary resize-none leading-relaxed"
+                      className="w-full bg-secondary/50 border border-border/80 rounded-lg p-2 text-xs font-mono text-sky-200 focus:outline-none focus:border-sky-500/60 leading-relaxed"
                     />
                   </div>
                 </div>
               ))}
-
-              <button
-                onClick={() =>
-                  setCharacters([
-                    ...characters,
-                    { name: `配角 #${characters.length + 1}`, description: "设定外貌与服装特征...", isAnchor: false },
-                  ])
-                }
-                className="w-full py-2 border border-dashed border-border rounded-lg text-xs text-muted-foreground hover:text-primary hover:border-primary/50 flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>添加次要角色设定</span>
-              </button>
             </div>
-          )}
 
-          {/* Reference 2: Environment Reference Lock */}
-          {activeTab === "locations" && (
-            <div className="space-y-4">
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-300 flex items-start gap-2">
-                <Lock className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
-                <span>
-                  <strong>Reference Image 2 是强制性场景与世界观基准</strong>：锁定建筑结构、空间几何、地标方位、门窗透视与环境光源，严禁场景空间颠倒。
-                </span>
+            {/* Quick Add Character Box */}
+            <div className="p-3.5 bg-secondary/30 border border-dashed border-border/80 rounded-xl space-y-3">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Plus className="w-3.5 h-3.5 text-primary" />
+                <span>新增角色并锁定视觉 DNA</span>
               </div>
-
-              {locations.map((l, idx) => (
-                <div key={idx} className="p-4 rounded-xl border border-border bg-background/50 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-sky-400" />
-                      <input
-                        type="text"
-                        value={l.name}
-                        onChange={(e) => {
-                          const next = [...locations];
-                          next[idx].name = e.target.value;
-                          setLocations(next);
-                        }}
-                        className="text-xs font-semibold bg-transparent border-b border-border/60 pb-0.5 focus:outline-none focus:border-primary w-64 text-foreground"
-                      />
-                    </div>
-                    {locations.length > 1 && (
-                      <button
-                        onClick={() => setLocations(locations.filter((_, i) => i !== idx))}
-                        className="text-muted-foreground hover:text-destructive p-1 rounded"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-medium text-muted-foreground block mb-1">
-                      空间结构、地标位置、门窗道具与环境光源方向
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={l.description}
-                      onChange={(e) => {
-                        const next = [...locations];
-                        next[idx].description = e.target.value;
-                        setLocations(next);
-                      }}
-                      className="w-full text-xs bg-background border border-border rounded-lg p-2.5 focus:outline-none focus:border-primary resize-none leading-relaxed"
-                    />
-                  </div>
-                </div>
-              ))}
-
-              <button
-                onClick={() =>
-                  setLocations([
-                    ...locations,
-                    { name: `场景 #${locations.length + 1}`, description: "设定场景与空间结构...", isAnchor: false },
-                  ])
-                }
-                className="w-full py-2 border border-dashed border-border rounded-lg text-xs text-muted-foreground hover:text-primary hover:border-primary/50 flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>添加辅助场景设定</span>
-              </button>
-            </div>
-          )}
-
-          {/* Style Presets */}
-          {activeTab === "style" && (
-            <div className="space-y-4">
-              <label className="text-xs font-semibold text-muted-foreground block">
-                选择导演级分镜画风预设：
-              </label>
-
-              <div className="grid grid-cols-1 gap-2.5">
-                {STYLE_PRESETS.map((preset) => (
-                  <div
-                    key={preset.id}
-                    onClick={() => {
-                      setSelectedPresetId(preset.id);
-                      setStylePrompt(preset.prompt);
-                    }}
-                    className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                      selectedPresetId === preset.id
-                        ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                        : "border-border bg-background/50 hover:border-border/80 hover:bg-background"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-foreground">{preset.name}</span>
-                      {selectedPresetId === preset.id && <Check className="w-4 h-4 text-primary" />}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">{preset.desc}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <label className="text-[11px] font-medium text-muted-foreground block mb-1">
-                  当前生图全局约束 Prompt（可微调）
-                </label>
-                <textarea
-                  rows={3}
-                  value={stylePrompt}
-                  onChange={(e) => setStylePrompt(e.target.value)}
-                  className="w-full text-xs font-mono bg-background border border-border rounded-lg p-2.5 focus:outline-none focus:border-primary resize-none leading-relaxed text-foreground/90"
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="角色姓名 (例如: 楚玄)"
+                  value={newCharName}
+                  onChange={(e) => setNewCharName(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
+                />
+                <select
+                  value={newCharRole}
+                  onChange={(e: any) => setNewCharRole(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
+                >
+                  <option value="protagonist">主角 (Protagonist)</option>
+                  <option value="antagonist">反派 (Antagonist)</option>
+                  <option value="supporting">配角 (Supporting)</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="性格特点 (例如: 冷峻孤傲剑客)"
+                  value={newCharPersonality}
+                  onChange={(e) => setNewCharPersonality(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
                 />
               </div>
+              <input
+                type="text"
+                placeholder="纯英文视觉特征提示词 (例如: Chu Xuan, 25yo swordsman, piercing dark eyes, black silk hooded cloak, silver broadsword)"
+                value={newCharAnchor}
+                onChange={(e) => setNewCharAnchor(e.target.value)}
+                className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={handleAddCharacter}
+                className="w-full py-1.5 bg-secondary hover:bg-secondary/80 border border-border rounded-lg text-xs font-medium text-foreground transition-colors"
+              >
+                ＋ 添加角色至全剧基因谱
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Footer */}
-        <div className="pt-4 border-t border-border flex items-center justify-between shrink-0">
-          <span className="text-[11px] text-muted-foreground">修改将自动同步至 AI 导演提示词引擎</span>
+        {/* Tab Content: Locations */}
+        {activeTab === "locations" && (
+          <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5 text-xs text-amber-300">
+              <Lock className="w-4 h-4 shrink-0 mt-0.5" />
+              <p className="leading-relaxed text-[11px]">
+                <strong>Reference 2 核心场景空间基准锁：</strong>
+                固化全剧关键地理空间的透视关系、建筑材质、光影氛围与环境反射。生图引擎将此基准作为空间隐喻注入，杜绝各集场景出现违和穿帮。
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-foreground block mb-1">
+                核心场景空间描述与光影锁定基准 (Environment Anchor):
+              </label>
+              <textarea
+                rows={5}
+                value={sceneAnchor}
+                onChange={(e) => setSceneAnchor(e.target.value)}
+                placeholder="例如：赛博雨夜，青瓦飞檐古典中式茶楼，悬挂红色发光灯笼，潮湿反光青石巷道，全息绿色数据流雨幕..."
+                className="w-full bg-background border border-border rounded-xl p-3 text-xs leading-relaxed focus:outline-none focus:border-primary font-medium"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Tab Content: Style */}
+        {activeTab === "style" && (
+          <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+              {STYLE_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  onClick={() => {
+                    setSelectedPresetId(preset.id);
+                    setStylePrompt(preset.prompt);
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                    selectedPresetId === preset.id
+                      ? "border-primary bg-primary/10 shadow-xs"
+                      : "border-border/70 bg-secondary/40 hover:bg-secondary hover:border-border"
+                  }`}
+                >
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground mb-1">{preset.name}</h4>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">{preset.desc}</p>
+                  </div>
+                  {selectedPresetId === preset.id && (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-primary font-bold mt-2">
+                      <Check className="w-3 h-3" />
+                      当前画风
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-foreground block mb-1">导演画风控制 Prompt (Global Style Suffix):</label>
+              <textarea
+                rows={4}
+                value={stylePrompt}
+                onChange={(e) => setStylePrompt(e.target.value)}
+                className="w-full bg-background border border-border rounded-xl p-3 text-xs font-mono leading-relaxed focus:outline-none focus:border-primary"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Footer Actions */}
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-3 shrink-0">
           <button
+            type="button"
+            disabled={isSaving}
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow transition-colors"
+            className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
-            保存并应用
+            取消
+          </button>
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={handleSaveBible}
+            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>保存中...</span>
+              </>
+            ) : (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>保存设定并全局同步</span>
+              </>
+            )}
           </button>
         </div>
       </div>

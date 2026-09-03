@@ -165,6 +165,15 @@ export const api = {
     return data;
   },
 
+  // Expand Single-Scene Project into a Multi-Episode Series
+  async expandToSeries(
+    projectId: string,
+    payload: { continuation_prompt?: string; episodes_to_add?: number }
+  ): Promise<{ status: string; message: string; created_episodes: any[] }> {
+    const { data } = await apiClient.post(`/projects/${projectId}/expand-to-series`, payload);
+    return data;
+  },
+
   async updateProject(id: string, payload: Partial<ProjectModel>): Promise<ProjectModel> {
     const { data } = await apiClient.put(`/projects/${id}`, payload);
     return data;

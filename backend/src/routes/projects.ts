@@ -511,7 +511,50 @@ router.put("/:id", async (c) => {
       return c.json({ detail: "Project not found" }, 404);
     }
 
-    return c.json(updated);
+    if (Array.isArray(body.characters)) {
+      for (const ch of body.characters) {
+        if (ch.id) {
+          const existing = await db.select().from(characters).where(eq(characters.id, ch.id)).get();
+          if (existing) {
+            await db.update(characters).set({
+              name: ch.name || existing.name,
+              role: ch.role || existing.role,
+              visualAnchor: ch.visual_anchor || ch.visualAnchor || existing.visualAnchor,
+              personality: ch.personality || existing.personality,
+              avatarUrl: ch.avatar_url || ch.avatarUrl || existing.avatarUrl,
+            }).where(eq(characters.id, ch.id));
+          } else {
+            await db.insert(characters).values({
+              id: ch.id,
+              projectId: id,
+              name: ch.name,
+              role: ch.role || "supporting",
+              visualAnchor: ch.visual_anchor || ch.visualAnchor || "",
+              personality: ch.personality || "",
+              avatarUrl: ch.avatar_url || ch.avatarUrl || "",
+            });
+          }
+        } else if (ch.name) {
+          await db.insert(characters).values({
+            id: crypto.randomUUID(),
+            projectId: id,
+            name: ch.name,
+            role: ch.role || "supporting",
+            visualAnchor: ch.visual_anchor || ch.visualAnchor || "",
+            personality: ch.personality || "",
+            avatarUrl: ch.avatar_url || ch.avatarUrl || "",
+          });
+        }
+      }
+    }
+
+    // Return enriched project with latest characters
+    const latestChars = await db.select().from(characters).where(eq(characters.projectId, id)).all();
+    return c.json({
+      ...updated,
+      style_config: body.style_config || {},
+      characters: latestChars,
+    });
   } catch (err: any) {
     console.error("[Update Project Error]:", err);
     return c.json({ detail: `更新工程失败: ${err?.message || err}` }, 500);
@@ -671,6 +714,213 @@ router.post("/:id/episodes", async (c) => {
   } catch (err: any) {
     console.error("[Add Episode Error]:", err);
     return c.json({ detail: `新增短剧分集失败: ${err?.message || err}` }, 500);
+  }
+});
+
+// POST /api/projects/:id/expand-to-series (Expand single-scene project into a multi-episode series)
+router.post("/:id/expand-to-series", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const id = c.req.param("id");
+
+    const authHeader = c.req.header("Authorization");
+    const authUser = await getAuthUser(authHeader);
+    if (!authUser) {
+      return c.json({ detail: "请先登录导演账号" }, 401);
+    }
+
+    const proj = await db.select().from(projects).where(eq(projects.id, id)).get();
+    if (!proj) {
+      return c.json({ detail: "Project not found" }, 404);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const userPrompt = (body.continuation_prompt || "").trim();
+    const episodesToAdd = Math.min(Math.max(Number(body.episodes_to_add) || 2, 1), 4);
+
+    const existingSeqs = await db
+      .select()
+      .from(sequences)
+      .where(eq(sequences.projectId, id))
+      .orderBy(sequences.order)
+      .all();
+
+    const pilotSeq = existingSeqs[0];
+    const pilotShots = pilotSeq
+      ? await db.select().from(shots).where(eq(shots.sequenceId, pilotSeq.id)).orderBy(shots.order).all()
+      : [];
+
+    const existingChars = await db
+      .select()
+      .from(characters)
+      .where(eq(characters.projectId, id))
+      .all();
+
+    const settings = await getUserSettings(db, authUser.userId);
+    if (!settings.hasKey) {
+      return c.json({ detail: "请先在「设置」中配置您的专属 OpenRouter API Key" }, 400);
+    }
+
+    const pilotPlotSummary = pilotShots.map((s, idx) => `${idx + 1}. [${s.subject}] ${s.action} (台词: ${s.dialogue || "无"})`).join("\n");
+    const characterContext = existingChars.map((ch) => `${ch.name} (${ch.role}): ${ch.visualAnchor}`).join("\n");
+
+    const expansionPrompt = `你是一位好莱坞商业短剧编剧总监。
+当前短剧工程已有「第 1 集（Pilot）」，故事与分镜概要如下：
+【第 1 集剧情概要】:
+${proj.story || "第一幕：冲突爆发"}
+【第 1 集分镜推进】:
+${pilotPlotSummary}
+【已固化角色】:
+${characterContext || "主角"}
+
+${userPrompt ? `【创作者续订后续方向与意向】:\n${userPrompt}\n` : ""}
+
+请基于第 1 集结尾的悬念卡点，顺延创作接下来的 ${episodesToAdd} 集短剧剧本大纲。
+必须输出纯合法 JSON 格式（不要包含任何 markdown 代码块标记，不要多余文字），格式如下：
+{
+  "episodes": [
+    {
+      "title": "第 2 集：反击破局",
+      "synopsis": "详细剧情梗概（100~200字，必须有强烈冲突和情理之中意料之外的反转）",
+      "cliffhanger_hook": "集尾生死悬念钩子（必须让观众迫不及待点击下一集）",
+      "target_duration": 60.0
+    }
+  ]
+}`;
+
+    let parsedEpisodes: any[] = [];
+    try {
+      const response = await fetch(`${settings.llmApiBase || "https://openrouter.ai/api/v1"}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${settings.llmApiKey}`,
+        },
+        body: JSON.stringify({
+          model: settings.llmModel || "deepseek/deepseek-chat",
+          temperature: 0.7,
+          messages: [{ role: "user", content: expansionPrompt }],
+        }),
+      });
+      if (response.ok) {
+        const data: any = await response.json();
+        const content = data?.choices?.[0]?.message?.content || "";
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed.episodes)) {
+            parsedEpisodes = parsed.episodes;
+          }
+        }
+      }
+    } catch (llmErr) {
+      console.warn("[Expansion LLM Warning]:", llmErr);
+    }
+
+    if (parsedEpisodes.length === 0) {
+      for (let i = 1; i <= episodesToAdd; i++) {
+        const epNum = existingSeqs.length + i;
+        parsedEpisodes.push({
+          title: `第 ${epNum} 集：${epNum === 2 ? "暗流涌动" : epNum === 3 ? "绝境反扑" : "决胜之战"}`,
+          synopsis: `紧接前情，局势进一步恶化，主角面临更为严峻的双重背叛与生死考验，必须打破常规完成极限突围。`,
+          cliffhanger_hook: `关键证人突然倒下，留下神秘的血色符号指向更深的幕后黑手！`,
+          target_duration: 60.0,
+        });
+      }
+    }
+
+    const createdEpisodes: any[] = [];
+    const hashString = (str: string) => {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) {
+        h = (h << 5) - h + str.charCodeAt(i);
+        h |= 0;
+      }
+      return h;
+    };
+    const baseSeed = 100000 + (Math.abs(hashString(id)) % 800000);
+
+    for (let i = 0; i < parsedEpisodes.length; i++) {
+      const epData = parsedEpisodes[i];
+      const nextEpNum = existingSeqs.length + i + 1;
+      const seqId = crypto.randomUUID();
+
+      await db.insert(sequences).values({
+        id: seqId,
+        projectId: id,
+        title: epData.title || `第 ${nextEpNum} 集`,
+        order: nextEpNum,
+        episodeNumber: nextEpNum,
+        cliffhangerSummary: epData.cliffhanger_hook || "生死卡点",
+        targetDuration: epData.target_duration || 60.0,
+      });
+
+      const planShots = generateAdaptiveStoryShots(epData.synopsis, epData.target_duration || 60.0);
+      const insertedShotTasks: any[] = [];
+
+      for (let slot = 0; slot < planShots.length; slot++) {
+        const s = planShots[slot];
+        const shotId = crypto.randomUUID();
+        insertedShotTasks.push({ shotId, s, slot });
+
+        await db.insert(shots).values({
+          id: shotId,
+          sequenceId: seqId,
+          order: slot + 1,
+          shotSize: s.shot_size || "medium_shot",
+          cameraMovement: s.camera_movement ? JSON.stringify(s.camera_movement) : "{}",
+          cameraAngle: s.camera_angle || "eye_level",
+          subject: s.subject || "",
+          action: s.action || "",
+          dialogue: s.dialogue || "",
+          audio: s.audio ? (typeof s.audio === "object" ? JSON.stringify(s.audio) : s.audio) : "{}",
+          duration: Number(s.duration) || 3.0,
+          imagePrompt: s.image_prompt || "",
+          beatType: s.beat_type || (slot === planShots.length - 1 ? "cliffhanger_hook" : "tension_build"),
+          emotionalVoltage: Number(s.emotional_voltage) || 60,
+          informationGap: s.information_gap || "",
+          computeTier: "standard",
+          storyboardImageUrl: "",
+          isDirty: false,
+          isLocked: false,
+        });
+      }
+
+      const bgTask = async () => {
+        try {
+          await runConcurrentTasks(insertedShotTasks, 3, async ({ shotId, s, slot }) => {
+            const seed = baseSeed + (nextEpNum * 10000) + (slot * 1000);
+            const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+            await db.update(shots).set({ storyboardImageUrl: imageUrl, updatedAt: new Date().toISOString() }).where(eq(shots.id, shotId));
+          });
+        } catch (e) {
+          console.error(`[Background Image Gen Expand Ep ${nextEpNum} Error]:`, e);
+        }
+      };
+
+      if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+        c.executionCtx.waitUntil(bgTask());
+      } else {
+        bgTask();
+      }
+
+      createdEpisodes.push({
+        id: seqId,
+        order: nextEpNum,
+        title: epData.title,
+        shots_count: planShots.length,
+      });
+    }
+
+    return c.json({
+      status: "success",
+      message: `成功为单场戏扩写追加了 ${createdEpisodes.length} 集连载剧集！`,
+      created_episodes: createdEpisodes,
+    });
+  } catch (err: any) {
+    console.error("[Expand To Series Error]:", err);
+    return c.json({ detail: `单场扩写多集短剧失败: ${err?.message || err}` }, 500);
   }
 });
 

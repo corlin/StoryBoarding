@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
-import { Film, Users, Plus, Sparkles, Loader2, X } from "lucide-react";
+import { Film, Users, Plus, Sparkles, Loader2, X, Rocket } from "lucide-react";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 
@@ -19,6 +19,12 @@ export function EpisodePillTrack({ onOpenCharacterHub, onRefreshProject }: Episo
   const [targetDuration, setTargetDuration] = useState(60);
   const [cliffhangerHook, setCliffhangerHook] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Expansion Modal State (Scene-to-Series)
+  const [isExpandModalOpen, setIsExpandModalOpen] = useState(false);
+  const [continuationPrompt, setContinuationPrompt] = useState("");
+  const [episodesToAdd, setEpisodesToAdd] = useState(3);
+  const [isExpanding, setIsExpanding] = useState(false);
 
   if (!currentProject) return null;
 
@@ -62,6 +68,29 @@ export function EpisodePillTrack({ onOpenCharacterHub, onRefreshProject }: Episo
       notify.error(err?.response?.data?.detail || err?.message || "新增分集失败，请检查设置与网络");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleExpandToSeries = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsExpanding(true);
+      const res = await api.expandToSeries(currentProject.id, {
+        continuation_prompt: continuationPrompt.trim(),
+        episodes_to_add: episodesToAdd,
+      });
+
+      notify.success(res.message || `成功扩写追加短剧集数！`);
+      setIsExpandModalOpen(false);
+
+      if (onRefreshProject) {
+        await onRefreshProject();
+      }
+    } catch (err: any) {
+      console.error("Expand Series Failed:", err);
+      notify.error(err?.response?.data?.detail || err?.message || "单场扩写短剧失败，请检查设置与网络");
+    } finally {
+      setIsExpanding(false);
     }
   };
 
@@ -117,6 +146,18 @@ export function EpisodePillTrack({ onOpenCharacterHub, onRefreshProject }: Episo
             <Plus className="w-3.5 h-3.5" />
             <span>追加下一集</span>
           </button>
+
+          {/* Scene-to-Series Expansion Engine Trigger */}
+          {sequences.length <= 1 && (
+            <button
+              onClick={() => setIsExpandModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-500/20 to-sky-500/20 hover:from-purple-500/30 hover:to-sky-500/30 border border-purple-500/40 text-purple-200 text-xs font-semibold rounded-lg transition shrink-0 shadow-xs"
+              title="将当前单场次戏固化为首集（Pilot），一键升维扩写为 3~5 集连载商业短剧"
+            >
+              <Rocket className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+              <span>🚀 扩写为连载短剧</span>
+            </button>
+          )}
         </div>
 
         {/* Right: Character Hub Drawer Trigger */}
@@ -246,6 +287,112 @@ export function EpisodePillTrack({ onOpenCharacterHub, onRefreshProject }: Episo
                     <>
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>立即生成新集数</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Scene-to-Series Expansion Modal */}
+      {isExpandModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-card border border-border rounded-2xl p-6 max-w-lg w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-gradient-to-tr from-purple-500/20 to-sky-500/20 text-purple-300 border border-purple-500/30">
+                  <Rocket className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    单场次升维扩写为连载短剧
+                    <span className="text-[10px] font-mono bg-purple-500/15 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded">
+                      势能接力
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    固化当前场次为「EP 1 · 首播集」，AI 编剧自动推演后续连载全集大纲
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsExpandModalOpen(false)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleExpandToSeries} className="space-y-4">
+              <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-300 space-y-1">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <span>✨ 自动继承首集基因</span>
+                </p>
+                <p className="text-[11px] leading-relaxed text-purple-300/80">
+                  当前工程原有的 12 镜台本、角色 Visual DNA 与场景空间将作为不可变基准。AI 导演将紧抓第 1 集结尾悬念，顺延创作连载大纲与各集卡点。
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground/90 block mb-1.5">
+                  后续剧情续订方向与反转构想 (选填，留空则由 AI 自动推演高潮反击)
+                </label>
+                <textarea
+                  rows={3}
+                  value={continuationPrompt}
+                  onChange={(e) => setContinuationPrompt(e.target.value)}
+                  placeholder="例如：主角负伤逃至黑市避难，遭遇神秘暗卫围捕，发现昔日救命恩人的真实身份竟是敌国细作..."
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-purple-500 leading-relaxed font-normal"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground/90 block mb-1.5">
+                  期望扩写追加的连载集数
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[2, 3, 4].map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => setEpisodesToAdd(count)}
+                      className={`py-2 rounded-lg text-xs font-medium border transition-all ${
+                        episodesToAdd === count
+                          ? "bg-purple-600 text-white border-purple-500 font-semibold shadow-xs"
+                          : "bg-secondary/60 text-muted-foreground border-border hover:text-foreground"
+                      }`}
+                    >
+                      追加 {count} 集 (全剧 {1 + count} 集)
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  disabled={isExpanding}
+                  onClick={() => setIsExpandModalOpen(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={isExpanding}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-purple-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 text-white transition-all shadow-sm disabled:opacity-50"
+                >
+                  {isExpanding ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>AI 编剧正在并发推演各集大纲与分镜...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="w-3.5 h-3.5" />
+                      <span>立即升维扩写短剧</span>
                     </>
                   )}
                 </button>

@@ -1,24 +1,31 @@
+"use client";
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { ShotModel, SequenceModel } from "@/types/shot";
 import {
-  X,
+  Film,
   Play,
   Pause,
   RotateCcw,
-  ChevronLeft,
-  ChevronRight,
+  Volume2,
+  VolumeX,
   Maximize2,
   Minimize2,
+  ChevronLeft,
+  ChevronRight,
+  X,
   Camera,
-  Film,
   Sparkles,
+  Layers,
 } from "lucide-react";
-import { ShotModel } from "@/types/shot";
 import { normalizeAssetUrl } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface CinemaTheaterModalProps {
   isOpen: boolean;
   onClose: () => void;
   shots: ShotModel[];
+  sequences?: SequenceModel[];
   initialShotId?: string | null;
   targetDuration?: number;
   onSelectShot?: (shotId: string) => void;
@@ -38,10 +45,12 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   isOpen,
   onClose,
   shots,
+  sequences = [],
   initialShotId,
   targetDuration = 30,
   onSelectShot,
 }) => {
+  const [isBingeMode, setIsBingeMode] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -52,47 +61,51 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   const animationFrameRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
 
-  const totalDuration = shots.reduce((acc, s) => acc + (s.duration || 2.5), 0) || targetDuration;
+  // When binge mode is enabled, flatten all sequences' shots
+  const activeShots = isBingeMode && sequences.length > 1
+    ? sequences.flatMap((seq) => seq.shots || [])
+    : shots;
+
+  const totalDuration = activeShots.reduce((acc, s) => acc + (s.duration || 2.5), 0) || targetDuration;
 
   // Initialize selected shot
   useEffect(() => {
     if (isOpen && initialShotId) {
-      const idx = shots.findIndex((s) => s.id === initialShotId);
+      const idx = activeShots.findIndex((s) => s.id === initialShotId);
       if (idx !== -1) {
         setCurrentIndex(idx);
-        // Calculate starting time of this shot
-        const startSec = shots.slice(0, idx).reduce((acc, s) => acc + (s.duration || 2.5), 0);
+        const startSec = activeShots.slice(0, idx).reduce((acc, s) => acc + (s.duration || 2.5), 0);
         setCurrentTime(startSec);
       }
     }
-  }, [isOpen, initialShotId, shots]);
+  }, [isOpen, initialShotId, activeShots]);
 
   // Find shot index based on elapsed seconds
   const getShotIndexAtTime = useCallback(
     (timeSec: number) => {
       let accum = 0;
-      for (let i = 0; i < shots.length; i++) {
-        const shotDur = shots[i].duration || 2.5;
+      for (let i = 0; i < activeShots.length; i++) {
+        const shotDur = activeShots[i].duration || 2.5;
         if (timeSec >= accum && timeSec < accum + shotDur) {
           return i;
         }
         accum += shotDur;
       }
-      return Math.max(0, shots.length - 1);
+      return Math.max(0, activeShots.length - 1);
     },
-    [shots]
+    [activeShots]
   );
 
   // Sync index when currentTime changes
   useEffect(() => {
-    if (shots.length > 0) {
+    if (activeShots.length > 0) {
       const activeIdx = getShotIndexAtTime(currentTime);
       setCurrentIndex(activeIdx);
-      if (onSelectShot && shots[activeIdx]) {
-        onSelectShot(shots[activeIdx].id);
+      if (onSelectShot && activeShots[activeIdx]) {
+        onSelectShot(activeShots[activeIdx].id);
       }
     }
-  }, [currentTime, getShotIndexAtTime, onSelectShot, shots]);
+  }, [currentTime, getShotIndexAtTime, onSelectShot, activeShots]);
 
   // Playback Loop via requestAnimationFrame
   useEffect(() => {
@@ -111,7 +124,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
           const nextTime = prevTime + deltaSeconds;
           if (nextTime >= totalDuration) {
             setIsPlaying(false);
-            return 0; // Loop or reset to beginning
+            return totalDuration;
           }
           return nextTime;
         });
@@ -130,8 +143,8 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   }, [isPlaying, playbackRate, totalDuration]);
 
   const handleClose = () => {
-    if (shots[currentIndex] && onSelectShot) {
-      onSelectShot(shots[currentIndex].id);
+    if (activeShots[currentIndex] && onSelectShot) {
+      onSelectShot(activeShots[currentIndex].id);
     }
     onClose();
   };
@@ -161,41 +174,34 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, currentIndex, shots]);
+  }, [isOpen, currentIndex, activeShots]);
 
-  if (!isOpen || shots.length === 0) return null;
+  if (!isOpen || activeShots.length === 0) return null;
 
-  const currentShot = shots[currentIndex] || shots[0];
+  const currentShot = activeShots[currentIndex] || activeShots[0];
+  const currentSequence = sequences.find((seq) => seq.shots?.some((s) => s.id === currentShot?.id));
 
   const handlePrevShot = () => {
     if (currentIndex > 0) {
       const prevIdx = currentIndex - 1;
-      const startSec = shots.slice(0, prevIdx).reduce((acc, s) => acc + (s.duration || 2.5), 0);
+      const startSec = activeShots.slice(0, prevIdx).reduce((acc, s) => acc + (s.duration || 2.5), 0);
       setCurrentTime(startSec);
       setCurrentIndex(prevIdx);
     }
   };
 
   const handleNextShot = () => {
-    if (currentIndex < shots.length - 1) {
+    if (currentIndex < activeShots.length - 1) {
       const nextIdx = currentIndex + 1;
-      const startSec = shots.slice(0, nextIdx).reduce((acc, s) => acc + (s.duration || 2.5), 0);
+      const startSec = activeShots.slice(0, nextIdx).reduce((acc, s) => acc + (s.duration || 2.5), 0);
       setCurrentTime(startSec);
       setCurrentIndex(nextIdx);
     }
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const ratio = Math.max(0, Math.min(1, clickX / rect.width));
-    const targetSec = ratio * totalDuration;
-    setCurrentTime(targetSec);
-  };
-
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch(console.error);
+      document.documentElement.requestFullscreen().catch(console.error);
       setIsFullscreen(true);
     } else {
       document.exitFullscreen().catch(console.error);
@@ -212,16 +218,37 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
             <Film className="w-4 h-4" />
             <span>影院监看模式 · 动态分镜 (Animatic Previz)</span>
           </div>
-          <span className="text-sm font-medium text-white/90">
-            Shot {String(currentIndex + 1).padStart(2, "0")} / {String(shots.length).padStart(2, "0")}
+          <span className="text-sm font-medium text-white/90 font-mono">
+            Shot {String(currentIndex + 1).padStart(2, "0")} / {String(activeShots.length).padStart(2, "0")}
           </span>
+
+          {/* Binge Mode Toggle Button */}
+          {sequences.length > 1 && (
+            <button
+              onClick={() => {
+                setIsBingeMode(!isBingeMode);
+                setCurrentIndex(0);
+                setCurrentTime(0);
+              }}
+              className={cn(
+                "px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ml-2",
+                isBingeMode
+                  ? "bg-amber-500 text-black shadow-sm font-bold"
+                  : "bg-white/10 text-white/80 hover:bg-white/20 border border-white/15"
+              )}
+              title={isBingeMode ? "切换为当前单集预演" : "开启全剧多集连续试映连播 (Binge Previz)"}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>{isBingeMode ? "🎬 全剧连播 (全集)" : "🔍 单集精看"}</span>
+            </button>
+          )}
         </div>
 
         {/* Center Hotkeys Hint */}
         <div className="hidden md:flex items-center gap-4 text-xs text-white/50">
           <span><kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[11px]">空格</kbd> 播放/暂停</span>
           <span><kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[11px]">← / →</kbd> 切镜</span>
-          <span><kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[11px]">Esc</kbd> 退出</span>
+          <span><kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[11px]">Esc</kbd> 退出即修</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -275,15 +302,23 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
 
           {/* Top Left Shot Badge */}
           <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/85 backdrop-blur-md px-3.5 py-1.5 rounded-lg border border-white/20 shadow-lg text-white font-mono text-sm">
+            {currentSequence && (
+              <>
+                <span className="font-bold text-amber-400">
+                  EP {currentSequence.episode_number || currentSequence.order}
+                </span>
+                <span className="text-white/40">·</span>
+              </>
+            )}
             <span className="font-bold text-sky-400">
-              {String(currentIndex + 1).padStart(2, "0")}
+              #{String(currentIndex + 1).padStart(2, "0")}
             </span>
             <span className="text-white/40">·</span>
             <span className="font-semibold text-white/90">
               {SHOT_SIZE_NAME[currentShot?.shot_size] || currentShot?.shot_size?.toUpperCase()}
             </span>
             <span className="text-white/40">·</span>
-            <span className="text-emerald-400 font-bold">{currentShot?.duration}s</span>
+            <span className="text-emerald-400 font-bold">{currentShot?.duration || 2.5}s</span>
           </div>
 
           {/* Top Right Camera Angle / Movement Badge */}
@@ -300,8 +335,8 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
               {currentShot?.action || "（无动作描述）"}
             </p>
             {currentShot?.dialogue && (
-              <p className="text-sm md:text-base font-serif text-amber-300/90 mt-1 italic">
-                {currentShot.dialogue}
+              <p className="text-sm md:text-base font-serif italic text-amber-300/90 mt-2">
+                “{currentShot.dialogue}”
               </p>
             )}
           </div>
@@ -310,93 +345,65 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
         {/* Right Arrow Navigation */}
         <button
           onClick={handleNextShot}
-          disabled={currentIndex === shots.length - 1}
+          disabled={currentIndex === activeShots.length - 1}
           className="absolute right-4 md:right-8 z-20 p-3 rounded-full bg-black/60 hover:bg-white/20 text-white/70 hover:text-white border border-white/10 backdrop-blur disabled:opacity-20 disabled:pointer-events-none transition-all shadow-xl"
         >
           <ChevronRight className="w-6 h-6" />
         </button>
       </div>
 
-      {/* Bottom Timeline Control Panel */}
-      <div className="border-t border-white/10 bg-black/80 backdrop-blur-md px-6 py-4 space-y-3 z-20">
-        {/* Scrubber Bar with Shot Segments */}
+      {/* Bottom Transport Control Bar */}
+      <div className="h-20 px-6 border-t border-white/10 bg-black/60 backdrop-blur-md flex flex-col justify-center gap-2 z-20">
+        {/* Scrubber Progress Bar */}
         <div
-          onClick={handleSeek}
-          className="relative h-4 bg-white/10 rounded-full cursor-pointer overflow-hidden border border-white/15 group"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const pct = Math.max(0, Math.min(1, clickX / rect.width));
+            setCurrentTime(pct * totalDuration);
+          }}
+          className="h-2 w-full bg-white/10 rounded-full cursor-pointer relative overflow-hidden group"
         >
-          {/* Shot Segment Markers */}
-          <div className="absolute inset-0 flex">
-            {shots.map((shot, idx) => {
-              const shotDur = shot.duration || 2.5;
-              const widthPct = (shotDur / totalDuration) * 100;
-              return (
-                <div
-                  key={shot.id}
-                  style={{ width: `${widthPct}%` }}
-                  className={`h-full border-r border-black/40 transition-colors ${
-                    idx === currentIndex ? "bg-primary/50" : "hover:bg-white/15"
-                  }`}
-                  title={`Shot ${idx + 1} (${shotDur}s)`}
-                />
-              );
-            })}
-          </div>
-
-          {/* Current Elapsed Progress Fill */}
           <div
             style={{ width: `${(currentTime / totalDuration) * 100}%` }}
-            className="absolute top-0 bottom-0 left-0 bg-primary/80 transition-all duration-75 pointer-events-none"
-          />
-
-          {/* Scrubber Playhead Thumb */}
-          <div
-            style={{ left: `${(currentTime / totalDuration) * 100}%` }}
-            className="absolute top-0 bottom-0 w-2 -ml-1 bg-white rounded-full shadow-lg pointer-events-none"
+            className="h-full bg-gradient-to-r from-primary to-amber-400 rounded-full relative"
           />
         </div>
 
-        {/* Playback Controls & Stats */}
-        <div className="flex items-center justify-between text-white">
-          {/* Left: Time Elapsed / Total */}
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-sm font-semibold tracking-wider text-white">
-              {currentTime.toFixed(1)}s{" "}
-              <span className="text-white/40 font-normal">/ {totalDuration.toFixed(1)}s</span>
-            </span>
-          </div>
-
-          {/* Center: Play / Pause / Reset Controls */}
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between text-white text-xs">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsPlaying(!isPlaying)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+            </button>
             <button
               onClick={() => {
                 setIsPlaying(false);
                 setCurrentTime(0);
                 setCurrentIndex(0);
               }}
-              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/80 transition-colors"
+              className="p-1.5 rounded-lg text-white/70 hover:text-white transition-colors"
               title="重置到开头"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
 
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="p-3 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-all shadow-lg font-bold"
-              title={isPlaying ? "暂停 (空格)" : "播放 (空格)"}
-            >
-              {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-            </button>
+            <span className="font-mono text-white/70">
+              {currentTime.toFixed(1)}s / {totalDuration.toFixed(1)}s
+            </span>
           </div>
 
-          {/* Right: Rate Selector */}
-          <div className="flex items-center gap-1.5 bg-white/10 p-1 rounded-lg border border-white/10 text-xs font-mono">
+          <div className="flex items-center gap-2">
             {[1, 1.5, 2].map((rate) => (
               <button
                 key={rate}
                 onClick={() => setPlaybackRate(rate)}
-                className={`px-2 py-0.5 rounded transition-colors ${
-                  playbackRate === rate ? "bg-primary text-primary-foreground font-bold" : "text-white/70 hover:text-white"
-                }`}
+                className={cn(
+                  "px-2 py-0.5 rounded font-mono text-[11px]",
+                  playbackRate === rate ? "bg-white/20 text-white font-bold" : "text-white/40 hover:text-white"
+                )}
               >
                 {rate}x
               </button>

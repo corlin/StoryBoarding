@@ -10,11 +10,13 @@ import {
   Copy,
   Loader2,
   X,
+  Layers,
 } from "lucide-react";
 import { ProjectModel, ShotModel } from "@/types/shot";
 import { api } from "@/lib/api";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
+import { cn } from "@/lib/utils";
 
 interface ExportDeliverablesModalProps {
   isOpen: boolean;
@@ -29,6 +31,7 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
   project,
   shots = [],
 }) => {
+  const [exportScope, setExportScope] = useState<"current" | "all">("current");
   const [exportWithHud, setExportWithHud] = useState(true);
   const [isExportingPng, setIsExportingPng] = useState(false);
   const [isCopyingPrompt, setIsCopyingPrompt] = useState(false);
@@ -36,7 +39,13 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
 
   if (!isOpen || !project) return null;
 
-  const currentShots = shots.length > 0 ? shots : project.sequences?.[0]?.shots || [];
+  const allShots = (project.sequences || []).flatMap((seq) => seq.shots || []);
+  const currentShots =
+    exportScope === "all" && allShots.length > 0
+      ? allShots
+      : shots.length > 0
+      ? shots
+      : project.sequences?.[0]?.shots || [];
 
   const handleExportStoryboardSheetPNG = async () => {
     if (!project || isExportingPng) return;
@@ -84,7 +93,9 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
             </div>
             <div>
               <h3 className="font-bold text-base text-foreground">好莱坞 5 大工业级交付物导出</h3>
-              <p className="text-xs text-muted-foreground">《{project.title}》· 共 {currentShots.length} 个分镜</p>
+              <p className="text-xs text-muted-foreground">
+                《{project.title}》· {project.sequences && project.sequences.length > 1 ? `${project.sequences.length} 集 · ` : ""}当前导出: {currentShots.length} 个分镜
+              </p>
             </div>
           </div>
           <button
@@ -96,6 +107,42 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
         </div>
 
         <div className="space-y-3 pt-1">
+          {/* Multi-Episode Delivery Scope Switcher */}
+          {project.sequences && project.sequences.length > 1 && (
+            <div className="flex items-center justify-between px-3 py-2 bg-secondary/50 rounded-xl border border-border/70">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <Layers className="w-4 h-4 text-amber-400" />
+                <span>交付导出范围:</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setExportScope("current")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-xs font-medium transition-all border",
+                    exportScope === "current"
+                      ? "bg-primary text-primary-foreground font-bold shadow-xs border-primary"
+                      : "bg-background/60 text-muted-foreground hover:text-foreground border-border/60"
+                  )}
+                >
+                  当前单集 ({shots.length} 镜)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExportScope("all")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-xs font-medium transition-all border",
+                    exportScope === "all"
+                      ? "bg-amber-500 text-black font-bold shadow-xs border-amber-500"
+                      : "bg-background/60 text-muted-foreground hover:text-foreground border-border/60"
+                  )}
+                >
+                  全剧打包 ({allShots.length} 镜)
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Previz HUD Option */}
           <div className="flex items-center justify-between px-3 py-2 bg-secondary/40 rounded-xl border border-border/60">
             <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer select-none">

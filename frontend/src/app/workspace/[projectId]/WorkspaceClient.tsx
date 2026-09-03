@@ -13,7 +13,7 @@ import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelinePr
 import { VersionHistoryDrawer } from "@/components/drawers/VersionHistoryDrawer";
 import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
 import { EpisodePillTrack } from "@/components/workspace/EpisodePillTrack";
-import { CharacterHubDrawer } from "@/components/drawers/CharacterHubDrawer";
+import { BibleModal } from "@/components/modals/BibleModal";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
@@ -49,7 +49,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [drawerShotId, setDrawerShotId] = useState<string | null>(null);
   const [isCharacterHubOpen, setIsCharacterHubOpen] = useState(false);
 
-  const { activeEpisodeIndex } = useWorkspaceStore();
+  const { activeEpisodeIndex, setActiveEpisodeIndex } = useWorkspaceStore();
 
   // Resizable Split-Pane states (5:5 equal default split)
   const [leftPanelPercent, setLeftPanelPercent] = useState(50);
@@ -629,11 +629,14 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         </div>
       </div>
 
-      {/* Bottom Column: Timeline Scrubber */}
+      {/* Bottom Column: Dual-Scale Timeline & Voltage Waves */}
       <TimelineBar
         shots={shots}
         targetDuration={displayProject?.target_duration || 30.0}
         selectedShotId={selectedShotId}
+        sequences={displayProject?.sequences || []}
+        activeEpisodeIndex={activeEpisodeIndex}
+        onSelectEpisode={(idx) => setActiveEpisodeIndex(idx)}
         onSelectShot={(id) => selectShot(id)}
       />
 
@@ -649,6 +652,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       <CinemaTheaterModal
         isOpen={isTheaterOpen}
         shots={shots}
+        sequences={displayProject?.sequences || []}
         initialShotId={theaterShotId}
         onSelectShot={selectShot}
         onClose={() => setIsTheaterOpen(false)}
@@ -683,10 +687,12 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onConfirm={handleCreateSnapshot}
       />
 
-      {/* Global Character Hub Drawer */}
-      <CharacterHubDrawer
+      {/* Unified Visual Bible & Character DNA Central Registry */}
+      <BibleModal
         isOpen={isCharacterHubOpen}
         onClose={() => setIsCharacterHubOpen(false)}
+        project={displayProject}
+        mode="characters"
       />
     </div>
   );
