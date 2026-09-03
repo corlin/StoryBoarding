@@ -52,6 +52,11 @@ export const shots = sqliteTable("shots", {
   storyboardImageUrl: text("storyboard_image_url"),
   isDirty: integer("is_dirty", { mode: "boolean" }).default(false).notNull(),
   isLocked: integer("is_locked", { mode: "boolean" }).default(false).notNull(),
+  // Narrative OS Phase 1: Dramatic Beat State Tree
+  beatType: text("beat_type").default("tension_build").notNull(), // 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook'
+  emotionalVoltage: real("emotional_voltage").default(50.0).notNull(), // 0.0 - 100.0 (Quantitative Tension/Payoff Voltage)
+  informationGap: text("information_gap").default("").notNull(), // Why audience must watch the next shot (Dramatic Hook)
+  computeTier: text("compute_tier").default("standard").notNull(), // 'flagship' | 'standard' | 'economy'
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });

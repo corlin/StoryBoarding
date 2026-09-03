@@ -103,6 +103,10 @@ export async function ensureSchema(d1: D1Database) {
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN dialogue TEXT DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN is_locked INTEGER NOT NULL DEFAULT 0;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN beat_type TEXT DEFAULT 'tension_build';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN emotional_voltage REAL DEFAULT 50.0;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN information_gap TEXT DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN compute_tier TEXT DEFAULT 'standard';`).run(); } catch (_) {}
 
     schemaInitialized = true;
   } catch (e) {

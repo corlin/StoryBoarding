@@ -442,6 +442,42 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
               </div>
             );
           })()}
+
+          {/* Narrative OS Phase 1: Beat Type, Emotional Voltage & Information Gap */}
+          {shot.beat_type && (
+            <div className="flex items-center gap-1.5 mt-2 pt-1.5 border-t border-border/40 text-[10px]">
+              <span
+                className={cn(
+                  "px-1.5 py-0.5 rounded font-mono font-bold flex items-center gap-1 shrink-0",
+                  shot.beat_type === "cliffhanger_hook" || shot.beat_type === "hook"
+                    ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                    : shot.beat_type === "climax_payoff"
+                    ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                    : "bg-sky-500/15 text-sky-400 border border-sky-500/30"
+                )}
+              >
+                <span>
+                  {shot.beat_type === "hook"
+                    ? "⚡ 开篇钩子"
+                    : shot.beat_type === "cliffhanger_hook"
+                    ? "🎣 悬念卡点"
+                    : shot.beat_type === "climax_payoff"
+                    ? "🔥 戏剧高潮"
+                    : "📈 情绪蓄压"}
+                </span>
+                <span className="opacity-80">({shot.emotional_voltage ?? 50}V)</span>
+              </span>
+
+              {shot.information_gap ? (
+                <span
+                  className="text-[10px] text-muted-foreground truncate"
+                  title={`为什么看下一镜: ${shot.information_gap}`}
+                >
+                  🪝 {shot.information_gap}
+                </span>
+              ) : null}
+            </div>
+          )}
         </div>
 
         {/* Footer Info: Camera Movement, Video Motion Indicator & Detail Trigger */}

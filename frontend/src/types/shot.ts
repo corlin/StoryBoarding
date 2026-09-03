@@ -68,6 +68,11 @@ export interface ShotModel {
   continuity_data: ContinuityData;
   is_dirty: boolean;
   is_locked?: boolean;
+  // Narrative OS Phase 1: Dramatic Beat State Tree
+  beat_type?: 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook';
+  emotional_voltage?: number; // 0.0 - 100.0 (Quantitative Tension/Payoff Voltage)
+  information_gap?: string; // Why audience must watch the next shot (Dramatic Hook)
+  compute_tier?: 'flagship' | 'standard' | 'economy';
   created_at: string;
   updated_at: string;
 }

@@ -19,6 +19,11 @@ export interface ShotPlan {
   image_prompt: string;
   video_prompt: string;
   continuity_data?: Record<string, any>;
+  // Narrative OS Phase 1
+  beat_type?: string; // 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook'
+  emotional_voltage?: number; // 0 - 100
+  information_gap?: string; // 为什么看下一镜的悬念引线
+  compute_tier?: "flagship" | "standard" | "economy";
 }
 
 export interface DirectorGenerationResult {
@@ -102,6 +107,10 @@ ${pacingGuidance}
 - narrative_function: 视听叙事功能 (如 "空间建立 / 悲痛哭诉 / 狂风怒吼 / 城墙坍塌 / 余韵定格")
 - lighting: 光影基调 (如 "阴郁寒冬冷灰天光，侧逆光勾勒人物消瘦凄凉轮廓")
 - audio: { "sfx": "呼啸寒风声、沉重脚步踩雪声", "music": "凄楚幽咽的古琴与悲壮交响" }
+- beat_type: 戏剧节拍类型 ('hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook')
+- emotional_voltage: 情绪势能电压 (0~100 的整数，首镜通常为 70+开篇悬念，中段蓄压 50~80，高潮 90+，末镜为 95+绝境卡点)
+- information_gap: 为什么观众必须看下一镜？(简练阐明此镜头结尾留存的信息缺口与悬念引线)
+- compute_tier: 算力调度建议 ('flagship' | 'standard' | 'economy'，高潮动作/人物特写为 flagship，普通对白为 standard，空镜头为 economy)
 - image_prompt: 纯净英文自然生图描述句 (Pure Visual Description in English, no labels)
 - video_prompt: 4段式 AI 视频提示词 ([Camera], [Action], [Dynamics], [Quality])
 - continuity_data: 镜头间剪辑流数据 ({ "screen_direction": "left_to_right" | "right_to_left", "motion_in": "入画动势", "motion_out": "出画动势", "transition_recommendation": "Match cut on action" | "Cross dissolve" | "Hard cut" })
@@ -919,6 +928,39 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
       }
     );
 
+    const totalCount = baseArcs.length;
+    let beatType = "tension_build";
+    let emotionalVoltage = 50;
+    let infoGap = "人物行动推进中，潜藏危机正在积蓄";
+    let computeTier: "flagship" | "standard" | "economy" = "standard";
+
+    if (idx === 0) {
+      beatType = "hook";
+      emotionalVoltage = 78;
+      infoGap = "开篇核心悬念锁定：突发危机或主角面临生死抉择";
+      computeTier = "flagship";
+    } else if (idx === totalCount - 1) {
+      beatType = "cliffhanger_hook";
+      emotionalVoltage = 96;
+      infoGap = "绝境悬念卡点：突发重大变故，强迫观众期待下一集";
+      computeTier = "flagship";
+    } else if (arc.size.includes("close") || arc.act.includes("高潮") || arc.act.includes("冲刺") || arc.act.includes("对决")) {
+      beatType = "climax_payoff";
+      emotionalVoltage = 90;
+      infoGap = "戏剧冲突临界引爆，胜负生死即刻分晓";
+      computeTier = "flagship";
+    } else if (arc.size.includes("extreme_wide")) {
+      beatType = "inciting_incident";
+      emotionalVoltage = 40;
+      infoGap = "宏大世界观徐徐铺开，风暴即将来临";
+      computeTier = "economy";
+    } else {
+      beatType = "tension_build";
+      emotionalVoltage = Math.min(85, Math.round(45 + (idx / totalCount) * 40));
+      infoGap = "矛盾层层递进，双方博弈进入白热化阶段";
+      computeTier = "standard";
+    }
+
     return {
       order: idx + 1,
       duration: durPerShot,
@@ -945,6 +987,10 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
         motion_out: `Shot #${idx + 1} exit kinetic momentum forward`,
         transition_recommendation: idx === baseArcs.length - 1 ? "Fade to black" : "Match cut on action",
       },
+      beat_type: beatType,
+      emotional_voltage: emotionalVoltage,
+      information_gap: infoGap,
+      compute_tier: computeTier,
     };
   });
 }
@@ -1068,6 +1114,12 @@ export async function generateDirectorPipeline(
                 continuityData.transition_recommendation = idx === parsed.shots.length - 1 ? "Fade to black" : "Match cut on action";
               }
 
+              const totalParsed = parsed.shots.length || 1;
+              const beatType = s.beat_type || (idx === 0 ? "hook" : idx === totalParsed - 1 ? "cliffhanger_hook" : s.shot_size?.includes("close") ? "climax_payoff" : "tension_build");
+              const emotionalVoltage = Number(s.emotional_voltage) || (idx === 0 ? 78 : idx === totalParsed - 1 ? 96 : Math.min(92, Math.round(45 + (idx / totalParsed) * 45)));
+              const infoGap = (s.information_gap || "").trim() || (idx === totalParsed - 1 ? "绝境反转未解，强刺激驱动下一集" : "危机步步紧逼，行动后果悬念未决");
+              const computeTier = s.compute_tier || (beatType === "climax_payoff" || beatType === "cliffhanger_hook" ? "flagship" : "standard");
+
               return {
                 order: s.order || idx + 1,
                 duration: Number(s.duration) || Number((targetDuration / parsed.shots.length).toFixed(1)) || 2.5,
@@ -1083,6 +1135,10 @@ export async function generateDirectorPipeline(
                 image_prompt: finalImgPrompt,
                 video_prompt: finalVidPrompt,
                 continuity_data: continuityData,
+                beat_type: beatType,
+                emotional_voltage: emotionalVoltage,
+                information_gap: infoGap,
+                compute_tier: computeTier,
               };
             });
 

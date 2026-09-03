@@ -157,9 +157,21 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
           <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-amber-400 rounded-full" />
         </div>
 
-        {/* Shot Segment Bars */}
+        {/* Shot Segment Bars with Emotional Voltage Waveform */}
         {shots.map((shot, idx) => {
           const isSelected = shot.id === selectedShotId;
+          const voltage = shot.emotional_voltage ?? 50;
+          const isHook = shot.beat_type === "hook" || shot.beat_type === "cliffhanger_hook";
+          const isClimax = shot.beat_type === "climax_payoff";
+
+          const voltageColor =
+            voltage >= 88
+              ? "bg-rose-500/30 border-t-rose-500"
+              : voltage >= 72
+              ? "bg-amber-500/25 border-t-amber-500"
+              : voltage >= 50
+              ? "bg-sky-500/20 border-t-sky-500"
+              : "bg-emerald-500/15 border-t-emerald-500";
 
           return (
             <div
@@ -179,10 +191,41 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
                   ? "bg-primary/25 border-primary text-primary font-bold shadow-md ring-1 ring-primary/40"
                   : "bg-muted/30 hover:bg-muted/60 border-border/50 text-muted-foreground"
               )}
-              title={`Shot ${idx + 1}: ${shot.shot_size} (${shot.duration}s)`}
+              title={`Shot ${idx + 1}: ${shot.shot_size} | 情绪势能: ${voltage}V | ${shot.beat_type || "节拍"} - ${shot.information_gap || shot.action}`}
             >
-              <span className="truncate">#{String(idx + 1).padStart(2, "0")}</span>
-              <span className="text-[9px] opacity-80">{shot.duration}s</span>
+              {/* Emotional Voltage Waveform Background Fill */}
+              <div
+                style={{ height: `${Math.min(100, Math.max(15, voltage))}%` }}
+                className={cn(
+                  "absolute inset-x-0 bottom-0 pointer-events-none transition-all duration-300 border-t",
+                  voltageColor
+                )}
+              />
+
+              <div className="relative z-10 flex items-center gap-1 truncate">
+                <span className="truncate">#{String(idx + 1).padStart(2, "0")}</span>
+                {isHook ? (
+                  <span className="text-[9px] text-rose-400 font-bold" title="注意力钩子">
+                    {shot.beat_type === "cliffhanger_hook" ? "🎣" : "⚡"}
+                  </span>
+                ) : isClimax ? (
+                  <span className="text-[9px] text-amber-400 font-bold" title="核心高潮">
+                    🔥
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="relative z-10 flex items-center gap-1">
+                <span className="text-[9px] opacity-75">{shot.duration}s</span>
+                <span
+                  className={cn(
+                    "text-[8px] px-1 rounded font-bold",
+                    voltage >= 80 ? "text-rose-400 bg-rose-500/20" : "text-sky-400 bg-sky-500/10"
+                  )}
+                >
+                  {voltage}V
+                </span>
+              </div>
             </div>
           );
         })}
