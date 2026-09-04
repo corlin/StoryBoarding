@@ -75,6 +75,22 @@ export const AuthModal: React.FC = () => {
     }
   };
 
+  const handleQuickDemoLogin = async () => {
+    try {
+      setIsSubmitting(true);
+      setAccount("demo@caifu.social");
+      setPassword("demo123");
+      await login("demo@caifu.social", "demo123");
+      notify.success("🎬 欢迎使用 Demo 官方演示账号！已成功登录。");
+    } catch (err: any) {
+      console.error("Demo login failed:", err);
+      const detail = err?.response?.data?.detail || err?.response?.data?.error || err?.message;
+      notify.error(detail || "Demo 账号登录失败，请检查账号状态");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-card border border-border/80 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 relative">
@@ -97,6 +113,27 @@ export const AuthModal: React.FC = () => {
           <p className="text-xs text-muted-foreground">
             {isLogin ? "登录以同步您的云端故事板项目与多端设置" : "创建专属导演账号，开启工业级 AI 视听创作"}
           </p>
+        </div>
+
+        {/* Demo Fast-Pass VIP Card */}
+        <div className="p-3 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent flex items-center justify-between gap-3 shadow-inner">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span>官方演示 Demo 体验通道</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+              内置官方样本工程，免输入账号密码直接体验
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={handleQuickDemoLogin}
+            className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black shadow-sm shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-50"
+          >
+            {isSubmitting ? "登入中..." : "一键登入"}
+          </button>
         </div>
 
         {/* Tab Switcher */}

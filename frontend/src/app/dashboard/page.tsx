@@ -73,7 +73,7 @@ const STARTER_TEMPLATES = [
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
+  const { user, isAuthenticated, openAuthModal, openSettingsModal, login } = useAuthStore();
 
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -332,13 +332,31 @@ export default function DashboardPage() {
           {isAuthenticated && user ? (
             <UserMenuDropdown />
           ) : (
-            <button
-              onClick={() => openAuthModal("login")}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 border border-sky-500/30 transition-colors shadow-2xs"
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>登录 / 注册</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await login("demo@caifu.social", "demo123");
+                    notify.success("🎬 已一键登入官方演示 Demo 账号！");
+                  } catch (err) {
+                    openAuthModal("login");
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 transition-all shadow-2xs"
+                title="免注册免输密码，一键以官方演示 Demo 账号体验"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>体验 Demo 账号</span>
+              </button>
+              <button
+                onClick={() => openAuthModal("login")}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 border border-sky-500/30 transition-colors shadow-2xs"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>登录 / 注册</span>
+              </button>
+            </div>
           )}
 
           <button
@@ -505,7 +523,7 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground mb-5 max-w-sm">
                 {searchQuery ? "请尝试更换关键词，或清空搜索查看所有分镜工程" : "选择上方经典起步模板，或点击下方按钮开启你的第一个故事板"}
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-3">
                 {searchQuery ? (
                   <button
                     onClick={() => setSearchQuery("")}
@@ -514,13 +532,32 @@ export default function DashboardPage() {
                     清空搜索
                   </button>
                 ) : (
-                  <button
-                    onClick={handleOpenCreateModal}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-md"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>立即新建分镜工程</span>
-                  </button>
+                  <>
+                    {!isAuthenticated && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await login("demo@caifu.social", "demo123");
+                            notify.success("🎬 已一键登入官方演示 Demo 账号！");
+                          } catch (err) {
+                            openAuthModal("login");
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-md active:scale-95"
+                      >
+                        <Sparkles className="w-4 h-4 text-black" />
+                        <span>一键进入 Demo 体验账号</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={handleOpenCreateModal}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-md"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>立即新建分镜工程</span>
+                    </button>
+                  </>
                 )}
               </div>
             </div>

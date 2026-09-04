@@ -110,6 +110,7 @@ export default function HomePage() {
     isAuthenticated,
     user,
     openAuthModal,
+    login,
     isSettingsModalOpen,
     openSettingsModal,
     closeSettingsModal,
@@ -324,6 +325,23 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await login("demo@caifu.social", "demo123");
+                      notify.success("🎬 已一键登入官方演示 Demo 账号！");
+                      router.push("/dashboard");
+                    } catch (err) {
+                      openAuthModal("login");
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition-all shadow-xs"
+                  title="免注册免输密码，一键以官方演示账号身份体验全套功能"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>体验 Demo 账号</span>
+                </button>
                 <button
                   onClick={() => openAuthModal("login")}
                   className="px-4 py-2 rounded-xl text-foreground/90 bg-secondary/80 hover:bg-secondary border border-border transition-colors font-semibold shadow-xs"
