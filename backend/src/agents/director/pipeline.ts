@@ -995,15 +995,22 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
   });
 }
 
+export interface DirectorPipelineOptions {
+  apiKey?: string;
+  apiBase?: string;
+  model?: string;
+  strictCast?: boolean;
+  allowedCharacters?: string[];
+  mustHaveBeats?: string[];
+  genre?: string;
+  catharsisLevel?: string;
+}
+
 // Full-featured Hollywood Director pipeline with LLM generation and genre-adaptive fallback
 export async function generateDirectorPipeline(
   storyText: string,
   targetDuration: number = 30.0,
-  options: {
-    apiKey?: string;
-    apiBase?: string;
-    model?: string;
-  } = {}
+  options: DirectorPipelineOptions = {}
 ): Promise<DirectorGenerationResult> {
   const apiKey = options.apiKey?.trim();
   const apiBase = options.apiBase?.trim() || "https://openrouter.ai/api/v1";
@@ -1018,7 +1025,27 @@ export async function generateDirectorPipeline(
   if (apiKey) {
     try {
       const systemPrompt = getDirectorSystemPrompt(targetDuration);
-      const userMessage = `【故事剧本内容】：\n${preprocessedStory}\n\n【目标时长】：${targetDuration} 秒（请严格规划 ${expectedCount} 个分镜头）。请直接输出纯 JSON 对象（不要附加其他说明文字），格式如下：\n{\n  "theme": "故事主题",\n  "global_visual_anchor": "主角/主体外观特征与核心场景基石 (纯英文自然描述句，严禁包含任何文字标签)",\n  "shots": [ ... ]\n}`;
+
+      let guardrailDirectives = "";
+      if (options.strictCast && options.allowedCharacters && options.allowedCharacters.length > 0) {
+        guardrailDirectives += `\n\n【⚠️ 极其严格的出场角色锁定 (Strict Cast Boundary Lock)】:\n整场戏的所有镜头、动作、对手戏与台词，必须百分之百严格限定在以下人物中：${options.allowedCharacters.join("、")}。\n严禁擅自添加任何有名有姓的新角色（如额外上司、助理、亲属、前任等）！所有矛盾与冲突只能在上述角色之间爆发与推进！`;
+      }
+
+      if (options.mustHaveBeats && options.mustHaveBeats.length > 0) {
+        guardrailDirectives += `\n\n【🎯 不可违背的核心剧情事件 (Must-Have Plot Beats)】:\n以下事件是本次分镜必须严格体现的关键剧情动作，严禁遗漏或淡化，必须在对应分镜中明确发生并产生戏剧后果：\n${options.mustHaveBeats.map((b) => `- ${b}`).join("\n")}`;
+      }
+
+      if (options.genre) {
+        const genreDesc =
+          options.genre === "female_lead"
+            ? "女频情感与大女主成长（拒绝无底线辱女恶趣味与无脑降智反派，注重人物内心博弈、清醒反击与情感张力）"
+            : options.genre === "male_lead"
+            ? "男频逆袭与热血商战（节奏明快、戏剧反差与爽感有力，逻辑自洽）"
+            : "现实主义与情感治愈（真实克制、温情细腻、拒绝浮夸狗血）";
+        guardrailDirectives += `\n\n【垂直赛道与价值观基调】: ${genreDesc}`;
+      }
+
+      const userMessage = `【故事剧本内容】：\n${preprocessedStory}${guardrailDirectives}\n\n【目标时长】：${targetDuration} 秒（请严格规划 ${expectedCount} 个分镜头）。请直接输出纯 JSON 对象（不要附加其他说明文字），格式如下：\n{\n  "theme": "故事主题",\n  "global_visual_anchor": "主角/主体外观特征与核心场景基石 (纯英文自然描述句，严禁包含任何文字标签)",\n  "shots": [ ... ]\n}`;
 
       const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
         method: "POST",

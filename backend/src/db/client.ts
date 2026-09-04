@@ -118,6 +118,7 @@ export async function ensureSchema(d1: D1Database) {
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN episode_number INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN cliffhanger_summary TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN target_duration REAL NOT NULL DEFAULT 60.0;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN screenplay_text TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN dialogue TEXT DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN is_locked INTEGER NOT NULL DEFAULT 0;`).run(); } catch (_) {}

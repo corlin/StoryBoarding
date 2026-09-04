@@ -263,6 +263,30 @@ export const api = {
     return data;
   },
 
+  // Pitch Ideas Generator (One-line idea to 3 short drama proposals)
+  async generatePitchIdeas(payload: {
+    prompt: string;
+    genre?: "female_lead" | "male_lead" | "realistic";
+    catharsis_level?: "restrained" | "commercial" | "extreme";
+    strict_cast?: boolean;
+    must_have_beats?: string[];
+  }): Promise<{ status: string; proposals: any[] }> {
+    const { data } = await apiClient.post("/generate/pitch-ideas", payload);
+    return data;
+  },
+
+  // Master Literary Screenplay Management
+  async updateSequenceScreenplay(
+    projectId: string,
+    seqId: string,
+    screenplayText: string
+  ): Promise<{ status: string; sequence_id: string; screenplay_text: string }> {
+    const { data } = await apiClient.put(`/projects/${projectId}/sequences/${seqId}/screenplay`, {
+      screenplay_text: screenplayText,
+    });
+    return data;
+  },
+
   // Export URLs
   getExportScriptUrl(projectId: string): string {
     const base = getApiBaseUrl();

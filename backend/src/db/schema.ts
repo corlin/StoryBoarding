@@ -32,6 +32,7 @@ export const sequences = sqliteTable("sequences", {
   episodeNumber: integer("episode_number").default(1).notNull(),
   cliffhangerSummary: text("cliffhanger_summary").default("").notNull(), // 集尾强悬念卡点
   targetDuration: real("target_duration").default(60.0).notNull(), // 单集目标时长
+  screenplayText: text("screenplay_text").default("").notNull(), // 核心文学剧本母本正文 (Master Screenplay)
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });

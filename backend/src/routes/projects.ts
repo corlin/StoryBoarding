@@ -97,6 +97,7 @@ router.get("/:id", async (c) => {
           episode_number: seq.episodeNumber ?? 1,
           cliffhanger_summary: seq.cliffhangerSummary || "",
           target_duration: seq.targetDuration ?? 60.0,
+          screenplay_text: seq.screenplayText || "",
           shots: shotList.map((s) => ({
             id: s.id,
             sequence_id: s.sequenceId,
@@ -558,6 +559,47 @@ router.put("/:id", async (c) => {
   } catch (err: any) {
     console.error("[Update Project Error]:", err);
     return c.json({ detail: `更新工程失败: ${err?.message || err}` }, 500);
+  }
+});
+
+// PUT /api/projects/:id/sequences/:seqId/screenplay (Update literary master screenplay)
+router.put("/:id/sequences/:seqId/screenplay", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const id = c.req.param("id");
+    const seqId = c.req.param("seqId");
+
+    const authHeader = c.req.header("Authorization");
+    const authUser = await getAuthUser(authHeader);
+    if (!authUser) {
+      return c.json({ detail: "请先登录导演账号" }, 401);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const screenplayText = (body.screenplay_text || "").trim();
+
+    const [updated] = await db
+      .update(sequences)
+      .set({
+        screenplayText,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(sequences.id, seqId))
+      .returning();
+
+    if (!updated) {
+      return c.json({ detail: "Sequence not found" }, 404);
+    }
+
+    return c.json({
+      status: "success",
+      sequence_id: seqId,
+      screenplay_text: updated.screenplayText,
+    });
+  } catch (err: any) {
+    console.error("[Update Screenplay Error]:", err);
+    return c.json({ detail: `更新剧本母本失败: ${err?.message || err}` }, 500);
   }
 });
 

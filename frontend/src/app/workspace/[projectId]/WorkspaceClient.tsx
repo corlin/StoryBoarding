@@ -567,6 +567,11 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
               sequenceId={activeSequence?.id || ""}
               selectedShotId={selectedShotId}
               characters={displayProject?.characters || []}
+              project={displayProject}
+              sequence={activeSequence}
+              onRefreshProject={async () => {
+                await fetchProject(effectiveProjectId);
+              }}
               onSelectShot={selectShot}
               onUpdateShot={saveShotRemote}
               onAddShot={() => activeSequence && addShot(activeSequence.id)}

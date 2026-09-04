@@ -19,11 +19,13 @@ import {
   User,
   Loader2,
   BookOpen,
+  Lightbulb,
 } from "lucide-react";
 import { api, ProjectListItem, normalizeAssetUrl } from "@/lib/api";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelineProgress";
 import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
+import { PitchIdeaGeneratorModal } from "@/components/modals/PitchIdeaGeneratorModal";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
@@ -87,6 +89,7 @@ export default function DashboardPage() {
   const [newStory, setNewStory] = useState("");
   const [targetDuration, setTargetDuration] = useState(30);
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
+  const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
 
   // Creation progress states
   const [isSubmittingProject, setIsSubmittingProject] = useState(false);
@@ -339,12 +342,21 @@ export default function DashboardPage() {
           )}
 
           <button
+            onClick={() => setIsPitchModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 hover:from-amber-500/30 hover:to-rose-500/30 border border-amber-500/40 transition-all shadow-xs"
+            title="只需一句话灵感，AI 自动衍生 3 款短剧提案"
+          >
+            <Lightbulb className="w-4 h-4 text-amber-400" />
+            <span>💡 一句话点子成剧</span>
+          </button>
+
+          <button
             onClick={() => setIsSeriesModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 transition-all shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-secondary hover:bg-muted text-foreground border border-border transition-all"
             title="输入长篇小说或多集剧本，一键提炼角色与切分多集"
           >
-            <BookOpen className="w-4 h-4 text-amber-400" />
-            <span>长篇/小说一键成剧</span>
+            <BookOpen className="w-4 h-4 text-sky-400" />
+            <span>长篇小说成剧</span>
           </button>
 
           <button
@@ -359,6 +371,30 @@ export default function DashboardPage() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 space-y-8">
+        {/* Hero Pitch Banner: One-Line Pitch to Series */}
+        <div className="relative rounded-2xl p-6 bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-sky-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 overflow-hidden shadow-sm">
+          <div className="space-y-1.5 z-10">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-mono font-bold">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+              <span>新功能 · 一句话点子孵化短剧</span>
+            </div>
+            <h2 className="text-lg font-bold text-foreground">
+              不知道怎么编完整梗概？输入一句话，AI 为你生成 3 款短剧与文学剧本
+            </h2>
+            <p className="text-xs text-muted-foreground max-w-2xl">
+              支持女频/男频赛道偏好，严格锁定已有角色（绝不胡乱新增上司/配角），硬性锚定核心情节，彻底告别白纸焦虑。
+            </p>
+          </div>
+          <button
+            onClick={() => setIsPitchModalOpen(true)}
+            className="shrink-0 z-10 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-black shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Sparkles className="w-4 h-4 text-black" />
+            <span>立即体验点子孵化</span>
+          </button>
+          <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        </div>
+
         {/* Section 1: Director Starter Presets */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
@@ -739,6 +775,15 @@ export default function DashboardPage() {
           loadProjects();
         }}
         onOpenSettings={openSettingsModal}
+      />
+
+      {/* One-Line Pitch Idea Generator Modal */}
+      <PitchIdeaGeneratorModal
+        isOpen={isPitchModalOpen}
+        onClose={() => {
+          setIsPitchModalOpen(false);
+          loadProjects();
+        }}
       />
     </div>
   );

@@ -96,6 +96,7 @@ export interface SequenceModel {
   name: string;
   title?: string;
   description?: string;
+  screenplay_text?: string;
   episode_number?: number;
   cliffhanger_summary?: string;
   target_duration?: number;

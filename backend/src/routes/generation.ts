@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
-import { getDb, Bindings } from "../db/client";
+import { getDb, ensureSchema, Bindings } from "../db/client";
 import { projects, sequences, shots, projectVersions, users } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, cleanPromptOfMetaPollution } from "../agents/director/pipeline";
 import { captureProjectSnapshot } from "./versions";
@@ -306,6 +306,7 @@ const handleGenerateFromStory = async (c: any) => {
       episodeNumber: 1,
       cliffhangerSummary: "",
       targetDuration: 60.0,
+      screenplayText: storyText || "",
     });
     seq = {
       id: seqId,
@@ -315,6 +316,7 @@ const handleGenerateFromStory = async (c: any) => {
       episodeNumber: 1,
       cliffhangerSummary: "",
       targetDuration: 60.0,
+      screenplayText: storyText || "",
       createdAt: "",
       updatedAt: "",
     };
@@ -507,6 +509,7 @@ router.post("/from-script", async (c) => {
       episodeNumber: 1,
       cliffhangerSummary: "",
       targetDuration: 60.0,
+      screenplayText: scriptText || "",
     });
     seq = {
       id: seqId,
@@ -516,6 +519,7 @@ router.post("/from-script", async (c) => {
       episodeNumber: 1,
       cliffhangerSummary: "",
       targetDuration: 60.0,
+      screenplayText: scriptText || "",
       createdAt: "",
       updatedAt: "",
     };
@@ -720,5 +724,131 @@ const handleGenerateSingleShotImage = async (c: any) => {
 
 router.post("/images/:shotId", handleGenerateSingleShotImage);
 router.post("/shot-image/:shotId", handleGenerateSingleShotImage);
+
+// POST /api/generate/pitch-ideas (One-line idea to 3 distinct short drama proposals)
+router.post("/pitch-ideas", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const authHeader = c.req.header("Authorization");
+    const authUser = await getAuthUser(authHeader);
+    if (!authUser) {
+      return c.json({ detail: "请先登录导演账号" }, 401);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const userPrompt = (body.prompt || "").trim();
+    if (!userPrompt) {
+      return c.json({ detail: "请输入您的一句话故事点子或关键构想" }, 400);
+    }
+
+    const genre = body.genre || "female_lead"; // "female_lead" | "male_lead" | "realistic"
+    const catharsisLevel = body.catharsis_level || "commercial"; // "restrained" | "commercial" | "extreme"
+    const strictCast = Boolean(body.strict_cast);
+    const mustHaveBeats = Array.isArray(body.must_have_beats) ? body.must_have_beats : [];
+
+    const settings = await getUserSettings(db, authUser.userId);
+    if (!settings.hasKey) {
+      return c.json({ detail: "请先在「设置」中配置您的专属 OpenRouter API Key" }, 400);
+    }
+
+    const genrePromptDesc =
+      genre === "female_lead"
+        ? "【女频精选赛道】: 聚焦大女主觉醒、清醒反击、情感反思与救赎、手撕伪善、双向奔赴。严禁降智恶毒反派与无底线辱女恶趣味。"
+        : genre === "male_lead"
+        ? "【男频爽剧赛道】: 聚焦小人物逆袭、尊严打脸、潜龙出渊、商道崛起。节奏明快、戏剧反差强烈，爽而不腻。"
+        : "【现实主义/治愈成长赛道】: 聚焦当代年轻人真实困境与自我救赎、温暖互助、心理治愈。情感真挚细腻、拒绝浮夸狗血。";
+
+    const catharsisDesc =
+      catharsisLevel === "restrained"
+        ? "爽感烈度:【清醒克制 · 心理博弈向】注重人物内心动机与合情合理的情感推演，不搞夸张狗血冲突。"
+        : catharsisLevel === "extreme"
+        ? "爽感烈度:【极致反转 · 高能成瘾向】情绪大起大落、反差拉满、悬念密集紧凑，但合乎基本逻辑。"
+        : "爽感烈度:【好莱坞商业黄金节拍】30 秒一小反转、60 秒一生死卡点，节奏紧密连贯。";
+
+    const castRule = strictCast
+      ? "【强制角色边界锁定 (Strict Cast)】: 本次故事严格限定在 2~3 个核心登场人物！严禁擅自凭空添加任何多余的角色（例如不允许凭空冒出男女主上司、前任等第三方第三者）！所有戏剧张力与对手戏只能在给定的核心人物之间展开！"
+      : "允许根据剧情需要增添恰当的辅助配角。";
+
+    const mustHaveRule =
+      mustHaveBeats.length > 0
+        ? `【不可违背的核心剧情事件 (Must-Happen Beats)】: 以下事件必须在剧情的关键节点真实发生并成为核心转折点，严禁遗漏或忽视：\n${mustHaveBeats.map((b: string) => `- ${b}`).join("\n")}`
+        : "";
+
+    const systemPrompt = `你是一位精通爆款短剧与好莱坞编剧工业的顶级剧作顾问。
+创作者提供了一个一句话灵感构思：
+"""${userPrompt}"""
+
+${genrePromptDesc}
+${catharsisDesc}
+${castRule}
+${mustHaveRule}
+
+请为该构思设计 3 种截然不同走向的短剧提案。每个提案包含吸引人的剧名、一句话商业核心卖点（Logline）、登场角色列表（带纯英文视觉特征 Visual DNA 锚点）、不可违背的核心事件发生点、全集剧情梗概（200~300字），以及标准电影格式的文学剧本片段（包含场景头、人物对白、文学动作描写）。
+
+必须输出严格合法的纯 JSON 格式（不要使用任何 markdown 代码块包裹，不要多余说明文字）：
+{
+  "proposals": [
+    {
+      "id": "proposal_1",
+      "title": "剧名（抓人且契合赛道）",
+      "flavor_tag": "方案风格（如：大女主清醒复仇版 / 双向奔赴救赎版）",
+      "logline": "一句话核心商业卖点钩子",
+      "characters": [
+        { "name": "姓名", "role": "protagonist", "personality": "性格小传", "visual_anchor": "英文视觉DNA锚点" },
+        { "name": "姓名", "role": "antagonist", "personality": "性格小传", "visual_anchor": "英文视觉DNA锚点" }
+      ],
+      "synopsis": "完整短剧全集剧情梗概（200~300字，起承转合清晰，高潮迭起，紧扣必经剧情）",
+      "screenplay_preview": "第 1 场 · 室内茶馆 · 夜\\n\\n【动作】外头暴雨如注，少女将退学申请书缓缓推过茶案。\\n\\n女主名\\n(眼神决绝)\\n我不走了。这一次，由我来保护大家。"
+    }
+  ]
+}`;
+
+    const res = await fetch(`${settings.llmApiBase || "https://openrouter.ai/api/v1"}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${settings.llmApiKey}`,
+      },
+      body: JSON.stringify({
+        model: settings.llmModel || "deepseek/deepseek-chat",
+        temperature: 0.75,
+        messages: [{ role: "user", content: systemPrompt }],
+      }),
+    });
+
+    if (!res.ok) {
+      const errTxt = await res.text();
+      return c.json({ detail: `生成点子提案失败: ${errTxt}` }, 500);
+    }
+
+    const data: any = await res.json();
+    const content = data?.choices?.[0]?.message?.content || "";
+    let proposals: any[] = [];
+    try {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed.proposals)) {
+          proposals = parsed.proposals;
+        }
+      }
+    } catch (parseErr) {
+      console.error("[Parse Proposals JSON Error]:", parseErr);
+    }
+
+    if (proposals.length === 0) {
+      return c.json({ detail: "AI 提案解析失败，请重试" }, 500);
+    }
+
+    return c.json({
+      status: "success",
+      proposals,
+    });
+  } catch (err: any) {
+    console.error("[Pitch Ideas Error]:", err);
+    return c.json({ detail: `生成短剧点子提案失败: ${err?.message || err}` }, 500);
+  }
+});
 
 export default router;
