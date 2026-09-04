@@ -722,12 +722,12 @@ router.post("/:id/sequences/:seqId/sync-screenplay", async (c) => {
 
     // If no explicit 【镜头 #N】 tags were found, fallback to parsing by lines/paragraphs
     if (parsedBlocks.length === 0) {
-      const paragraphs = screenplayText
+      const paragraphs: string[] = screenplayText
         .split(/\n\s*\n+/)
-        .map((p) => p.trim())
-        .filter((p) => p.length > 0 && !p.startsWith("第") && !p.startsWith("【场景"));
+        .map((p: string) => p.trim())
+        .filter((p: string) => p.length > 0 && !p.startsWith("第") && !p.startsWith("【场景"));
 
-      paragraphs.forEach((p, idx) => {
+      paragraphs.forEach((p: string, idx: number) => {
         let act = p;
         let dia = "";
         let sub = "";
