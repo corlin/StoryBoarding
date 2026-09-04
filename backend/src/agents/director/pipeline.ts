@@ -19,33 +19,156 @@ export interface ShotPlan {
   image_prompt: string;
   video_prompt: string;
   continuity_data?: Record<string, any>;
-  // Narrative OS Phase 1
+  // Narrative OS & 5min Drama Engine
   beat_type?: string; // 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook'
   emotional_voltage?: number; // 0 - 100
   information_gap?: string; // 为什么看下一镜的悬念引线
   compute_tier?: "flagship" | "standard" | "economy";
+  act_progression?: string; // '启动·钩子与建置' | '升级·检验与逼迫' | '假高潮·行动与质变' | '兑现·核心反转与余味'
+  hook_phase?: string; // '0-3s入画' | '3-10s加压' | '10-30s揭底牌' | '后段高潮'
 }
 
 export interface DirectorGenerationResult {
   theme: string;
   target_duration: number;
   shots: ShotPlan[];
+  narrative_mode?: string;
+  structural_archetype?: string;
+  narrative_center?: string;
 }
 
-export function getDirectorSystemPrompt(targetDuration: number = 30.0): string {
+export interface DirectorPromptConfig {
+  targetDuration?: number;
+  narrativeMode?: "hollywood" | "drama_5min" | "commercial";
+  structuralArchetype?: string;
+  narrativeCenter?: "character" | "creative" | "plot";
+}
+
+export const STRUCTURAL_ARCHETYPES_DEF: Record<string, { name: string; mechanism: string; acts: string }> = {
+  single_space_standoff: {
+    name: "单空间高压对峙型",
+    mechanism: "主角进入无法体面离开的公开或封闭空间，每轮交锋改变权力位置或封死退路，最后关键行为被翻义。",
+    acts: "启动: 无法体面离开的对峙入画 -> 升级: 每轮交锋封死退路 -> 假高潮: 以为说服或压制对方 -> 兑现: 同一行为翻义，真正关系浮出水面",
+  },
+  countdown_rules: {
+    name: "倒计时规则收缩型",
+    mechanism: "规则与时间限制同时入画，每次试错都缩短时间或扩大代价，漏洞本身触发更深规则闭环。",
+    acts: "启动: 规则与时间倒计时入画 -> 升级: 试错扩大代价、选项收缩 -> 假高潮: 找到漏洞暂时停止倒计时 -> 兑现: 漏洞触发终极规则或主角主动承担代价闭环",
+  },
+  trade_escalation: {
+    name: "交易代价升级型",
+    mechanism: "小交易获即时收益，收益制造新缺口迫使进行更不可接受的交易，代价夺走主角真正珍视之物。",
+    acts: "启动: 小交易带来立刻可见收益 -> 升级: 收益制造新缺口，被迫进行更大交易 -> 假高潮: 似乎用交易拿到最终目标 -> 兑现: 代价准确夺走真正珍视之物",
+  },
+  identity_reveal: {
+    name: "身份/关系错位揭底型",
+    mechanism: "一方做出与其身份不符行为或得出错误判断，反击不断强化误解，真实动机揭开造成情感暴击或讽刺。",
+    acts: "启动: 身份不符反常行为入画 -> 升级: 行动强化误解并留下双重解释细节 -> 假高潮: 表面关系彻底决裂或抓获假对象 -> 兑现: 动机揭开，旧细节获得第二层震撼意义",
+  },
+  flawed_solution_backfire: {
+    name: "错误解法反噬型",
+    mechanism: "主角用最擅长的方法处理危机，短期有效却持续伤害系统，胜利反噬其错误信念。",
+    acts: "启动: 最擅长解法入场 -> 升级: 短期奏效但系统风险急剧扩大 -> 假高潮: 赢下表面目标 -> 兑现: 胜利证明错误信念，承担彻底反噬",
+  },
+  ritual_interruption: {
+    name: "仪式中断与夺权型",
+    mechanism: "婚礼/审判/颁奖等庄严仪式被异常行动打断，权力归属陷入争夺，揭开仪式真正服务的对象。",
+    acts: "启动: 仪式被异常行动强行打断 -> 升级: 仪式继续资格争夺、权力移位 -> 假高潮: 秩序看似恢复、异议被压制 -> 兑现: 仪式真正效忠者曝光，权力彻底倒置",
+  },
+  system_runaway: {
+    name: "系统失控推演型 (硬科幻/高概念)",
+    mechanism: "完美高效的技术系统被主角私用，触发伦理盲区或物理极限，机器按冷酷逻辑执行最终指令。",
+    acts: "启动: 完美高效系统展现威力 -> 升级: 解决私事触发伦理盲区与失控 -> 假高潮: 看似修复漏洞让系统听命 -> 兑现: 系统按无情逻辑执行灭杀或主角同化",
+  },
+  multiverse_rashomon: {
+    name: "多维视角塌缩/罗生门型",
+    mechanism: "离奇案发现场或事件，每次新视角或循环都暴露旧叙事缺口，最后一块拼图让所有视角瞬间塌缩翻义。",
+    acts: "启动: 离奇结果瞬间入画 -> 升级: 新视角与证词暴露旧缺口给出新解释 -> 假高潮: 证据完美指向替罪羊 -> 兑现: 视角瞬间塌缩，真相是最不可能的存在",
+  },
+  absurd_rules_swap: {
+    name: "绝对规则置换型 (黑色幽默/寓言)",
+    mechanism: "世界运行基石被荒诞具象事物替换，主角钻空子登上顶端，荒诞规则物理极限黑色反噬。",
+    acts: "启动: 荒诞世界规则直接入画 -> 升级: 主角钻空子追求成功行为极端化 -> 假高潮: 找到完美漏洞登上顶端 -> 兑现: 规则物理极限以最讽刺方式摧毁成果",
+  },
+  memory_tampering: {
+    name: "记忆/认知篡改型 (心理惊悚)",
+    mechanism: "主角为高尚目标行动，不断出现与记忆相悖线索，核心认知崩塌证明目标不存在或自己才是加害者。",
+    acts: "启动: 坚定的崇高目标入画行动 -> 升级: 线索不断与记忆或常识激烈冲突 -> 假高潮: 付出极大代价触碰到终极目标 -> 兑现: 核心认知崩塌，高尚反转为极致讽刺",
+  },
+  loop_overdraft: {
+    name: "困境死循环/代价透支型 (无限流)",
+    mechanism: "必须完成目标才能离开循环，每次重置代价累积透支，打破循环唯一方式是放弃最初执念。",
+    acts: "启动: 必须完成目标的死循环入画 -> 升级: 试错重置但代价身心透支累加 -> 假高潮: 找到通关公式即将打破循环 -> 兑现: 发现自己是循环电池，必须放弃执念",
+  },
+  concept_predation: {
+    name: "概念具象化掠夺型 (强设定博弈)",
+    mechanism: "寿命、运气、美貌等抽象概念被明码标价买卖，主角掠夺登顶后，发现被掠夺概念的真正物理反作用力。",
+    acts: "启动: 抽象概念被物化买卖入画 -> 升级: 零和博弈中连续掠夺他人配额 -> 假高潮: 扫清对手垄断所有概念份额 -> 兑现: 概念内在负向反作用力全面集中爆发",
+  },
+};
+
+export function getDirectorSystemPrompt(
+  targetDuration: number = 30.0,
+  config: DirectorPromptConfig = {}
+): string {
+  const mode = config.narrativeMode || "hollywood";
   let expectedShots = 12;
   let pacingGuidance = "";
 
   if (targetDuration <= 8.0) {
     expectedShots = 3;
+  } else if (targetDuration <= 20.0) {
+    expectedShots = 6;
+  } else {
+    expectedShots = 12;
+  }
+
+  if (mode === "drama_5min") {
+    // 5-Min Drama Contest Engine (SoloEnt-AI methodology)
+    const archetypeInfo = config.structuralArchetype && STRUCTURAL_ARCHETYPES_DEF[config.structuralArchetype]
+      ? STRUCTURAL_ARCHETYPES_DEF[config.structuralArchetype]
+      : null;
+
+    const centerAdvice = config.narrativeCenter === "character"
+      ? "【角色向主重心】: 人设抓人！前 30 秒严禁宏大事件喧宾夺主，用极致反差行为或性格缺陷把人物瞬间立住，人是危机的承受与反击者。"
+      : config.narrativeCenter === "creative"
+      ? "【创意向主重心】: 脑洞/规则抓人！奇观或反常识规则直接入画，10s 规则开始约束主角，30s 揭开规则代价或反转玩法，观众能清晰复述规则。"
+      : "【强剧情向主重心】: 困境抓人！开局即绝境，核心矛盾高度前置，主角必须做出不可逆选择，拒绝能够被几句话化解的伪危机。";
+
     pacingGuidance = `
+【💥 5分钟爆款短剧导演引擎规范 (5-Min Drama Engine - SoloEnt-AI / 灵蟹创作)】：
+本工程采用 5 分钟短剧专业工业化流程，贯穿【前 30 秒黄金律】与【四幕因果推进法】，严禁流水账与平铺直叙！
+
+1. 【前 30 秒开场黄金三段律 (0~30s Hook Law)】：
+- 镜 1 (0~3s, 入画): 【绝境/奇观/反差瞬间入画】！严禁大段空镜、风景特写或自我介绍旁白，第一秒就给观众极致感官抓手。
+- 镜 2 (3~10s, 加压): 【外部危机加压或规则收缩】！让主角处于被动或被规则咬人，给观众明确的戏剧预期。
+- 镜 3 (10~30s, 揭底牌/抛悬念): 【缺陷暴露或抛出不可逆代价】！确立全集核心悬念与必须看下一集的生死信息缺口 (Information Gap)。
+
+2. 【四幕因果推进法 (4-Act Causal Progression)】：
+- 第一幕 (镜1-3): 【启动·钩子与建置】—— 建立核心绝境、人物缺陷或奇观规则，抛出无法回头的承诺。
+- 第二幕 (镜4-6): 【升级·检验与逼迫】—— 绝境砍下第一刀！外部事件检验规则，现实代价发生，把人物逼向死角（严禁原地开会、回忆童年）。
+- 第三幕 (镜7-9): 【假高潮·行动与质变】—— 主角破釜沉舟行动获得“伪胜利/惨败”，看似化解危机却立刻引发更恐怖的连锁反应。
+- 第四幕 (镜10-12): 【兑现·核心反转与终极余味】—— 回收前 30 秒埋下的伏笔，完成情理之中意料之外的核心反转，在绝境卡点或余味中定格。
+
+${archetypeInfo ? `【当前锁定的结构原型】: 《${archetypeInfo.name}》\n机制: ${archetypeInfo.mechanism}\n推进轨迹: ${archetypeInfo.acts}\n` : "【结构原型】: 自动根据故事推演高命中推进机制（单空间对峙、倒计时收缩、交易升级、身份错位等）。"}
+${centerAdvice}
+`;
+  } else if (mode === "commercial") {
+    pacingGuidance = `
+【⚡ 商业广告与高燃快剪导演规范 (Commercial High-Impact)】：
+- 前 3 秒快速引爆视觉焦点（特写/微距/高饱和光影），迅速展示核心主体或产品高光；
+- 节奏极具冲击力，运镜包含强烈动势（推拉摇移与升降穿梭）；
+- 配乐充满律动感，音效精准卡点。`;
+  } else {
+    // Default Hollywood Epic
+    if (expectedShots === 3) {
+      pacingGuidance = `
 【8秒短片 3 节拍规范 (目标生成 3 个镜头)】：
 - 镜1 (0~2.5s): 空间建立与主体入画 (Establishment & Scale Staging)；
 - 镜2 (2.5~5.5s): 动态穿梭与环境交互 (Kinetic Action & Interaction)；
 - 镜3 (5.5~8.0s): 高光定格与余韵收尾 (Climax Resolution & Final Frame)。`;
-  } else if (targetDuration <= 20.0) {
-    expectedShots = 6;
-    pacingGuidance = `
+    } else if (expectedShots === 6) {
+      pacingGuidance = `
 【20秒电影级短片 6 节拍规范 (目标生成 6 个镜头)】：
 - 镜1 (0~3.0s): 空间建立 · 全景建立地理空间与主角/主体登场基调；
 - 镜2 (3.0~6.5s): 场景探索 · 主体在场景中展开具体动作或展现四季/环境生动交互；
@@ -53,25 +176,26 @@ export function getDirectorSystemPrompt(targetDuration: number = 30.0): string {
 - 镜4 (10.0~13.5s): 情绪/氛围蓄势 · 特写主体神态、环境细节或光影渐变；
 - 镜5 (13.5~17.0s): 核心高潮/视觉奇观 · 核心高潮爆发（自然变迁极景、高燃动作或视觉奇观）；
 - 镜6 (17.0~20.0s): 余韵定格 · 行动达成或时空沉淀，镜头拉远形成电影感余韵定格。`;
-  } else {
-    expectedShots = 12;
-    pacingGuidance = `
+    } else {
+      pacingGuidance = `
 【30秒好莱坞叙事大片 4 篇章 12 节拍规范 (目标生成 10~12 个镜头)】：
 - 第一篇章 (0~6s, 镜1-3): 起 · 世界观建立与主体亮相 (Establishment & Subject Intro)；
 - 第二篇章 (6~15s, 镜4-6): 承 · 剧情发展与生动探索 (Exploration & Atmospheric Escalation)；
 - 第三篇章 (15~24s, 镜7-9): 转 · 关键挑战、时空突变与视觉高潮 (Turning Point & Visual Climax)；
 - 第四篇章 (24~30s, 镜10-12): 合 · 目标达成与电影感余韵定格 (Resolution & Timeless Frame)。`;
+    }
   }
 
-  return `你是一位好莱坞顶级视觉导演与 AI 视频生成大师 (Hollywood Visual Director & AI Video Master)。
-你的终极任务是将用户的剧本或意向文本转化为工业级电影分镜脚本（包含画面动作、生动台词对白、音效与配乐设计、纯净生图提示词与视频运镜词）。
+  return `你是一位顶级视觉导演与 AI 视频生成大师 (Hollywood Visual Director & AI Drama Master)。
+你的终极任务是将用户的剧本或意向文本转化为工业级分镜脚本（包含画面动作、生动台词对白、音效与配乐设计、纯净生图提示词与视频运镜词）。
 
 ${pacingGuidance}
 
 【核心视觉导演五大铁律 (CRITICAL DIRECTING PRINCIPLES)】:
-1. 【对白与声音设计必须饱满完整 (MANDATORY Dialogue & Sound Design)】:
-   - 每个镜头必须包含对应的【角色台词或画外音旁白 (dialogue)】，严禁留空！（例如：“孟姜女：'夫君，无论千山万水，我定要找到你……'” 或 “旁白：'寒冬腊月，长城脚下白骨覆雪……'”）；
-   - 每个镜头必须包含具象的【音效 (sfx) 与配乐 (music)】（例如：sfx 为 "凛冽暴风雪呼啸、沉重踩雪脚步声"，music 为 "凄楚悲凉的古筝与低沉大提琴"）。
+1. 【去解释化台词与声音设计 (MANDATORY Subtext Dialogue & Audio Design)】:
+   - 一句台词只办一件事！严禁用台词解释心理或复述画面已看见的事情；严禁画外音自我介绍（如“我叫XXX，今年二十岁”）；
+   - 每个镜头必须包含对应的【角色台词或画外音旁白 (dialogue)】，富有戏剧潜台词与行动推力，无人说话写“无”；
+   - 每个镜头必须包含具象的【音效 (sfx) 与配乐 (music)】，sfx 必须是能够起到打断节奏、加压或动作反应的具体声音（如“刹车声骤停、玻璃碎裂声”），严禁写“忧伤的音乐渐渐响起”这类情绪空话。
 
 2. 【题材与主体忠实性法则 (Genre & Subject Fidelity)】:
    - 严禁擅自篡改题材！如果用户输入的是自然风光/历史岁月（如“长城”、“孟姜女哭长城”），核心必须是真实历史风貌与人物情感，**绝对严禁擅自加入任何魔幻翅膀、哥特古堡或魔法光环**！
@@ -93,7 +217,8 @@ ${pacingGuidance}
 请在 JSON 顶层输出：
 1. "theme": 故事核心主题短语 (中英文)
 2. "global_visual_anchor": 全片核心视觉基石 (纯英文描述, 包含主角/主体外观、场景美学与艺术风格)
-3. "shots": 分镜头列表 (恰好 ${expectedShots} 个镜头)
+3. "structural_archetype": 识别或采用的结构原型名称 (如 "单空间高压对峙型" 等)
+4. "shots": 分镜头列表 (恰好 ${expectedShots} 个镜头)
 
 【每个镜头字段规范】：
 - order: 镜头序号 (1..${expectedShots})
@@ -102,12 +227,14 @@ ${pacingGuidance}
 - camera_angle: 角度 ('eye_level' | 'low_angle' | 'high_angle' | 'dutch_angle' | 'birds_eye' | 'worms_eye')
 - camera_movement: 运镜 ({ "type": "push_in" | "tracking_right" | "arc_rotate" | "crane" | "tilt_up", "speed": "fast" | "medium" | "slow" })
 - subject: 镜头主体描述 (如 "孟姜女" 或 "古老长城与烽火台")
-- action: 具象生动的动作/画面台本描述 (中文，严禁空洞套话)
-- dialogue: 角色台词或画外音旁白 (中文，必填，富有戏剧张力)
+- action: 具象生动的动作/画面台本描述 (中文，一次一个动作，严禁心理学说明书)
+- dialogue: 角色台词或画外音旁白 (中文，必填，富有戏剧张力，无人说话写"无")
 - narrative_function: 视听叙事功能 (如 "空间建立 / 悲痛哭诉 / 狂风怒吼 / 城墙坍塌 / 余韵定格")
 - lighting: 光影基调 (如 "阴郁寒冬冷灰天光，侧逆光勾勒人物消瘦凄凉轮廓")
 - audio: { "sfx": "呼啸寒风声、沉重脚步踩雪声", "music": "凄楚幽咽的古琴与悲壮交响" }
 - beat_type: 戏剧节拍类型 ('hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook')
+- act_progression: 四幕推进阶段 ('启动·钩子与建置' | '升级·检验与逼迫' | '假高潮·行动与质变' | '兑现·核心反转与余味')
+- hook_phase: 开场钩子阶段 ('0-3s入画' | '3-10s加压' | '10-30s揭底牌' | '后段高潮')
 - emotional_voltage: 情绪势能电压 (0~100 的整数，首镜通常为 70+开篇悬念，中段蓄压 50~80，高潮 90+，末镜为 95+绝境卡点)
 - information_gap: 为什么观众必须看下一镜？(简练阐明此镜头结尾留存的信息缺口与悬念引线)
 - compute_tier: 算力调度建议 ('flagship' | 'standard' | 'economy'，高潮动作/人物特写为 flagship，普通对白为 standard，空镜头为 economy)
@@ -1004,6 +1131,9 @@ export interface DirectorPipelineOptions {
   mustHaveBeats?: string[];
   genre?: string;
   catharsisLevel?: string;
+  narrativeMode?: "hollywood" | "drama_5min" | "commercial";
+  structuralArchetype?: string;
+  narrativeCenter?: "character" | "creative" | "plot";
 }
 
 // Full-featured Hollywood Director pipeline with LLM generation and genre-adaptive fallback
@@ -1024,7 +1154,11 @@ export async function generateDirectorPipeline(
 
   if (apiKey) {
     try {
-      const systemPrompt = getDirectorSystemPrompt(targetDuration);
+      const systemPrompt = getDirectorSystemPrompt(targetDuration, {
+        narrativeMode: options.narrativeMode,
+        structuralArchetype: options.structuralArchetype,
+        narrativeCenter: options.narrativeCenter,
+      });
 
       let guardrailDirectives = "";
       if (options.strictCast && options.allowedCharacters && options.allowedCharacters.length > 0) {
@@ -1045,7 +1179,11 @@ export async function generateDirectorPipeline(
         guardrailDirectives += `\n\n【垂直赛道与价值观基调】: ${genreDesc}`;
       }
 
-      const userMessage = `【故事剧本内容】：\n${preprocessedStory}${guardrailDirectives}\n\n【目标时长】：${targetDuration} 秒（请严格规划 ${expectedCount} 个分镜头）。请直接输出纯 JSON 对象（不要附加其他说明文字），格式如下：\n{\n  "theme": "故事主题",\n  "global_visual_anchor": "主角/主体外观特征与核心场景基石 (纯英文自然描述句，严禁包含任何文字标签)",\n  "shots": [ ... ]\n}`;
+      if (options.narrativeMode === "drama_5min") {
+        guardrailDirectives += `\n\n【5分钟短剧执行法则】: 请严格落实 0~3s 入画、3~10s 加压、10~30s 揭底牌微观节奏，以及四幕因果推进（启动-升级-假高潮-兑现）。台词必须去解释化，一句台词只办一件事！`;
+      }
+
+      const userMessage = `【故事剧本内容】：\n${preprocessedStory}${guardrailDirectives}\n\n【目标时长】：${targetDuration} 秒（请严格规划 ${expectedCount} 个分镜头）。请直接输出纯 JSON 对象（不要附加其他说明文字），格式如下：\n{\n  "theme": "故事主题",\n  "global_visual_anchor": "主角/主体外观特征与核心场景基石 (纯英文自然描述句，严禁包含任何文字标签)",\n  "structural_archetype": "所选结构原型",\n  "shots": [ ... ]\n}`;
 
       const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
         method: "POST",
@@ -1147,6 +1285,24 @@ export async function generateDirectorPipeline(
               const infoGap = (s.information_gap || "").trim() || (idx === totalParsed - 1 ? "绝境反转未解，强刺激驱动下一集" : "危机步步紧逼，行动后果悬念未决");
               const computeTier = s.compute_tier || (beatType === "climax_payoff" || beatType === "cliffhanger_hook" ? "flagship" : "standard");
 
+              // Compute 4-act and 30s hook phase default mapping
+              let actProgression = s.act_progression;
+              if (!actProgression) {
+                const ratio = (idx + 1) / totalParsed;
+                if (ratio <= 0.25) actProgression = "启动·钩子与建置";
+                else if (ratio <= 0.5) actProgression = "升级·检验与逼迫";
+                else if (ratio <= 0.75) actProgression = "假高潮·行动与质变";
+                else actProgression = "兑现·核心反转与余味";
+              }
+
+              let hookPhase = s.hook_phase;
+              if (!hookPhase) {
+                if (idx === 0) hookPhase = "0-3s入画";
+                else if (idx === 1) hookPhase = "3-10s加压";
+                else if (idx === 2) hookPhase = "10-30s揭底牌";
+                else hookPhase = "后段高潮";
+              }
+
               return {
                 order: s.order || idx + 1,
                 duration: Number(s.duration) || Number((targetDuration / parsed.shots.length).toFixed(1)) || 2.5,
@@ -1166,6 +1322,8 @@ export async function generateDirectorPipeline(
                 emotional_voltage: emotionalVoltage,
                 information_gap: infoGap,
                 compute_tier: computeTier,
+                act_progression: actProgression,
+                hook_phase: hookPhase,
               };
             });
 
@@ -1173,6 +1331,9 @@ export async function generateDirectorPipeline(
               theme: parsed.theme || parsedScene.heroZh,
               target_duration: targetDuration,
               shots: enrichedShots,
+              narrative_mode: options.narrativeMode || "hollywood",
+              structural_archetype: parsed.structural_archetype || options.structuralArchetype,
+              narrative_center: options.narrativeCenter,
             };
           }
         }
@@ -1192,6 +1353,9 @@ export async function generateDirectorPipeline(
     theme: parsedScene.heroZh,
     target_duration: targetDuration,
     shots: fallbackShots,
+    narrative_mode: options.narrativeMode || "hollywood",
+    structural_archetype: options.structuralArchetype,
+    narrative_center: options.narrativeCenter,
   };
 }
 

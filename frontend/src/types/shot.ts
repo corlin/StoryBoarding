@@ -73,6 +73,8 @@ export interface ShotModel {
   emotional_voltage?: number; // 0.0 - 100.0 (Quantitative Tension/Payoff Voltage)
   information_gap?: string; // Why audience must watch the next shot (Dramatic Hook)
   compute_tier?: 'flagship' | 'standard' | 'economy';
+  act_progression?: string; // '启动·钩子与建置' | '升级·检验与逼迫' | '假高潮·行动与质变' | '兑现·核心反转与余味'
+  hook_phase?: string; // '0-3s入画' | '3-10s加压' | '10-30s揭底牌' | '后段高潮'
   created_at: string;
   updated_at: string;
 }
@@ -114,6 +116,9 @@ export interface ProjectModel {
   shot_count?: number;
   cover_image_url?: string;
   preview_images?: string[];
+  narrative_mode?: "hollywood" | "drama_5min" | "commercial";
+  structural_archetype?: string;
+  narrative_center?: "character" | "creative" | "plot";
   created_at: string;
   updated_at: string;
   characters?: CharacterModel[];

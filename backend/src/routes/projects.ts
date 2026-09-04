@@ -165,6 +165,9 @@ router.post("/", async (c) => {
     const title = body.title || "未命名项目";
     const story = body.story || "";
     const targetDuration = Number(body.target_duration) || 30.0;
+    const narrativeMode = body.narrative_mode || "hollywood";
+    const structuralArchetype = body.structural_archetype;
+    const narrativeCenter = body.narrative_center;
 
     const authHeader = c.req.header("Authorization");
     const authUser = await getAuthUser(authHeader);
@@ -207,6 +210,9 @@ router.post("/", async (c) => {
         apiKey: settings.llmApiKey,
         apiBase: settings.llmApiBase,
         model: settings.llmModel,
+        narrativeMode: narrativeMode as any,
+        structuralArchetype,
+        narrativeCenter: narrativeCenter as any,
       });
 
       const timeoutPromise = new Promise<{ theme: string; target_duration: number; shots: any[] }>((resolve) =>
@@ -935,6 +941,9 @@ router.post("/:id/episodes", async (c) => {
       apiKey: settings.llmApiKey,
       apiBase: settings.llmApiBase,
       model: settings.llmModel,
+      narrativeMode: body.narrative_mode || "drama_5min",
+      structuralArchetype: body.structural_archetype,
+      narrativeCenter: body.narrative_center,
     });
 
     const timeoutPromise = new Promise<{ theme: string; target_duration: number; shots: any[] }>((resolve) =>

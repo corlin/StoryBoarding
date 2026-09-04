@@ -287,6 +287,9 @@ const handleGenerateFromStory = async (c: any) => {
   const projectId = body.project_id;
   const storyText = body.story || "";
   const targetDuration = Number(body.target_duration) || 30.0;
+  const narrativeMode = body.narrative_mode || "hollywood";
+  const structuralArchetype = body.structural_archetype;
+  const narrativeCenter = body.narrative_center;
 
   const proj = await db.select().from(projects).where(eq(projects.id, projectId)).get();
   if (!proj) {
@@ -357,6 +360,9 @@ const handleGenerateFromStory = async (c: any) => {
     apiKey: settings.llmApiKey,
     apiBase: settings.llmApiBase,
     model: settings.llmModel,
+    narrativeMode: narrativeMode as any,
+    structuralArchetype,
+    narrativeCenter: narrativeCenter as any,
   });
 
   const baseSeed = getProjectBaseSeed(projectId);
@@ -480,6 +486,9 @@ const handleGenerateFromStory = async (c: any) => {
     theme: result.theme,
     shots_count: result.shots.length,
     target_duration: result.target_duration,
+    narrative_mode: result.narrative_mode,
+    structural_archetype: result.structural_archetype,
+    narrative_center: result.narrative_center,
   });
 };
 
@@ -775,7 +784,7 @@ router.post("/pitch-ideas", async (c) => {
         ? `【不可违背的核心剧情事件 (Must-Happen Beats)】: 以下事件必须在剧情的关键节点真实发生并成为核心转折点，严禁遗漏或忽视：\n${mustHaveBeats.map((b: string) => `- ${b}`).join("\n")}`
         : "";
 
-    const systemPrompt = `你是一位精通爆款短剧与好莱坞编剧工业的顶级剧作顾问。
+    const systemPrompt = `你是一位精通爆款短剧与好莱坞编剧工业的顶级剧作顾问（深度应用 SoloEnt-AI 5分钟短剧高命中模型）。
 创作者提供了一个一句话灵感构思：
 """${userPrompt}"""
 
@@ -784,7 +793,11 @@ ${catharsisDesc}
 ${castRule}
 ${mustHaveRule}
 
-请为该构思设计 3 种截然不同走向的短剧提案。每个提案包含吸引人的剧名、一句话商业核心卖点（Logline）、登场角色列表（带纯英文视觉特征 Visual DNA 锚点）、不可违背的核心事件发生点、全集剧情梗概（200~300字），以及标准电影格式的文学剧本片段（包含场景头、人物对白、文学动作描写）。
+【5分钟短剧高命中规则】：
+必须从以下【12大高命中结构原型】中为每个提案匹配最适合的主推进机制（如：单空间高压对峙型、倒计时规则收缩型、交易代价升级型、身份/关系错位揭底型、错误解法反噬型、仪式中断与夺权型、系统失控推演型、多维视角塌缩型、绝对规则置换型、记忆/认知篡改型、困境死循环型、概念具象化掠夺型）。
+明确指出主叙事重心（character 角色向 / creative 创意向 / plot 强剧情向），以及前 30 秒黄金律（0-3s入画、3-10s加压、10-30s揭底牌）。
+
+请为该构思设计 3 种截然不同走向的短剧提案。每个提案包含吸引人的剧名、一句话商业核心卖点（Logline）、匹配的结构原型名称、主叙事重心、30秒钩子拆解、登场角色列表（带纯英文视觉特征 Visual DNA 锚点）、不可违背的核心事件发生点、全集剧情梗概（200~300字），以及标准电影格式的文学剧本片段（包含场景头、人物对白、文学动作描写）。
 
 必须输出严格合法的纯 JSON 格式（不要使用任何 markdown 代码块包裹，不要多余说明文字）：
 {
@@ -793,12 +806,19 @@ ${mustHaveRule}
       "id": "proposal_1",
       "title": "剧名（抓人且契合赛道）",
       "flavor_tag": "方案风格（如：大女主清醒复仇版 / 双向奔赴救赎版）",
+      "structural_archetype": "结构原型名称（如：单空间高压对峙型）",
+      "narrative_center": "character",
+      "hook_30s_breakdown": {
+        "s0_3": "0~3s 绝境/反差瞬间入画描述",
+        "s3_10": "3~10s 危机加压或规则咬人",
+        "s10_30": "10~30s 揭开底牌与致命信息缺口"
+      },
       "logline": "一句话核心商业卖点钩子",
       "characters": [
         { "name": "姓名", "role": "protagonist", "personality": "性格小传", "visual_anchor": "英文视觉DNA锚点" },
         { "name": "姓名", "role": "antagonist", "personality": "性格小传", "visual_anchor": "英文视觉DNA锚点" }
       ],
-      "synopsis": "完整短剧全集剧情梗概（200~300字，起承转合清晰，高潮迭起，紧扣必经剧情）",
+      "synopsis": "完整短剧全集剧情梗概（200~300字，四幕因果推进：启动-升级-假高潮-兑现）",
       "screenplay_preview": "第 1 场 · 室内茶馆 · 夜\\n\\n【动作】外头暴雨如注，少女将退学申请书缓缓推过茶案。\\n\\n女主名\\n(眼神决绝)\\n我不走了。这一次，由我来保护大家。"
     }
   ]

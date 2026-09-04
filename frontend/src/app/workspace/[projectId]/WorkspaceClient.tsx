@@ -337,7 +337,14 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     }
   };
 
-  const handleGenerateFromStory = async (story: string) => {
+  const handleGenerateFromStory = async (
+    story: string,
+    options?: {
+      narrative_mode?: "hollywood" | "drama_5min" | "commercial";
+      structural_archetype?: string;
+      narrative_center?: "character" | "creative" | "plot";
+    }
+  ) => {
     const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
     if (!isAuthenticated) {
       notify.info("🎬 请先登录或注册导演账号");
@@ -364,6 +371,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           title: story.slice(0, 24) || "新建 AI 分镜项目",
           story: story,
           target_duration: currentProject?.target_duration || 30.0,
+          narrative_mode: options?.narrative_mode,
+          structural_archetype: options?.structural_archetype,
+          narrative_center: options?.narrative_center,
         });
         targetProjectId = newProj.id;
         router.push(`/workspace?id=${targetProjectId}`);
@@ -373,6 +383,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         project_id: targetProjectId,
         story: story,
         target_duration: currentProject?.target_duration || 30.0,
+        narrative_mode: options?.narrative_mode,
+        structural_archetype: options?.structural_archetype,
+        narrative_center: options?.narrative_center,
       });
       await fetchProject(targetProjectId);
       await loadVersions();

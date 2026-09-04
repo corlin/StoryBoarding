@@ -116,7 +116,14 @@ export const api = {
     return data;
   },
 
-  async createProject(payload: { title: string; story?: string; target_duration?: number }): Promise<ProjectModel> {
+  async createProject(payload: {
+    title: string;
+    story?: string;
+    target_duration?: number;
+    narrative_mode?: "hollywood" | "drama_5min" | "commercial";
+    structural_archetype?: string;
+    narrative_center?: "character" | "creative" | "plot";
+  }): Promise<ProjectModel> {
     const { data } = await apiClient.post("/projects", payload);
     return data;
   },
@@ -159,7 +166,15 @@ export const api = {
   // Add Next Episode in Workspace (inheriting global character Visual DNA)
   async addEpisode(
     projectId: string,
-    payload: { title?: string; story: string; target_duration?: number; cliffhanger_summary?: string }
+    payload: {
+      title?: string;
+      story: string;
+      target_duration?: number;
+      cliffhanger_summary?: string;
+      narrative_mode?: "hollywood" | "drama_5min" | "commercial";
+      structural_archetype?: string;
+      narrative_center?: "character" | "creative" | "plot";
+    }
   ): Promise<{ status: string; episode_id: string; episode_number: number; episode_title: string; shots_count: number }> {
     const { data } = await apiClient.post(`/projects/${projectId}/episodes`, payload);
     return data;
@@ -203,7 +218,14 @@ export const api = {
   },
 
   // Generation & AI Director
-  async generateFromStory(payload: { project_id: string; story: string; target_duration?: number }): Promise<GenerationResponse> {
+  async generateFromStory(payload: {
+    project_id: string;
+    story: string;
+    target_duration?: number;
+    narrative_mode?: "hollywood" | "drama_5min" | "commercial";
+    structural_archetype?: string;
+    narrative_center?: "character" | "creative" | "plot";
+  }): Promise<GenerationResponse> {
     const { data } = await apiClient.post(`/generate/storyboard`, payload);
     return data;
   },

@@ -24,6 +24,13 @@ interface PitchProposal {
   title: string;
   flavor_tag: string;
   logline: string;
+  structural_archetype?: string;
+  narrative_center?: "character" | "creative" | "plot";
+  hook_30s_breakdown?: {
+    s0_3?: string;
+    s3_10?: string;
+    s10_30?: string;
+  };
   characters: Array<{
     name: string;
     role: string;
@@ -448,10 +455,17 @@ export const PitchIdeaGeneratorModal: React.FC<PitchIdeaGeneratorModalProps> = (
                     >
                       <div className="space-y-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono font-bold bg-primary/20 text-primary border border-primary/30 px-2 py-0.5 rounded-full">
-                            {p.flavor_tag || `方案 ${idx + 1}`}
-                          </span>
-                          {isSelected && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-mono font-bold bg-primary/20 text-primary border border-primary/30 px-2 py-0.5 rounded-full">
+                              {p.flavor_tag || `方案 ${idx + 1}`}
+                            </span>
+                            {p.structural_archetype && (
+                              <span className="text-[9px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded-full">
+                                {p.structural_archetype}
+                              </span>
+                            )}
+                          </div>
+                          {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
                         </div>
 
                         <h4 className="text-sm font-bold text-foreground leading-snug">
@@ -461,6 +475,31 @@ export const PitchIdeaGeneratorModal: React.FC<PitchIdeaGeneratorModalProps> = (
                         <p className="text-xs text-muted-foreground font-medium line-clamp-2">
                           “{p.logline}”
                         </p>
+
+                        {/* 5-Min Drama 30s Hook Micro-Rhythm Preview */}
+                        {p.hook_30s_breakdown && (
+                          <div className="p-2 rounded-lg bg-amber-500/5 border border-amber-500/20 text-[10px] space-y-1 font-mono">
+                            <div className="text-amber-400 font-bold flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" />
+                              <span>前 30 秒黄金律卡点:</span>
+                            </div>
+                            {p.hook_30s_breakdown.s0_3 && (
+                              <div className="text-muted-foreground line-clamp-1">
+                                <span className="text-amber-300 font-semibold">0-3s:</span> {p.hook_30s_breakdown.s0_3}
+                              </div>
+                            )}
+                            {p.hook_30s_breakdown.s3_10 && (
+                              <div className="text-muted-foreground line-clamp-1">
+                                <span className="text-sky-300 font-semibold">3-10s:</span> {p.hook_30s_breakdown.s3_10}
+                              </div>
+                            )}
+                            {p.hook_30s_breakdown.s10_30 && (
+                              <div className="text-muted-foreground line-clamp-1">
+                                <span className="text-rose-300 font-semibold">10-30s:</span> {p.hook_30s_breakdown.s10_30}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         <div className="pt-2 border-t border-border/50">
                           <div className="text-[10px] text-muted-foreground font-mono flex items-center gap-1 mb-1">

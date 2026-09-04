@@ -112,6 +112,19 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
             </span>
           ))}
 
+          {/* 5-Min Drama Act Progression & Hook Phase Badges */}
+          {shot.act_progression && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 shrink-0">
+              <span>{shot.act_progression}</span>
+            </span>
+          )}
+
+          {shot.hook_phase && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 shrink-0">
+              <span>{shot.hook_phase}</span>
+            </span>
+          )}
+
           {isLocked && (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
               <Lock className="w-3 h-3" />

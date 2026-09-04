@@ -49,7 +49,14 @@ interface TopBarProps {
   activeVersionTag?: string;
   isLeftPanelCollapsed?: boolean;
   onToggleLeftPanel?: () => void;
-  onGenerateFromStory: (story: string) => Promise<void>;
+  onGenerateFromStory: (
+    story: string,
+    options?: {
+      narrative_mode?: "hollywood" | "drama_5min" | "commercial";
+      structural_archetype?: string;
+      narrative_center?: "character" | "creative" | "plot";
+    }
+  ) => Promise<void>;
   onImportScript?: (scriptText: string) => Promise<void>;
   onOpenVersions?: () => void;
   onOpenCreateSnapshot?: () => void;
@@ -79,13 +86,20 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [bibleMode, setBibleMode] = useState<"bible" | "style">("bible");
   const [storyText, setStoryText] = useState("");
+  const [narrativeMode, setNarrativeMode] = useState<"hollywood" | "drama_5min" | "commercial">("hollywood");
+  const [structuralArchetype, setStructuralArchetype] = useState<string>("single_space_standoff");
+  const [narrativeCenter, setNarrativeCenter] = useState<"character" | "creative" | "plot">("plot");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const handleGenerate = async () => {
     if (!storyText.trim()) return;
     try {
       setIsSubmitting(true);
-      await onGenerateFromStory(storyText);
+      await onGenerateFromStory(storyText, {
+        narrative_mode: narrativeMode,
+        structural_archetype: narrativeMode === "drama_5min" ? structuralArchetype : undefined,
+        narrative_center: narrativeMode === "drama_5min" ? narrativeCenter : undefined,
+      });
       setIsOpenModal(false);
     } finally {
       setIsSubmitting(false);
@@ -419,15 +433,89 @@ export const TopBar: React.FC<TopBarProps> = ({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">输入故事梗概或场次文本</label>
-              <textarea
-                value={storyText}
-                onChange={(e) => setStoryText(e.target.value)}
-                placeholder="例如：赛博雨夜，青瓦飞檐的古典茶楼中，黑客武术大师墨客与特工银狐展开近身对决，经历了拔枪、子弹时间下腰闪避、凌空飞踢，最终击退特工，墨客收势伫立在雨中..."
-                rows={5}
-                className="w-full text-xs bg-background border border-border rounded-lg p-3 resize-none focus:outline-none focus:border-primary"
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">导演风格模式</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "hollywood", label: "好莱坞大片", desc: "六阶段电影级" },
+                    { id: "drama_5min", label: "5分钟爆款短剧", desc: "30s黄金钩子 & 四幕因果" },
+                    { id: "commercial", label: "商业广告快剪", desc: "高频卡点" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setNarrativeMode(item.id as any)}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-left border transition-all flex flex-col",
+                        narrativeMode === item.id
+                          ? "bg-primary/10 border-primary text-primary shadow-xs"
+                          : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <span className="text-[11px] font-bold">{item.label}</span>
+                      <span className="text-[9px] opacity-75 line-clamp-1">{item.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {narrativeMode === "drama_5min" && (
+                <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-amber-400">⚡ 5-Min Drama 爆款设定</span>
+                    <span className="text-[9px] font-mono text-amber-300/80">3/10/30s 黄金律</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-muted-foreground block mb-0.5">主叙事重心</label>
+                      <select
+                        value={narrativeCenter}
+                        onChange={(e) => setNarrativeCenter(e.target.value as any)}
+                        className="w-full bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:border-amber-500"
+                      >
+                        <option value="plot">强剧情向 (困境抉择/立即危机)</option>
+                        <option value="character">角色向 (极致反差/性格缺陷)</option>
+                        <option value="creative">创意向 (脑洞奇观/反常规则)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-muted-foreground block mb-0.5">12大结构原型</label>
+                      <select
+                        value={structuralArchetype}
+                        onChange={(e) => setStructuralArchetype(e.target.value)}
+                        className="w-full bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:border-amber-500 truncate"
+                      >
+                        <option value="single_space_standoff">1. 单空间高压对峙型</option>
+                        <option value="countdown_rules">2. 倒计时规则收缩型</option>
+                        <option value="trade_escalation">3. 交易代价升级型</option>
+                        <option value="identity_reveal">4. 身份/关系错位揭底型</option>
+                        <option value="flawed_solution_backfire">5. 错误解法反噬型</option>
+                        <option value="ritual_interruption">6. 仪式中断与夺权型</option>
+                        <option value="system_runaway">7. 系统失控推演型 (科幻)</option>
+                        <option value="multiverse_rashomon">8. 多维视角塌缩/罗生门</option>
+                        <option value="absurd_rules_swap">9. 绝对规则置换型 (寓言)</option>
+                        <option value="memory_tampering">10. 记忆/认知篡改型</option>
+                        <option value="loop_overdraft">11. 困境死循环/代价透支</option>
+                        <option value="concept_predation">12. 概念具象化掠夺型</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">输入故事梗概或场次文本</label>
+                <textarea
+                  value={storyText}
+                  onChange={(e) => setStoryText(e.target.value)}
+                  placeholder="例如：赛博雨夜，青瓦飞檐的古典茶楼中，黑客武术大师墨客与特工银狐展开近身对决，经历了拔枪、子弹时间下腰闪避、凌空飞踢，最终击退特工，墨客收势伫立在雨中..."
+                  rows={4}
+                  className="w-full text-xs bg-background border border-border rounded-lg p-3 resize-none focus:outline-none focus:border-primary"
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-xs text-muted-foreground">
