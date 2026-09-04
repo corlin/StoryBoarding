@@ -630,7 +630,252 @@ router.put("/:id/sequences/:seqId/screenplay", async (c) => {
     return c.json({ detail: `更新剧本母本失败: ${err?.message || err}` }, 500);
   }
 });
+// POST /api/projects/:id/sequences/:seqId/sync-screenplay (Diff & Reconcile Screenplay into Shots)
+router.post("/:id/sequences/:seqId/sync-screenplay", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const id = c.req.param("id");
+    const seqId = c.req.param("seqId");
 
+    const authHeader = c.req.header("Authorization");
+    const authUser = await getAuthUser(authHeader);
+    if (!authUser) {
+      return c.json({ detail: "请先登录导演账号" }, 401);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const screenplayText = (body.screenplay_text || "").trim();
+
+    if (!screenplayText) {
+      return c.json({ detail: "剧本文本不能为空" }, 400);
+    }
+
+    // 1. Fetch current sequence and existing shots
+    const seq = await db.select().from(sequences).where(eq(sequences.id, seqId)).get();
+    if (!seq) {
+      return c.json({ detail: "Sequence not found" }, 404);
+    }
+
+    const existingShots = await db
+      .select()
+      .from(shots)
+      .where(eq(shots.sequenceId, seqId))
+      .orderBy(shots.order)
+      .all();
+
+    // 2. Also update sequence screenplayText if provided
+    await db
+      .update(sequences)
+      .set({
+        screenplayText,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(sequences.id, seqId));
+
+    // 3. Robust Regex Parser: Extract structured scene blocks or shot blocks from screenplay
+    // Supported formats:
+    // Format A: 【镜头 #N · 景别】动作描写 \n 人物 \n “对白”
+    // Format B: 纯文本段落（按句/段切分）
+    interface ParsedScriptShot {
+      order?: number;
+      shotSize?: string;
+      action: string;
+      dialogue?: string;
+      subject?: string;
+    }
+
+    const parsedBlocks: ParsedScriptShot[] = [];
+    const shotBlockRegex = /【镜头\s*#?(\d+)(?:[·\s]+([^】]+))?】([\s\S]*?)(?=(?:【镜头\s*#?\d+)|$)/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = shotBlockRegex.exec(screenplayText)) !== null) {
+      const orderNum = parseInt(match[1], 10);
+      const sizeStr = (match[2] || "").trim();
+      const content = match[3].trim();
+
+      // Extract dialogue if any: e.g. 林风\n“对白” or 【对白】“...”
+      let actionText = content;
+      let dialogueText = "";
+      let subjectText = "";
+
+      const dialogueMatch = content.match(/(?:(?:^|\n)\s*([^\n“”"【]+)\s*\n\s*[“"]([^”"]+)[”"])|(?:[“"]([^”"]+)[”"])/);
+      if (dialogueMatch) {
+        if (dialogueMatch[1] && dialogueMatch[2]) {
+          subjectText = dialogueMatch[1].trim();
+          dialogueText = dialogueMatch[2].trim();
+          actionText = content.replace(dialogueMatch[0], "").trim();
+        } else if (dialogueMatch[3]) {
+          dialogueText = dialogueMatch[3].trim();
+          actionText = content.replace(dialogueMatch[0], "").trim();
+        }
+      }
+
+      parsedBlocks.push({
+        order: orderNum,
+        shotSize: sizeStr || undefined,
+        action: actionText || content,
+        dialogue: dialogueText,
+        subject: subjectText,
+      });
+    }
+
+    // If no explicit 【镜头 #N】 tags were found, fallback to parsing by lines/paragraphs
+    if (parsedBlocks.length === 0) {
+      const paragraphs = screenplayText
+        .split(/\n\s*\n+/)
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0 && !p.startsWith("第") && !p.startsWith("【场景"));
+
+      paragraphs.forEach((p, idx) => {
+        let act = p;
+        let dia = "";
+        let sub = "";
+        const diaMatch = p.match(/([^\n：“”"【]+)[：:\n]\s*[“"]([^”"]+)[”"]/);
+        if (diaMatch) {
+          sub = diaMatch[1].trim();
+          dia = diaMatch[2].trim();
+          act = p.replace(diaMatch[0], "").trim();
+        }
+        parsedBlocks.push({
+          order: idx + 1,
+          action: act || p,
+          dialogue: dia,
+          subject: sub,
+        });
+      });
+    }
+
+    // 4. Differential Alignment Engine:
+    // Align parsedBlocks with existingShots
+    // Rule:
+    // - If existing shot is isLocked: DO NOT touch action/image/prompts.
+    // - If existing shot is NOT locked: update action, dialogue, subject if changed; mark isDirty = true.
+    // - If parsedBlocks count > existingShots count: insert new shots.
+    // - If parsedBlocks count < existingShots count: keep extra shots or mark them.
+    const diffSummary: {
+      updated: number;
+      created: number;
+      locked_preserved: number;
+      changes: { shot_order: number; status: string; detail: string }[];
+    } = {
+      updated: 0,
+      created: 0,
+      locked_preserved: 0,
+      changes: [],
+    };
+
+    const count = Math.max(parsedBlocks.length, existingShots.length);
+
+    for (let i = 0; i < count; i++) {
+      const existing = existingShots[i];
+      const parsed = parsedBlocks[i];
+
+      if (existing && parsed) {
+        if (existing.isLocked) {
+          diffSummary.locked_preserved++;
+          diffSummary.changes.push({
+            shot_order: existing.order,
+            status: "locked",
+            detail: `镜头 #${existing.order} 已锁定，保留原视听构图与画面。`,
+          });
+          continue;
+        }
+
+        // Compare if action or dialogue changed
+        const actionChanged = parsed.action && parsed.action !== existing.action;
+        const dialogueChanged = parsed.dialogue !== undefined && parsed.dialogue !== (existing.dialogue || "");
+
+        if (actionChanged || dialogueChanged) {
+          const newAction = parsed.action || existing.action;
+          const newDialogue = parsed.dialogue !== undefined ? parsed.dialogue : existing.dialogue;
+          const newSubject = parsed.subject || existing.subject;
+
+          // Re-synthesize prompts
+          const newImagePrompt = formatDirectorImagePrompt(
+            existing.shotSize || "medium_shot",
+            existing.cameraAngle || "eye_level",
+            "push_in",
+            newAction,
+            { globalAnchor: newSubject || "角色" }
+          );
+
+          await db
+            .update(shots)
+            .set({
+              action: newAction,
+              dialogue: newDialogue,
+              subject: newSubject,
+              imagePrompt: newImagePrompt,
+              isDirty: true,
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(shots.id, existing.id));
+
+          diffSummary.updated++;
+          diffSummary.changes.push({
+            shot_order: existing.order,
+            status: "updated",
+            detail: `镜头 #${existing.order} 内容已更新 (${actionChanged ? "动作更新" : ""}${dialogueChanged ? " 对白更新" : ""})，标记待冲印。`,
+          });
+        }
+      } else if (!existing && parsed) {
+        // Insert new shot
+        const newShotId = crypto.randomUUID();
+        const orderNum = i + 1;
+        const imgPrompt = formatDirectorImagePrompt(
+          "medium_shot",
+          "eye_level",
+          "push_in",
+          parsed.action,
+          { globalAnchor: parsed.subject || "主角" }
+        );
+
+        await db.insert(shots).values({
+          id: newShotId,
+          sequenceId: seqId,
+          order: orderNum,
+          duration: 3.0,
+          shotSize: parsed.shotSize || "medium_shot",
+          cameraAngle: "eye_level",
+          cameraMovement: JSON.stringify({ type: "push_in" }),
+          subject: parsed.subject || "",
+          action: parsed.action,
+          dialogue: parsed.dialogue || "",
+          narrativeFunction: "动作推进",
+          lighting: "自然电影光影",
+          audio: JSON.stringify({ sfx: "环境音效" }),
+          imagePrompt: imgPrompt,
+          videoPrompt: "",
+          continuityData: JSON.stringify({}),
+          beatType: "tension_build",
+          emotionalVoltage: 60.0,
+          informationGap: "",
+          computeTier: "standard",
+          storyboardImageUrl: "",
+          isDirty: true,
+          isLocked: false,
+        });
+
+        diffSummary.created++;
+        diffSummary.changes.push({
+          shot_order: orderNum,
+          status: "created",
+          detail: `根据新增剧本段落自动创建镜头 #${orderNum}。`,
+        });
+      }
+    }
+
+    return c.json({
+      status: "success",
+      message: `成功同步剧本！更新 ${diffSummary.updated} 镜，新建 ${diffSummary.created} 镜，锁定保护 ${diffSummary.locked_preserved} 镜。`,
+      diff: diffSummary,
+    });
+  } catch (err: any) {
+    console.error("[Sync Screenplay Error]:", err);
+    return c.json({ detail: `同步剧本至分镜失败: ${err?.message || err}` }, 500);
+  }
+});
 // POST /api/projects/:id/episodes (Add next episode in workspace, inheriting global character visual DNA)
 router.post("/:id/episodes", async (c) => {
   try {

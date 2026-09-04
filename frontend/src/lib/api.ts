@@ -287,6 +287,26 @@ export const api = {
     return data;
   },
 
+  async syncSequenceScreenplayToShots(
+    projectId: string,
+    seqId: string,
+    screenplayText: string
+  ): Promise<{
+    status: string;
+    message: string;
+    diff: {
+      updated: number;
+      created: number;
+      locked_preserved: number;
+      changes: { shot_order: number; status: string; detail: string }[];
+    };
+  }> {
+    const { data } = await apiClient.post(`/projects/${projectId}/sequences/${seqId}/sync-screenplay`, {
+      screenplay_text: screenplayText,
+    });
+    return data;
+  },
+
   // Export URLs
   getExportScriptUrl(projectId: string): string {
     const base = getApiBaseUrl();

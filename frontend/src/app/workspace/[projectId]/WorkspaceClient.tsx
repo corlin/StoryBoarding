@@ -150,6 +150,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           project_id: seq.projectId || previewVersion.project_id,
           name: seq.title || "主场次",
           order: seq.order || 1,
+          screenplay_text: seq.screenplay_text || seq.screenplayText || "",
           shots: (seq.shots || []).map((s: any) => ({
             id: s.id,
             sequence_id: s.sequenceId || seq.id,

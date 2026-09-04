@@ -14,6 +14,7 @@ import {
 import { SequenceModel, ProjectModel } from "@/types/shot";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
+import { cn } from "@/lib/utils";
 
 interface ScreenplayEditorProps {
   project: ProjectModel | null;
@@ -28,7 +29,17 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
 }) => {
   const [screenplayText, setScreenplayText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [diffResult, setDiffResult] = useState<{
+    message: string;
+    diff: {
+      updated: number;
+      created: number;
+      locked_preserved: number;
+      changes: { shot_order: number; status: string; detail: string }[];
+    };
+  } | null>(null);
 
   // Sync initial screenplay text when sequence changes
   useEffect(() => {
@@ -42,6 +53,24 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
       }
     }
   }, [sequence?.id, sequence?.screenplay_text]);
+
+  const handleSyncToShots = async () => {
+    if (!project?.id || !sequence?.id) return;
+    try {
+      setIsSyncing(true);
+      const res = await api.syncSequenceScreenplayToShots(project.id, sequence.id, screenplayText);
+      setDiffResult(res);
+      notify.success("✨ 剧本已成功反推差量更新分镜头！");
+      if (onRefreshProject) {
+        await onRefreshProject();
+      }
+    } catch (err: any) {
+      console.error("Sync screenplay error:", err);
+      notify.error(err?.response?.data?.detail || err?.message || "同步剧本至分镜失败");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const generateDefaultScreenplay = (seq: SequenceModel): string => {
     const epNum = seq.episode_number || seq.order || 1;
@@ -145,10 +174,20 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
             type="button"
             disabled={isSaving}
             onClick={handleSaveScreenplay}
-            className="flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-bold bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-all shadow-xs disabled:opacity-50"
           >
             {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
             <span>保存剧本</span>
+          </button>
+          <button
+            type="button"
+            disabled={isSyncing || isSaving}
+            onClick={handleSyncToShots}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-sm shadow-amber-500/20 active:scale-95 disabled:opacity-50"
+            title="从当前最新文学剧本中精准比对差异，反推更新分镜头（自动保护已锁定的镜头）"
+          >
+            {isSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            <span>✨ 同步至分镜</span>
           </button>
         </div>
       </div>
@@ -166,13 +205,65 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
         <div className="flex items-center justify-between pt-2.5 text-[11px] text-muted-foreground">
           <div className="flex items-center gap-1">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>修改文学剧本后点击「保存剧本」，分集母本即刻云端持久化更新。</span>
+            <span>修改文学剧本后点击「保存剧本」存盘，或点击「✨ 同步至分镜」精准反推更新镜头。</span>
           </div>
           <span className="font-mono text-[10px]">
             {screenplayText.length} 字 · {sequence.shots?.length || 0} 个关联分镜
           </span>
         </div>
       </div>
+
+      {/* Diff Result Confirmation Modal */}
+      {diffResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-card border border-border w-full max-w-lg rounded-xl shadow-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-border/70 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <h3 className="font-bold text-sm text-foreground">剧本差异反推分镜报告</h3>
+              </div>
+              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                100% 差量对齐
+              </span>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {diffResult.message}
+            </p>
+
+            {/* Changes List */}
+            <div className="max-h-56 overflow-y-auto space-y-1.5 p-2 rounded-lg bg-background/80 border border-border/60 text-xs font-mono">
+              {diffResult.diff.changes.length === 0 ? (
+                <p className="text-muted-foreground text-center py-2">无检测到镜头动作或对白实质变更</p>
+              ) : (
+                diffResult.diff.changes.map((item, i) => (
+                  <div key={i} className="flex items-start gap-2 py-1 border-b border-border/30 last:border-0">
+                    <span className={cn(
+                      "px-1.5 py-0.5 rounded text-[10px] shrink-0",
+                      item.status === "updated" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30" :
+                      item.status === "created" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" :
+                      "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                    )}>
+                      {item.status === "updated" ? "更新" : item.status === "created" ? "新建" : "锁定保护"}
+                    </span>
+                    <span className="text-muted-foreground flex-1">{item.detail}</span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
+              <button
+                type="button"
+                onClick={() => setDiffResult(null)}
+                className="px-4 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+              >
+                确认并查看分镜
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

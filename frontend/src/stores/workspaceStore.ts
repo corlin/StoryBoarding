@@ -55,6 +55,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         episode_number: Number(seq.episode_number) || 1,
         cliffhanger_summary: seq.cliffhanger_summary || "",
         target_duration: Number(seq.target_duration) || 60.0,
+        screenplay_text: seq.screenplay_text || "",
         shots: (seq.shots || []).map((shot: any): ShotModel => ({
           id: shot.id,
           sequence_id: shot.sequence_id || seq.id,
