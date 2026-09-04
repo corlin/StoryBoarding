@@ -19,7 +19,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { ProjectVersion, ProjectModel } from "@/types/shot";
-import { History, Clock, RotateCcw, GitBranch, X, Lock, ChevronLeft, ChevronRight } from "lucide-react";
+import { History, Clock, RotateCcw, GitBranch, X, Lock, ChevronLeft, ChevronRight, FileText, Film, SlidersHorizontal } from "lucide-react";
 
 interface WorkspaceClientProps {
   projectId?: string;
@@ -50,6 +50,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [isCharacterHubOpen, setIsCharacterHubOpen] = useState(false);
 
   const { activeEpisodeIndex, setActiveEpisodeIndex } = useWorkspaceStore();
+
+  // Mobile View Switcher Tab ("storyboard" | "script")
+  const [mobileActiveTab, setMobileActiveTab] = useState<"storyboard" | "script">("storyboard");
 
   // Resizable Split-Pane states (5:5 equal default split)
   const [leftPanelPercent, setLeftPanelPercent] = useState(50);
@@ -559,17 +562,57 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         </div>
       )}
 
-      {/* Main Studio Workspace with Resizable Split-Pane */}
-      <div className={cn("flex-1 flex overflow-hidden relative", isDragging && "select-none cursor-col-resize")}>
-        {/* Left Column: Script & Scene Pacing Editor */}
+      {/* Mobile-Only Dual-View Segmented Control Bar */}
+      <div className="md:hidden flex items-center justify-between px-3 py-1.5 bg-card/90 border-b border-border select-none z-30 shrink-0">
+        <div className="flex bg-secondary/80 p-0.5 rounded-lg border border-border/60 w-full">
+          <button
+            type="button"
+            onClick={() => setMobileActiveTab("storyboard")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all",
+              mobileActiveTab === "storyboard"
+                ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Film className="w-3.5 h-3.5" />
+            <span>🎞️ 故事板画布 ({shots.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileActiveTab("script")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all",
+              mobileActiveTab === "script"
+                ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>📜 剧本与台本</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Studio Workspace: Responsive Dual-Mode (Mobile Tab View / Desktop Resizable Split-Pane) */}
+      <div className={cn("flex-1 flex flex-col md:flex-row overflow-hidden relative", isDragging && "select-none cursor-col-resize")}>
+        {/* Script & Scene Pacing Editor */}
         <div
-          style={{ width: isLeftPanelCollapsed ? 0 : `${leftPanelPercent}%` }}
+          style={{ width: undefined }}
           className={cn(
-            "shrink-0 h-full overflow-hidden bg-card/20 relative",
+            "h-full overflow-hidden bg-card/20 relative shrink-0",
+            // Mobile: full-width if mobileActiveTab === 'script', hidden otherwise
+            mobileActiveTab === "script" ? "flex-1 w-full block md:flex-none" : "hidden md:block",
+            // Desktop: respect leftPanelPercent or collapsed
             isDragging ? "transition-none" : "transition-[width] duration-200 ease-in-out"
           )}
+          ref={(el) => {
+            if (el && typeof window !== "undefined" && window.innerWidth >= 768) {
+              el.style.width = isLeftPanelCollapsed ? "0px" : `${leftPanelPercent}%`;
+            }
+          }}
         >
-          {!isLeftPanelCollapsed && (
+          {(!isLeftPanelCollapsed || (typeof window !== "undefined" && window.innerWidth < 768)) && (
             <ScriptPanel
               shots={shots}
               sequenceId={activeSequence?.id || ""}
@@ -589,12 +632,12 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           )}
         </div>
 
-        {/* Resizable Divider Line & Collapse Handle */}
+        {/* Resizable Divider Line & Collapse Handle (Desktop Only) */}
         <div
           onMouseDown={handleMouseDown}
           onDoubleClick={handleResetDivider}
           className={cn(
-            "relative group flex items-center justify-center w-2 -mx-1 z-30 cursor-col-resize select-none shrink-0 transition-colors",
+            "hidden md:flex relative group items-center justify-center w-2 -mx-1 z-30 cursor-col-resize select-none shrink-0 transition-colors",
             isDragging ? "bg-primary/40" : "hover:bg-primary/20"
           )}
           title="按住鼠标左右拖拽调整分栏宽度，双击复位默认 5:5 比例"
@@ -623,8 +666,14 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           </button>
         </div>
 
-        {/* Center/Right Column: 16:9 Storyboard Canvas */}
-        <div className="flex-1 h-full overflow-hidden bg-background min-w-0">
+        {/* Storyboard Canvas */}
+        <div
+          className={cn(
+            "flex-1 h-full overflow-hidden bg-background min-w-0",
+            // Mobile: show only if mobileActiveTab === 'storyboard'
+            mobileActiveTab === "storyboard" ? "w-full block" : "hidden md:block"
+          )}
+        >
           <StoryboardPanel
             shots={shots}
             selectedShotId={selectedShotId}

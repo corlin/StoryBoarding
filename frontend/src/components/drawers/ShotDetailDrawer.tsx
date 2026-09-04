@@ -117,7 +117,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
       <div
-        className="w-full max-w-2xl bg-card border-l border-border h-full flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-right duration-250"
+        className="w-full sm:max-w-xl md:max-w-2xl bg-card border-l border-border h-full flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-right duration-250"
       >
         {/* Drawer Header */}
         <div className="h-16 px-6 border-b border-border flex items-center justify-between bg-muted/20 shrink-0">

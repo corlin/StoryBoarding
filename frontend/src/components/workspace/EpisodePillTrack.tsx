@@ -164,11 +164,11 @@ export function EpisodePillTrack({ onOpenCharacterHub, onRefreshProject }: Episo
         <div className="flex items-center gap-3 shrink-0 ml-4">
           <button
             onClick={onOpenCharacterHub}
-            className="flex items-center gap-2 px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 text-xs font-medium rounded-lg transition"
+            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 text-xs font-medium rounded-lg transition"
             title="查看与微调全剧全局角色库及视觉基因锚点 (Visual DNA)"
           >
             <Users className="w-3.5 h-3.5 text-sky-400" />
-            <span>全剧角色库</span>
+            <span className="hidden sm:inline">全剧角色库</span>
             <span className="font-mono text-[10px] bg-sky-500/20 px-1.5 py-0.2 rounded text-sky-200">
               {characters.length}
             </span>

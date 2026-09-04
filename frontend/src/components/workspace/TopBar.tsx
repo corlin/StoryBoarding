@@ -28,6 +28,7 @@ import {
   Loader2,
   Play,
   Clock,
+  MoreVertical,
 } from "lucide-react";
 import { ExportDeliverablesModal } from "@/components/modals/ExportDeliverablesModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
@@ -79,6 +80,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [bibleMode, setBibleMode] = useState<"bible" | "style">("bible");
   const [storyText, setStoryText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const handleGenerate = async () => {
     if (!storyText.trim()) return;
     try {
@@ -185,106 +187,220 @@ export const TopBar: React.FC<TopBarProps> = ({
               <Sparkles className="w-3.5 h-3.5" />
               <span>AI 智能拆镜</span>
             </button>
-
-            {onImportScript && (
-              <button
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    notify.info("🎬 请先登录或注册导演账号");
-                    openAuthModal("login");
-                    return;
-                  }
-                  const hasKey = !!user?.custom_settings?.llmApiKey;
-                  if (!hasKey) {
-                    notify.info("🎬 请先在「设置」中配置您的专属 OpenRouter API Key，开启剧本解析服务");
-                    openSettingsModal();
-                    return;
-                  }
-                  setIsOpenScriptModal(true);
-                }}
-                className="hidden xl:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-colors"
-                title="导入已有剧本或分镜脚本逆向拆解"
-              >
-                <FileCode2 className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>导入脚本</span>
-              </button>
-            )}
-
-            {onOpenTheater && (
-              <button
-                onClick={onOpenTheater}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all shadow-xs"
-                title="进入 16:9 全屏影院动态预演播放（支持键盘切镜与空格播放）"
-              >
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>动态预演</span>
-              </button>
-            )}
           </div>
 
-          {/* Group 2: Production, Snapshots & Export (Compact Joined Group) */}
-          <div className="flex items-center bg-secondary/50 rounded-lg p-1 border border-border/80 shadow-2xs">
-            {onOpenCreateSnapshot && (
-              <button
-                onClick={onOpenCreateSnapshot}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
-                title="保存当前分镜版本快照"
-              >
-                <Camera className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden sm:inline">快照</span>
-              </button>
-            )}
+          {/* Desktop Only: Group 1 secondary items (Preview/Script), Group 2 (Snapshots & Export), Group 3 (Settings & Delete) */}
+          <div className="hidden md:flex items-center gap-2.5">
+            {/* Group 1 Extra: Theater & Script */}
+            <div className="flex items-center gap-1.5 bg-secondary/50 p-1 rounded-lg border border-border/80 shadow-2xs">
+              {onImportScript && (
+                <button
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      notify.info("🎬 请先登录或注册导演账号");
+                      openAuthModal("login");
+                      return;
+                    }
+                    const hasKey = !!user?.custom_settings?.llmApiKey;
+                    if (!hasKey) {
+                      notify.info("🎬 请先在「设置」中配置您的专属 OpenRouter API Key，开启剧本解析服务");
+                      openSettingsModal();
+                      return;
+                    }
+                    setIsOpenScriptModal(true);
+                  }}
+                  className="hidden xl:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-colors"
+                  title="导入已有剧本或分镜脚本逆向拆解"
+                >
+                  <FileCode2 className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>导入脚本</span>
+                </button>
+              )}
 
-            {onOpenVersions && (
-              <button
-                onClick={onOpenVersions}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
-                title="查看历史版本快照与时光穿越"
-              >
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">版本</span>
-              </button>
-            )}
+              {onOpenTheater && (
+                <button
+                  onClick={onOpenTheater}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all shadow-xs"
+                  title="进入 16:9 全屏影院动态预演播放（支持键盘切镜与空格播放）"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>动态预演</span>
+                </button>
+              )}
+            </div>
 
-            <button
-              onClick={() => setIsOpenExportModal(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
-              title="导出 PNG 分镜表单、Markdown 台本、提示词包与原图 ZIP"
-            >
-              <Download className="w-3.5 h-3.5 text-sky-400" />
-              <span>导出</span>
-            </button>
+            {/* Group 2: Production, Snapshots & Export */}
+            <div className="flex items-center bg-secondary/50 rounded-lg p-1 border border-border/80 shadow-2xs">
+              {onOpenCreateSnapshot && (
+                <button
+                  onClick={onOpenCreateSnapshot}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
+                  title="保存当前分镜版本快照"
+                >
+                  <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">快照</span>
+                </button>
+              )}
+
+              {onOpenVersions && (
+                <button
+                  onClick={onOpenVersions}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
+                  title="查看历史版本快照与时光穿越"
+                >
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">版本</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setIsOpenExportModal(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
+                title="导出 PNG 分镜表单、Markdown 台本、提示词包与原图 ZIP"
+              >
+                <Download className="w-3.5 h-3.5 text-sky-400" />
+                <span>导出</span>
+              </button>
+            </div>
+
+            {/* Group 3: System & User Profile */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={openSettingsModal}
+                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted border border-border/60 transition-colors"
+                title="AI 模型与 API 设置"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+
+              {isAuthenticated && user ? (
+                <UserMenuDropdown />
+              ) : (
+                <button
+                  onClick={() => openAuthModal("login")}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 border border-sky-500/30 transition-colors shadow-2xs"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>登录</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setIsDeleteOpen(true)}
+                className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/60 transition-colors"
+                title="删除此项目"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
-          {/* Group 3: System & User Profile */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={openSettingsModal}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted border border-border/60 transition-colors"
-              title="AI 模型与 API 设置"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-
+          {/* Mobile Right Controls (< md): User Avatar & More Options Popup */}
+          <div className="flex md:hidden items-center gap-1.5">
             {isAuthenticated && user ? (
               <UserMenuDropdown />
             ) : (
               <button
                 onClick={() => openAuthModal("login")}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 border border-sky-500/30 transition-colors shadow-2xs"
+                className="p-1.5 rounded-md text-xs font-semibold bg-sky-500/15 text-sky-300 border border-sky-500/30 transition-colors"
               >
                 <User className="w-3.5 h-3.5" />
-                <span>登录</span>
               </button>
             )}
 
-            <button
-              onClick={() => setIsDeleteOpen(true)}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/60 transition-colors"
-              title="删除此项目"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground bg-secondary/60 border border-border transition-colors"
+                title="更多操作"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+
+              {isMobileMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40 bg-black/40 backdrop-blur-2xs"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-card border border-border rounded-xl shadow-2xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150 text-xs">
+                    {onOpenTheater && (
+                      <button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          onOpenTheater();
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-emerald-500/15 text-emerald-300 transition-colors"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>动态预演 (Theater)</span>
+                      </button>
+                    )}
+
+                    {onOpenCreateSnapshot && (
+                      <button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          onOpenCreateSnapshot();
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-secondary text-foreground transition-colors"
+                      >
+                        <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>生成当前快照</span>
+                      </button>
+                    )}
+
+                    {onOpenVersions && (
+                      <button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          onOpenVersions();
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-secondary text-foreground transition-colors"
+                      >
+                        <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>版本时光机</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsOpenExportModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-secondary text-foreground transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5 text-sky-400" />
+                      <span>导出打样 (Export)</span>
+                    </button>
+
+                    <div className="my-1 border-t border-border/60" />
+
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        openSettingsModal();
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-secondary text-foreground transition-colors"
+                    >
+                      <Settings className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span>API 与模型设置</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsDeleteOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-destructive/15 text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>删除工程</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
