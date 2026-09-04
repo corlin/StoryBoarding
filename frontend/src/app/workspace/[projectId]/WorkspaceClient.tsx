@@ -30,13 +30,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const searchParams = useSearchParams();
   const routeParams = useParams();
 
-  const queryId = searchParams?.get("id") || searchParams?.get("projectId");
+  const queryId = searchParams?.get("id");
   const rawParamId = Array.isArray(routeParams?.projectId) ? routeParams.projectId[0] : routeParams?.projectId;
-  const pathId = typeof window !== "undefined"
-    ? window.location.pathname.replace(/^\/workspace\/?/, "").split("/")[0].split("?")[0]
-    : "";
-
-  const effectiveProjectId = queryId || rawParamId || pathId || projectId || "";
+  const effectiveProjectId = queryId || rawParamId || projectId || "";
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStory, setGenerationStory] = useState("");
@@ -598,22 +594,16 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       <div className={cn("flex-1 flex flex-col md:flex-row overflow-hidden relative", isDragging && "select-none cursor-col-resize")}>
         {/* Script & Scene Pacing Editor */}
         <div
+          style={{
+            width: isLeftPanelCollapsed ? "0px" : `${leftPanelPercent}%`,
+          }}
           className={cn(
             "h-full overflow-hidden bg-card/20 relative shrink-0",
             // Mobile: full-width if mobileActiveTab === 'script', hidden otherwise
-            mobileActiveTab === "script" ? "flex-1 w-full block md:flex-none" : "hidden md:block",
+            mobileActiveTab === "script" ? "!w-full flex-1 block md:flex-none" : "hidden md:block",
             // Desktop: respect leftPanelPercent or collapsed
             isDragging ? "transition-none" : "transition-[width] duration-200 ease-in-out"
           )}
-          ref={(el) => {
-            if (el && typeof window !== "undefined") {
-              if (window.innerWidth >= 768) {
-                el.style.width = isLeftPanelCollapsed ? "0px" : `${leftPanelPercent}%`;
-              } else {
-                el.style.width = "";
-              }
-            }
-          }}
         >
           {(!isLeftPanelCollapsed || (typeof window !== "undefined" && window.innerWidth < 768)) && (
             <ScriptPanel

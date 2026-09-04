@@ -74,23 +74,23 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
 
         {/* Actions & Layout Controls */}
         <div className="flex items-center gap-2">
-          {/* Clean Unified Status or Batch Re-render Button */}
-          {!isBatchRendering && missingImageCount > 0 && onRegenerateDirty && (
-            <button
-              onClick={onRegenerateDirty}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black shadow-sm shadow-amber-500/20 transition-all duration-150 active:scale-95"
-              title="一键冲印渲染尚未生成画面的镜头"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>一键冲印剩余 ({missingImageCount})</span>
-            </button>
-          )}
-
-          {!isBatchRendering && missingImageCount === 0 && shots.length > 0 && (
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>全片 {shots.length} 镜已显影就绪</span>
-            </div>
+          {/* Unified Batch Render Action & Readiness Status */}
+          {!isBatchRendering && (
+            missingImageCount > 0 && onRegenerateDirty ? (
+              <button
+                onClick={onRegenerateDirty}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black shadow-sm shadow-amber-500/20 transition-all duration-150 active:scale-95"
+                title="一键冲印渲染尚未生成画面的镜头"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>一键冲印剩余 ({missingImageCount})</span>
+              </button>
+            ) : shots.length > 0 ? (
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>全片 {shots.length} 镜已显影就绪</span>
+              </div>
+            ) : null
           )}
 
           {/* Previz HUD Guide Overlay Toggle Button */}
