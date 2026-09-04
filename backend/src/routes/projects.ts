@@ -397,19 +397,16 @@ router.post("/create-series", async (c) => {
         episodeNumber: Number(ep.episode_number) || i + 1,
         cliffhangerSummary: ep.cliffhanger_hook || "",
         targetDuration: epDuration,
+        screenplayText: ep.synopsis || story || "",
       });
 
       // Construct enriched episode context with character DNA
       const epStory = `${ep.synopsis || story}. 集尾卡点悬念：${ep.cliffhanger_hook || "悬念未决"}. 核心出场角色：${(ep.featured_characters || []).join("、")}. ${characterAnchorContext}`;
 
-      // Call director pipeline for this episode
-      const epPlan = await runDirectorPipeline(epStory, epDuration, {
-        apiKey: settings.llmApiKey,
-        apiBase: settings.llmApiBase,
-        model: settings.llmModel,
-      });
+      // Fast, non-blocking narrative shot breakdown (instant 0ms response, zero Cloudflare timeout risk)
+      const epShots = generateAdaptiveStoryShots(epStory, epDuration);
 
-      for (const s of epPlan.shots) {
+      for (const s of epShots) {
         const shotId = crypto.randomUUID();
         allInsertedShotTasks.push({ shotId, s });
         await db.insert(shots).values({
@@ -447,33 +444,38 @@ router.post("/create-series", async (c) => {
         episode_number: Number(ep.episode_number) || i + 1,
         cliffhanger_summary: ep.cliffhanger_hook || "",
         target_duration: epDuration,
+        screenplay_text: ep.synopsis || story || "",
       });
     }
 
-    // 4. Background image rendering across all episodes
-    const backgroundRenderJob = async () => {
-      try {
-        await runConcurrentTasks(allInsertedShotTasks, 3, async ({ shotId, s }) => {
-          const seed = baseSeed + s.order * 1000;
-          const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
-          await db
-            .update(shots)
-            .set({
-              storyboardImageUrl: imageUrl,
-              updatedAt: new Date().toISOString(),
-            })
-            .where(eq(shots.id, shotId));
-        });
-        console.log(`[Series Background Task] Rendered all ${allInsertedShotTasks.length} shots for series ${projectId}`);
-      } catch (bgErr) {
-        console.error(`[Series Background Task] Error rendering shots for series ${projectId}:`, bgErr);
-      }
-    };
+    // 4. Bounded background image rendering for Episode 1 preview frames (up to 4 shots to avoid Cloudflare limit)
+    if (settings.hasKey) {
+      const previewTasks = allInsertedShotTasks.slice(0, 4);
+      const backgroundRenderJob = async () => {
+        try {
+          await runConcurrentTasks(previewTasks, 2, async ({ shotId, s }) => {
+            try {
+              const seed = baseSeed + s.order * 1000;
+              const imageUrl = await generateCinematicStoryboardImage(s.image_prompt, shotId, settings, c.env.STORAGE, seed);
+              await db
+                .update(shots)
+                .set({
+                  storyboardImageUrl: imageUrl,
+                  updatedAt: new Date().toISOString(),
+                })
+                .where(eq(shots.id, shotId));
+            } catch (imgErr) {
+              console.warn(`[Image Render Fail Shot ${shotId}]:`, imgErr);
+            }
+          });
+        } catch (bgErr) {
+          console.warn("[Series Background Task Error]:", bgErr);
+        }
+      };
 
-    if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
-      c.executionCtx.waitUntil(backgroundRenderJob());
-    } else {
-      backgroundRenderJob();
+      if (c.executionCtx && typeof c.executionCtx.waitUntil === "function") {
+        c.executionCtx.waitUntil(backgroundRenderJob());
+      }
     }
 
     return c.json(
