@@ -598,7 +598,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       <div className={cn("flex-1 flex flex-col md:flex-row overflow-hidden relative", isDragging && "select-none cursor-col-resize")}>
         {/* Script & Scene Pacing Editor */}
         <div
-          style={{ width: undefined }}
           className={cn(
             "h-full overflow-hidden bg-card/20 relative shrink-0",
             // Mobile: full-width if mobileActiveTab === 'script', hidden otherwise
@@ -607,8 +606,12 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             isDragging ? "transition-none" : "transition-[width] duration-200 ease-in-out"
           )}
           ref={(el) => {
-            if (el && typeof window !== "undefined" && window.innerWidth >= 768) {
-              el.style.width = isLeftPanelCollapsed ? "0px" : `${leftPanelPercent}%`;
+            if (el && typeof window !== "undefined") {
+              if (window.innerWidth >= 768) {
+                el.style.width = isLeftPanelCollapsed ? "0px" : `${leftPanelPercent}%`;
+              } else {
+                el.style.width = "";
+              }
             }
           }}
         >

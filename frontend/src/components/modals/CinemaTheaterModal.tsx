@@ -212,14 +212,15 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col justify-between overflow-hidden select-none animate-in fade-in duration-200">
       {/* Top Header Bar */}
-      <div className="h-14 px-6 flex items-center justify-between border-b border-white/10 bg-black/40 text-white z-20">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-primary/20 text-primary border border-primary/30 text-xs font-semibold">
+      <div className="h-14 px-3 sm:px-6 flex items-center justify-between border-b border-white/10 bg-black/40 text-white z-20 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/20 text-primary border border-primary/30 text-xs font-semibold shrink-0">
             <Film className="w-4 h-4" />
-            <span>影院监看模式 · 动态分镜 (Animatic Previz)</span>
+            <span className="hidden sm:inline">影院监看 · 动态预演</span>
+            <span className="sm:hidden font-mono">PREVIZ</span>
           </div>
-          <span className="text-sm font-medium text-white/90 font-mono">
-            Shot {String(currentIndex + 1).padStart(2, "0")} / {String(activeShots.length).padStart(2, "0")}
+          <span className="text-xs sm:text-sm font-medium text-white/90 font-mono shrink-0">
+            {String(currentIndex + 1).padStart(2, "0")} / {String(activeShots.length).padStart(2, "0")}
           </span>
 
           {/* Binge Mode Toggle Button */}
@@ -231,7 +232,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
                 setCurrentTime(0);
               }}
               className={cn(
-                "px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ml-2",
+                "px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all shrink-0",
                 isBingeMode
                   ? "bg-amber-500 text-black shadow-sm font-bold"
                   : "bg-white/10 text-white/80 hover:bg-white/20 border border-white/15"
@@ -239,7 +240,8 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
               title={isBingeMode ? "切换为当前单集预演" : "开启全剧多集连续试映连播 (Binge Previz)"}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>{isBingeMode ? "🎬 全剧连播 (全集)" : "🔍 单集精看"}</span>
+              <span className="hidden sm:inline">{isBingeMode ? "🎬 全剧连播 (全集)" : "🔍 单集精看"}</span>
+              <span className="sm:hidden">{isBingeMode ? "全集" : "单集"}</span>
             </button>
           )}
         </div>
@@ -301,7 +303,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
           )}
 
           {/* Top Left Shot Badge */}
-          <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/85 backdrop-blur-md px-3.5 py-1.5 rounded-lg border border-white/20 shadow-lg text-white font-mono text-sm">
+          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 flex items-center gap-1.5 sm:gap-2 bg-black/85 backdrop-blur-md px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg border border-white/20 shadow-lg text-white font-mono text-xs sm:text-sm">
             {currentSequence && (
               <>
                 <span className="font-bold text-amber-400">
@@ -323,19 +325,19 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
 
           {/* Top Right Camera Angle / Movement Badge */}
           {currentShot?.camera_movement?.type && currentShot.camera_movement.type !== "static" && (
-            <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/15 text-xs font-mono text-sky-300">
+            <div className="hidden sm:flex absolute top-4 right-4 items-center gap-1.5 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/15 text-xs font-mono text-sky-300">
               <Camera className="w-3.5 h-3.5 text-sky-400" />
               <span>运镜: {currentShot.camera_movement.type}</span>
             </div>
           )}
 
           {/* Bottom Subtitle / Screenplay Action Box */}
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-6 pt-12 text-center flex flex-col items-center justify-end">
-            <p className="text-base md:text-xl font-medium text-white/95 tracking-wide drop-shadow-md max-w-4xl leading-relaxed">
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/85 to-transparent p-3 sm:p-6 pt-8 sm:pt-12 text-center flex flex-col items-center justify-end max-h-[45%] overflow-y-auto">
+            <p className="text-xs sm:text-base md:text-xl font-medium text-white/95 tracking-wide drop-shadow-md max-w-4xl leading-relaxed">
               {currentShot?.action || "（无动作描述）"}
             </p>
             {currentShot?.dialogue && (
-              <p className="text-sm md:text-base font-serif italic text-amber-300/90 mt-2">
+              <p className="text-[11px] sm:text-sm md:text-base font-serif italic text-amber-300/90 mt-1 sm:mt-2">
                 “{currentShot.dialogue}”
               </p>
             )}

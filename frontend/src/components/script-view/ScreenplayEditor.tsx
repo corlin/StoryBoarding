@@ -142,25 +142,25 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
   return (
     <div className="flex flex-col h-full bg-card/60 rounded-xl border border-border/70 overflow-hidden shadow-xs">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-secondary/40 border-b border-border/70">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-400">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 bg-secondary/40 border-b border-border/70 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-400 shrink-0">
             <FileText className="w-4 h-4" />
           </div>
-          <div>
-            <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <span>《{sequence.title || `第 ${sequence.episode_number || sequence.order} 集`}》文学剧本正文</span>
-              <span className="text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded">
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-foreground flex items-center gap-1.5 truncate">
+              <span className="truncate">《{sequence.title || `第 ${sequence.episode_number || sequence.order} 集`}》文学正文</span>
+              <span className="text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30 px-1 py-0.2 rounded shrink-0 hidden sm:inline">
                 Master Script
               </span>
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground hidden sm:block">
               好莱坞文学母本格式 · 自由编辑对白与动作描写
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <button
             type="button"
             onClick={handleCopyScreenplay}
@@ -168,26 +168,26 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
             title="复制剧本文学正文"
           >
             {isCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-            <span>{isCopied ? "已复制" : "复制"}</span>
+            <span className="hidden sm:inline">{isCopied ? "已复制" : "复制"}</span>
           </button>
           <button
             type="button"
             disabled={isSaving}
             onClick={handleSaveScreenplay}
-            className="flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-bold bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-all shadow-xs disabled:opacity-50"
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-md text-[11px] font-bold bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-all shadow-xs disabled:opacity-50"
           >
             {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-            <span>保存剧本</span>
+            <span>保存</span>
           </button>
           <button
             type="button"
             disabled={isSyncing || isSaving}
             onClick={handleSyncToShots}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-sm shadow-amber-500/20 active:scale-95 disabled:opacity-50"
+            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-[11px] font-bold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-sm shadow-amber-500/20 active:scale-95 disabled:opacity-50"
             title="从当前最新文学剧本中精准比对差异，反推更新分镜头（自动保护已锁定的镜头）"
           >
             {isSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            <span>✨ 同步至分镜</span>
+            <span>同步分镜</span>
           </button>
         </div>
       </div>
