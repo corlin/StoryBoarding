@@ -74,49 +74,23 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
 
         {/* Actions & Layout Controls */}
         <div className="flex items-center gap-2">
-          {/* Darkroom Status Capsule */}
-          {isBatchRendering ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[11px] font-mono text-amber-400 animate-pulse">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              <span>
-                冲印队列执行中 ({batchProgress?.current || 0}/{batchProgress?.total || shots.length})
-              </span>
-            </div>
-          ) : missingImageCount > 0 ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/80 border border-border text-[11px] font-mono text-muted-foreground">
-              <span>{shots.length - missingImageCount}/{shots.length} 镜已就绪</span>
-            </div>
-          ) : shots.length > 0 ? (
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>全片 {shots.length} 镜已显影就绪 (R2)</span>
-            </div>
-          ) : null}
-
-          {/* Batch Re-render Button if any shots missing images */}
-          {missingImageCount > 0 && onRegenerateDirty && (
+          {/* Clean Unified Status or Batch Re-render Button */}
+          {!isBatchRendering && missingImageCount > 0 && onRegenerateDirty && (
             <button
               onClick={onRegenerateDirty}
-              disabled={isBatchRendering}
-              className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold shadow-sm transition-all duration-200",
-                isBatchRendering
-                  ? "bg-muted text-muted-foreground cursor-not-allowed"
-                  : "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20"
-              )}
-              title="批量渲染尚未生成画面的镜头"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black shadow-sm shadow-amber-500/20 transition-all duration-150 active:scale-95"
+              title="一键冲印渲染尚未生成画面的镜头"
             >
-              {isBatchRendering ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="w-3.5 h-3.5" />
-              )}
-              <span>
-                {isBatchRendering
-                  ? `冲印中 (${batchProgress?.current || 0}/${batchProgress?.total || missingImageCount})`
-                  : `一键冲印 (${missingImageCount})`}
-              </span>
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>一键冲印剩余 ({missingImageCount})</span>
             </button>
+          )}
+
+          {!isBatchRendering && missingImageCount === 0 && shots.length > 0 && (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>全片 {shots.length} 镜已显影就绪</span>
+            </div>
           )}
 
           {/* Previz HUD Guide Overlay Toggle Button */}

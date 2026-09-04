@@ -183,20 +183,17 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   const activeVersionTag = versions[0]?.version_tag || "v1.0";
 
-  // Server-side asynchronous rendering state synchronizer
+  // Active asynchronous batch rendering poll-synchronizer
   useEffect(() => {
-    if (!currentProject || previewVersion) return;
+    if (!currentProject || previewVersion || !isBatchRendering) return;
 
     const unrenderedCount = shots.filter((s) => !s.storyboard_image_url).length;
     if (unrenderedCount === 0) {
-      if (isBatchRendering) {
-        setIsBatchRendering(false);
-        notify.success("🎉 全片分镜画板已由云端后台冲印入库完毕！");
-      }
+      setIsBatchRendering(false);
+      notify.success("🎉 全片分镜画板已由云端后台冲印入库完毕！");
       return;
     }
 
-    setIsBatchRendering(true);
     setBatchProgress({
       current: shots.length - unrenderedCount,
       total: shots.length,
@@ -208,7 +205,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       } catch (e) {
         console.warn("Polling project status error:", e);
       }
-    }, 2000);
+    }, 2500);
 
     return () => clearInterval(timer);
   }, [currentProject, shots, previewVersion, effectiveProjectId, fetchProject, isBatchRendering]);
@@ -284,12 +281,14 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       abortBatchRenderRef.current = false;
       setIsBatchRendering(true);
       const proj = await api.getProject(targetProjectId);
-      const allShots = proj?.sequences?.[0]?.shots || [];
-      const unrendered = allShots.filter(
+      const currentSeq = proj?.sequences?.[activeEpisodeIndex] || proj?.sequences?.[0];
+      const targetShots = currentSeq?.shots || [];
+      const unrendered = targetShots.filter(
         (s: any) => !s.storyboard_image_url || s.is_dirty
       );
       if (unrendered.length === 0) {
         setIsBatchRendering(false);
+        notify.info("当前集数所有镜头画面均已冲印就绪");
         return;
       }
 
@@ -307,7 +306,12 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           const shot = unrendered[indexToProcess];
           if (!shot) break;
           try {
-            await regenerateShotImage(shot.id);
+            await Promise.race([
+              regenerateShotImage(shot.id),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("单镜头渲染超时(45s)")), 45000)
+              ),
+            ]);
           } catch (err) {
             console.warn(`Shot ${shot.id} render error:`, err);
           }
@@ -317,11 +321,14 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         }
       };
 
-      const workers = Array.from({ length: Math.min(concurrency, unrendered.length) }, () => runWorker());
+      const workers = Array.from(
+        { length: Math.min(concurrency, unrendered.length) },
+        () => runWorker()
+      );
       await Promise.all(workers);
       await fetchProject(targetProjectId);
       if (!abortBatchRenderRef.current) {
-        notify.success(`🎨 全部 ${unrendered.length} 个镜头画面显影冲印完成！`);
+        notify.success(`🎨 本集 ${unrendered.length} 个镜头画面显影冲印完成！`);
       }
     } catch (e: any) {
       console.error("Client render queue error:", e);
