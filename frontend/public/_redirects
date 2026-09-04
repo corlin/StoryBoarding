@@ -1,2 +1,5 @@
 # Cloudflare Pages 200 reverse proxy for API routes
 /api/*  https://storyboarding-api.caifu.social/api/:splat  200
+
+# Client-side SPA routing fallback for direct URL visits
+/workspace/*  /workspace.html  200

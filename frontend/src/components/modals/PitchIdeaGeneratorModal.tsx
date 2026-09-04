@@ -164,7 +164,7 @@ export const PitchIdeaGeneratorModal: React.FC<PitchIdeaGeneratorModalProps> = (
       if (onProjectCreated) {
         onProjectCreated(created.id);
       } else {
-        router.push(`/workspace/${created.id}`);
+        router.push(`/workspace?id=${created.id}`);
       }
     } catch (err: any) {
       console.error("Adopt Proposal Error:", err);

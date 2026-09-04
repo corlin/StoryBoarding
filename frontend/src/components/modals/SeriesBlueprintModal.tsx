@@ -88,7 +88,7 @@ export function SeriesBlueprintModal({ isOpen, onClose, onOpenSettings }: Series
       });
 
       onClose();
-      router.push(`/workspace/${newProj.id}`);
+      router.push(`/workspace?id=${newProj.id}`);
     } catch (err: any) {
       console.error("Series creation error:", err);
       setErrorMsg(err?.response?.data?.detail || err?.message || "多集工程创建失败");
