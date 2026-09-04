@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, desc, or, isNull } from "drizzle-orm";
+import { eq, desc, or, isNull, and } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import { projects, sequences, shots, users, characters } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, generateAdaptiveStoryShots } from "../agents/director/pipeline";
@@ -345,6 +345,32 @@ router.post("/create-series", async (c) => {
     const settings = await getUserSettings(db, authUser.userId);
     const projectId = crypto.randomUUID();
     const baseSeed = getProjectBaseSeed(title);
+
+    // 0. Anti-Double-Click Deduplication Guard (within 15s window)
+    const recentDuplicate = await db
+      .select()
+      .from(projects)
+      .where(and(eq(projects.userId, authUser.userId), eq(projects.title, title)))
+      .orderBy(desc(projects.createdAt))
+      .get();
+
+    if (recentDuplicate) {
+      const createdAtMs = new Date(recentDuplicate.createdAt).getTime();
+      const nowMs = Date.now();
+      if (nowMs - createdAtMs < 15000) {
+        console.log(`[Deduplication]: Suppressed rapid duplicate create-series for "${title}"`);
+        const existingSeqs = await db.select().from(sequences).where(eq(sequences.projectId, recentDuplicate.id)).all();
+        const existingChars = await db.select().from(characters).where(eq(characters.projectId, recentDuplicate.id)).all();
+        return c.json(
+          {
+            ...recentDuplicate,
+            characters: existingChars,
+            sequences: existingSeqs,
+          },
+          200
+        );
+      }
+    }
 
     // 1. Insert Project
     const totalTargetDuration = rawEpisodes.reduce((acc: number, ep: any) => acc + (Number(ep.target_duration) || 60), 0);

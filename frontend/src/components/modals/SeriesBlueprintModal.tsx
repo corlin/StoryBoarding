@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { X, Sparkles, BookOpen, Users, Film, ArrowRight, CheckCircle, RefreshCw, AlertCircle, Eye } from "lucide-react";
 import { api } from "@/lib/api";
@@ -13,6 +13,7 @@ interface SeriesBlueprintModalProps {
 
 export function SeriesBlueprintModal({ isOpen, onClose, onOpenSettings }: SeriesBlueprintModalProps) {
   const router = useRouter();
+  const isSubmittingRef = useRef(false);
   const [step, setStep] = useState<"input" | "analyzing" | "review" | "compiling">("input");
   const [rawText, setRawText] = useState("");
   const [targetEpisodes, setTargetEpisodes] = useState(3);
@@ -73,6 +74,8 @@ export function SeriesBlueprintModal({ isOpen, onClose, onOpenSettings }: Series
 
   // Step 2: Confirm & Create Multi-Episode Project
   const handleConfirmCreate = async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setStep("compiling");
     setErrorMsg("");
 
@@ -90,6 +93,7 @@ export function SeriesBlueprintModal({ isOpen, onClose, onOpenSettings }: Series
       console.error("Series creation error:", err);
       setErrorMsg(err?.response?.data?.detail || err?.message || "多集工程创建失败");
       setStep("review");
+      isSubmittingRef.current = false;
     }
   };
 
