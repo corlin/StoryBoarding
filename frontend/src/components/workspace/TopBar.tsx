@@ -25,6 +25,7 @@ import {
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
 import { EpisodePillTrack } from "@/components/workspace/EpisodePillTrack";
+import { computeProjectQualityDiagnostics } from "@/components/modals/ProjectQualityRadarModal";
 import { COLOR } from "@/lib/colorTokens";
 import { cn } from "@/lib/utils";
 
@@ -91,6 +92,11 @@ export const TopBar: React.FC<TopBarProps> = ({
   const isOverDuration = totalDuration > (project?.target_duration || 30);
   const allRendered = shots.length > 0 && shots.every((s) => Boolean(s.storyboard_image_url));
 
+  // Compute live quality score for instant health badge display
+  const { score: radarScore } = React.useMemo(() => {
+    return computeProjectQualityDiagnostics(project, shots);
+  }, [project, shots]);
+
   return (
     <header className="h-12 border-b border-border/80 bg-card/90 backdrop-blur px-3 md:px-4 flex items-center justify-between shrink-0 select-none z-20 gap-3">
       {/* Left: Project title, version & quick toggle */}
@@ -105,8 +111,11 @@ export const TopBar: React.FC<TopBarProps> = ({
         </Link>
 
         <div className="flex items-center gap-2 min-w-0">
-          <h1 className="font-semibold text-xs md:text-sm truncate max-w-[130px] md:max-w-xs text-foreground">
-            {project?.title || "AI 导演分镜工作台"}
+          <h1
+            className="text-xs md:text-sm font-semibold text-foreground truncate max-w-[120px] sm:max-w-[180px] md:max-w-[220px]"
+            title={project?.title || "未命名工程"}
+          >
+            {project?.title || "未命名工程"}
           </h1>
 
           {onOpenVersions && (
@@ -132,7 +141,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       </div>
 
-      {/* Middle: Compact Episode Pills + Stats */}
+      {/* Middle: Compact Episode Pills + Stats + Health Score Badge */}
       <div className="hidden lg:flex items-center gap-2.5 flex-1 justify-center min-w-0 max-w-xl px-2">
         {onToggleLeftPanel && (
           <button
@@ -153,12 +162,37 @@ export const TopBar: React.FC<TopBarProps> = ({
           <EpisodePillTrack project={project} compact={true} onOpenCharacterHub={() => onOpenBible?.("bible")} />
         </div>
 
-        <div className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground shrink-0 bg-secondary/30 px-2 py-0.5 rounded-md border border-border/50">
-          <span>{shots.length}镜</span>
-          <span>·</span>
-          <span className={cn(isOverDuration ? "text-amber-400 font-bold" : "text-foreground")}>
-            {totalDuration.toFixed(1)}s
-          </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground bg-secondary/30 px-2 py-0.5 rounded-md border border-border/50">
+            <span>{shots.length}镜</span>
+            <span>·</span>
+            <span className={cn(isOverDuration ? "text-amber-400 font-bold" : "text-foreground")}>
+              {totalDuration.toFixed(1)}s
+            </span>
+          </div>
+
+          {/* Quality Health Radar Diagnostic Score Pill Badge */}
+          {onOpenRadar && (
+            <button
+              type="button"
+              onClick={onOpenRadar}
+              className={cn(
+                "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold border transition-all cursor-pointer shadow-2xs hover:scale-105",
+                radarScore >= 85
+                  ? "bg-emerald-500/15 border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/25"
+                  : radarScore >= 70
+                  ? "bg-amber-500/15 border-amber-500/35 text-amber-300 hover:bg-amber-500/25"
+                  : "bg-red-500/15 border-red-500/35 text-red-300 hover:bg-red-500/25"
+              )}
+              title="点击打开 AI 影视短剧工程体检雷达（查看大纲门控、角色DNA、单句≤35字、首帧显影诊断报告）"
+            >
+              <ShieldCheck className={cn(
+                "w-3.5 h-3.5",
+                radarScore >= 85 ? "text-emerald-400" : radarScore >= 70 ? "text-amber-400" : "text-red-400"
+              )} />
+              <span>{radarScore}分</span>
+            </button>
+          )}
         </div>
       </div>
 

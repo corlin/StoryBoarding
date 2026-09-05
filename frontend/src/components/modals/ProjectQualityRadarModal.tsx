@@ -28,7 +28,7 @@ interface ProjectQualityRadarModalProps {
   onNavigateToSection?: (section: "tradeoffs" | "bible_characters" | "bible_scenes" | "bible_props" | "script" | "storyboard") => void;
 }
 
-interface DiagnosticItem {
+export interface DiagnosticItem {
   id: string;
   stage: "outline" | "cast" | "art" | "script" | "storyboard";
   stageLabel: string;
@@ -39,22 +39,18 @@ interface DiagnosticItem {
   jumpTarget: "tradeoffs" | "bible_characters" | "bible_scenes" | "bible_props" | "script" | "storyboard";
 }
 
-export const ProjectQualityRadarModal: React.FC<ProjectQualityRadarModalProps> = ({
-  isOpen,
-  onClose,
-  project,
-  shots = [],
-  onNavigateToSection,
-}) => {
-  const diagnostics: DiagnosticItem[] = useMemo(() => {
-    if (!project) return [];
-    const items: DiagnosticItem[] = [];
+export function computeProjectQualityDiagnostics(
+  project: ProjectModel | null,
+  shots: ShotModel[] = []
+): { diagnostics: DiagnosticItem[]; score: number } {
+  if (!project) return { diagnostics: [], score: 100 };
+  const items: DiagnosticItem[] = [];
 
-    const characters = project.characters || [];
-    const locations = project.locations || [];
-    const props = project.props || [];
-    const sequences = project.sequences || [];
-    const totalEps = sequences.length || 1;
+  const characters = project.characters || [];
+  const locations = project.locations || [];
+  const props = project.props || [];
+  const sequences = project.sequences || [];
+  const totalEps = sequences.length || 1;
 
     // ==========================================
     // 1. OUTLINE GATES (novel-outline 规范)
@@ -326,19 +322,27 @@ export const ProjectQualityRadarModal: React.FC<ProjectQualityRadarModalProps> =
       });
     }
 
-    return items;
-  }, [project, shots]);
+    const score = items.length === 0 ? 100 : Math.round(
+      items.reduce((acc, item) => {
+        if (item.status === "pass") return acc + 100;
+        if (item.status === "warn") return acc + 70;
+        return acc + 30;
+      }, 0) / items.length
+    );
 
-  // Score calculation: pass = 100, warn = 70, fail = 0
-  const overallScore = useMemo(() => {
-    if (diagnostics.length === 0) return 100;
-    const total = diagnostics.reduce((acc, item) => {
-      if (item.status === "pass") return acc + 100;
-      if (item.status === "warn") return acc + 70;
-      return acc + 30;
-    }, 0);
-    return Math.round(total / diagnostics.length);
-  }, [diagnostics]);
+    return { diagnostics: items, score };
+}
+
+export const ProjectQualityRadarModal: React.FC<ProjectQualityRadarModalProps> = ({
+  isOpen,
+  onClose,
+  project,
+  shots = [],
+  onNavigateToSection,
+}) => {
+  const { diagnostics, score: overallScore } = useMemo(() => {
+    return computeProjectQualityDiagnostics(project, shots);
+  }, [project, shots]);
 
   const passCount = diagnostics.filter((d) => d.status === "pass").length;
   const warnCount = diagnostics.filter((d) => d.status === "warn").length;
