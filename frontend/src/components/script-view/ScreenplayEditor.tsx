@@ -10,10 +10,12 @@ import {
   Copy,
   Check,
   BookOpen,
+  Zap,
 } from "lucide-react";
 import { SequenceModel, ProjectModel } from "@/types/shot";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
+import { HookDoctorModal } from "@/components/modals/HookDoctorModal";
 import { cn } from "@/lib/utils";
 
 interface ScreenplayEditorProps {
@@ -31,6 +33,7 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isHookModalOpen, setIsHookModalOpen] = useState(false);
   const [diffResult, setDiffResult] = useState<{
     message: string;
     diff: {
@@ -181,6 +184,15 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
           </button>
           <button
             type="button"
+            onClick={() => setIsHookModalOpen(true)}
+            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-[11px] font-bold bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-all shadow-xs cursor-pointer"
+            title="短剧爆点重构台：前置评估前3s抓人钩子、中段加压与集尾生死卡点"
+          >
+            <Zap className="w-3.5 h-3.5 text-rose-400" />
+            <span>短剧爆点重构</span>
+          </button>
+          <button
+            type="button"
             disabled={isSyncing || isSaving}
             onClick={handleSyncToShots}
             className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-[11px] font-bold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-sm shadow-amber-500/20 active:scale-95 disabled:opacity-50"
@@ -264,6 +276,20 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
           </div>
         </div>
       )}
+
+      {/* 短剧黄金3秒爆点重构诊断 Modal */}
+      <HookDoctorModal
+        isOpen={isHookModalOpen}
+        onClose={() => setIsHookModalOpen(false)}
+        project={project}
+        sequence={sequence}
+        currentScreenplay={screenplayText}
+        onApplyRewrite={async (newText: string) => {
+          setScreenplayText(newText);
+          setIsHookModalOpen(false);
+          notify.success("已应用爆点剧本重构建议，请点击上方“同步分镜”更新镜头！");
+        }}
+      />
     </div>
   );
 };

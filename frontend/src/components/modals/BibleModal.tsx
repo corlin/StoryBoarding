@@ -1,11 +1,30 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { BookOpen, Users, MapPin, Palette, Plus, Trash2, Lock, Sparkles, Check, X, ShieldCheck, Loader2 } from "lucide-react";
-import { ProjectModel, CharacterModel } from "@/types/shot";
+import {
+  BookOpen,
+  Users,
+  MapPin,
+  Palette,
+  Plus,
+  Trash2,
+  Lock,
+  Sparkles,
+  Check,
+  X,
+  ShieldCheck,
+  Loader2,
+  Image as ImageIcon,
+  Wand2,
+  Camera,
+  Layers,
+  RefreshCw,
+} from "lucide-react";
+import { ProjectModel, CharacterModel, LocationModel } from "@/types/shot";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { cn } from "@/lib/utils";
 
 interface BibleModalProps {
   isOpen: boolean;
@@ -13,6 +32,37 @@ interface BibleModalProps {
   project: ProjectModel | null;
   mode?: "bible" | "style" | "characters" | "locations";
 }
+
+const TURNAROUND_PRESETS = [
+  {
+    id: "turnaround_3view",
+    name: "工业三视图 (Front/Side/Back)",
+    desc: "全身三视图，正视、侧视、后背，对齐标准建模与多角度生图",
+    template:
+      "character sheet, full body turnaround, front view, side profile view, back view, neutral A-pose, clean neutral studio lighting, plain white background, cinematic realistic character design, precise facial alignment, 8k uhd",
+  },
+  {
+    id: "turnaround_portrait_3quarter",
+    name: "电影级特写 & 3/4 侧脸",
+    desc: "聚焦面容骨骼与发型的高清微表情肖像，显著提升五官一致性",
+    template:
+      "character model sheet, multi-angle facial portraits, front view, 3/4 dynamic view, sharp profile view, neutral calm gaze, dramatic chiaroscuro movie lighting, clean neutral grey backdrop, 85mm portrait lens, ultra-detailed skin texture, 8k",
+  },
+  {
+    id: "turnaround_drama_urban",
+    name: "都市短剧男女主轻奢定妆卡",
+    desc: "都市男女主时尚造型卡，全身与半身双机位高级感",
+    template:
+      "cinematic fashion lookbook, dual-angle character sheet, full body standing pose and waist-up medium portrait, modern tailored luxury wardrobe, sophisticated styling, soft rim light, 35mm cinematic film still, photorealistic, 8k resolution",
+  },
+  {
+    id: "turnaround_anime_cel",
+    name: "二次元/国风动漫立绘",
+    desc: "清晰线稿与赛璐璐光影，多角度表情与全身",
+    template:
+      "anime character design sheet, multiple angles, full body front view and 3/4 view, detailed facial expression sketches, clean lineart, vibrant cel shading, neutral pose, character turnaround, white background, masterpiece",
+  },
+];
 
 const STYLE_PRESETS = [
   {
@@ -49,11 +99,14 @@ export const BibleModal: React.FC<BibleModalProps> = ({
     mode === "style" ? "style" : mode === "locations" ? "locations" : "characters"
   );
 
-  // Characters State from Project
+  // Characters & Locations State
   const [characters, setCharacters] = useState<CharacterModel[]>([]);
-  // Scene Environment Anchor State
-  const [sceneAnchor, setSceneAnchor] = useState("");
+  const [locations, setLocations] = useState<LocationModel[]>([]);
+  const [generatingCharId, setGeneratingCharId] = useState<string | null>(null);
+  const [generatingLocId, setGeneratingLocId] = useState<string | null>(null);
+
   // Style Prompt State
+  const [sceneAnchor, setSceneAnchor] = useState("");
   const [stylePrompt, setStylePrompt] = useState(STYLE_PRESETS[0].prompt);
   const [selectedPresetId, setSelectedPresetId] = useState("graphite_previz");
   const [isSaving, setIsSaving] = useState(false);
@@ -63,12 +116,20 @@ export const BibleModal: React.FC<BibleModalProps> = ({
   const [newCharRole, setNewCharRole] = useState<"protagonist" | "antagonist" | "supporting">("supporting");
   const [newCharAnchor, setNewCharAnchor] = useState("");
   const [newCharPersonality, setNewCharPersonality] = useState("");
+  const [newCharTurnaround, setNewCharTurnaround] = useState(TURNAROUND_PRESETS[1].template);
+
+  // New location form
+  const [newLocName, setNewLocName] = useState("");
+  const [newLocEnv, setNewLocEnv] = useState<"interior" | "exterior" | "abstract">("interior");
+  const [newLocAnchor, setNewLocAnchor] = useState("");
+  const [newLocLighting, setNewLocLighting] = useState("自然光");
 
   useEffect(() => {
     if (project) {
       setCharacters(project.characters || []);
+      setLocations(project.locations || []);
       const styleConfig = typeof project.style_config === "string" ? JSON.parse(project.style_config) : project.style_config || {};
-      setSceneAnchor(styleConfig.scene_anchor || styleConfig.sceneAnchor || "古风赛博雨夜茶楼，青瓦飞檐古典中式建筑，悬挂红色发光灯笼，潮湿青石巷道反射荧光。");
+      setSceneAnchor(styleConfig.scene_anchor || styleConfig.sceneAnchor || "高档现代都市写字楼，极简冷色调，大理石落地窗，雨幕反光。");
       if (styleConfig.director_style_prompt) {
         setStylePrompt(styleConfig.director_style_prompt);
       }
@@ -88,6 +149,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
       name: newCharName.trim(),
       role: newCharRole,
       visual_anchor: newCharAnchor.trim() || `${newCharName.trim()}, distinctive cinematic appearance, consistent face and attire`,
+      turnaround_prompt: newCharTurnaround.trim(),
       personality: newCharPersonality.trim() || "核心人物",
     };
     setCharacters([...characters, newChar]);
@@ -99,6 +161,81 @@ export const BibleModal: React.FC<BibleModalProps> = ({
 
   const handleRemoveCharacter = (id: string) => {
     setCharacters(characters.filter((c) => c.id !== id));
+  };
+
+  const handleGenerateAvatar = async (char: CharacterModel) => {
+    if (!char.id) return;
+    try {
+      setGeneratingCharId(char.id);
+      const res = await api.generateCharacterAvatar(char.id, {
+        prompt: char.turnaround_prompt,
+      });
+      if (res.success && res.character?.avatar_url) {
+        setCharacters(
+          characters.map((c) =>
+            c.id === char.id
+              ? {
+                  ...c,
+                  avatar_url: res.character.avatar_url,
+                  turnaround_prompt: res.character.turnaround_prompt || c.turnaround_prompt,
+                }
+              : c
+          )
+        );
+        notify.success(`✨ ${char.name} 的基准定妆照已成功生成并存入资产库！`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      notify.error(err?.response?.data?.detail || err?.message || "生成定妆照失败，请检查配置");
+    } finally {
+      setGeneratingCharId(null);
+    }
+  };
+
+  const handleAddLocation = () => {
+    if (!newLocName.trim()) {
+      notify.error("请输入场景空间名称");
+      return;
+    }
+    const newLoc: LocationModel = {
+      id: crypto.randomUUID(),
+      project_id: project?.id || "",
+      name: newLocName.trim(),
+      environment_type: newLocEnv,
+      visual_anchor: newLocAnchor.trim() || `${newLocName.trim()}, architectural space, consistent spatial lighting`,
+      lighting_style: newLocLighting.trim() || "自然光",
+    };
+    setLocations([...locations, newLoc]);
+    setNewLocName("");
+    setNewLocAnchor("");
+    notify.success(`已添加场景空间「${newLoc.name}」`);
+  };
+
+  const handleRemoveLocation = (id: string) => {
+    setLocations(locations.filter((l) => l.id !== id));
+  };
+
+  const handleGenerateLocConcept = async (loc: LocationModel) => {
+    if (!loc.id) return;
+    try {
+      setGeneratingLocId(loc.id);
+      const res = await api.generateLocationConcept(loc.id);
+      if (res.success && res.location?.reference_image_url) {
+        setLocations(
+          locations.map((l) =>
+            l.id === loc.id
+              ? { ...l, reference_image_url: res.location.reference_image_url }
+              : l
+          )
+        );
+        notify.success(`✨ 场景「${loc.name}」概念基准图已生成！`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      notify.error(err?.response?.data?.detail || err?.message || "生成场景基准图失败");
+    } finally {
+      setGeneratingLocId(null);
+    }
   };
 
   const handleSaveBible = async () => {
@@ -115,6 +252,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
       await api.updateProject(project.id, {
         style_config: updatedStyle,
         characters: characters,
+        locations: locations as any,
       });
 
       await fetchProject(project.id);
@@ -130,7 +268,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="bg-card border border-border rounded-2xl p-6 max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
+      <div className="bg-card border border-border rounded-2xl p-6 max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-border mb-3 shrink-0">
           <div className="flex items-center gap-2.5">
@@ -145,7 +283,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                 </span>
               </h2>
               <p className="text-xs text-muted-foreground">
-                锁定 Reference 1（角色视觉基因 Visual DNA）与 Reference 2（核心场景空间透视锁）
+                锁定全剧多角色定妆谱（多角度视觉 DNA）与空间场景基准，实现多镜头极致一致性
               </p>
             </div>
           </div>
@@ -158,11 +296,12 @@ export const BibleModal: React.FC<BibleModalProps> = ({
         <div className="flex items-center gap-2 border-b border-border/80 pb-2 mb-4 shrink-0">
           <button
             onClick={() => setActiveTab("characters")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
               activeTab === "characters"
                 ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-xs"
                 : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-            }`}
+            )}
           >
             <Users className="w-3.5 h-3.5" />
             <span>🎭 全剧角色定妆谱 ({characters.length})</span>
@@ -170,23 +309,25 @@ export const BibleModal: React.FC<BibleModalProps> = ({
 
           <button
             onClick={() => setActiveTab("locations")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
               activeTab === "locations"
                 ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs"
                 : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-            }`}
+            )}
           >
             <MapPin className="w-3.5 h-3.5" />
-            <span>🏛️ 核心场景空间锁</span>
+            <span>🏛️ 场景空间资产库 ({locations.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab("style")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
               activeTab === "style"
                 ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-xs"
                 : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-            }`}
+            )}
           >
             <Palette className="w-3.5 h-3.5" />
             <span>🎨 导演画风基准</span>
@@ -199,64 +340,142 @@ export const BibleModal: React.FC<BibleModalProps> = ({
             <div className="p-3 bg-sky-500/10 border border-sky-500/20 rounded-xl flex items-start gap-2.5 text-xs text-sky-300">
               <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
               <p className="leading-relaxed text-[11px]">
-                <strong>全剧连续性总线：</strong>此处登记的所有角色，将在全剧所有集数生图时强制注入对应的纯英文 Visual DNA 提示词，实现面部五官、发型体态与标志性服装高度连贯锁死。
+                <strong>双轨一致性引擎：</strong>此处登记的角色将在拆镜与生图时，自动注入英文 Visual DNA 文本与多角度定妆图（Model Sheet），并按空间隔离（Spatial Scoping）排布，防止男女同框串脸串色。
               </p>
             </div>
 
             {/* Character Cards List */}
-            <div className="space-y-3">
-              {characters.map((char, idx) => (
-                <div key={char.id || idx} className="p-4 bg-background border border-border/70 rounded-xl space-y-2 relative group">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center border border-border/60 overflow-hidden font-bold text-xs text-sky-400">
-                        {char.name.slice(0, 1)}
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-foreground">{char.name}</span>
-                        <span className="text-[10px] text-muted-foreground ml-2">{char.personality || "出场人物"}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded font-mono ${
-                          char.role === "protagonist"
-                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                            : char.role === "antagonist"
-                            ? "bg-red-500/20 text-red-300 border border-red-500/30"
-                            : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
-                        }`}
-                      >
-                        {char.role === "protagonist" ? "主角" : char.role === "antagonist" ? "反派" : "配角"}
-                      </span>
-                      <button
-                        onClick={() => handleRemoveCharacter(char.id)}
-                        className="p-1 rounded text-muted-foreground hover:text-red-400 transition-colors"
-                        title="移除该角色"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
+            <div className="space-y-3.5">
+              {characters.map((char, idx) => {
+                const isGenerating = generatingCharId === char.id;
+                return (
+                  <div key={char.id || idx} className="p-4 bg-background border border-border/70 rounded-xl space-y-3 relative group">
+                    <div className="flex items-start justify-between gap-4">
+                      {/* Avatar preview */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 rounded-xl bg-secondary/80 border border-border flex items-center justify-center overflow-hidden shrink-0 relative group/avatar">
+                          {char.avatar_url ? (
+                            <img src={char.avatar_url} alt={char.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-muted-foreground gap-0.5">
+                              <Camera className="w-4 h-4 opacity-50" />
+                              <span className="text-[9px]">未定妆</span>
+                            </div>
+                          )}
+                          {isGenerating && (
+                            <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                              <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                            </div>
+                          )}
+                        </div>
 
-                  <div>
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">纯英文生图锁定的视觉基因 (Visual DNA Prompt Anchor):</label>
-                    <textarea
-                      rows={2}
-                      value={char.visual_anchor || (char as any).visualAnchor || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setCharacters(characters.map((c) => (c.id === char.id ? { ...c, visual_anchor: val, visualAnchor: val } : c)));
-                      }}
-                      className="w-full bg-secondary/50 border border-border/80 rounded-lg p-2 text-xs font-mono text-sky-200 focus:outline-none focus:border-sky-500/60 leading-relaxed"
-                    />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-foreground">{char.name}</span>
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded font-mono ${
+                                char.role === "protagonist"
+                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                  : char.role === "antagonist"
+                                  ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                                  : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                              }`}
+                            >
+                              {char.role === "protagonist" ? "主角" : char.role === "antagonist" ? "反派" : "配角"}
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{char.personality || "出场角色"}</span>
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={isGenerating}
+                          onClick={() => handleGenerateAvatar(char)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 transition-all disabled:opacity-50"
+                          title="使用多角度定妆提示词一键 AI 生成定妆照"
+                        >
+                          {isGenerating ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <span>定妆中...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 className="w-3 h-3" />
+                              <span>AI 一键定妆</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCharacter(char.id)}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          title="移除该角色"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Visual DNA Text */}
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
+                        视觉特征基因 (Visual DNA Anchor - 英文面容、发型、服装):
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={char.visual_anchor || (char as any).visualAnchor || ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCharacters(characters.map((c) => (c.id === char.id ? { ...c, visual_anchor: val, visualAnchor: val } : c)));
+                        }}
+                        className="w-full bg-secondary/50 border border-border/80 rounded-lg p-2 text-xs font-mono text-sky-200 focus:outline-none focus:border-sky-500/60 leading-relaxed"
+                      />
+                    </div>
+
+                    {/* Turnaround / Model Sheet Prompt */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
+                          <Layers className="w-3 h-3 text-sky-400" />
+                          <span>多角度定妆生成提示词 (Turnaround / Model Sheet):</span>
+                        </label>
+                        <select
+                          onChange={(e) => {
+                            const p = TURNAROUND_PRESETS.find((x) => x.id === e.target.value);
+                            if (p) {
+                              setCharacters(characters.map((c) => (c.id === char.id ? { ...c, turnaround_prompt: p.template } : c)));
+                            }
+                          }}
+                          className="text-[10px] bg-secondary/80 border border-border/80 rounded px-2 py-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                          <option value="">快速套用定妆模版...</option>
+                          {TURNAROUND_PRESETS.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={char.turnaround_prompt || ""}
+                        placeholder="例如: character sheet, front view, side view, neutral lighting, plain background, 8k uhd"
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCharacters(characters.map((c) => (c.id === char.id ? { ...c, turnaround_prompt: val } : c)));
+                        }}
+                        className="w-full bg-secondary/30 border border-border/80 rounded-lg p-2 text-xs font-mono text-muted-foreground focus:text-foreground focus:outline-none focus:border-primary/60 leading-relaxed"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Quick Add Character Box */}
-            <div className="p-3.5 bg-secondary/30 border border-dashed border-border/80 rounded-xl space-y-3">
+            <div className="p-4 bg-secondary/30 border border-dashed border-border/80 rounded-xl space-y-3">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                 <Plus className="w-3.5 h-3.5 text-primary" />
                 <span>新增角色并锁定视觉 DNA</span>
@@ -264,7 +483,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
               <div className="grid grid-cols-3 gap-2">
                 <input
                   type="text"
-                  placeholder="角色姓名 (例如: 楚玄)"
+                  placeholder="角色姓名 (例如: 陆沉)"
                   value={newCharName}
                   onChange={(e) => setNewCharName(e.target.value)}
                   className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
@@ -280,7 +499,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                 </select>
                 <input
                   type="text"
-                  placeholder="性格特点 (例如: 冷峻孤傲剑客)"
+                  placeholder="性格设定 (例如: 狠厉偏执财阀)"
                   value={newCharPersonality}
                   onChange={(e) => setNewCharPersonality(e.target.value)}
                   className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
@@ -288,7 +507,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
               </div>
               <input
                 type="text"
-                placeholder="纯英文视觉特征提示词 (例如: Chu Xuan, 25yo swordsman, piercing dark eyes, black silk hooded cloak, silver broadsword)"
+                placeholder="纯英文视觉特征提示词 (例如: Lu Chen, 30yo Asian male, sharp jawline, neat short black hair, tailored charcoal suit)"
                 value={newCharAnchor}
                 onChange={(e) => setNewCharAnchor(e.target.value)}
                 className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:border-primary"
@@ -296,7 +515,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
               <button
                 type="button"
                 onClick={handleAddCharacter}
-                className="w-full py-1.5 bg-secondary hover:bg-secondary/80 border border-border rounded-lg text-xs font-medium text-foreground transition-colors"
+                className="w-full py-2 bg-secondary hover:bg-secondary/80 border border-border rounded-lg text-xs font-medium text-foreground transition-colors cursor-pointer"
               >
                 ＋ 添加角色至全剧基因谱
               </button>
@@ -310,22 +529,141 @@ export const BibleModal: React.FC<BibleModalProps> = ({
             <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5 text-xs text-amber-300">
               <Lock className="w-4 h-4 shrink-0 mt-0.5" />
               <p className="leading-relaxed text-[11px]">
-                <strong>Reference 2 核心场景空间基准锁：</strong>
-                固化全剧关键地理空间的透视关系、建筑材质、光影氛围与环境反射。生图引擎将此基准作为空间隐喻注入，杜绝各集场景出现违和穿帮。
+                <strong>场景空间资产库：</strong>此处登记的场景空间可直接与镜头（Shot）进行显式绑定。AI 拆镜与生图将精确复用空间透视与光影基准，杜绝各集场景穿帮与色彩漂移。
               </p>
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-foreground block mb-1">
-                核心场景空间描述与光影锁定基准 (Environment Anchor):
-              </label>
-              <textarea
-                rows={5}
-                value={sceneAnchor}
-                onChange={(e) => setSceneAnchor(e.target.value)}
-                placeholder="例如：赛博雨夜，青瓦飞檐古典中式茶楼，悬挂红色发光灯笼，潮湿反光青石巷道，全息绿色数据流雨幕..."
-                className="w-full bg-background border border-border rounded-xl p-3 text-xs leading-relaxed focus:outline-none focus:border-primary font-medium"
+            {/* Location Cards List */}
+            <div className="space-y-3.5">
+              {locations.map((loc, idx) => {
+                const isGenerating = generatingLocId === loc.id;
+                return (
+                  <div key={loc.id || idx} className="p-4 bg-background border border-border/70 rounded-xl space-y-3 relative group">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-20 h-12 rounded-lg bg-secondary/80 border border-border flex items-center justify-center overflow-hidden shrink-0 relative">
+                          {loc.reference_image_url ? (
+                            <img src={loc.reference_image_url} alt={loc.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-muted-foreground gap-0.5">
+                              <MapPin className="w-3.5 h-3.5 opacity-50" />
+                              <span className="text-[9px]">无概念图</span>
+                            </div>
+                          )}
+                          {isGenerating && (
+                            <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                              <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-foreground">{loc.name}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              {loc.environment_type === "interior" ? "室内空间" : loc.environment_type === "exterior" ? "室外环境" : "概念抽象"}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">· 光影: {loc.lighting_style || "自然光"}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground truncate block max-w-[320px]">{loc.visual_anchor || "核心场景空间"}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={isGenerating}
+                          onClick={() => handleGenerateLocConcept(loc)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 transition-all disabled:opacity-50"
+                          title="一键 AI 生成场景空间概念基准图"
+                        >
+                          {isGenerating ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <span>生成中...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3 h-3" />
+                              <span>生成基准图</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLocation(loc.id)}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          title="移除场景"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
+                        场景空间透视与光影特征描述 (Visual Spatial Anchor):
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={loc.visual_anchor || ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setLocations(locations.map((l) => (l.id === loc.id ? { ...l, visual_anchor: val } : l)));
+                        }}
+                        className="w-full bg-secondary/50 border border-border/80 rounded-lg p-2 text-xs font-mono text-amber-200 focus:outline-none focus:border-amber-500/60 leading-relaxed"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Quick Add Location Box */}
+            <div className="p-4 bg-secondary/30 border border-dashed border-border/80 rounded-xl space-y-3">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Plus className="w-3.5 h-3.5 text-amber-400" />
+                <span>登记新场景空间并锁定基准</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="场景名称 (例如: 总裁顶层办公室)"
+                  value={newLocName}
+                  onChange={(e) => setNewLocName(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
+                />
+                <select
+                  value={newLocEnv}
+                  onChange={(e: any) => setNewLocEnv(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
+                >
+                  <option value="interior">室内空间 (Interior)</option>
+                  <option value="exterior">室外环境 (Exterior)</option>
+                  <option value="abstract">概念抽象 (Abstract)</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="光影基准 (例如: 冷调阴郁落地窗自然光)"
+                  value={newLocLighting}
+                  onChange={(e) => setNewLocLighting(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="场景空间与建筑特征 (例如: luxury penthouse office, high ceiling, floor-to-ceiling glass wall, rainy night reflections, dark mahogany desk)"
+                value={newLocAnchor}
+                onChange={(e) => setNewLocAnchor(e.target.value)}
+                className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:border-primary"
               />
+              <button
+                type="button"
+                onClick={handleAddLocation}
+                className="w-full py-2 bg-secondary hover:bg-secondary/80 border border-border rounded-lg text-xs font-medium text-foreground transition-colors cursor-pointer"
+              >
+                ＋ 添加场景至全剧空间库
+              </button>
             </div>
           </div>
         )}
@@ -387,7 +725,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
             type="button"
             disabled={isSaving}
             onClick={handleSaveBible}
-            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
           >
             {isSaving ? (
               <>

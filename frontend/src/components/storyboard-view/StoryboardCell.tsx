@@ -8,6 +8,7 @@ interface StoryboardCellProps {
   shot: ShotModel;
   index: number;
   isSelected: boolean;
+  aspectRatio?: "16:9" | "9:16";
   showHudGuide?: boolean;
   characters?: CharacterModel[];
   onSelect: () => void;
@@ -143,6 +144,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
   shot,
   index,
   isSelected,
+  aspectRatio = "16:9",
   showHudGuide = true,
   characters = [],
   onSelect,
@@ -249,7 +251,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           : "border-border/70 hover:border-border hover:bg-card/90"
       )}
     >
-      {/* 16:9 Frame Aspect Ratio Container */}
+      {/* 16:9 / 9:16 Frame Aspect Ratio Container */}
       <div
         onClick={(e) => {
           if (imgSrc && onOpenTheater) {
@@ -258,7 +260,8 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           }
         }}
         className={cn(
-          "relative aspect-video w-full bg-neutral-950 flex items-center justify-center overflow-hidden",
+          "relative w-full bg-neutral-950 flex items-center justify-center overflow-hidden",
+          aspectRatio === "9:16" ? "aspect-[9/16]" : "aspect-video",
           imgSrc ? "cursor-zoom-in" : "cursor-default"
         )}
         title={imgSrc ? "点击放大进入影院动态播放模式" : isActivelyDeveloping ? "云端暗房显影中..." : "未生成画面"}

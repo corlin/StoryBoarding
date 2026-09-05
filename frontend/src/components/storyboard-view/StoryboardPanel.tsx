@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 interface StoryboardPanelProps {
   shots: ShotModel[];
   selectedShotId: string | null;
+  aspectRatio?: "16:9" | "9:16";
   characters?: CharacterModel[];
   onSelectShot: (shotId: string) => void;
   onRegenerateDirty?: () => void;
@@ -22,6 +23,7 @@ interface StoryboardPanelProps {
 export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   shots,
   selectedShotId,
+  aspectRatio = "16:9",
   characters = [],
   onSelectShot,
   onRegenerateDirty,
@@ -51,12 +53,18 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
     }
   }, [selectedShotId]);
 
-  const gridClass =
-    gridCols === 2
-      ? "grid-cols-1 md:grid-cols-2 gap-4"
+  const isVertical = aspectRatio === "9:16";
+  const gridClass = isVertical
+    ? gridCols === 2
+      ? "grid-cols-2 md:grid-cols-3 gap-4"
       : gridCols === 3
-      ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-      : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3";
+      ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
+      : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3"
+    : gridCols === 2
+    ? "grid-cols-1 md:grid-cols-2 gap-4"
+    : gridCols === 3
+    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+    : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3";
 
   return (
     <section className="flex flex-col h-full bg-background/50 select-none relative">
@@ -212,6 +220,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                   shot={shot}
                   index={idx}
                   isSelected={shot.id === selectedShotId}
+                  aspectRatio={aspectRatio}
                   showHudGuide={showHudGuide}
                   characters={characters}
                   onSelect={() => onSelectShot(shot.id)}

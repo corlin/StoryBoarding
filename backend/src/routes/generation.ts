@@ -1,23 +1,13 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
-import { projects, sequences, shots, projectVersions, users } from "../db/schema";
+import { projects, sequences, shots, projectVersions, users, characters, locations } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, cleanPromptOfMetaPollution } from "../agents/director/pipeline";
 import { captureProjectSnapshot } from "./versions";
 import { getAuthUser, getUserSettings } from "../lib/auth";
+import { saveImageToR2 } from "../lib/storage";
 
 const router = new Hono<{ Bindings: Bindings }>();
-
-// Convert Base64 string to Uint8Array safely
-function base64ToUint8Array(base64: string): Uint8Array {
-  const cleanBase64 = base64.replace(/^data:image\/[a-z]+;base64,/, "");
-  const binaryString = atob(cleanBase64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
 
 // Compute deterministic project base seed from string
 export function getProjectBaseSeed(id: string): number {
@@ -27,64 +17,6 @@ export function getProjectBaseSeed(id: string): number {
     hash |= 0;
   }
   return Math.abs(hash) % 800000 + 10000;
-}
-
-// Save image stream or URL to Cloudflare R2
-async function saveImageToR2(
-  imageSource: string,
-  storage: R2Bucket | undefined,
-  r2Key: string
-): Promise<string | null> {
-  if (!storage) {
-    console.warn(`[R2 Storage] storage binding is undefined, cannot save ${r2Key}`);
-    return null;
-  }
-
-  try {
-    if (imageSource.startsWith("data:image/")) {
-      const bytes = base64ToUint8Array(imageSource);
-      await storage.put(r2Key, bytes, {
-        httpMetadata: { contentType: "image/jpeg" },
-      });
-      console.log(`[R2 Storage] Successfully stored base64 image to R2: ${r2Key} (${bytes.length} bytes)`);
-      return `https://storyboarding-api.caifu.social/api/assets/${r2Key}`;
-    }
-
-    if (imageSource.startsWith("http://") || imageSource.startsWith("https://")) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      try {
-        const res = await fetch(imageSource, {
-          method: "GET",
-          redirect: "follow",
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-            Accept: "image/*,*/*",
-          },
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        if (res.ok) {
-          const buffer = await res.arrayBuffer();
-          const contentType = res.headers.get("content-type") || "image/jpeg";
-          await storage.put(r2Key, buffer, {
-            httpMetadata: { contentType },
-          });
-          console.log(`[R2 Storage] Successfully stored external image to R2: ${r2Key} (${buffer.byteLength} bytes)`);
-          return `https://storyboarding-api.caifu.social/api/assets/${r2Key}`;
-        } else {
-          console.warn(`[R2 Storage] Upstream fetch image failed: HTTP ${res.status} for ${imageSource.slice(0, 80)}`);
-        }
-      } catch (fetchErr: any) {
-        clearTimeout(timeoutId);
-        console.warn(`[R2 Storage] Upstream fetch timed out or failed:`, fetchErr?.message || fetchErr);
-      }
-    }
-  } catch (err) {
-    console.warn(`[R2 Storage] Failed to persist image to R2 (${r2Key}):`, err);
-  }
-
-  return null;
 }
 
 // Robust Universal Multimodal Storyboard Image Generator with 512x288 Low-Res & 20s Timeout
@@ -97,12 +29,18 @@ export async function generateCinematicStoryboardImage(
     imageModel?: string;
   },
   storage?: R2Bucket,
-  seed: number = Math.floor(Math.random() * 1000000)
+  seed: number = Math.floor(Math.random() * 1000000),
+  options?: {
+    aspectRatio?: "9:16" | "16:9";
+    referenceImageUrls?: string[];
+  }
 ): Promise<string> {
   const apiKey = settings.imageApiKey?.trim();
   const apiBase = settings.imageApiBase?.trim() || "https://openrouter.ai/api/v1";
   const model = settings.imageModel?.trim() || "bytedance-seed/seedream-5-0-lite";
   const r2Key = `shots/${shotId}.jpg`;
+  const ratio = options?.aspectRatio || "9:16";
+  const dedicatedSize = ratio === "9:16" ? "576x1024" : "1024x576";
 
   let rawImageUrl = "";
 
@@ -127,7 +65,7 @@ export async function generateCinematicStoryboardImage(
           body: JSON.stringify({
             model: model,
             prompt: prompt,
-            aspect_ratio: "16:9",
+            aspect_ratio: ratio,
             quality: "high",
             background: "auto",
           }),
@@ -158,6 +96,16 @@ export async function generateCinematicStoryboardImage(
         const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
         const cleanPrompt = cleanPromptOfMetaPollution(prompt);
+        const userContent: any[] = [{ type: "text", text: cleanPrompt }];
+        if (options?.referenceImageUrls && options.referenceImageUrls.length > 0) {
+          for (const refImg of options.referenceImageUrls.slice(0, 2)) {
+            userContent.push({
+              type: "image_url",
+              image_url: { url: refImg },
+            });
+          }
+        }
+        
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/chat/completions`, {
           method: "POST",
           headers: {
@@ -171,7 +119,7 @@ export async function generateCinematicStoryboardImage(
             messages: [
               {
                 role: "user",
-                content: cleanPrompt,
+                content: userContent,
               },
             ],
             modalities: ["image", "text"],
@@ -224,7 +172,7 @@ export async function generateCinematicStoryboardImage(
             model: model,
             prompt: cleanPrompt,
             n: 1,
-            size: "512x512",
+            size: dedicatedSize,
             response_format: "url",
           }),
           signal: controller.signal,
@@ -246,7 +194,7 @@ export async function generateCinematicStoryboardImage(
 
   // 2. Persist image to Cloudflare R2 object storage (Zero fake placeholders: if failed/timed out, keep strictly empty)
   if (storage && rawImageUrl) {
-    const r2Url = await saveImageToR2(rawImageUrl, storage, r2Key);
+    const r2Url = await saveImageToR2(rawImageUrl, r2Key, storage);
     if (r2Url) {
       return r2Url;
     }
@@ -693,9 +641,98 @@ router.post("/from-script", async (c) => {
 });
 
 // POST /api/generate/images/:shotId & POST /api/generate/shot-image/:shotId
+// Unified Spatial Scoping Engine: Resolves 9:16 vertical composition, dual-character anti-bleeding,
+// single character visual DNA, and location space lighting anchors
+export async function resolveShotPromptAndOptions(
+  db: any,
+  shot: any,
+  project?: any
+): Promise<{
+  prompt: string;
+  options: {
+    aspectRatio: "9:16" | "16:9";
+    referenceImageUrls: string[];
+  };
+}> {
+  let proj = project;
+  if (!proj && shot.sequenceId) {
+    const seq = await db.select().from(sequences).where(eq(sequences.id, shot.sequenceId)).get();
+    if (seq) {
+      proj = await db.select().from(projects).where(eq(projects.id, seq.projectId)).get();
+    }
+  }
+  const aspectRatio: "9:16" | "16:9" = (proj?.aspectRatio as any) || "9:16";
+
+  let shotCharIds: string[] = [];
+  try {
+    shotCharIds = typeof shot.characterIds === "string" ? JSON.parse(shot.characterIds) : shot.characterIds || [];
+  } catch {}
+
+  let boundChars: any[] = [];
+  if (proj && shotCharIds.length > 0) {
+    const allChars = await db.select().from(characters).where(eq(characters.projectId, proj.id)).all();
+    boundChars = allChars.filter((ch: any) => shotCharIds.includes(ch.id));
+  }
+
+  // Fallback: If no explicit characters linked, check subject/action text against project characters
+  if (boundChars.length === 0 && proj) {
+    const allChars = await db.select().from(characters).where(eq(characters.projectId, proj.id)).all();
+    boundChars = allChars.filter((ch: any) => {
+      const q = ch.name?.trim().toLowerCase();
+      return q && (shot.subject?.toLowerCase().includes(q) || shot.action?.toLowerCase().includes(q));
+    });
+  }
+
+  let locAnchor = "";
+  if (shot.locationId) {
+    const loc = await db.select().from(locations).where(eq(locations.id, shot.locationId)).get();
+    if (loc) {
+      locAnchor = `${loc.name}, ${loc.environmentType} space, ${loc.visualAnchor}, lighting: ${loc.lightingStyle}`;
+    }
+  }
+
+  let finalPrompt = shot.imagePrompt || "";
+  let spatialScopingPrefix = "";
+
+  if (aspectRatio === "9:16") {
+    spatialScopingPrefix += "vertical framing, 9:16 vertical cinematic composition, TikTok/Reels short drama cinematography, ";
+  }
+
+  if (boundChars.length >= 2) {
+    const c1 = boundChars[0];
+    const c2 = boundChars[1];
+    spatialScopingPrefix += `Two distinct people in scene: on the left side, [Subject: ${c1.name}, ${c1.visualAnchor || "stylish character"}], facing right; on the right side, [Subject: ${c2.name}, ${c2.visualAnchor || "distinct character"}], facing left. Strictly separated distinct clothing, different hair colors, zero color bleeding, individual features. `;
+  } else if (boundChars.length === 1) {
+    const c = boundChars[0];
+    spatialScopingPrefix += `[Subject: ${c.name}, ${c.visualAnchor || "consistent character"}]. Consistent authentic facial features and outfit. `;
+  }
+
+  if (locAnchor) {
+    spatialScopingPrefix += `Setting: ${locAnchor}. `;
+  }
+
+  if (!finalPrompt) {
+    finalPrompt = formatDirectorImagePrompt(shot.action, shot.shotSize, shot.cameraAngle, "static");
+  }
+
+  const enrichedPrompt = spatialScopingPrefix ? `${spatialScopingPrefix}${finalPrompt}` : finalPrompt;
+  const referenceImageUrls: string[] = boundChars
+    .map((c: any) => c.avatarUrl)
+    .filter((url: any) => Boolean(url && typeof url === "string" && url.startsWith("http")));
+
+  return {
+    prompt: enrichedPrompt,
+    options: {
+      aspectRatio,
+      referenceImageUrls,
+    },
+  };
+}
+
 const handleGenerateSingleShotImage = async (c: any) => {
+  await ensureSchema(c.env.DB);
   const db = getDb(c.env.DB);
-  const shotId = c.req.param("shotId");
+  const shotId = c.req.param("id");
 
   const shot = await db.select().from(shots).where(eq(shots.id, shotId)).get();
   if (!shot) {
@@ -713,10 +750,17 @@ const handleGenerateSingleShotImage = async (c: any) => {
     return c.json({ detail: "请先在「设置」中配置您的专属 OpenRouter API Key 后再生成 AI 画面" }, 400);
   }
 
-  const prompt = shot.imagePrompt || formatDirectorImagePrompt(shot.action, shot.shotSize, shot.cameraAngle, "static");
+  const { prompt: enrichedPrompt, options } = await resolveShotPromptAndOptions(db, shot);
   const seed = Math.floor(Math.random() * 9000000) + Date.now() % 10000;
 
-  const imageUrl = await generateCinematicStoryboardImage(prompt, shotId, settings, c.env.STORAGE, seed);
+  const imageUrl = await generateCinematicStoryboardImage(
+    enrichedPrompt,
+    shotId,
+    settings,
+    c.env.STORAGE,
+    seed,
+    options
+  );
 
   await db.update(shots).set({
     storyboardImageUrl: imageUrl,

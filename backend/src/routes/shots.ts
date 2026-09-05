@@ -29,6 +29,9 @@ router.post("/", async (c) => {
     order: Number(body.order) || 1,
   });
 
+  const charIds = Array.isArray(body.character_ids) ? JSON.stringify(body.character_ids) : (body.character_ids || "[]");
+  const locId = body.location_id || "";
+
   const [newShot] = await db
     .insert(shots)
     .values({
@@ -40,6 +43,8 @@ router.post("/", async (c) => {
       cameraAngle: angle,
       cameraMovement: typeof body.camera_movement === "string" ? body.camera_movement : JSON.stringify(body.camera_movement || {}),
       subject,
+      characterIds: charIds,
+      locationId: locId,
       action,
       dialogue: body.dialogue || "",
       narrativeFunction: body.narrative_function || "动作推进",
@@ -52,7 +57,11 @@ router.post("/", async (c) => {
     })
     .returning();
 
-  return c.json(newShot, 201);
+  return c.json({
+    ...newShot,
+    character_ids: JSON.parse(newShot.characterIds || "[]"),
+    location_id: newShot.locationId || "",
+  }, 201);
 });
 
 // PUT /api/shots/:id
@@ -75,6 +84,12 @@ router.put("/:id", async (c) => {
     updates.cameraMovement = typeof body.camera_movement === "string" ? body.camera_movement : JSON.stringify(body.camera_movement);
   }
   if (body.subject !== undefined) updates.subject = body.subject;
+  if (body.character_ids !== undefined) {
+    updates.characterIds = Array.isArray(body.character_ids) ? JSON.stringify(body.character_ids) : body.character_ids;
+  }
+  if (body.location_id !== undefined) {
+    updates.locationId = body.location_id;
+  }
   if (body.action !== undefined) updates.action = body.action;
   if (body.dialogue !== undefined) updates.dialogue = body.dialogue;
   if (body.narrative_function !== undefined) updates.narrativeFunction = body.narrative_function;
@@ -133,7 +148,11 @@ router.put("/:id", async (c) => {
   updates.updatedAt = new Date().toISOString();
 
   const [updated] = await db.update(shots).set(updates).where(eq(shots.id, id)).returning();
-  return c.json(updated);
+  return c.json({
+    ...updated,
+    character_ids: JSON.parse(updated.characterIds || "[]"),
+    location_id: updated.locationId || "",
+  });
 });
 
 // DELETE /api/shots/:id

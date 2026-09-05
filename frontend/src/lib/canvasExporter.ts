@@ -118,19 +118,28 @@ export async function exportStoryboardSheetToPng(
   );
   const loadedImages = await Promise.all(imagePromises);
 
+  const isVertical = project.aspect_ratio === "9:16";
+
   // Grid calculation
   const count = shots.length;
   let cols = 3;
-  if (count <= 2) cols = 2;
-  else if (count <= 4) cols = 2;
-  else if (count <= 9) cols = 3;
-  else cols = 4;
+  if (isVertical) {
+    if (count <= 2) cols = 2;
+    else if (count <= 4) cols = 2;
+    else if (count <= 8) cols = 4;
+    else cols = 5;
+  } else {
+    if (count <= 2) cols = 2;
+    else if (count <= 4) cols = 2;
+    else if (count <= 9) cols = 3;
+    else cols = 4;
+  }
 
   const rows = Math.ceil(count / cols);
 
   // Compact, fast, lightweight Previz Draft Dimensions (<1K total width)
-  const cellWidth = 380;
-  const cellImgHeight = 214; // 16:9 widescreen ratio
+  const cellWidth = isVertical ? 220 : 380;
+  const cellImgHeight = isVertical ? Math.round((cellWidth * 16) / 9) : 214; // 9:16 vertical ratio or 16:9 widescreen ratio
   const cellTextHeight = 118; // Spacious to fit Action, Dialogue & Audio design
   const cellHeight = cellImgHeight + cellTextHeight;
 
@@ -165,7 +174,7 @@ export async function exportStoryboardSheetToPng(
   ctx.font = "12px system-ui, -apple-system, sans-serif";
   const totalDur = shots.reduce((acc, s) => acc + (s.duration || 2.5), 0);
   ctx.fillText(
-    `Previz 故事板  |  时长: ${project.target_duration || totalDur.toFixed(1)}s  |  共 ${count} 镜  |  16:9 画幅  |  对白与声音设计版  |  ${new Date().toLocaleDateString()}`,
+    `Previz 故事板  |  时长: ${project.target_duration || totalDur.toFixed(1)}s  |  共 ${count} 镜  |  ${isVertical ? "9:16 竖屏微短剧" : "16:9 宽画幅电影"}  |  对白与声音设计版  |  ${new Date().toLocaleDateString()}`,
     padding,
     headerY + 48
   );

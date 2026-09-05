@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ProjectModel, ShotModel } from "@/types/shot";
+import { ProjectModel, ShotModel, LocationModel } from "@/types/shot";
 
 export type ProjectListItem = ProjectModel;
 
@@ -120,6 +120,7 @@ export const api = {
     title: string;
     story?: string;
     target_duration?: number;
+    aspect_ratio?: "9:16" | "16:9";
     narrative_mode?: "hollywood" | "drama_5min" | "commercial";
     structural_archetype?: string;
     narrative_center?: "character" | "creative" | "plot";
@@ -329,10 +330,43 @@ export const api = {
     return data;
   },
 
+  async diagnoseHook(projectId: string, seqId: string, screenplayText?: string): Promise<{ success: boolean; diagnosis: any }> {
+    const { data } = await apiClient.post(`/projects/${projectId}/sequences/${seqId}/diagnose-hook`, {
+      screenplay_text: screenplayText,
+    });
+    return data;
+  },
+
+  // Characters & Locations
+  async getTurnaroundPresets(): Promise<{ presets: any[] }> {
+    const { data } = await apiClient.get("/characters/turnaround-presets");
+    return data;
+  },
+
+  async generateCharacterAvatar(charId: string, payload?: { prompt?: string; preset_id?: string }): Promise<{ success: boolean; character: any }> {
+    const { data } = await apiClient.post(`/characters/${charId}/generate-avatar`, payload || {});
+    return data;
+  },
+
+  async setCharacterAvatarFromShot(charId: string, payload: { shot_id?: string; image_url?: string }): Promise<{ success: boolean; character: any }> {
+    const { data } = await apiClient.post(`/characters/${charId}/set-from-shot`, payload);
+    return data;
+  },
+
+  async generateLocationConcept(locId: string): Promise<{ success: boolean; location: any }> {
+    const { data } = await apiClient.post(`/locations/${locId}/generate-concept`);
+    return data;
+  },
+
   // Export URLs
   getExportScriptUrl(projectId: string): string {
     const base = getApiBaseUrl();
     return base ? `${base}/api/export/script-markdown/${projectId}` : `/api/export/script-markdown/${projectId}`;
+  },
+
+  getExportBibleUrl(projectId: string): string {
+    const base = getApiBaseUrl();
+    return base ? `${base}/api/export/bible-markdown/${projectId}` : `/api/export/bible-markdown/${projectId}`;
   },
 
   getExportDirectorGlobalPromptUrl(projectId: string): string {

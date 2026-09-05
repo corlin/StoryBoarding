@@ -20,6 +20,7 @@ import {
   Loader2,
   BookOpen,
   Lightbulb,
+  Smartphone,
 } from "lucide-react";
 import { api, ProjectListItem, normalizeAssetUrl } from "@/lib/api";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
@@ -90,6 +91,7 @@ export default function DashboardPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newStory, setNewStory] = useState("");
   const [targetDuration, setTargetDuration] = useState(30);
+  const [aspectRatio, setAspectRatio] = useState<"9:16" | "16:9">("9:16");
   const [narrativeMode, setNarrativeMode] = useState<NarrativeMode>("hollywood");
   const [structuralArchetype, setStructuralArchetype] = useState<string>("single_space_standoff");
   const [narrativeCenter, setNarrativeCenter] = useState<NarrativeCenter>("plot");
@@ -219,6 +221,7 @@ export default function DashboardPage() {
         title: newTitle.trim(),
         story: newStory.trim() || undefined,
         target_duration: targetDuration,
+        aspect_ratio: aspectRatio,
         narrative_mode: narrativeMode,
         structural_archetype: narrativeMode === "drama_5min" ? structuralArchetype : undefined,
         narrative_center: narrativeMode === "drama_5min" ? narrativeCenter : undefined,
@@ -793,6 +796,40 @@ export default function DashboardPage() {
                     center={narrativeCenter}
                     onCenterChange={setNarrativeCenter}
                   />
+
+                  <div>
+                    <label className="text-xs font-medium text-foreground/90 block mb-1">
+                      画幅视听规格
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAspectRatio("9:16")}
+                        className={cn(
+                          "flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium border transition-all cursor-pointer",
+                          aspectRatio === "9:16"
+                            ? "bg-primary/20 text-primary border-primary font-bold shadow-xs"
+                            : "bg-secondary/60 text-muted-foreground border-border hover:text-foreground"
+                        )}
+                      >
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>9:16 竖屏微短剧 (推荐)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAspectRatio("16:9")}
+                        className={cn(
+                          "flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium border transition-all cursor-pointer",
+                          aspectRatio === "16:9"
+                            ? "bg-primary/20 text-primary border-primary font-bold shadow-xs"
+                            : "bg-secondary/60 text-muted-foreground border-border hover:text-foreground"
+                        )}
+                      >
+                        <Film className="w-3.5 h-3.5" />
+                        <span>16:9 横屏电影级</span>
+                      </button>
+                    </div>
+                  </div>
 
                   <div>
                     <label className="text-xs font-medium text-foreground/90 block mb-1">

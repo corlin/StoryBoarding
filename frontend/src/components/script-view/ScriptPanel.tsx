@@ -132,6 +132,7 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
                   index={idx}
                   isSelected={shot.id === selectedShotId}
                   characters={characters}
+                  locations={project?.locations || []}
                   onSelect={() => onSelectShot(shot.id)}
                   onUpdate={(updates) => onUpdateShot(shot.id, updates)}
                   onDelete={() => onDeleteShot(shot.id)}

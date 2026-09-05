@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import { eq, desc, or, isNull, and } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
-import { projects, sequences, shots, users, characters } from "../db/schema";
+import { projects, sequences, shots, users, characters, locations } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, generateAdaptiveStoryShots } from "../agents/director/pipeline";
 import { scanLongformSeries } from "../agents/director/seriesScanner";
 import { generateCinematicStoryboardImage, runConcurrentTasks, getProjectBaseSeed } from "./generation";
+import { diagnoseAndRewriteScreenplay } from "../agents/director/hookDoctor";
 import { getAuthUser, getUserSettings } from "../lib/auth";
 
 const router = new Hono<{ Bindings: Bindings }>();
@@ -83,6 +84,7 @@ router.get("/:id", async (c) => {
     }
 
     const charList = await db.select().from(characters).where(eq(characters.projectId, id)).all();
+    const locList = await db.select().from(locations).where(eq(locations.projectId, id)).all();
 
     const seqs = await db.select().from(sequences).where(eq(sequences.projectId, id)).orderBy(sequences.order).all();
 
@@ -107,6 +109,8 @@ router.get("/:id", async (c) => {
             camera_angle: s.cameraAngle,
             camera_movement: s.cameraMovement ? JSON.parse(s.cameraMovement) : { type: "static" },
             subject: s.subject,
+            character_ids: s.characterIds ? JSON.parse(s.characterIds) : [],
+            location_id: s.locationId || "",
             action: s.action,
             dialogue: s.dialogue,
             narrative_function: s.narrativeFunction,
@@ -135,6 +139,7 @@ router.get("/:id", async (c) => {
       title: proj.title,
       story: proj.story,
       target_duration: proj.targetDuration,
+      aspect_ratio: proj.aspectRatio || "9:16",
       created_at: proj.createdAt,
       updated_at: proj.updatedAt,
       characters: charList.map((c) => ({
@@ -143,9 +148,21 @@ router.get("/:id", async (c) => {
         name: c.name,
         role: c.role,
         visual_anchor: c.visualAnchor,
+        turnaround_prompt: c.turnaroundPrompt || "",
+        costume_variants: c.costumeVariants ? JSON.parse(c.costumeVariants) : [],
         avatar_url: c.avatarUrl,
         personality: c.personality,
         created_at: c.createdAt,
+      })),
+      locations: locList.map((loc) => ({
+        id: loc.id,
+        project_id: loc.projectId,
+        name: loc.name,
+        environment_type: loc.environmentType,
+        visual_anchor: loc.visualAnchor,
+        reference_image_url: loc.referenceImageUrl,
+        lighting_style: loc.lightingStyle,
+        created_at: loc.createdAt,
       })),
       sequences: enrichedSeqs,
     });
@@ -184,6 +201,7 @@ router.post("/", async (c) => {
         title,
         story,
         targetDuration,
+        aspectRatio: body.aspect_ratio || "9:16",
       })
       .returning();
 
@@ -539,6 +557,7 @@ router.put("/:id", async (c) => {
     if (body.title !== undefined) updates.title = body.title;
     if (body.story !== undefined) updates.story = body.story;
     if (body.target_duration !== undefined) updates.targetDuration = Number(body.target_duration);
+    if (body.aspect_ratio !== undefined) updates.aspectRatio = body.aspect_ratio;
     updates.updatedAt = new Date().toISOString();
 
     const [updated] = await db.update(projects).set(updates).where(eq(projects.id, id)).returning();
@@ -548,6 +567,7 @@ router.put("/:id", async (c) => {
 
     if (Array.isArray(body.characters)) {
       for (const ch of body.characters) {
+        const cVariants = typeof ch.costume_variants === "string" ? ch.costume_variants : JSON.stringify(ch.costume_variants || []);
         if (ch.id) {
           const existing = await db.select().from(characters).where(eq(characters.id, ch.id)).get();
           if (existing) {
@@ -555,8 +575,11 @@ router.put("/:id", async (c) => {
               name: ch.name || existing.name,
               role: ch.role || existing.role,
               visualAnchor: ch.visual_anchor || ch.visualAnchor || existing.visualAnchor,
+              turnaroundPrompt: ch.turnaround_prompt !== undefined ? ch.turnaround_prompt : existing.turnaroundPrompt,
+              costumeVariants: ch.costume_variants !== undefined ? cVariants : existing.costumeVariants,
               personality: ch.personality || existing.personality,
               avatarUrl: ch.avatar_url || ch.avatarUrl || existing.avatarUrl,
+              updatedAt: new Date().toISOString(),
             }).where(eq(characters.id, ch.id));
           } else {
             await db.insert(characters).values({
@@ -565,6 +588,8 @@ router.put("/:id", async (c) => {
               name: ch.name,
               role: ch.role || "supporting",
               visualAnchor: ch.visual_anchor || ch.visualAnchor || "",
+              turnaroundPrompt: ch.turnaround_prompt || "",
+              costumeVariants: cVariants,
               personality: ch.personality || "",
               avatarUrl: ch.avatar_url || ch.avatarUrl || "",
             });
@@ -576,6 +601,8 @@ router.put("/:id", async (c) => {
             name: ch.name,
             role: ch.role || "supporting",
             visualAnchor: ch.visual_anchor || ch.visualAnchor || "",
+            turnaroundPrompt: ch.turnaround_prompt || "",
+            costumeVariants: cVariants,
             personality: ch.personality || "",
             avatarUrl: ch.avatar_url || ch.avatarUrl || "",
           });
@@ -583,12 +610,64 @@ router.put("/:id", async (c) => {
       }
     }
 
-    // Return enriched project with latest characters
+    if (Array.isArray(body.locations)) {
+      for (const loc of body.locations) {
+        if (loc.id) {
+          const existing = await db.select().from(locations).where(eq(locations.id, loc.id)).get();
+          if (existing) {
+            await db.update(locations).set({
+              name: loc.name || existing.name,
+              environmentType: loc.environment_type || loc.environmentType || existing.environmentType,
+              visualAnchor: loc.visual_anchor || loc.visualAnchor || existing.visualAnchor,
+              referenceImageUrl: loc.reference_image_url || loc.referenceImageUrl || existing.referenceImageUrl,
+              lightingStyle: loc.lighting_style || loc.lightingStyle || existing.lightingStyle,
+              updatedAt: new Date().toISOString(),
+            }).where(eq(locations.id, loc.id));
+          } else {
+            await db.insert(locations).values({
+              id: loc.id,
+              projectId: id,
+              name: loc.name,
+              environmentType: loc.environment_type || loc.environmentType || "interior",
+              visualAnchor: loc.visual_anchor || loc.visualAnchor || "",
+              referenceImageUrl: loc.reference_image_url || loc.referenceImageUrl || "",
+              lightingStyle: loc.lighting_style || loc.lightingStyle || "自然光",
+            });
+          }
+        } else if (loc.name) {
+          await db.insert(locations).values({
+            id: crypto.randomUUID(),
+            projectId: id,
+            name: loc.name,
+            environmentType: loc.environment_type || loc.environmentType || "interior",
+            visualAnchor: loc.visual_anchor || loc.visualAnchor || "",
+            referenceImageUrl: loc.reference_image_url || loc.referenceImageUrl || "",
+            lightingStyle: loc.lighting_style || loc.lightingStyle || "自然光",
+          });
+        }
+      }
+    }
+
+    // Return enriched project with latest characters & locations
     const latestChars = await db.select().from(characters).where(eq(characters.projectId, id)).all();
+    const latestLocs = await db.select().from(locations).where(eq(locations.projectId, id)).all();
     return c.json({
       ...updated,
       style_config: body.style_config || {},
-      characters: latestChars,
+      characters: latestChars.map((c) => ({
+        ...c,
+        visual_anchor: c.visualAnchor,
+        turnaround_prompt: c.turnaroundPrompt,
+        costume_variants: c.costumeVariants ? JSON.parse(c.costumeVariants) : [],
+        avatar_url: c.avatarUrl,
+      })),
+      locations: latestLocs.map((l) => ({
+        ...l,
+        environment_type: l.environmentType,
+        visual_anchor: l.visualAnchor,
+        reference_image_url: l.referenceImageUrl,
+        lighting_style: l.lightingStyle,
+      })),
     });
   } catch (err: any) {
     console.error("[Update Project Error]:", err);
@@ -880,6 +959,56 @@ router.post("/:id/sequences/:seqId/sync-screenplay", async (c) => {
   } catch (err: any) {
     console.error("[Sync Screenplay Error]:", err);
     return c.json({ detail: `同步剧本至分镜失败: ${err?.message || err}` }, 500);
+  }
+});
+
+// POST /api/projects/:id/sequences/:seqId/diagnose-hook (Short Drama Chief Script Doctor)
+router.post("/:id/sequences/:seqId/diagnose-hook", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const id = c.req.param("id");
+    const seqId = c.req.param("seqId");
+
+    const authHeader = c.req.header("Authorization");
+    const authUser = await getAuthUser(authHeader);
+    if (!authUser) {
+      return c.json({ detail: "请先登录导演账号" }, 401);
+    }
+
+    const seq = await db.select().from(sequences).where(eq(sequences.id, seqId)).get();
+    if (!seq) {
+      return c.json({ detail: "Sequence not found" }, 404);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const screenplayText = (body.screenplay_text || seq.screenplayText || "").trim();
+    if (!screenplayText) {
+      return c.json({ detail: "剧本文本为空，无法进行爆点诊断" }, 400);
+    }
+
+    const projectChars = await db.select().from(characters).where(eq(characters.projectId, id)).all();
+    const charsContext = projectChars.map((ch) => `${ch.name} (${ch.role}): ${ch.visualAnchor}`).join("; ");
+
+    const settings = await getUserSettings(db, authUser.userId);
+    if (!settings.hasKey) {
+      return c.json({ detail: "请先在设置中配置 OpenRouter API Key" }, 400);
+    }
+
+    const result = await diagnoseAndRewriteScreenplay(screenplayText, {
+      apiKey: settings.llmApiKey,
+      apiBase: settings.llmApiBase,
+      model: settings.llmModel,
+      charactersContext: charsContext,
+    });
+
+    return c.json({
+      success: true,
+      diagnosis: result,
+    });
+  } catch (err: any) {
+    console.error("[Diagnose Hook Error]:", err);
+    return c.json({ detail: `短剧爆点诊断失败: ${err?.message || err}` }, 500);
   }
 });
 // POST /api/projects/:id/episodes (Add next episode in workspace, inheriting global character visual DNA)

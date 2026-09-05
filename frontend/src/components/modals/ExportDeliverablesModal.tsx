@@ -11,6 +11,8 @@ import {
   Loader2,
   X,
   Layers,
+  BookOpen,
+  Sparkles,
 } from "lucide-react";
 import { ProjectModel, ShotModel } from "@/types/shot";
 import { api } from "@/lib/api";
@@ -39,6 +41,7 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
 
   if (!isOpen || !project) return null;
 
+  const isVertical = project.aspect_ratio === "9:16";
   const allShots = (project.sequences || []).flatMap((seq) => seq.shots || []);
   const currentShots =
     exportScope === "all" && allShots.length > 0
@@ -55,7 +58,7 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
     }
     try {
       setIsExportingPng(true);
-      notify.info("🎨 正在使用 Canvas 极速合成 16:9 故事板打样单，稍候...");
+      notify.info(`🎨 正在使用 Canvas 极速合成 ${isVertical ? "9:16 竖屏" : "16:9"} 故事板打样单，稍候...`);
       await exportStoryboardSheetToPng(project, currentShots, { includeHud: exportWithHud });
       notify.success("🎉 完整故事板打样单 (PNG) 已成功生成并下载！");
     } catch (e: any) {
@@ -85,14 +88,22 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150 relative">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150 relative max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-primary/10 text-primary">
               <Download className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-foreground">好莱坞 5 大工业级交付物导出</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-base text-foreground">导演工业级交付物全套导出</h3>
+                <span className={cn(
+                  "px-2 py-0.5 rounded text-[10px] font-semibold border",
+                  isVertical ? "bg-amber-500/20 text-amber-300 border-amber-500/40" : "bg-sky-500/20 text-sky-300 border-sky-500/40"
+                )}>
+                  {isVertical ? "9:16 竖屏短剧" : "16:9 电影画幅"}
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground">
                 《{project.title}》· {project.sequences && project.sequences.length > 1 ? `${project.sequences.length} 集 · ` : ""}当前导出: {currentShots.length} 个分镜
               </p>
@@ -171,9 +182,11 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
                 {isExportingPng ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
               </div>
               <div>
-                <h4 className="text-xs font-bold text-sky-300">1. 🖼️ 导演故事板工作草图打样单 (PNG Draft)</h4>
+                <h4 className="text-xs font-bold text-sky-300">
+                  1. 🖼️ {isVertical ? "9:16 竖屏" : "16:9"} 故事板工作草图打样单 (PNG Draft)
+                </h4>
                 <p className="text-[11px] text-muted-foreground">
-                  纯客户端 Canvas 极速合成轻量打样单（1K 级标准尺寸，小体积秒下载，零等待）
+                  纯客户端 Canvas 极速合成轻量打样单（{isVertical ? "9:16 手机全屏比例" : "16:9 电影画幅"}，小体积秒下载，零等待）
                 </p>
               </div>
             </div>
@@ -200,7 +213,7 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
               <div>
                 <h4 className="text-xs font-bold text-primary">2. 📦 全套工业交付包 (Generation Package ZIP)</h4>
                 <p className="text-[11px] text-muted-foreground">
-                  包含 Shot Spec JSON、AI 视频批量生成 Manifest、Markdown 剧本与高清资产清单
+                  包含 Shot Spec JSON、AI 视频批量生成 Manifest、设定集 Bible、Markdown 剧本与资产清单
                 </p>
               </div>
             </div>
@@ -221,14 +234,37 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
               <div>
                 <h4 className="text-xs font-bold text-emerald-400">3. 🖼️ 高清分镜图包 (Storyboard Images ZIP)</h4>
                 <p className="text-[11px] text-muted-foreground">
-                  每个镜头的 1080P/16:9 高清原图（按 SHOT_01_WS_... 严格规范命名打包）
+                  每个镜头的 {isVertical ? "9:16 竖屏" : "16:9"} 高清原图（按 SHOT_01_WS_... 规范命名打包）
                 </p>
               </div>
             </div>
             <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
           </a>
 
-          {/* 4. Shot Script Markdown */}
+          {/* 4. Character & Location Bible Markdown */}
+          <a
+            href={api.getExportBibleUrl(project.id)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-between p-3.5 rounded-xl border border-purple-500/40 bg-purple-500/5 hover:bg-purple-500/10 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-purple-300 group-hover:text-purple-200 transition-colors">
+                  4. 📖 角色与场景设定集 (Character & Location Bible)
+                </h4>
+                <p className="text-[11px] text-muted-foreground">
+                  角色视觉 DNA 档案、三视图定妆提示词、场景空间灯光设定及资产直链
+                </p>
+              </div>
+            </div>
+            <Download className="w-4 h-4 text-muted-foreground group-hover:text-purple-400" />
+          </a>
+
+          {/* 5. Shot Script Markdown */}
           <a
             href={api.getExportScriptUrl(project.id)}
             target="_blank"
@@ -241,25 +277,25 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
               </div>
               <div>
                 <h4 className="text-xs font-bold group-hover:text-primary transition-colors">
-                  4. 🎬 导演分镜头脚本文档 (Shot Script Markdown)
+                  5. 🎬 导演分镜头脚本文档 (Shot Script Markdown)
                 </h4>
                 <p className="text-[11px] text-muted-foreground">
-                  标准好莱坞分镜头台本（包含视听语言、机位运动与对白列表）
+                  标准分镜头台本（绑定角色、场景、视听语言、机位运动与对白列表）
                 </p>
               </div>
             </div>
             <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
           </a>
 
-          {/* 5. Director Global Prompt */}
+          {/* 6. Director Global Prompt */}
           <div className="flex items-center justify-between p-3.5 rounded-xl border border-sky-500/40 bg-sky-500/5 hover:bg-sky-500/10 transition-all group">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-sky-500/20 text-sky-400">
                 <Terminal className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-sky-300">5. 🌐 导演全局总控提示词 (Global Prompt)</h4>
-                <p className="text-[11px] text-muted-foreground">好莱坞多格总控 Prompt（支持 Midjourney 单图整版）</p>
+                <h4 className="text-xs font-bold text-sky-300">6. 🌐 导演全局总控提示词 (Global Prompt)</h4>
+                <p className="text-[11px] text-muted-foreground">多格连环打样总控 Prompt（支持 Midjourney 单图整版排版）</p>
               </div>
             </div>
             <div className="flex items-center gap-2">

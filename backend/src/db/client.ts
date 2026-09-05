@@ -105,6 +105,8 @@ export async function ensureSchema(d1: D1Database) {
         name TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'protagonist',
         visual_anchor TEXT NOT NULL DEFAULT '',
+        turnaround_prompt TEXT NOT NULL DEFAULT '',
+        costume_variants TEXT NOT NULL DEFAULT '[]',
         avatar_url TEXT NOT NULL DEFAULT '',
         personality TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
@@ -112,14 +114,34 @@ export async function ensureSchema(d1: D1Database) {
       );
     `).run();
 
-    // 7. Safe Alter Table migrations
+    // 7. Ensure locations table exists (Global Location Space Assets)
+    await d1.prepare(`
+      CREATE TABLE IF NOT EXISTS locations (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        environment_type TEXT NOT NULL DEFAULT 'interior',
+        visual_anchor TEXT NOT NULL DEFAULT '',
+        reference_image_url TEXT NOT NULL DEFAULT '',
+        lighting_style TEXT NOT NULL DEFAULT '自然光',
+        created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+      );
+    `).run();
+
+    // 8. Safe Alter Table migrations
     try { await d1.prepare(`ALTER TABLE projects ADD COLUMN user_id TEXT;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE projects ADD COLUMN aspect_ratio TEXT NOT NULL DEFAULT '9:16';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN episode_number INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN cliffhanger_summary TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN target_duration REAL NOT NULL DEFAULT 60.0;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN screenplay_text TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE characters ADD COLUMN turnaround_prompt TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE characters ADD COLUMN costume_variants TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN character_ids TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN location_id TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN dialogue TEXT DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN is_locked INTEGER NOT NULL DEFAULT 0;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN beat_type TEXT DEFAULT 'tension_build';`).run(); } catch (_) {}

@@ -1,6 +1,20 @@
 import React from "react";
-import { ShotModel, ShotSize, CameraAngle, CharacterModel } from "@/types/shot";
-import { Trash2, Camera, AlertTriangle, MessageSquare, Volume2, Music, SlidersHorizontal, Lock, Unlock, User } from "lucide-react";
+import { ShotModel, ShotSize, CameraAngle, CharacterModel, LocationModel } from "@/types/shot";
+import {
+  Trash2,
+  Camera,
+  AlertTriangle,
+  MessageSquare,
+  Volume2,
+  Music,
+  SlidersHorizontal,
+  Lock,
+  Unlock,
+  User,
+  Users,
+  MapPin,
+  Check,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ShotScriptCardProps {
@@ -8,6 +22,7 @@ interface ShotScriptCardProps {
   index: number;
   isSelected: boolean;
   characters?: CharacterModel[];
+  locations?: LocationModel[];
   onSelect: () => void;
   onUpdate: (updates: Partial<ShotModel>) => void;
   onDelete: () => void;
@@ -38,6 +53,7 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
   index,
   isSelected,
   characters = [],
+  locations = [],
   onSelect,
   onUpdate,
   onDelete,
@@ -240,6 +256,64 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
           />
         </div>
       </div>
+
+      {/* Cast & Location Tags */}
+      {(characters.length > 0 || locations.length > 0) && (
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-2.5 pb-2 border-b border-border/50" onClick={(e) => e.stopPropagation()}>
+          {/* Character badges */}
+          {characters.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <Users className="w-3 h-3 text-sky-400" />
+                <span>出场:</span>
+              </span>
+              {characters.map((ch) => {
+                const isSelected = Array.isArray(shot.character_ids) && shot.character_ids.includes(ch.id);
+                return (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    onClick={() => {
+                      const current = Array.isArray(shot.character_ids) ? [...shot.character_ids] : [];
+                      const next = isSelected ? current.filter((id) => id !== ch.id) : [...current, ch.id];
+                      onUpdate({ character_ids: next });
+                    }}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all cursor-pointer",
+                      isSelected
+                        ? "bg-sky-500/20 text-sky-300 border-sky-500/50 shadow-xs font-semibold"
+                        : "bg-secondary/40 text-muted-foreground/70 border-border/60 hover:text-foreground hover:bg-secondary"
+                    )}
+                    title={isSelected ? `点击从本镜移除角色「${ch.name}」` : `点击将「${ch.name}」加入本镜`}
+                  >
+                    <span>{ch.name}</span>
+                    {isSelected && <Check className="w-2.5 h-2.5 text-sky-400" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Location selector */}
+          {locations.length > 0 && (
+            <div className="flex items-center gap-1 ml-auto">
+              <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
+              <select
+                value={shot.location_id || ""}
+                onChange={(e) => onUpdate({ location_id: e.target.value })}
+                className="bg-secondary/50 border border-border/80 rounded px-2 py-0.5 text-[10px] text-foreground focus:outline-none focus:border-amber-400 cursor-pointer"
+              >
+                <option value="">未关联场景...</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Action / Visual Narrative Field */}
       <div className="mb-2.5" onClick={(e) => e.stopPropagation()}>

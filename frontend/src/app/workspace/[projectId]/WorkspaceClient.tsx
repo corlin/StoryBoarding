@@ -683,6 +683,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           <StoryboardPanel
             shots={shots}
             selectedShotId={selectedShotId}
+            aspectRatio={displayProject?.aspect_ratio === "9:16" ? "9:16" : "16:9"}
             characters={displayProject?.characters || []}
             onSelectShot={(id) => selectShot(id)}
             onOpenDrawer={handleOpenDrawer}

@@ -19,6 +19,7 @@ export const projects = sqliteTable("projects", {
   title: text("title").notNull(),
   story: text("story"),
   targetDuration: real("target_duration").default(30.0).notNull(),
+  aspectRatio: text("aspect_ratio").default("9:16").notNull(), // '9:16' | '16:9'
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -44,8 +45,23 @@ export const characters = sqliteTable("characters", {
   name: text("name").notNull(),
   role: text("role").default("protagonist").notNull(), // 'protagonist' | 'antagonist' | 'supporting'
   visualAnchor: text("visual_anchor").notNull().default(""), // Pure English visual DNA prompt anchor
+  turnaroundPrompt: text("turnaround_prompt").default("").notNull(), // Model Sheet / 3-view turnaround prompt
+  costumeVariants: text("costume_variants").default("[]").notNull(), // JSON string array of costume variants
   avatarUrl: text("avatar_url").default("").notNull(),
   personality: text("personality").default("").notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+// Global Location/Scene Space Asset Table
+export const locations = sqliteTable("locations", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  environmentType: text("environment_type").default("interior").notNull(), // 'interior' | 'exterior' | 'abstract'
+  visualAnchor: text("visual_anchor").notNull().default(""), // Scene spatial and lighting anchor prompt
+  referenceImageUrl: text("reference_image_url").default("").notNull(),
+  lightingStyle: text("lighting_style").default("自然光").notNull(),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -59,6 +75,8 @@ export const shots = sqliteTable("shots", {
   cameraAngle: text("camera_angle").notNull().default("eye_level"),
   cameraMovement: text("camera_movement").default("{}").notNull(), // JSON string
   subject: text("subject").default(""),
+  characterIds: text("character_ids").default("[]").notNull(), // JSON array of character IDs
+  locationId: text("location_id").default("").notNull(), // Bound location ID
   action: text("action").notNull().default(""),
   dialogue: text("dialogue").default(""),
   narrativeFunction: text("narrative_function").default("动作推进"),
@@ -108,3 +126,6 @@ export type InsertProjectVersion = typeof projectVersions.$inferInsert;
 
 export type Character = typeof characters.$inferSelect;
 export type InsertCharacter = typeof characters.$inferInsert;
+
+export type Location = typeof locations.$inferSelect;
+export type InsertLocation = typeof locations.$inferInsert;

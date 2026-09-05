@@ -1,19 +1,20 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
-import { projects, sequences, shots } from "../db/schema";
+import { projects, sequences, shots, characters, locations } from "../db/schema";
 import {
   generateShotScriptMarkdown,
   generateDirectorGlobalPrompt,
   generateGenerationPackageZip,
+  generateCharacterAndLocationBibleMarkdown,
 } from "../services/export";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
-async function getProjectAndShots(db: any, projectId: string) {
+async function getProjectAssets(db: any, projectId: string) {
   const proj = await db.select().from(projects).where(eq(projects.id, projectId)).get();
   if (!proj) {
-    return { proj: null, shotList: [], seqs: [] };
+    return { proj: null, shotList: [], seqs: [], charList: [], locList: [] };
   }
 
   const seqs = await db.select().from(sequences).where(eq(sequences.projectId, proj.id)).orderBy(sequences.order).all();
@@ -24,21 +25,39 @@ async function getProjectAndShots(db: any, projectId: string) {
     shotList.push(...list);
   }
 
-  return { proj, shotList, seqs };
+  const charList = await db.select().from(characters).where(eq(characters.projectId, proj.id)).all();
+  const locList = await db.select().from(locations).where(eq(locations.projectId, proj.id)).all();
+
+  return { proj, shotList, seqs, charList, locList };
 }
 
 // GET /api/export/script-markdown/:projectId
 router.get("/script-markdown/:projectId", async (c) => {
   const db = getDb(c.env.DB);
   const projectId = c.req.param("projectId");
-  const { proj, shotList, seqs } = await getProjectAndShots(db, projectId);
+  const { proj, shotList, seqs, charList, locList } = await getProjectAssets(db, projectId);
 
   if (!proj) return c.text("Project not found", 404);
 
-  const md = generateShotScriptMarkdown(proj, shotList, seqs);
+  const md = generateShotScriptMarkdown(proj, shotList, seqs, charList, locList);
   return c.text(md, 200, {
     "Content-Type": "text/markdown; charset=utf-8",
     "Content-Disposition": `attachment; filename="shot_script_${projectId}.md"`,
+  });
+});
+
+// GET /api/export/bible-markdown/:projectId
+router.get("/bible-markdown/:projectId", async (c) => {
+  const db = getDb(c.env.DB);
+  const projectId = c.req.param("projectId");
+  const { proj, charList, locList } = await getProjectAssets(db, projectId);
+
+  if (!proj) return c.text("Project not found", 404);
+
+  const md = generateCharacterAndLocationBibleMarkdown(proj, charList, locList);
+  return c.text(md, 200, {
+    "Content-Type": "text/markdown; charset=utf-8",
+    "Content-Disposition": `attachment; filename="character_location_bible_${projectId}.md"`,
   });
 });
 
@@ -46,7 +65,7 @@ router.get("/script-markdown/:projectId", async (c) => {
 router.get("/director-global-prompt/:projectId", async (c) => {
   const db = getDb(c.env.DB);
   const projectId = c.req.param("projectId");
-  const { proj, shotList } = await getProjectAndShots(db, projectId);
+  const { proj, shotList } = await getProjectAssets(db, projectId);
 
   if (!proj) return c.text("Project not found", 404);
 
@@ -60,11 +79,11 @@ router.get("/director-global-prompt/:projectId", async (c) => {
 async function handleZipExport(c: any, filenamePrefix: string) {
   const db = getDb(c.env.DB);
   const projectId = c.req.param("projectId");
-  const { proj, shotList } = await getProjectAndShots(db, projectId);
+  const { proj, shotList, charList, locList } = await getProjectAssets(db, projectId);
 
   if (!proj) return c.text("Project not found", 404);
 
-  const zipBytes = await generateGenerationPackageZip(proj, shotList);
+  const zipBytes = await generateGenerationPackageZip(proj, shotList, charList, locList);
   return new Response(zipBytes, {
     status: 200,
     headers: {

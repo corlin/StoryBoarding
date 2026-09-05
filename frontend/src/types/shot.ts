@@ -52,6 +52,8 @@ export interface ShotModel {
   camera_angle: CameraAngle;
   camera_movement: CameraMovement;
   subject: string;
+  character_ids?: string[];
+  location_id?: string;
   action: string;
   dialogue?: string;
   composition: CompositionData;
@@ -86,8 +88,21 @@ export interface CharacterModel {
   role: "protagonist" | "antagonist" | "supporting";
   visual_anchor: string;
   visualAnchor?: string;
+  turnaround_prompt?: string;
+  costume_variants?: string[];
   avatar_url?: string;
   personality?: string;
+  created_at?: string;
+}
+
+export interface LocationModel {
+  id: string;
+  project_id: string;
+  name: string;
+  environment_type: "interior" | "exterior" | "abstract";
+  visual_anchor: string;
+  reference_image_url?: string;
+  lighting_style?: string;
   created_at?: string;
 }
 
@@ -113,6 +128,7 @@ export interface ProjectModel {
   creative_brief?: string;
   style_config: Record<string, any>;
   target_duration: number;
+  aspect_ratio?: "9:16" | "16:9";
   shot_count?: number;
   cover_image_url?: string;
   preview_images?: string[];
@@ -122,6 +138,7 @@ export interface ProjectModel {
   created_at: string;
   updated_at: string;
   characters?: CharacterModel[];
+  locations?: LocationModel[];
   sequences: SequenceModel[];
 }
 
