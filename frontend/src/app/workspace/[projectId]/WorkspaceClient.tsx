@@ -636,6 +636,21 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         </div>
       )}
 
+      {/* Responsive Episode Track for Screens below lg breakpoint (< 1024px) */}
+      <div className="flex lg:hidden items-center px-3 py-1.5 border-b border-border/80 bg-card/60 backdrop-blur-xs overflow-x-auto no-scrollbar shrink-0">
+        <EpisodePillTrack
+          project={displayProject}
+          compact={true}
+          onOpenCharacterHub={() => {
+            setBibleMode("bible");
+            setIsOpenBibleModal(true);
+          }}
+          onRefreshProject={async () => {
+            await fetchProject(effectiveProjectId);
+          }}
+        />
+      </div>
+
       {/* Mobile Dual-View Tab Bar */}
       <div className="flex md:hidden border-b border-border bg-card">
         <button
