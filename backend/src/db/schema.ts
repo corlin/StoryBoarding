@@ -127,6 +127,18 @@ export const shots = sqliteTable("shots", {
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
 
+export const globalAssets = sqliteTable("global_assets", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  assetType: text("asset_type").notNull(), // 'character' | 'location' | 'prop'
+  name: text("name").notNull(),
+  visualAnchor: text("visual_anchor").notNull().default(""),
+  referenceImageUrl: text("reference_image_url").default("").notNull(),
+  metadataJson: text("metadata_json").default("{}").notNull(), // role, lightingStates, category, voiceDna, etc.
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
 export const projectVersions = sqliteTable("project_versions", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),

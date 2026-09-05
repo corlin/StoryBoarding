@@ -397,6 +397,34 @@ export const api = {
     return data;
   },
 
+  // Reelbench User-Level Global Cross-Project Asset Library
+  async getGlobalAssets(type?: "character" | "location" | "prop"): Promise<{ total: number; assets: any[] }> {
+    const url = type ? `/global-assets?type=${type}` : "/global-assets";
+    const { data } = await apiClient.get(url);
+    return data;
+  },
+
+  async collectGlobalAsset(payload: {
+    asset_type: "character" | "location" | "prop";
+    name: string;
+    visual_anchor?: string;
+    reference_image_url?: string;
+    metadata?: any;
+  }): Promise<{ status: string; message: string; asset: any }> {
+    const { data } = await apiClient.post("/global-assets/collect", payload);
+    return data;
+  },
+
+  async importGlobalAssetToProject(assetId: string, projectId: string): Promise<{ status: string; message: string; imported_entity: any }> {
+    const { data } = await apiClient.post(`/global-assets/${assetId}/import-to-project`, { project_id: projectId });
+    return data;
+  },
+
+  async deleteGlobalAsset(assetId: string): Promise<{ status: string; message: string }> {
+    const { data } = await apiClient.delete(`/global-assets/${assetId}`);
+    return data;
+  },
+
   // Export URLs
   getExportScriptUrl(projectId: string): string {
     const base = getApiBaseUrl();

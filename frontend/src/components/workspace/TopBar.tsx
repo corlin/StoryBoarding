@@ -29,6 +29,7 @@ import {
   Play,
   Clock,
   MoreVertical,
+  Layers,
 } from "lucide-react";
 import { ExportDeliverablesModal } from "@/components/modals/ExportDeliverablesModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
@@ -36,6 +37,7 @@ import { BibleModal } from "@/components/modals/BibleModal";
 import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { AdaptationTradeoffModal } from "@/components/modals/AdaptationTradeoffModal";
+import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
@@ -87,6 +89,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
   const [isOpenExportModal, setIsOpenExportModal] = useState(false);
   const [isOpenTradeoffModal, setIsOpenTradeoffModal] = useState(false);
+  const [isGlobalAssetOpen, setIsGlobalAssetOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [bibleMode, setBibleMode] = useState<"bible" | "style">("bible");
   const [storyText, setStoryText] = useState("");
@@ -273,13 +276,23 @@ export const TopBar: React.FC<TopBarProps> = ({
               {onOpenVersions && (
                 <button
                   onClick={onOpenVersions}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                   title="查看历史版本快照与时光穿越"
                 >
                   <Clock className="w-3.5 h-3.5 text-amber-400" />
                   <span className="hidden sm:inline">版本</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => setIsGlobalAssetOpen(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-purple-300 hover:text-purple-200 hover:bg-purple-500/20 transition-colors cursor-pointer"
+                title="跨项目全局资产库：导入或复用主角、场景与道具"
+              >
+                <Layers className="w-3.5 h-3.5 text-purple-400" />
+                <span>资产库</span>
+              </button>
 
               <button
                 onClick={() => setIsOpenExportModal(true)}
@@ -532,6 +545,17 @@ export const TopBar: React.FC<TopBarProps> = ({
         isOpen={isOpenTradeoffModal}
         onClose={() => setIsOpenTradeoffModal(false)}
         project={project}
+      />
+
+      {/* Global Asset Library Modal (Cross-Project Asset Pool) */}
+      <GlobalAssetLibraryModal
+        isOpen={isGlobalAssetOpen}
+        onClose={() => setIsGlobalAssetOpen(false)}
+        currentProjectId={project?.id}
+        onImportSuccess={() => {
+          // Trigger a refresh or toast
+          window.location.reload();
+        }}
       />
     </>
   );

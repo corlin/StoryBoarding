@@ -12,6 +12,7 @@ import authRouter from "./routes/auth";
 import charactersRouter from "./routes/characters";
 import locationsRouter from "./routes/locations";
 import propsRouter from "./routes/props";
+import globalAssetsRouter from "./routes/globalAssets";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -54,6 +55,7 @@ app.route("/api/shots", shotsRouter);
 app.route("/api/characters", charactersRouter);
 app.route("/api/locations", locationsRouter);
 app.route("/api/props", propsRouter);
+app.route("/api/global-assets", globalAssetsRouter);
 app.route("/api/generate", generationRouter);
 app.route("/api/export", exportRouter);
 app.route("/api/settings", settingsRouter);

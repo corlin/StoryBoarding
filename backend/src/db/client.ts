@@ -145,6 +145,21 @@ export async function ensureSchema(d1: D1Database) {
       );
     `).run();
 
+    // 9. Ensure global_assets table exists (User-Level Cross-Project Asset Library)
+    await d1.prepare(`
+      CREATE TABLE IF NOT EXISTS global_assets (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        asset_type TEXT NOT NULL,
+        name TEXT NOT NULL,
+        visual_anchor TEXT NOT NULL DEFAULT '',
+        reference_image_url TEXT NOT NULL DEFAULT '',
+        metadata_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+      );
+    `).run();
+
     // 9. Safe Alter Table migrations
     try { await d1.prepare(`ALTER TABLE projects ADD COLUMN user_id TEXT;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE projects ADD COLUMN aspect_ratio TEXT NOT NULL DEFAULT '9:16';`).run(); } catch (_) {}

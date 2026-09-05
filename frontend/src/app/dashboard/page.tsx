@@ -27,6 +27,7 @@ import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelineProgress";
 import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
 import { PitchIdeaGeneratorModal } from "@/components/modals/PitchIdeaGeneratorModal";
+import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
@@ -97,6 +98,7 @@ export default function DashboardPage() {
   const [narrativeCenter, setNarrativeCenter] = useState<NarrativeCenter>("plot");
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
   const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
+  const [isGlobalAssetModalOpen, setIsGlobalAssetModalOpen] = useState(false);
 
   // Creation progress states
   const [isSubmittingProject, setIsSubmittingProject] = useState(false);
@@ -331,6 +333,22 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              if (!isAuthenticated) {
+                notify.info("请先登录查看全局资产库");
+                openAuthModal("login");
+                return;
+              }
+              setIsGlobalAssetModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 border border-purple-500/30 transition-all cursor-pointer shadow-2xs"
+            title="用户级全局资产库：跨项目沉淀复用角色、场景与道具"
+          >
+            <span>◇ 全局资产库</span>
+          </button>
+
           <button
             onClick={openSettingsModal}
             className="p-2 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
@@ -905,6 +923,12 @@ export default function DashboardPage() {
           setIsPitchModalOpen(false);
           loadProjects();
         }}
+      />
+
+      {/* User-Level Global Cross-Project Asset Library Modal (Reelbench Standard) */}
+      <GlobalAssetLibraryModal
+        isOpen={isGlobalAssetModalOpen}
+        onClose={() => setIsGlobalAssetModalOpen(false)}
       />
     </div>
   );

@@ -314,6 +314,29 @@ export const BibleModal: React.FC<BibleModalProps> = ({
     }
   };
 
+  const handleCollectGlobalAsset = async (type: "character" | "location" | "prop", item: any) => {
+    try {
+      const res = await api.collectGlobalAsset({
+        asset_type: type,
+        name: item.name,
+        visual_anchor: item.visual_anchor || item.visualAnchor || "",
+        reference_image_url: item.avatar_url || item.reference_image_url || "",
+        metadata: {
+          role: item.role,
+          personality: item.personality,
+          voice_dna: item.voice_dna || item.voiceDna,
+          lighting_style: item.lighting_style,
+          lighting_states: item.lighting_states,
+          is_variant: item.is_variant,
+          category: item.category,
+        },
+      });
+      notify.success(res.message || `✨ 「${item.name}」已成功保存至全局资产库！`);
+    } catch (e: any) {
+      notify.error(e?.message || "加入全局资产库失败");
+    }
+  };
+
   const handleSaveBible = async () => {
     if (!project) return;
     try {
@@ -482,9 +505,18 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
+                          onClick={() => handleCollectGlobalAsset("character", char)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 transition-all cursor-pointer"
+                          title="将此角色存入用户级跨项目全局资产库（Reelbench Standard）"
+                        >
+                          <Layers className="w-3 h-3" />
+                          <span className="hidden sm:inline">加入资产库</span>
+                        </button>
+                        <button
+                          type="button"
                           disabled={isGenerating}
                           onClick={() => handleGenerateAvatar(char)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 transition-all disabled:opacity-50"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 transition-all disabled:opacity-50 cursor-pointer"
                           title="使用多角度定妆提示词一键 AI 生成定妆照"
                         >
                           {isGenerating ? (
@@ -693,9 +725,18 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
+                          onClick={() => handleCollectGlobalAsset("location", loc)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 transition-all cursor-pointer"
+                          title="将此场景空间存入用户级跨项目全局资产库（Reelbench Standard）"
+                        >
+                          <Layers className="w-3 h-3" />
+                          <span className="hidden sm:inline">加入资产库</span>
+                        </button>
+                        <button
+                          type="button"
                           disabled={isGenerating}
                           onClick={() => handleGenerateLocConcept(loc)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 transition-all disabled:opacity-50"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 transition-all disabled:opacity-50 cursor-pointer"
                           title="一键 AI 生成场景空间概念基准图"
                         >
                           {isGenerating ? (
@@ -930,9 +971,18 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
+                          onClick={() => handleCollectGlobalAsset("prop", p)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 transition-all cursor-pointer"
+                          title="将此道具存入用户级跨项目全局资产库（Reelbench Standard）"
+                        >
+                          <Layers className="w-3 h-3" />
+                          <span className="hidden sm:inline">加入资产库</span>
+                        </button>
+                        <button
+                          type="button"
                           disabled={isGenerating}
                           onClick={() => handleGeneratePropConcept(p)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition-all disabled:opacity-50"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition-all disabled:opacity-50 cursor-pointer"
                           title="一键 AI 生成纯白底特写道具参考图"
                         >
                           {isGenerating ? (
