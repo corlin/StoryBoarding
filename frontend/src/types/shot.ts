@@ -103,6 +103,30 @@ export interface CharacterModel {
   created_at?: string;
 }
 
+export interface BeatModel {
+  id: string;
+  type: "action" | "dialogue";
+  speaker?: string;
+  content: string;
+  parenthetical?: string;
+  duration: number; // calculated or customized duration in seconds
+  payoff_tag?: string; // '悬念钩' | '身份揭破' | '反转' | '收束' | null
+}
+
+export interface AdaptationTradeoffItem {
+  id: string;
+  title: string;
+  desc: string;
+  source?: string;
+}
+
+export interface AdaptationTradeoffs {
+  keep?: AdaptationTradeoffItem[];
+  cut?: AdaptationTradeoffItem[];
+  merge?: AdaptationTradeoffItem[];
+  risk?: AdaptationTradeoffItem[];
+}
+
 export interface LocationModel {
   id: string;
   project_id: string;
@@ -112,6 +136,10 @@ export interface LocationModel {
   reference_image_url?: string;
   lighting_style?: string;
   lighting_states?: string[];
+  active_lighting_state?: string;
+  is_variant?: boolean;
+  parent_location_id?: string;
+  reuse_strategy?: string;
   created_at?: string;
 }
 
@@ -147,8 +175,11 @@ export interface SequenceModel {
   description?: string;
   screenplay_text?: string;
   episode_number?: number;
+  hook_summary?: string;
   cliffhanger_summary?: string;
+  payoff_summary?: string;
   target_duration?: number;
+  beats_data?: BeatModel[];
   shots: ShotModel[];
 }
 
@@ -161,6 +192,7 @@ export interface ProjectModel {
   style_config: Record<string, any>;
   target_duration: number;
   aspect_ratio?: "9:16" | "16:9";
+  adaptation_tradeoffs?: AdaptationTradeoffs;
   shot_count?: number;
   cover_image_url?: string;
   preview_images?: string[];

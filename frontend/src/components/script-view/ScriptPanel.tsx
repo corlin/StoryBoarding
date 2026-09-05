@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ShotModel, CharacterModel, ProjectModel, SequenceModel } from "@/types/shot";
 import { ShotScriptCard } from "./ShotScriptCard";
 import { ScreenplayEditor } from "./ScreenplayEditor";
+import { BeatStreamEditor } from "./BeatStreamEditor";
 import { Plus, Film, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +37,7 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
   onDeleteShot,
   onOpenDrawer,
 }) => {
-  const [viewMode, setViewMode] = useState<"shots" | "screenplay">("shots");
+  const [viewMode, setViewMode] = useState<"shots" | "beats" | "screenplay">("beats");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to selected shot during playback or selection
@@ -54,15 +55,27 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
 
   return (
     <section className="flex flex-col h-full min-h-0 overflow-hidden bg-background">
-      {/* Panel Sub-Header with Dual-Mode Toggle */}
+      {/* Panel Sub-Header with Tri-Mode Toggle */}
       <div className="h-12 px-4 border-b border-border flex items-center justify-between bg-card/40 shrink-0 select-none">
         {/* Left: View Mode Toggle */}
         <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/70">
           <button
             type="button"
+            onClick={() => setViewMode("beats")}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer",
+              viewMode === "beats"
+                ? "bg-purple-600 text-white shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>⚡ 剧本节拍流</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setViewMode("shots")}
             className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all",
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer",
               viewMode === "shots"
                 ? "bg-primary text-primary-foreground shadow-xs font-bold"
                 : "text-muted-foreground hover:text-foreground"
@@ -75,14 +88,14 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
             type="button"
             onClick={() => setViewMode("screenplay")}
             className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all",
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer",
               viewMode === "screenplay"
                 ? "bg-amber-500 text-black shadow-xs font-bold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>📄 文学剧本 (Master)</span>
+            <span>📄 文学母本</span>
           </button>
         </div>
 
@@ -92,7 +105,7 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
             <button
               disabled={!sequenceId}
               onClick={() => onAddShot(sequenceId)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>添加镜头</span>
@@ -101,8 +114,16 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
         </div>
       </div>
 
-      {/* Body: Screenplay Editor vs Shot Cards */}
-      {viewMode === "screenplay" ? (
+      {/* Body: BeatStreamEditor vs Screenplay vs Shot Cards */}
+      {viewMode === "beats" ? (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <BeatStreamEditor
+            project={project || null}
+            sequence={sequence || null}
+            onRefreshProject={onRefreshProject}
+          />
+        </div>
+      ) : viewMode === "screenplay" ? (
         <div className="flex-1 min-h-0 p-3 overflow-hidden">
           <ScreenplayEditor
             project={project || null}

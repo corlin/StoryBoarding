@@ -148,15 +148,23 @@ export async function ensureSchema(d1: D1Database) {
     // 9. Safe Alter Table migrations
     try { await d1.prepare(`ALTER TABLE projects ADD COLUMN user_id TEXT;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE projects ADD COLUMN aspect_ratio TEXT NOT NULL DEFAULT '9:16';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE projects ADD COLUMN adaptation_tradeoffs TEXT NOT NULL DEFAULT '{}';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN episode_number INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN hook_summary TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN cliffhanger_summary TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN payoff_summary TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN target_duration REAL NOT NULL DEFAULT 60.0;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN screenplay_text TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE sequences ADD COLUMN beats_data TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE characters ADD COLUMN turnaround_prompt TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE characters ADD COLUMN costume_variants TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE characters ADD COLUMN voice_dna TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE locations ADD COLUMN lighting_states TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE locations ADD COLUMN active_lighting_state TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE locations ADD COLUMN is_variant INTEGER NOT NULL DEFAULT 0;`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE locations ADD COLUMN parent_location_id TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE locations ADD COLUMN reuse_strategy TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN character_ids TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN prop_ids TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}

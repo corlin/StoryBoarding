@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ProjectModel, ShotModel, LocationModel } from "@/types/shot";
+import { ProjectModel, ShotModel, LocationModel, BeatModel } from "@/types/shot";
 
 export type ProjectListItem = ProjectModel;
 
@@ -298,15 +298,21 @@ export const api = {
     return data;
   },
 
-  // Master Literary Screenplay Management
+  // Master Literary Screenplay & Beat Stream Management
   async updateSequenceScreenplay(
     projectId: string,
     seqId: string,
-    screenplayText: string
-  ): Promise<{ status: string; sequence_id: string; screenplay_text: string }> {
-    const { data } = await apiClient.put(`/projects/${projectId}/sequences/${seqId}/screenplay`, {
-      screenplay_text: screenplayText,
-    });
+    payload: {
+      screenplay_text?: string;
+      hook_summary?: string;
+      cliffhanger_summary?: string;
+      payoff_summary?: string;
+      target_duration?: number;
+      beats_data?: BeatModel[];
+    } | string
+  ): Promise<{ status: string; sequence_id: string; [key: string]: any }> {
+    const body = typeof payload === "string" ? { screenplay_text: payload } : payload;
+    const { data } = await apiClient.put(`/projects/${projectId}/sequences/${seqId}/screenplay`, body);
     return data;
   },
 

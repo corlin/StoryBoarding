@@ -20,6 +20,7 @@ export const projects = sqliteTable("projects", {
   story: text("story"),
   targetDuration: real("target_duration").default(30.0).notNull(),
   aspectRatio: text("aspect_ratio").default("9:16").notNull(), // '9:16' | '16:9'
+  adaptationTradeoffs: text("adaptation_tradeoffs").default("{}").notNull(), // Reelbench Outline Stage: { keep: [], cut: [], merge: [], risk: [] }
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -31,9 +32,12 @@ export const sequences = sqliteTable("sequences", {
   order: integer("order").default(1).notNull(),
   // Multi-Episode Series Enhancements
   episodeNumber: integer("episode_number").default(1).notNull(),
+  hookSummary: text("hook_summary").default("").notNull(), // Reelbench 本集钩子 (Hook 0-3s)
   cliffhangerSummary: text("cliffhanger_summary").default("").notNull(), // 集尾强悬念卡点
+  payoffSummary: text("payoff_summary").default("").notNull(), // 本集爽点/收束 (Payoff/Twist)
   targetDuration: real("target_duration").default(60.0).notNull(), // 单集目标时长
   screenplayText: text("screenplay_text").default("").notNull(), // 核心文学剧本母本正文 (Master Screenplay)
+  beatsData: text("beats_data").default("[]").notNull(), // Reelbench Script Stage: 结构化动作/台词节拍流
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -63,7 +67,11 @@ export const locations = sqliteTable("locations", {
   visualAnchor: text("visual_anchor").notNull().default(""), // Scene spatial and lighting anchor prompt
   referenceImageUrl: text("reference_image_url").default("").notNull(),
   lightingStyle: text("lighting_style").default("自然光").notNull(),
-  lightingStates: text("lighting_states").default("[]").notNull(), // JSON string array of lighting variants, e.g. ["白天", "深夜昏暗"]
+  lightingStates: text("lighting_states").default("[]").notNull(), // JSON string array of lighting variants, e.g. ["晨雾", "浓雾清晨", "薄雾午前"]
+  activeLightingState: text("active_lighting_state").default("").notNull(),
+  isVariant: integer("is_variant", { mode: "boolean" }).default(false).notNull(), // Reelbench 变体场景标记
+  parentLocationId: text("parent_location_id").default("").notNull(), // 继承的主场景 ID
+  reuseStrategy: text("reuse_strategy").default("").notNull(), // 复用方案描述 (如同一机位换背板)
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });

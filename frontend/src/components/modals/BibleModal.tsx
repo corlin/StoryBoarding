@@ -129,6 +129,10 @@ export const BibleModal: React.FC<BibleModalProps> = ({
   const [newLocEnv, setNewLocEnv] = useState<"interior" | "exterior" | "abstract">("interior");
   const [newLocAnchor, setNewLocAnchor] = useState("");
   const [newLocLighting, setNewLocLighting] = useState("自然光");
+  const [newLocLightingStates, setNewLocLightingStates] = useState("晨雾, 浓雾清晨, 薄雾午前");
+  const [newLocIsVariant, setNewLocIsVariant] = useState(false);
+  const [newLocParentId, setNewLocParentId] = useState("");
+  const [newLocReuseStrategy, setNewLocReuseStrategy] = useState("");
 
   // New prop form (Reelbench Narrative Props)
   const [newPropName, setNewPropName] = useState("");
@@ -210,6 +214,11 @@ export const BibleModal: React.FC<BibleModalProps> = ({
       notify.error("请输入场景空间名称");
       return;
     }
+    const statesArray = newLocLightingStates
+      .split(/[,，]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     const newLoc: LocationModel = {
       id: crypto.randomUUID(),
       project_id: project?.id || "",
@@ -217,10 +226,17 @@ export const BibleModal: React.FC<BibleModalProps> = ({
       environment_type: newLocEnv,
       visual_anchor: newLocAnchor.trim() || `${newLocName.trim()}, architectural space, consistent spatial lighting`,
       lighting_style: newLocLighting.trim() || "自然光",
+      lighting_states: statesArray.length > 0 ? statesArray : ["自然光"],
+      active_lighting_state: statesArray[0] || "自然光",
+      is_variant: newLocIsVariant,
+      parent_location_id: newLocIsVariant ? newLocParentId : "",
+      reuse_strategy: newLocIsVariant ? newLocReuseStrategy.trim() : "",
     };
     setLocations([...locations, newLoc]);
     setNewLocName("");
     setNewLocAnchor("");
+    setNewLocIsVariant(false);
+    setNewLocReuseStrategy("");
     notify.success(`已添加场景空间「${newLoc.name}」`);
   };
 
@@ -655,8 +671,21 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                             <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">
                               {loc.environment_type === "interior" ? "室内空间" : loc.environment_type === "exterior" ? "室外环境" : "概念抽象"}
                             </span>
-                            <span className="text-[10px] text-muted-foreground">· 光影: {loc.lighting_style || "自然光"}</span>
+                            {loc.is_variant ? (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                变体场景 · 复用基准
+                              </span>
+                            ) : (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                主场景
+                              </span>
+                            )}
                           </div>
+                          {loc.is_variant && loc.reuse_strategy && (
+                            <div className="text-[11px] text-purple-300/90 mt-0.5 flex items-center gap-1">
+                              <span>🔄 复用方案: {loc.reuse_strategy}</span>
+                            </div>
+                          )}
                           <span className="text-xs text-muted-foreground truncate block max-w-[320px]">{loc.visual_anchor || "核心场景空间"}</span>
                         </div>
                       </div>
@@ -692,6 +721,56 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       </div>
                     </div>
 
+                    {/* Reelbench Lighting States Bar */}
+                    <div className="bg-secondary/40 border border-border/60 rounded-lg p-2 flex flex-wrap items-center gap-2 text-xs">
+                      <div className="flex items-center gap-1 text-muted-foreground text-[11px] font-medium shrink-0">
+                        <Sun className="w-3.5 h-3.5 text-amber-400" />
+                        <span>光照状态:</span>
+                      </div>
+                      {(loc.lighting_states && loc.lighting_states.length > 0 ? loc.lighting_states : ["自然光"]).map((st) => {
+                        const isActive = (loc.active_lighting_state || loc.lighting_states?.[0] || "自然光") === st;
+                        return (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => {
+                              setLocations(locations.map((l) => (l.id === loc.id ? { ...l, active_lighting_state: st } : l)));
+                            }}
+                            className={cn(
+                              "px-2 py-0.5 rounded text-[10px] font-medium transition-colors border",
+                              isActive
+                                ? "bg-amber-500 text-black border-amber-500 font-bold shadow-xs"
+                                : "bg-background/80 text-muted-foreground border-border hover:text-foreground"
+                            )}
+                          >
+                            {st}
+                          </button>
+                        );
+                      })}
+                      <input
+                        type="text"
+                        placeholder="新增状态 (如: 晚霞)"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                            e.preventDefault();
+                            const val = e.currentTarget.value.trim();
+                            const current = loc.lighting_states || [];
+                            if (!current.includes(val)) {
+                              setLocations(
+                                locations.map((l) =>
+                                  l.id === loc.id
+                                    ? { ...l, lighting_states: [...current, val], active_lighting_state: val }
+                                    : l
+                                )
+                              );
+                            }
+                            e.currentTarget.value = "";
+                          }
+                        }}
+                        className="bg-background/90 border border-border/80 rounded px-2 py-0.5 text-[10px] focus:outline-none focus:border-amber-500/60 max-w-[110px]"
+                      />
+                    </div>
+
                     <div>
                       <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
                         场景空间透视与光影特征描述 (Visual Spatial Anchor):
@@ -713,14 +792,26 @@ export const BibleModal: React.FC<BibleModalProps> = ({
 
             {/* Quick Add Location Box */}
             <div className="p-4 bg-secondary/30 border border-dashed border-border/80 rounded-xl space-y-3">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                <Plus className="w-3.5 h-3.5 text-amber-400" />
-                <span>登记新场景空间并锁定基准</span>
+              <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5 text-amber-400" />
+                  <span>登记新场景空间并锁定基准</span>
+                </div>
+                <label className="flex items-center gap-1.5 text-[11px] text-purple-300 font-normal cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={newLocIsVariant}
+                    onChange={(e) => setNewLocIsVariant(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  <span>设为主场景变体（复用母体机位换背板）</span>
+                </label>
               </div>
+
               <div className="grid grid-cols-3 gap-2">
                 <input
                   type="text"
-                  placeholder="场景名称 (例如: 总裁顶层办公室)"
+                  placeholder="场景名称 (例如: 渡口栈桥)"
                   value={newLocName}
                   onChange={(e) => setNewLocName(e.target.value)}
                   className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
@@ -736,15 +827,46 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                 </select>
                 <input
                   type="text"
-                  placeholder="光影基准 (例如: 冷调阴郁落地窗自然光)"
-                  value={newLocLighting}
-                  onChange={(e) => setNewLocLighting(e.target.value)}
+                  placeholder="光照状态预设 (逗号分隔，如: 晨雾, 浓雾清晨, 薄雾午前)"
+                  value={newLocLightingStates}
+                  onChange={(e) => setNewLocLightingStates(e.target.value)}
                   className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
                 />
               </div>
+
+              {newLocIsVariant && (
+                <div className="grid grid-cols-2 gap-2 p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                  <div>
+                    <label className="text-[10px] text-purple-300 block mb-1">选择继承的主场景 (Parent Location):</label>
+                    <select
+                      value={newLocParentId}
+                      onChange={(e) => setNewLocParentId(e.target.value)}
+                      className="w-full bg-background border border-purple-500/30 rounded px-2 py-1 text-xs focus:outline-none"
+                    >
+                      <option value="">-- 请选择主场景 --</option>
+                      {locations.filter((l) => !l.is_variant).map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-purple-300 block mb-1">复用方案说明 (Reuse Strategy):</label>
+                    <input
+                      type="text"
+                      placeholder="如: 同一机位换背板，芦苇前景遮挡"
+                      value={newLocReuseStrategy}
+                      onChange={(e) => setNewLocReuseStrategy(e.target.value)}
+                      className="w-full bg-background border border-purple-500/30 rounded px-2 py-1 text-xs focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
               <input
                 type="text"
-                placeholder="场景空间与建筑特征 (例如: luxury penthouse office, high ceiling, floor-to-ceiling glass wall, rainy night reflections, dark mahogany desk)"
+                placeholder="场景空间与建筑特征 (例如: 老旧木质渡口栈桥伸入浓密白雾，第七块木板修补痕迹，系船石墩)"
                 value={newLocAnchor}
                 onChange={(e) => setNewLocAnchor(e.target.value)}
                 className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:border-primary"

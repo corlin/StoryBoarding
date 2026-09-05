@@ -35,6 +35,7 @@ import { SettingsModal } from "@/components/modals/SettingsModal";
 import { BibleModal } from "@/components/modals/BibleModal";
 import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
+import { AdaptationTradeoffModal } from "@/components/modals/AdaptationTradeoffModal";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
@@ -85,6 +86,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [isOpenBibleModal, setIsOpenBibleModal] = useState(false);
   const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
   const [isOpenExportModal, setIsOpenExportModal] = useState(false);
+  const [isOpenTradeoffModal, setIsOpenTradeoffModal] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [bibleMode, setBibleMode] = useState<"bible" | "style">("bible");
   const [storyText, setStoryText] = useState("");
@@ -207,8 +209,18 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           {/* Desktop Only: Group 1 secondary items (Preview/Script), Group 2 (Snapshots & Export), Group 3 (Settings & Delete) */}
           <div className="hidden md:flex items-center gap-2.5">
-            {/* Group 1 Extra: Theater & Script */}
+            {/* Group 1 Extra: Theater & Script & Tradeoffs */}
             <div className="flex items-center gap-1.5 bg-secondary/50 p-1 rounded-lg border border-border/80 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setIsOpenTradeoffModal(true)}
+                className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                title="大纲改编取舍矩阵：保留/砍掉/合并/风险评估（Reelbench Stage 01）"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-purple-400" />
+                <span>改编取舍</span>
+              </button>
+
               {onImportScript && (
                 <button
                   onClick={() => {
@@ -513,6 +525,13 @@ export const TopBar: React.FC<TopBarProps> = ({
         isOpen={isOpenScriptModal}
         onClose={() => setIsOpenScriptModal(false)}
         onImportScript={onImportScript || (async () => {})}
+      />
+
+      {/* Adaptation Tradeoff Modal (Reelbench Stage 01) */}
+      <AdaptationTradeoffModal
+        isOpen={isOpenTradeoffModal}
+        onClose={() => setIsOpenTradeoffModal(false)}
+        project={project}
       />
     </>
   );

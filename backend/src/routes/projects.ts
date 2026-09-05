@@ -98,9 +98,12 @@ router.get("/:id", async (c) => {
           title: seq.title,
           order: seq.order,
           episode_number: seq.episodeNumber ?? 1,
+          hook_summary: seq.hookSummary || "",
           cliffhanger_summary: seq.cliffhangerSummary || "",
+          payoff_summary: seq.payoffSummary || "",
           target_duration: seq.targetDuration ?? 60.0,
           screenplay_text: seq.screenplayText || "",
+          beats_data: seq.beatsData ? JSON.parse(seq.beatsData) : [],
           shots: shotList.map((s) => ({
             id: s.id,
             sequence_id: s.sequenceId,
@@ -146,6 +149,7 @@ router.get("/:id", async (c) => {
       story: proj.story,
       target_duration: proj.targetDuration,
       aspect_ratio: proj.aspectRatio || "9:16",
+      adaptation_tradeoffs: proj.adaptationTradeoffs ? JSON.parse(proj.adaptationTradeoffs) : {},
       created_at: proj.createdAt,
       updated_at: proj.updatedAt,
       characters: charList.map((c) => ({
@@ -170,6 +174,10 @@ router.get("/:id", async (c) => {
         reference_image_url: loc.referenceImageUrl,
         lighting_style: loc.lightingStyle,
         lighting_states: loc.lightingStates ? JSON.parse(loc.lightingStates) : [],
+        active_lighting_state: loc.activeLightingState || "",
+        is_variant: Boolean(loc.isVariant),
+        parent_location_id: loc.parentLocationId || "",
+        reuse_strategy: loc.reuseStrategy || "",
         created_at: loc.createdAt,
       })),
       props: propList.map((p) => ({
@@ -576,6 +584,11 @@ router.put("/:id", async (c) => {
     if (body.story !== undefined) updates.story = body.story;
     if (body.target_duration !== undefined) updates.targetDuration = Number(body.target_duration);
     if (body.aspect_ratio !== undefined) updates.aspectRatio = body.aspect_ratio;
+    if (body.adaptation_tradeoffs !== undefined) {
+      updates.adaptationTradeoffs = typeof body.adaptation_tradeoffs === "string" 
+        ? body.adaptation_tradeoffs 
+        : JSON.stringify(body.adaptation_tradeoffs);
+    }
     updates.updatedAt = new Date().toISOString();
 
     const [updated] = await db.update(projects).set(updates).where(eq(projects.id, id)).returning();
@@ -644,6 +657,10 @@ router.put("/:id", async (c) => {
               referenceImageUrl: loc.reference_image_url || loc.referenceImageUrl || existing.referenceImageUrl,
               lightingStyle: loc.lighting_style || loc.lightingStyle || existing.lightingStyle,
               lightingStates: loc.lighting_states !== undefined ? lStates : existing.lightingStates,
+              activeLightingState: loc.active_lighting_state !== undefined ? loc.active_lighting_state : existing.activeLightingState,
+              isVariant: loc.is_variant !== undefined ? Boolean(loc.is_variant) : existing.isVariant,
+              parentLocationId: loc.parent_location_id !== undefined ? loc.parent_location_id : existing.parentLocationId,
+              reuseStrategy: loc.reuse_strategy !== undefined ? loc.reuse_strategy : existing.reuseStrategy,
               updatedAt: new Date().toISOString(),
             }).where(eq(locations.id, loc.id));
           } else {
@@ -656,6 +673,10 @@ router.put("/:id", async (c) => {
               referenceImageUrl: loc.reference_image_url || loc.referenceImageUrl || "",
               lightingStyle: loc.lighting_style || loc.lightingStyle || "自然光",
               lightingStates: lStates,
+              activeLightingState: loc.active_lighting_state || "",
+              isVariant: Boolean(loc.is_variant),
+              parentLocationId: loc.parent_location_id || "",
+              reuseStrategy: loc.reuse_strategy || "",
             });
           }
         } else if (loc.name) {
@@ -668,6 +689,10 @@ router.put("/:id", async (c) => {
             referenceImageUrl: loc.reference_image_url || loc.referenceImageUrl || "",
             lightingStyle: loc.lighting_style || loc.lightingStyle || "自然光",
             lightingStates: lStates,
+            activeLightingState: loc.active_lighting_state || "",
+            isVariant: Boolean(loc.is_variant),
+            parentLocationId: loc.parent_location_id || "",
+            reuseStrategy: loc.reuse_strategy || "",
           });
         }
       }
@@ -761,14 +786,24 @@ router.put("/:id/sequences/:seqId/screenplay", async (c) => {
     }
 
     const body = await c.req.json().catch(() => ({}));
-    const screenplayText = (body.screenplay_text || "").trim();
+    const screenplayText = body.screenplay_text !== undefined ? (body.screenplay_text || "").trim() : undefined;
+    const hookSummary = body.hook_summary !== undefined ? body.hook_summary : undefined;
+    const cliffhangerSummary = body.cliffhanger_summary !== undefined ? body.cliffhanger_summary : undefined;
+    const payoffSummary = body.payoff_summary !== undefined ? body.payoff_summary : undefined;
+    const targetDuration = body.target_duration !== undefined ? Number(body.target_duration) : undefined;
+    const beatsData = body.beats_data !== undefined ? (typeof body.beats_data === "string" ? body.beats_data : JSON.stringify(body.beats_data)) : undefined;
+
+    const seqUpdates: any = { updatedAt: new Date().toISOString() };
+    if (screenplayText !== undefined) seqUpdates.screenplayText = screenplayText;
+    if (hookSummary !== undefined) seqUpdates.hookSummary = hookSummary;
+    if (cliffhangerSummary !== undefined) seqUpdates.cliffhangerSummary = cliffhangerSummary;
+    if (payoffSummary !== undefined) seqUpdates.payoffSummary = payoffSummary;
+    if (targetDuration !== undefined) seqUpdates.targetDuration = targetDuration;
+    if (beatsData !== undefined) seqUpdates.beatsData = beatsData;
 
     const [updated] = await db
       .update(sequences)
-      .set({
-        screenplayText,
-        updatedAt: new Date().toISOString(),
-      })
+      .set(seqUpdates)
       .where(eq(sequences.id, seqId))
       .returning();
 
@@ -780,6 +815,11 @@ router.put("/:id/sequences/:seqId/screenplay", async (c) => {
       status: "success",
       sequence_id: seqId,
       screenplay_text: updated.screenplayText,
+      hook_summary: updated.hookSummary,
+      cliffhanger_summary: updated.cliffhangerSummary,
+      payoff_summary: updated.payoffSummary,
+      target_duration: updated.targetDuration,
+      beats_data: updated.beatsData ? JSON.parse(updated.beatsData) : [],
     });
   } catch (err: any) {
     console.error("[Update Screenplay Error]:", err);

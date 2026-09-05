@@ -31,7 +31,9 @@ router.post("/:id/generate-concept", async (c) => {
     }
 
     const envLabel = loc.environmentType === "interior" ? "interior architectural space" : "exterior landscape environment";
-    const prompt = `${loc.name}, ${envLabel}, ${loc.visualAnchor || "cinematic scene establishment"}, lighting style: ${loc.lightingStyle || "natural cinematic light"}, wide angle cinematic environment concept art, photorealistic 8k uhd`;
+    const lightingDesc = loc.activeLightingState ? `${loc.activeLightingState} lighting atmospheric mood` : (loc.lightingStyle || "natural cinematic light");
+    const variantDesc = loc.isVariant && loc.reuseStrategy ? `, scene variant based on master environment: ${loc.reuseStrategy}` : "";
+    const prompt = `${loc.name}, ${envLabel}, ${loc.visualAnchor || "cinematic scene establishment"}${variantDesc}, lighting: ${lightingDesc}, wide angle cinematic environment concept art, empty scene without people, highly detailed, photorealistic 8k uhd`;
 
     const apiKey = settings.llmApiKey;
     const apiBase = settings.llmApiBase || "https://openrouter.ai/api/v1";
