@@ -62,6 +62,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
   const [isOpenTradeoffModal, setIsOpenTradeoffModal] = useState(false);
   const [isOpenRadarModal, setIsOpenRadarModal] = useState(false);
+  const [returnToRadarOnModalClose, setReturnToRadarOnModalClose] = useState(false);
   const [isGlobalAssetOpen, setIsGlobalAssetOpen] = useState(false);
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true);
@@ -547,21 +548,27 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   const handleRadarNavigate = (section: string) => {
     if (section === "tradeoffs") {
+      setReturnToRadarOnModalClose(true);
       setIsOpenTradeoffModal(true);
     } else if (section === "bible_characters") {
+      setReturnToRadarOnModalClose(true);
       setBibleMode("characters");
       setIsOpenBibleModal(true);
     } else if (section === "bible_scenes") {
+      setReturnToRadarOnModalClose(true);
       setBibleMode("locations");
       setIsOpenBibleModal(true);
     } else if (section === "bible_props") {
+      setReturnToRadarOnModalClose(true);
       setBibleMode("bible");
       setIsOpenBibleModal(true);
     } else if (section === "script") {
+      setReturnToRadarOnModalClose(false);
       if (isLeftPanelCollapsed) setIsLeftPanelCollapsed(false);
       setMobileActiveTab("script");
       notify.info("已切换并聚焦至剧本节拍面板，请微调单句台词或冷开场");
     } else if (section === "storyboard") {
+      setReturnToRadarOnModalClose(false);
       setMobileActiveTab("storyboard");
       notify.info("已切换至分镜面板，请检查单镜时长与首帧提示词");
     }
@@ -861,7 +868,14 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       {/* Unified Visual Bible & Character DNA Central Registry (Single Instance) */}
       <BibleModal
         isOpen={isOpenBibleModal}
-        onClose={() => setIsOpenBibleModal(false)}
+        onClose={() => {
+          setIsOpenBibleModal(false);
+          if (returnToRadarOnModalClose) {
+            setReturnToRadarOnModalClose(false);
+            setIsOpenRadarModal(true);
+            notify.info("🛡️ 已返回工程体检雷达，数据已实时重新评估");
+          }
+        }}
         project={displayProject}
         mode={bibleMode}
       />
@@ -894,7 +908,14 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
       <AdaptationTradeoffModal
         isOpen={isOpenTradeoffModal}
-        onClose={() => setIsOpenTradeoffModal(false)}
+        onClose={() => {
+          setIsOpenTradeoffModal(false);
+          if (returnToRadarOnModalClose) {
+            setReturnToRadarOnModalClose(false);
+            setIsOpenRadarModal(true);
+            notify.info("🛡️ 已返回工程体检雷达，数据已实时重新评估");
+          }
+        }}
         project={displayProject}
       />
 
