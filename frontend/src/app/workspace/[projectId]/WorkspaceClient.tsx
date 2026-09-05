@@ -14,6 +14,14 @@ import { VersionHistoryDrawer } from "@/components/drawers/VersionHistoryDrawer"
 import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
 import { EpisodePillTrack } from "@/components/workspace/EpisodePillTrack";
 import { BibleModal } from "@/components/modals/BibleModal";
+import { AIGenerateModal } from "@/components/modals/AIGenerateModal";
+import { ExportDeliverablesModal } from "@/components/modals/ExportDeliverablesModal";
+import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
+import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
+import { AdaptationTradeoffModal } from "@/components/modals/AdaptationTradeoffModal";
+import { ProjectQualityRadarModal } from "@/components/modals/ProjectQualityRadarModal";
+import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
+import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibraryModal";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
@@ -43,7 +51,19 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [theaterShotId, setTheaterShotId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerShotId, setDrawerShotId] = useState<string | null>(null);
-  const [isCharacterHubOpen, setIsCharacterHubOpen] = useState(false);
+
+  // Delegated Modal States (Centralized from TopBar)
+  const [isOpenAIGenerateModal, setIsOpenAIGenerateModal] = useState(false);
+  const [isOpenExportModal, setIsOpenExportModal] = useState(false);
+  const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
+  const [isOpenBibleModal, setIsOpenBibleModal] = useState(false);
+  const [bibleMode, setBibleMode] = useState<"bible" | "style" | "characters" | "locations">("bible");
+  const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
+  const [isOpenTradeoffModal, setIsOpenTradeoffModal] = useState(false);
+  const [isOpenRadarModal, setIsOpenRadarModal] = useState(false);
+  const [isGlobalAssetOpen, setIsGlobalAssetOpen] = useState(false);
+  const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
+  const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true);
 
   const { activeEpisodeIndex, setActiveEpisodeIndex } = useWorkspaceStore();
 
@@ -507,11 +527,38 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     setIsDrawerOpen(true);
   };
 
+  const handleConfirmDelete = async (projId: string) => {
+    await api.deleteProject(projId);
+    router.push("/dashboard");
+  };
+
+  const handleRadarNavigate = (section: string) => {
+    if (section === "tradeoffs") {
+      setIsOpenTradeoffModal(true);
+    } else if (section === "bible_characters") {
+      setBibleMode("characters");
+      setIsOpenBibleModal(true);
+    } else if (section === "bible_scenes") {
+      setBibleMode("locations");
+      setIsOpenBibleModal(true);
+    } else if (section === "bible_props") {
+      setBibleMode("bible");
+      setIsOpenBibleModal(true);
+    } else if (section === "script") {
+      if (isLeftPanelCollapsed) setIsLeftPanelCollapsed(false);
+      setMobileActiveTab("script");
+      notify.info("已切换并聚焦至剧本节拍面板，请微调单句台词或冷开场");
+    } else if (section === "storyboard") {
+      setMobileActiveTab("storyboard");
+      notify.info("已切换至分镜面板，请检查单镜时长与首帧提示词");
+    }
+  };
+
   const activeDrawerShot = shots.find((s) => s.id === drawerShotId) || shots.find((s) => s.id === selectedShotId) || null;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      {/* Top Bar */}
+      {/* Top Bar (Integrated with Episode Pills & Streamlined Actions) */}
       <TopBar
         project={displayProject}
         shots={shots}
@@ -519,20 +566,24 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         activeVersionTag={previewVersion ? `预览中: ${previewVersion.version_tag}` : activeVersionTag}
         isLeftPanelCollapsed={isLeftPanelCollapsed}
         onToggleLeftPanel={() => setIsLeftPanelCollapsed((prev) => !prev)}
-        onGenerateFromStory={handleGenerateFromStory}
-        onImportScript={handleImportScript}
-        onOpenVersions={() => setIsVersionsDrawerOpen(true)}
-        onOpenCreateSnapshot={() => setIsCreateSnapshotModalOpen(true)}
+        onOpenAIGenerate={() => setIsOpenAIGenerateModal(true)}
+        onOpenRadar={() => setIsOpenRadarModal(true)}
+        onOpenExport={() => setIsOpenExportModal(true)}
+        onOpenBible={(mode) => {
+          setBibleMode(mode || "bible");
+          setIsOpenBibleModal(true);
+        }}
+        onOpenTradeoff={() => setIsOpenTradeoffModal(true)}
+        onOpenImportScript={() => setIsOpenScriptModal(true)}
         onOpenTheater={() => {
           setTheaterShotId(selectedShotId || shots[0]?.id || null);
           setIsTheaterOpen(true);
         }}
-      />
-
-      {/* Multi-Episode Series Track & Character Hub */}
-      <EpisodePillTrack
-        onOpenCharacterHub={() => setIsCharacterHubOpen(true)}
-        onRefreshProject={() => fetchProject(effectiveProjectId)}
+        onOpenCreateSnapshot={() => setIsCreateSnapshotModalOpen(true)}
+        onOpenVersions={() => setIsVersionsDrawerOpen(true)}
+        onOpenAssetLibrary={() => setIsGlobalAssetOpen(true)}
+        onOpenMediaLibrary={() => setIsMediaLibraryOpen(true)}
+        onOpenDelete={() => setIsOpenDeleteModal(true)}
       />
 
       {/* Time Travel Read-Only Banner */}
@@ -563,7 +614,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             <button
               onClick={handleExitPreview}
               className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
-              title="退出预览切回当前"
+              title="退出快照预览，返回当前工作草稿"
             >
               <X className="w-4 h-4" />
             </button>
@@ -571,54 +622,46 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         </div>
       )}
 
-      {/* Mobile-Only Dual-View Segmented Control Bar */}
-      <div className="md:hidden flex items-center justify-between px-3 py-1.5 bg-card/90 border-b border-border select-none z-30 shrink-0">
-        <div className="flex bg-secondary/80 p-0.5 rounded-lg border border-border/60 w-full">
-          <button
-            type="button"
-            onClick={() => setMobileActiveTab("storyboard")}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all",
-              mobileActiveTab === "storyboard"
-                ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Film className="w-3.5 h-3.5" />
-            <span>🎞️ 故事板画布 ({shots.length})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileActiveTab("script")}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all",
-              mobileActiveTab === "script"
-                ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>📜 剧本与台本</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Studio Workspace: Responsive Dual-Mode (Mobile Tab View / Desktop Resizable Split-Pane) */}
-      <div className={cn("flex-1 flex flex-col md:flex-row overflow-hidden relative", isDragging && "select-none cursor-col-resize")}>
-        {/* Script & Scene Pacing Editor */}
-        <div
-          style={{
-            width: isLeftPanelCollapsed ? "0px" : `${leftPanelPercent}%`,
-          }}
+      {/* Mobile Dual-View Tab Bar */}
+      <div className="flex md:hidden border-b border-border bg-card">
+        <button
+          onClick={() => setMobileActiveTab("storyboard")}
           className={cn(
-            "h-full overflow-hidden bg-card/20 relative shrink-0",
-            // Mobile: full-width if mobileActiveTab === 'script', hidden otherwise
-            mobileActiveTab === "script" ? "!w-full flex-1 block md:flex-none" : "hidden md:block",
-            // Desktop: respect leftPanelPercent or collapsed
-            isDragging ? "transition-none" : "transition-[width] duration-200 ease-in-out"
+            "flex-1 py-2 text-xs font-medium flex items-center justify-center gap-2 border-b-2 transition-colors",
+            mobileActiveTab === "storyboard"
+              ? "border-primary text-primary bg-primary/5"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
-          {(!isLeftPanelCollapsed || (typeof window !== "undefined" && window.innerWidth < 768)) && (
+          <Film className="w-4 h-4" />
+          <span>分镜画板 ({shots.length})</span>
+        </button>
+        <button
+          onClick={() => setMobileActiveTab("script")}
+          className={cn(
+            "flex-1 py-2 text-xs font-medium flex items-center justify-center gap-2 border-b-2 transition-colors",
+            mobileActiveTab === "script"
+              ? "border-primary text-primary bg-primary/5"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <FileText className="w-4 h-4" />
+          <span>剧本节拍流</span>
+        </button>
+      </div>
+
+      {/* Main Dual-View Workspace Area */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Column: Script & Beat-Stream Workspace */}
+        <div
+          style={{ width: isLeftPanelCollapsed ? "0px" : `${leftPanelPercent}%` }}
+          className={cn(
+            "h-full border-r border-border flex flex-col bg-background/50 backdrop-blur-xs relative overflow-hidden",
+            isDragging ? "transition-none" : "transition-[width] duration-200 ease-in-out",
+            mobileActiveTab === "script" ? "!w-full flex-1 block md:flex-none" : "hidden md:block"
+          )}
+        >
+          <div className="h-full flex flex-col min-w-[320px] w-full">
             <ScriptPanel
               shots={shots}
               sequenceId={activeSequence?.id || ""}
@@ -635,48 +678,48 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
               onDeleteShot={deleteShot}
               onOpenDrawer={handleOpenDrawer}
             />
-          )}
+          </div>
         </div>
 
-        {/* Resizable Divider Line & Collapse Handle (Desktop Only) */}
+        {/* Resizable Divider Handle (Desktop Only) */}
         <div
           onMouseDown={handleMouseDown}
           onDoubleClick={handleResetDivider}
+          title="按住鼠标左键左右拖拽调整分栏比例；双击恢复 50:50 均等分栏"
           className={cn(
-            "hidden md:flex relative group items-center justify-center w-2 -mx-1 z-30 cursor-col-resize select-none shrink-0 transition-colors",
-            isDragging ? "bg-primary/40" : "hover:bg-primary/20"
+            "w-2 hover:w-2.5 -mr-1 -ml-1 z-30 cursor-col-resize group flex items-center justify-center transition-all select-none relative",
+            "hidden md:flex",
+            isDragging ? "bg-primary/40 w-2.5" : "hover:bg-primary/20"
           )}
-          title="按住鼠标左右拖拽调整分栏宽度，双击复位默认 5:5 比例"
         >
-          {/* Vertical Divider Line */}
           <div
             className={cn(
-              "w-[1px] h-full bg-border transition-colors",
-              isDragging ? "bg-primary" : "group-hover:bg-primary/60"
+              "w-0.5 h-12 rounded-full transition-colors",
+              isDragging ? "bg-primary" : "bg-border group-hover:bg-primary/70"
             )}
           />
 
-          {/* Quick Collapse / Expand Toggle Button */}
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
-              setIsLeftPanelCollapsed(!isLeftPanelCollapsed);
+              setIsLeftPanelCollapsed((prev) => !prev);
             }}
-            className={cn(
-              "absolute top-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-8 rounded-sm bg-card border border-border shadow-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 z-40",
-              isLeftPanelCollapsed ? "left-1 rounded-r-md" : "-left-2 opacity-0 group-hover:opacity-100"
-            )}
-            title={isLeftPanelCollapsed ? "展开左侧分镜头脚本栏" : "收起左侧剧本栏 (全屏沉浸画板)"}
+            title={isLeftPanelCollapsed ? "展开左侧剧本流" : "收起左侧剧本流（纯净画板全屏）"}
+            className="absolute top-1/2 -translate-y-1/2 w-4 h-8 bg-card border border-border rounded-r-md shadow-xs flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
           >
-            {isLeftPanelCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+            {isLeftPanelCollapsed ? (
+              <ChevronRight className="w-3 h-3" />
+            ) : (
+              <ChevronLeft className="w-3 h-3" />
+            )}
           </button>
         </div>
 
-        {/* Storyboard Canvas */}
+        {/* Right Column: Storyboard View (Grid & CallSheet) */}
         <div
           className={cn(
             "flex-1 h-full overflow-hidden bg-background min-w-0",
-            // Mobile: show only if mobileActiveTab === 'storyboard'
             mobileActiveTab === "storyboard" ? "w-full block" : "hidden md:block"
           )}
         >
@@ -687,7 +730,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             characters={displayProject?.characters || []}
             locations={displayProject?.locations || []}
             propsList={displayProject?.props || []}
-            onSelectShot={(id) => selectShot(id)}
+            onSelectShot={selectShot}
             onOpenDrawer={handleOpenDrawer}
             onOpenTheater={handleOpenTheater}
             onRegenerateDirty={handleRegenerateDirty}
@@ -700,18 +743,38 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         </div>
       </div>
 
-      {/* Bottom Column: Dual-Scale Timeline & Voltage Waves */}
-      <TimelineBar
-        shots={shots}
-        targetDuration={displayProject?.target_duration || 30.0}
-        selectedShotId={selectedShotId}
-        sequences={displayProject?.sequences || []}
-        activeEpisodeIndex={activeEpisodeIndex}
-        onSelectEpisode={(idx) => setActiveEpisodeIndex(idx)}
-        onSelectShot={(id) => selectShot(id)}
-      />
+      {/* Bottom Column: Collapsible TimelineBar (Recovers 56px) */}
+      <div className="border-t border-border bg-card/60 shrink-0">
+        <div className="flex items-center justify-between px-4 py-1 text-[11px] text-muted-foreground bg-secondary/30">
+          <button
+            type="button"
+            onClick={() => setIsTimelineCollapsed((prev) => !prev)}
+            className="flex items-center gap-1.5 hover:text-foreground font-medium transition-colors cursor-pointer"
+            title={isTimelineCollapsed ? "展开双轨时间轴与情绪电压波动条带" : "收起时间轴以最大化主创作区空间"}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
+            <span>{isTimelineCollapsed ? "展开时间轴与情绪电压波形" : "收起时间轴"}</span>
+          </button>
+          <div className="flex items-center gap-3 font-mono text-[10px]">
+            <span>{shots.length} 镜</span>
+            <span>{totalDuration.toFixed(1)}s / {displayProject?.target_duration || 30}s</span>
+          </div>
+        </div>
 
-      {/* Modals & Drawers */}
+        {!isTimelineCollapsed && (
+          <TimelineBar
+            shots={shots}
+            targetDuration={displayProject?.target_duration || 30.0}
+            selectedShotId={selectedShotId}
+            sequences={displayProject?.sequences || []}
+            activeEpisodeIndex={activeEpisodeIndex}
+            onSelectEpisode={(idx) => setActiveEpisodeIndex(idx)}
+            onSelectShot={(id) => selectShot(id)}
+          />
+        )}
+      </div>
+
+      {/* Centralized Modals & Drawers */}
       <DirectorPipelineProgress
         isOpen={isGenerating}
         title="AI 导演智能拆镜中"
@@ -761,12 +824,63 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onConfirm={handleCreateSnapshot}
       />
 
-      {/* Unified Visual Bible & Character DNA Central Registry */}
+      {/* Unified Visual Bible & Character DNA Central Registry (Single Instance) */}
       <BibleModal
-        isOpen={isCharacterHubOpen}
-        onClose={() => setIsCharacterHubOpen(false)}
+        isOpen={isOpenBibleModal}
+        onClose={() => setIsOpenBibleModal(false)}
         project={displayProject}
-        mode="characters"
+        mode={bibleMode}
+      />
+
+      <AIGenerateModal
+        isOpen={isOpenAIGenerateModal}
+        onClose={() => setIsOpenAIGenerateModal(false)}
+        onGenerate={handleGenerateFromStory}
+      />
+
+      <ExportDeliverablesModal
+        isOpen={isOpenExportModal}
+        onClose={() => setIsOpenExportModal(false)}
+        project={displayProject}
+        shots={shots}
+      />
+
+      <DeleteProjectModal
+        isOpen={isOpenDeleteModal}
+        onClose={() => setIsOpenDeleteModal(false)}
+        project={displayProject}
+        onConfirmDelete={handleConfirmDelete}
+      />
+
+      <ImportScriptModal
+        isOpen={isOpenScriptModal}
+        onClose={() => setIsOpenScriptModal(false)}
+        onImportScript={handleImportScript}
+      />
+
+      <AdaptationTradeoffModal
+        isOpen={isOpenTradeoffModal}
+        onClose={() => setIsOpenTradeoffModal(false)}
+        project={displayProject}
+      />
+
+      <ProjectQualityRadarModal
+        isOpen={isOpenRadarModal}
+        onClose={() => setIsOpenRadarModal(false)}
+        project={displayProject}
+        shots={shots}
+        onNavigateToSection={handleRadarNavigate}
+      />
+
+      <GlobalAssetLibraryModal
+        isOpen={isGlobalAssetOpen}
+        onClose={() => setIsGlobalAssetOpen(false)}
+      />
+
+      <ProjectMediaLibraryModal
+        isOpen={isMediaLibraryOpen}
+        onClose={() => setIsMediaLibraryOpen(false)}
+        projectId={effectiveProjectId}
       />
     </div>
   );

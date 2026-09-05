@@ -18,6 +18,7 @@ import { normalizeAssetUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { cn } from "@/lib/utils";
 import { generateH3Prompt } from "@/lib/h3Prompt";
+import { buildH3CutItem } from "@/hooks/useH3Prompt";
 
 interface ShotDetailDrawerProps {
   isOpen: boolean;
@@ -31,35 +32,35 @@ interface ShotDetailDrawerProps {
 }
 
 const SHOT_SIZE_OPTIONS = [
-  { value: "extreme_wide_shot", label: "大远景 (Extreme Wide Shot / EWS)" },
-  { value: "wide_shot", label: "全景 (Wide Shot / WS)" },
-  { value: "full_shot", label: "全景全身 (Full Shot / FS)" },
-  { value: "medium_shot", label: "中景 (Medium Shot / MS)" },
-  { value: "medium_close_up", label: "中特写 (Medium Close Up / MCU)" },
-  { value: "close_up", label: "特写 (Close Up / CU)" },
-  { value: "extreme_close_up", label: "大特写 (Extreme Close Up / ECU)" },
+  { value: "extreme_wide", label: "大远景 (EWS)" },
+  { value: "wide", label: "全景 (WS)" },
+  { value: "medium_wide", label: "中远景 (MWS)" },
+  { value: "medium", label: "中景 (MS)" },
+  { value: "medium_close", label: "中近景 (MCU)" },
+  { value: "close_up", label: "特写 (CU)" },
+  { value: "extreme_close_up", label: "大特写 (ECU)" },
 ];
 
 const CAMERA_ANGLE_OPTIONS = [
   { value: "eye_level", label: "平视机位 (Eye Level)" },
-  { value: "low_angle", label: "仰角机位 (Low Angle)" },
-  { value: "high_angle", label: "俯角机位 (High Angle)" },
+  { value: "low_angle", label: "仰拍机位 (Low Angle)" },
+  { value: "high_angle", label: "俯拍机位 (High Angle)" },
   { value: "dutch_angle", label: "倾斜机位 (Dutch Angle)" },
-  { value: "birds_eye", label: "鸟瞰机位 (Bird's Eye)" },
-  { value: "worms_eye", label: "贴地视角 (Worm's Eye)" },
+  { value: "birds_eye", label: "上帝俯视 (Bird's Eye)" },
+  { value: "worms_eye", label: "极端地面贴地 (Worm's Eye)" },
 ];
 
 const CAMERA_MOVEMENT_OPTIONS = [
-  { value: "static", label: "固定镜头 (Static)" },
-  { value: "push_in", label: "向前推进 (Push In / Dolly In)" },
-  { value: "pull_out", label: "向后拉出 (Pull Out / Dolly Out)" },
-  { value: "tracking_right", label: "向右横移跟随 (Tracking Right)" },
-  { value: "tracking_left", label: "向左横移跟随 (Tracking Left)" },
-  { value: "pan_right", label: "向右摇镜 (Pan Right)" },
+  { value: "static", label: "固定机位 (Static)" },
   { value: "pan_left", label: "向左摇镜 (Pan Left)" },
-  { value: "crane_down", label: "升降下落 (Crane Down)" },
-  { value: "crane_up", label: "升降上升 (Crane Up)" },
-  { value: "handheld", label: "手持呼吸感 (Handheld Shake)" },
+  { value: "pan_right", label: "向右摇镜 (Pan Right)" },
+  { value: "tilt_up", label: "向上俯仰 (Tilt Up)" },
+  { value: "tilt_down", label: "向下俯仰 (Tilt Down)" },
+  { value: "push_in", label: "缓缓推进 (Push In)" },
+  { value: "pull_out", label: "缓缓拉远 (Pull Out)" },
+  { value: "tracking", label: "跟随横移 (Tracking)" },
+  { value: "crane", label: "升降机调度 (Crane)" },
+  { value: "orbital", label: "环绕运镜 (Orbital 360°)" },
 ];
 
 export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
@@ -74,6 +75,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
 }) => {
   const [formData, setFormData] = useState<Partial<ShotModel>>({});
   const [promptLang, setPromptLang] = useState<"en" | "zh">("en");
+  const [activeTab, setActiveTab] = useState<"script" | "camera" | "ai">("script");
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -146,10 +148,55 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
           </button>
         </div>
 
-        {/* Drawer Body (Scrollable with 14px~16px comfortable fonts) */}
+        {/* Tab Switcher */}
+        <div className="flex border-b border-border bg-muted/10 px-6 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab("script")}
+            className={cn(
+              "px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5",
+              activeTab === "script"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Film className="w-3.5 h-3.5" />
+            <span>台本设定</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("camera")}
+            className={cn(
+              "px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5",
+              activeTab === "camera"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Camera className="w-3.5 h-3.5" />
+            <span>摄影机位</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("ai")}
+            className={cn(
+              "px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5",
+              activeTab === "ai"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>AI 提示词 (H3)</span>
+          </button>
+        </div>
+
+        {/* Drawer Body (Scrollable with comfortable fonts) */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 text-sm">
-          {/* Section 1: Visual Preview Thumbnail */}
-          <div className="p-4 rounded-xl border border-border bg-background/50 flex flex-col md:flex-row items-center gap-4">
+          {activeTab === "script" && (
+            <>
+              {/* Section 1: Visual Preview Thumbnail */}
+              <div className="p-4 rounded-xl border border-border bg-background/50 flex flex-col md:flex-row items-center gap-4">
             <div className="w-full md:w-56 aspect-video rounded-lg overflow-hidden border border-border bg-muted shrink-0 relative">
               {shot.storyboard_image_url ? (
                 <img
@@ -421,13 +468,16 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
               </div>
             </div>
           </div>
+        </>
+      )}
 
-          {/* Section 3: Cinematography & Camera Parameters */}
-          <div className="p-5 rounded-xl border border-border/80 bg-background/50 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Camera className="w-4 h-4 text-sky-400" />
-              <span>摄影机位与运镜设计</span>
-            </div>
+      {/* Section 3: Cinematography & Camera Parameters */}
+      {activeTab === "camera" && (
+        <div className="p-5 rounded-xl border border-border/80 bg-background/50 space-y-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Camera className="w-4 h-4 text-sky-400" />
+            <span>摄影机位与运镜设计</span>
+          </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -511,14 +561,16 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
               </div>
             </div>
           </div>
+        )}
 
-          {/* Section 4: Layered Visual Inspector & AI Generation Prompts */}
-          <div className="p-5 rounded-xl border border-border/80 bg-background/50 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Sparkles className="w-4 h-4 text-emerald-400" />
-                <span>分层视听检查器 (Layered Visual Inspector)</span>
-              </div>
+      {/* Section 4: Layered Visual Inspector & AI Generation Prompts */}
+      {activeTab === "ai" && (
+        <div className="p-5 rounded-xl border border-border/80 bg-background/50 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span>分层视听检查器 (Layered Visual Inspector)</span>
+            </div>
               <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                 5维工业级解构
               </span>
@@ -676,50 +728,51 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        const h3 = generateH3Prompt([
-                          {
-                            id: shot.id,
-                            order: formData.order || shot.order || 1,
-                            seconds: formData.duration || shot.duration || 2.5,
-                            shotSize: formData.shot_size || shot.shot_size,
-                            cameraMovement: movType,
-                            action: formData.action || shot.action || "",
-                            dialogue: formData.dialogue || shot.dialogue || "",
-                            dialogueEmotion: formData.dialogue_emotion || shot.dialogue_emotion,
-                            speakerName: formData.subject || shot.subject,
-                          },
-                        ], { lang: promptLang });
+                        const mergedShot = {
+                          ...shot,
+                          ...formData,
+                          order: formData.order || shot.order || 1,
+                          duration: formData.duration || shot.duration || 2.5,
+                          shot_size: formData.shot_size || shot.shot_size,
+                          camera_movement: formData.camera_movement || shot.camera_movement,
+                          action: formData.action || shot.action || "",
+                          dialogue: formData.dialogue || shot.dialogue || "",
+                          dialogue_emotion: formData.dialogue_emotion || shot.dialogue_emotion,
+                          subject: formData.subject || shot.subject,
+                        };
+                        const cut = buildH3CutItem(mergedShot as ShotModel, 1);
+                        const h3 = generateH3Prompt([cut], { lang: promptLang });
                         handleChange("h3_prompt", h3);
                         notify.success("已基于当前分镜参数重新编译 H3 视频生成提示词");
                       }}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-secondary hover:bg-secondary/80 text-foreground border border-border text-xs font-medium cursor-pointer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-secondary hover:bg-muted text-foreground border border-border text-xs font-medium cursor-pointer transition-colors"
                       title="根据当前动作、机位与台词自动重新推导"
                     >
-                      <Sparkles className="w-3 h-3 text-purple-400" />
+                      <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>编译H3</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => {
-                        const content = formData.h3_prompt || generateH3Prompt([
-                          {
-                            id: shot.id,
-                            order: formData.order || shot.order || 1,
-                            seconds: formData.duration || shot.duration || 2.5,
-                            shotSize: formData.shot_size || shot.shot_size,
-                            cameraMovement: movType,
-                            action: formData.action || shot.action || "",
-                            dialogue: formData.dialogue || shot.dialogue || "",
-                            dialogueEmotion: formData.dialogue_emotion || shot.dialogue_emotion,
-                            speakerName: formData.subject || shot.subject,
-                          },
-                        ], { lang: promptLang });
+                        const mergedShot = {
+                          ...shot,
+                          ...formData,
+                          order: formData.order || shot.order || 1,
+                          duration: formData.duration || shot.duration || 2.5,
+                          shot_size: formData.shot_size || shot.shot_size,
+                          camera_movement: formData.camera_movement || shot.camera_movement,
+                          action: formData.action || shot.action || "",
+                          dialogue: formData.dialogue || shot.dialogue || "",
+                          dialogue_emotion: formData.dialogue_emotion || shot.dialogue_emotion,
+                          subject: formData.subject || shot.subject,
+                        };
+                        const content = formData.h3_prompt || generateH3Prompt([buildH3CutItem(mergedShot as ShotModel, 1)], { lang: promptLang });
                         handleCopy(content, "h3");
                       }}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/40 text-xs font-semibold cursor-pointer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-secondary hover:bg-muted text-foreground border border-border text-xs font-medium cursor-pointer transition-colors"
                     >
-                      {copiedKey === "h3" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      {copiedKey === "h3" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
                       <span>{copiedKey === "h3" ? "已复制H3" : "一键复制H3"}</span>
                     </button>
                   </div>
@@ -727,24 +780,10 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
 
                 <textarea
                   rows={4}
-                  value={
-                    formData.h3_prompt ||
-                    generateH3Prompt([
-                      {
-                        id: shot.id,
-                        order: formData.order || shot.order || 1,
-                        seconds: formData.duration || shot.duration || 2.5,
-                        shotSize: formData.shot_size || shot.shot_size,
-                        cameraMovement: movType,
-                        action: formData.action || shot.action || "",
-                        dialogue: formData.dialogue || shot.dialogue || "",
-                        dialogueEmotion: formData.dialogue_emotion || shot.dialogue_emotion,
-                        speakerName: formData.subject || shot.subject,
-                      },
-                    ], { lang: promptLang })
-                  }
+                  value={formData.h3_prompt || ""}
                   onChange={(e) => handleChange("h3_prompt", e.target.value)}
-                  className="w-full bg-background border border-border/80 rounded-lg p-2.5 text-[11px] font-mono leading-relaxed focus:outline-none focus:border-purple-500 resize-none text-foreground/90"
+                  placeholder="点击上方「编译H3」生成符合工业标准的 MiniMax H3 视频生成提示词..."
+                  className="w-full bg-background border border-border/80 rounded-lg p-2.5 text-[11px] font-mono leading-relaxed focus:outline-none focus:border-primary resize-none text-foreground/90"
                 />
                 <p className="text-[10px] text-muted-foreground">
                   ⏱️ 包含首行对齐指令、切点时刻推进与 &lt;d&gt;[Chinese] 台词原子块。
@@ -783,7 +822,8 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        )}
+      </div>
 
         {/* Drawer Footer */}
         <div className="h-16 px-6 border-t border-border flex items-center justify-end bg-muted/20 shrink-0">

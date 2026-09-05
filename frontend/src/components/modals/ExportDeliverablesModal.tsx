@@ -19,6 +19,8 @@ import { api } from "@/lib/api";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { cn } from "@/lib/utils";
+import { generateH3Prompt } from "@/lib/h3Prompt";
+import { buildH3CutItem } from "@/hooks/useH3Prompt";
 
 interface ExportDeliverablesModalProps {
   isOpen: boolean;
@@ -49,6 +51,39 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
       : shots.length > 0
       ? shots
       : project.sequences?.[0]?.shots || [];
+
+  const handleExportH3Json = () => {
+    if (currentShots.length === 0) {
+      notify.error("暂无可导出的分镜数据");
+      return;
+    }
+    const data = {
+      project_title: project.title,
+      timestamp: new Date().toISOString(),
+      shots_count: currentShots.length,
+      shots: currentShots.map((s, idx) => ({
+        order: idx + 1,
+        seconds: Number(s.duration) || 2.5,
+        shot_size: s.shot_size,
+        camera: typeof s.camera_movement === "object" ? (s.camera_movement as any)?.type : s.camera_movement,
+        action: s.action,
+        dialogue: s.dialogue,
+        dialogue_emotion: s.dialogue_emotion,
+        subject: s.subject,
+        h3_prompt: s.h3_prompt || generateH3Prompt([buildH3CutItem(s, idx + 1)], { lang: "en" }),
+        image_prompt: s.image_prompt,
+        storyboard_image_url: s.storyboard_image_url,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${project.title.replace(/\s+/g, "_")}_h3_manifest_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    notify.success("已导出 MiniMax H3 工业分镜投产 JSON 清单！");
+  };
 
   const handleExportStoryboardSheetPNG = async () => {
     if (!project || isExportingPng) return;
@@ -204,21 +239,46 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
             href={api.getExportPackageUrl(project.id)}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center justify-between p-3.5 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 transition-all group"
+            className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-secondary/50 hover:bg-muted transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/20 text-primary">
+              <div className="p-2 rounded-lg bg-secondary text-foreground">
                 <Archive className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-primary">2. 📦 全套工业交付包 (Generation Package ZIP)</h4>
+                <h4 className="text-xs font-bold text-foreground">2. 📦 全套工业交付包 (Generation Package ZIP)</h4>
                 <p className="text-[11px] text-muted-foreground">
                   包含 Shot Spec JSON、AI 视频批量生成 Manifest、设定集 Bible、Markdown 剧本与资产清单
                 </p>
               </div>
             </div>
-            <Download className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+            <Download className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
           </a>
+
+          {/* 3. MiniMax H3 Production Manifest JSON */}
+          <button
+            type="button"
+            onClick={handleExportH3Json}
+            disabled={currentShots.length === 0}
+            className="w-full flex items-center justify-between p-3.5 rounded-xl border border-border bg-secondary/50 hover:bg-muted transition-all group text-left cursor-pointer disabled:opacity-50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-secondary text-foreground">
+                <Terminal className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-foreground">
+                  3. 🎬 MiniMax H3 工业分镜投产 JSON 清单 (Manifest JSON)
+                </h4>
+                <p className="text-[11px] text-muted-foreground">
+                  严格对齐首行对齐指令、切点时刻推进与 &lt;d&gt;[Chinese] 台词原子块的标准分镜清单
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <Download className="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:scale-110 transition-transform" />
+            </div>
+          </button>
 
           {/* 3. Storyboard Images Pack (ZIP) */}
           <a
