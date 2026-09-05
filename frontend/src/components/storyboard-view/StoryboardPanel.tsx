@@ -47,10 +47,28 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
 }) => {
   const [gridCols, setGridCols] = useState<2 | 3 | 4>(3);
   const [showHudGuide, setShowHudGuide] = useState(false);
-  const [showRhythmBarcode, setShowRhythmBarcode] = useState(false);
+  const [showRhythmBarcode, setShowRhythmBarcode] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("storyboard_show_rhythm_barcode");
+      if (saved !== null) {
+        return saved === "true";
+      }
+    }
+    return true; // Default open for professional director feel
+  });
   const [viewMode, setViewMode] = useState<"timeline" | "callsheet">("timeline");
   const [isVoiceDrawerOpen, setIsVoiceDrawerOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleToggleRhythmBarcode = () => {
+    setShowRhythmBarcode((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("storyboard_show_rhythm_barcode", String(next));
+      }
+      return next;
+    });
+  };
 
   const missingImageCount = shots.filter((s) => !s.storyboard_image_url || s.is_dirty).length;
 
@@ -137,7 +155,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
 
           {/* Rhythm Barcode Strip Toggle */}
           <button
-            onClick={() => setShowRhythmBarcode(!showRhythmBarcode)}
+            onClick={handleToggleRhythmBarcode}
             className={cn(
               "p-1.5 rounded-md text-xs transition-colors border cursor-pointer",
               showRhythmBarcode
