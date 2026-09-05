@@ -400,5 +400,86 @@ export async function generateGenerationPackageZip(
   const globalPromptMd = generateDirectorGlobalPrompt(project, shots);
   zip.file("PROFESSIONAL_DIRECTOR_GLOBAL_PROMPT.md", globalPromptMd);
 
+  // 7. MiniMax Hailuo H3 / Kling 1.5 Multimodal Long Video Prompts (Reelbench Standard)
+  const h3Prompts = generateH3LongVideoPrompts(project, shots, characters, locations);
+  zip.file("H3_LONG_VIDEO_TIMESTAMP_PROMPTS.txt", h3Prompts);
+
   return await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
+}
+
+// Generate modern multi-modal timestamped prompts for <= 15s clips (Hailuo H3 / Kling / Sora)
+export function generateH3LongVideoPrompts(
+  project: Project,
+  shots: Shot[],
+  characters?: any[],
+  locations?: any[]
+): string {
+  const charMap = new Map((characters || []).map((c) => [c.id, c.name]));
+  const locMap = new Map((locations || []).map((l) => [l.id, l.name]));
+
+  // Group into <=15s clips
+  const clips: Array<{ clipIndex: number; shots: Shot[]; totalDuration: number }> = [];
+  let currentClip: Shot[] = [];
+  let currentDur = 0;
+
+  for (const s of shots) {
+    const sDur = Number(s.duration) || 2.5;
+    if (currentDur + sDur > 15.0 && currentClip.length > 0) {
+      clips.push({ clipIndex: clips.length + 1, shots: currentClip, totalDuration: currentDur });
+      currentClip = [s];
+      currentDur = sDur;
+    } else {
+      currentClip.push(s);
+      currentDur += sDur;
+    }
+  }
+  if (currentClip.length > 0) {
+    clips.push({ clipIndex: clips.length + 1, shots: currentClip, totalDuration: currentDur });
+  }
+
+  const lines: string[] = [
+    `# ${project.title} — MiniMax Hailuo H3 / 可灵 Kling 1.5 连续长镜头多模态 Prompt 清单`,
+    `> 规范：现代视频大模型两级结构 (段落 Clip ≤15s 内部精准切镜 Shot 2~5s)，包含时刻运镜与 <d>台词</d> 结构\n`,
+  ];
+
+  clips.forEach((clip) => {
+    lines.push(`================================================================================`);
+    lines.push(`## CLIP ${String(clip.clipIndex).padStart(2, "0")} (总时长: ${clip.totalDuration.toFixed(1)}s, 包含 ${clip.shots.length} 个镜头)`);
+    lines.push(`================================================================================\n`);
+
+    let elapsed = 0;
+    const promptSegments: string[] = [];
+
+    clip.shots.forEach((s) => {
+      const dur = Number(s.duration) || 2.5;
+      const start = elapsed;
+      const end = elapsed + dur;
+      elapsed = end;
+
+      let mov = "固定镜头";
+      try {
+        const movObj = typeof s.cameraMovement === "string" ? JSON.parse(s.cameraMovement) : s.cameraMovement;
+        mov = movObj?.type || "镜头推进";
+      } catch {}
+
+      let dialoguePart = "";
+      if (s.dialogue) {
+        let speaker = s.subject || "角色";
+        try {
+          const cIds = typeof (s as any).characterIds === "string" ? JSON.parse((s as any).characterIds) : (s as any).characterIds;
+          if (Array.isArray(cIds) && cIds[0] && charMap.has(cIds[0])) {
+            speaker = charMap.get(cIds[0])!;
+          }
+        } catch {}
+        dialoguePart = ` <d>${speaker}: “${s.dialogue}”</d>`;
+      }
+
+      promptSegments.push(`[${start.toFixed(2)}s - ${end.toFixed(2)}s] ${s.shotSize}，${s.cameraAngle}，${mov}。${s.action}${dialoguePart}`);
+    });
+
+    lines.push(promptSegments.join("\n"));
+    lines.push("\n");
+  });
+
+  return lines.join("\n");
 }

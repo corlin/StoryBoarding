@@ -49,6 +49,7 @@ export const characters = sqliteTable("characters", {
   costumeVariants: text("costume_variants").default("[]").notNull(), // JSON string array of costume variants
   avatarUrl: text("avatar_url").default("").notNull(),
   personality: text("personality").default("").notNull(),
+  voiceDna: text("voice_dna").default("").notNull(), // Reelbench TTS Voice prompt & tone anchor
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -62,6 +63,20 @@ export const locations = sqliteTable("locations", {
   visualAnchor: text("visual_anchor").notNull().default(""), // Scene spatial and lighting anchor prompt
   referenceImageUrl: text("reference_image_url").default("").notNull(),
   lightingStyle: text("lighting_style").default("自然光").notNull(),
+  lightingStates: text("lighting_states").default("[]").notNull(), // JSON string array of lighting variants, e.g. ["白天", "深夜昏暗"]
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+// Global Narrative Props Asset Table (Key Plot Items / Close-up Anchors)
+export const props = sqliteTable("props", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  category: text("category").default("general").notNull(), // 'weapon' | 'token' | 'document' | 'general'
+  visualAnchor: text("visual_anchor").notNull().default(""), // Pure English visual DNA prompt (white-backdrop closeup)
+  referenceImageUrl: text("reference_image_url").default("").notNull(),
+  description: text("description").default("").notNull(),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -76,9 +91,11 @@ export const shots = sqliteTable("shots", {
   cameraMovement: text("camera_movement").default("{}").notNull(), // JSON string
   subject: text("subject").default(""),
   characterIds: text("character_ids").default("[]").notNull(), // JSON array of character IDs
+  propIds: text("prop_ids").default("[]").notNull(), // JSON array of bound prop IDs
   locationId: text("location_id").default("").notNull(), // Bound location ID
   action: text("action").notNull().default(""),
   dialogue: text("dialogue").default(""),
+  dialogueEmotion: text("dialogue_emotion").default("").notNull(), // Voice emotion tag for TTS
   narrativeFunction: text("narrative_function").default("动作推进"),
   lighting: text("lighting").default("自然光"),
   audio: text("audio").default("{}").notNull(), // JSON string
@@ -88,6 +105,10 @@ export const shots = sqliteTable("shots", {
   storyboardImageUrl: text("storyboard_image_url"),
   isDirty: integer("is_dirty", { mode: "boolean" }).default(false).notNull(),
   isLocked: integer("is_locked", { mode: "boolean" }).default(false).notNull(),
+  // Two-Tier Video Generation Hierarchy (Clip <= 15s -> Shot 2-5s)
+  clipId: text("clip_id").default("").notNull(),
+  startTime: real("startTime").default(0.0).notNull(),
+  endTime: real("endTime").default(0.0).notNull(),
   // Narrative OS Phase 1: Dramatic Beat State Tree
   beatType: text("beat_type").default("tension_build").notNull(), // 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook'
   emotionalVoltage: real("emotional_voltage").default(50.0).notNull(), // 0.0 - 100.0 (Quantitative Tension/Payoff Voltage)
@@ -129,3 +150,6 @@ export type InsertCharacter = typeof characters.$inferInsert;
 
 export type Location = typeof locations.$inferSelect;
 export type InsertLocation = typeof locations.$inferInsert;
+
+export type Prop = typeof props.$inferSelect;
+export type InsertProp = typeof props.$inferInsert;

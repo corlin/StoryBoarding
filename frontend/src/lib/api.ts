@@ -337,7 +337,7 @@ export const api = {
     return data;
   },
 
-  // Characters & Locations
+  // Characters & Locations & Props
   async getTurnaroundPresets(): Promise<{ presets: any[] }> {
     const { data } = await apiClient.get("/characters/turnaround-presets");
     return data;
@@ -355,6 +355,39 @@ export const api = {
 
   async generateLocationConcept(locId: string): Promise<{ success: boolean; location: any }> {
     const { data } = await apiClient.post(`/locations/${locId}/generate-concept`);
+    return data;
+  },
+
+  // Narrative Props Library (Reelbench Standard)
+  async getProps(projectId: string): Promise<{ props: any[] }> {
+    const { data } = await apiClient.get(`/props/project/${projectId}`);
+    return data;
+  },
+
+  async createProp(payload: {
+    project_id: string;
+    name: string;
+    category?: "weapon" | "token" | "document" | "general";
+    visual_anchor?: string;
+    reference_image_url?: string;
+    description?: string;
+  }): Promise<{ success: boolean; prop: any }> {
+    const { data } = await apiClient.post("/props", payload);
+    return data;
+  },
+
+  async updateProp(propId: string, payload: any): Promise<{ success: boolean; prop: any }> {
+    const { data } = await apiClient.put(`/props/${propId}`, payload);
+    return data;
+  },
+
+  async deleteProp(propId: string): Promise<{ success: boolean }> {
+    const { data } = await apiClient.delete(`/props/${propId}`);
+    return data;
+  },
+
+  async generatePropConcept(propId: string): Promise<{ success: boolean; prop: any }> {
+    const { data } = await apiClient.post(`/props/${propId}/generate-concept`);
     return data;
   },
 

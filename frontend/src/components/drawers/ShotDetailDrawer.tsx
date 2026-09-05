@@ -13,13 +13,16 @@ import {
   Check,
   Eye,
 } from "lucide-react";
-import { ShotModel } from "@/types/shot";
+import { ShotModel, CharacterModel, LocationModel, PropModel } from "@/types/shot";
 import { normalizeAssetUrl } from "@/lib/api";
 
 interface ShotDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   shot: ShotModel | null;
+  characters?: CharacterModel[];
+  locations?: LocationModel[];
+  propsList?: PropModel[];
   onUpdateShot: (shotId: string, updates: Partial<ShotModel>) => Promise<void> | void;
   onRegenerateImage?: (shotId: string) => Promise<void> | void;
 }
@@ -60,6 +63,9 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   isOpen,
   onClose,
   shot,
+  characters = [],
+  locations = [],
+  propsList = [],
   onUpdateShot,
   onRegenerateImage,
 }) => {
@@ -71,17 +77,10 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   useEffect(() => {
     if (shot) {
       setFormData({
-        action: shot.action || "",
-        dialogue: shot.dialogue || "",
-        duration: shot.duration || 2.5,
-        shot_size: shot.shot_size || "medium_shot",
-        camera_angle: shot.camera_angle || "eye_level",
-        camera_movement: shot.camera_movement || { type: "static", speed: "medium" },
-        subject: shot.subject || "",
-        narrative_function: shot.narrative_function || "叙事推进",
-        lighting: shot.lighting || "",
-        image_prompt: shot.image_prompt || "",
-        video_prompt: shot.video_prompt || "",
+        ...shot,
+        camera_movement: shot.camera_movement || { type: "static" },
+        character_ids: shot.character_ids || [],
+        prop_ids: shot.prop_ids || [],
       });
     }
   }, [shot]);
@@ -225,15 +224,71 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
 
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                    主体对象 / 角色 (Subject)
+                    台词语气 / 情感 (Emotion for TTS)
                   </label>
                   <input
                     type="text"
-                    value={formData.subject || ""}
-                    onChange={(e) => handleChange("subject", e.target.value)}
-                    placeholder="例如：墨客 (Moke)"
+                    value={formData.dialogue_emotion || ""}
+                    onChange={(e) => handleChange("dialogue_emotion", e.target.value)}
+                    placeholder="例如: 冷嘲讽刺 / 绝望悲鸣 / 压低声音"
                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                   />
+                </div>
+              </div>
+
+              {/* Location and Props Selection (Reelbench Standard) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                    绑定场景空间 (Location)
+                  </label>
+                  <select
+                    value={formData.location_id || ""}
+                    onChange={(e) => handleChange("location_id", e.target.value)}
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-primary"
+                  >
+                    <option value="">未指定 (根据动作自动推导)</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name} ({loc.environment_type === "interior" ? "室内" : "室外"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                    关联关键叙事道具 (Props)
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 p-1.5 bg-background border border-border rounded-lg min-h-[38px] items-center">
+                    {propsList.length === 0 ? (
+                      <span className="text-[11px] text-muted-foreground px-1.5">暂无道具（请在全剧设定中登记）</span>
+                    ) : (
+                      propsList.map((p) => {
+                        const isSelected = (formData.prop_ids || []).includes(p.id);
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              const currentProps = formData.prop_ids || [];
+                              const next = isSelected
+                                ? currentProps.filter((id) => id !== p.id)
+                                : [...currentProps, p.id];
+                              handleChange("prop_ids", next);
+                            }}
+                            className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors cursor-pointer ${
+                              isSelected
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                : "bg-secondary text-muted-foreground hover:text-foreground border border-border/60"
+                            }`}
+                          >
+                            {p.name}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

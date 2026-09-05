@@ -11,6 +11,7 @@ import versionsRouter from "./routes/versions";
 import authRouter from "./routes/auth";
 import charactersRouter from "./routes/characters";
 import locationsRouter from "./routes/locations";
+import propsRouter from "./routes/props";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -52,6 +53,7 @@ app.route("/api/projects", versionsRouter); // /api/projects/:projectId/versions
 app.route("/api/shots", shotsRouter);
 app.route("/api/characters", charactersRouter);
 app.route("/api/locations", locationsRouter);
+app.route("/api/props", propsRouter);
 app.route("/api/generate", generationRouter);
 app.route("/api/export", exportRouter);
 app.route("/api/settings", settingsRouter);

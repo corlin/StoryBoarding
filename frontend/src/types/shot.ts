@@ -70,6 +70,12 @@ export interface ShotModel {
   continuity_data: ContinuityData;
   is_dirty: boolean;
   is_locked?: boolean;
+  // Two-Tier Video Generation (Clip <= 15s -> Shot 2-5s)
+  clip_id?: string;
+  start_time?: number;
+  end_time?: number;
+  prop_ids?: string[];
+  dialogue_emotion?: string;
   // Narrative OS Phase 1: Dramatic Beat State Tree
   beat_type?: 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook';
   emotional_voltage?: number; // 0.0 - 100.0 (Quantitative Tension/Payoff Voltage)
@@ -92,6 +98,8 @@ export interface CharacterModel {
   costume_variants?: string[];
   avatar_url?: string;
   personality?: string;
+  voice_dna?: string;
+  voiceDna?: string;
   created_at?: string;
 }
 
@@ -103,7 +111,31 @@ export interface LocationModel {
   visual_anchor: string;
   reference_image_url?: string;
   lighting_style?: string;
+  lighting_states?: string[];
   created_at?: string;
+}
+
+export interface PropModel {
+  id: string;
+  project_id: string;
+  name: string;
+  category: "weapon" | "token" | "document" | "general";
+  visual_anchor: string;
+  visualAnchor?: string;
+  reference_image_url?: string;
+  description?: string;
+  created_at?: string;
+}
+
+export interface ClipModel {
+  id: string;
+  sequence_id: string;
+  order: number;
+  duration: number; // <= 15s
+  location_id?: string;
+  lighting_state?: string;
+  shots: ShotModel[];
+  h3_prompt?: string; // MiniMax Hailuo H3 multi-modal prompt with timestamps
 }
 
 export interface SequenceModel {
@@ -139,6 +171,7 @@ export interface ProjectModel {
   updated_at: string;
   characters?: CharacterModel[];
   locations?: LocationModel[];
+  props?: PropModel[];
   sequences: SequenceModel[];
 }
 

@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ShotModel, CharacterModel } from "@/types/shot";
+import { ShotModel, CharacterModel, LocationModel, PropModel } from "@/types/shot";
 import { StoryboardCell } from "./StoryboardCell";
-import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, RefreshCw, XCircle, Crosshair } from "lucide-react";
+import { RhythmBarcode } from "./RhythmBarcode";
+import { CallSheetView } from "./CallSheetView";
+import { VoiceAlignmentDrawer } from "@/components/drawers/VoiceAlignmentDrawer";
+import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, RefreshCw, XCircle, Crosshair, Layers, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StoryboardPanelProps {
@@ -9,6 +12,8 @@ interface StoryboardPanelProps {
   selectedShotId: string | null;
   aspectRatio?: "16:9" | "9:16";
   characters?: CharacterModel[];
+  locations?: LocationModel[];
+  propsList?: PropModel[];
   onSelectShot: (shotId: string) => void;
   onRegenerateDirty?: () => void;
   onRegenerateShotImage?: (shotId: string) => Promise<void> | void;
@@ -25,6 +30,8 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   selectedShotId,
   aspectRatio = "16:9",
   characters = [],
+  locations = [],
+  propsList = [],
   onSelectShot,
   onRegenerateDirty,
   onRegenerateShotImage,
@@ -37,13 +44,15 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
 }) => {
   const [gridCols, setGridCols] = useState<2 | 3 | 4>(3);
   const [showHudGuide, setShowHudGuide] = useState(true);
+  const [viewMode, setViewMode] = useState<"timeline" | "callsheet">("timeline");
+  const [isVoiceDrawerOpen, setIsVoiceDrawerOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const missingImageCount = shots.filter((s) => !s.storyboard_image_url || s.is_dirty).length;
 
   // Auto-scroll to selected storyboard cell during playback or selection
   useEffect(() => {
-    if (!selectedShotId || !scrollContainerRef.current) return;
+    if (!selectedShotId || !scrollContainerRef.current || viewMode !== "timeline") return;
     const targetElement = document.getElementById(`storyboard-cell-${selectedShotId}`);
     if (targetElement) {
       targetElement.scrollIntoView({
@@ -51,7 +60,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
         block: "nearest",
       });
     }
-  }, [selectedShotId]);
+  }, [selectedShotId, viewMode]);
 
   const isVertical = aspectRatio === "9:16";
   const gridClass = isVertical
@@ -70,18 +79,57 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
     <section className="flex flex-col h-full bg-background/50 select-none relative">
       {/* Header Bar */}
       <div className="h-12 border-b border-border px-4 flex items-center justify-between shrink-0 bg-card/50">
-        <div className="flex items-center gap-2">
-          <Film className="w-4 h-4 text-primary" />
-          <h2 className="font-semibold text-xs text-foreground tracking-wide">
-            故事板画布 (Storyboard Canvas)
-          </h2>
-          <span className="text-xs text-muted-foreground font-mono">
-            [{shots.length} 镜]
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Film className="w-4 h-4 text-primary" />
+            <h2 className="font-semibold text-xs text-foreground tracking-wide">
+              故事板 (Storyboard)
+            </h2>
+            <span className="text-xs text-muted-foreground font-mono">
+              [{shots.length} 镜]
+            </span>
+          </div>
+
+          {/* View Mode Switcher: Timeline vs Call Sheet */}
+          <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/60 text-xs">
+            <button
+              onClick={() => setViewMode("timeline")}
+              className={cn(
+                "px-2.5 py-1 rounded text-xs font-medium transition-all flex items-center gap-1.5",
+                viewMode === "timeline"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Film className="w-3.5 h-3.5" />
+              <span>时间轴</span>
+            </button>
+            <button
+              onClick={() => setViewMode("callsheet")}
+              className={cn(
+                "px-2.5 py-1 rounded text-xs font-medium transition-all flex items-center gap-1.5",
+                viewMode === "callsheet"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Layers className="w-3.5 h-3.5 text-amber-400" />
+              <span>顺场表 (Call Sheet)</span>
+            </button>
+          </div>
         </div>
 
         {/* Actions & Layout Controls */}
         <div className="flex items-center gap-2">
+          {/* Voice Alignment Sheet Button */}
+          <button
+            onClick={() => setIsVoiceDrawerOpen(true)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary/60 hover:bg-secondary text-pink-300 border border-pink-500/30 transition-colors cursor-pointer"
+            title="查看全剧台词与角色音色特征配音对齐单"
+          >
+            <Mic className="w-3.5 h-3.5 text-pink-400" />
+            <span className="hidden sm:inline">配音对齐单</span>
+          </button>
           {/* Unified Batch Render Action & Readiness Status */}
           {!isBatchRendering && (
             missingImageCount > 0 && onRegenerateDirty ? (
@@ -201,12 +249,33 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
         </div>
       )}
 
-      {/* Storyboard Grid Canvas */}
+      {/* Pacing Rhythm Barcode Strip */}
+      <RhythmBarcode
+        shots={shots}
+        selectedShotId={selectedShotId}
+        onSelectShot={onSelectShot}
+      />
+
+      {/* Storyboard Grid Canvas OR Call Sheet View */}
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto p-4 scroll-smooth"
       >
-        {shots.length === 0 ? (
+        {viewMode === "callsheet" ? (
+          <CallSheetView
+            shots={shots}
+            locations={locations}
+            characters={characters}
+            propsList={propsList}
+            selectedShotId={selectedShotId}
+            aspectRatio={aspectRatio}
+            onSelectShot={onSelectShot}
+            onRegenerateShotImage={onRegenerateShotImage}
+            onToggleLock={onToggleLock}
+            onOpenTheater={onOpenTheater}
+            onOpenDrawer={onOpenDrawer}
+          />
+        ) : shots.length === 0 ? (
           <div className="h-48 border border-dashed border-border rounded-xl flex flex-col items-center justify-center text-muted-foreground p-6 text-center">
             <ImageIcon className="w-8 h-8 mb-2 opacity-40" />
             <p className="text-sm font-medium mb-1">故事板画布为空</p>
@@ -234,6 +303,14 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
           </div>
         )}
       </div>
+
+      {/* Voice Alignment Drawer */}
+      <VoiceAlignmentDrawer
+        isOpen={isVoiceDrawerOpen}
+        onClose={() => setIsVoiceDrawerOpen(false)}
+        shots={shots}
+        characters={characters}
+      />
     </section>
   );
 };

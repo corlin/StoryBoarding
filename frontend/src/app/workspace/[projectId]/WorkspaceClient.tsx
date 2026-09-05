@@ -685,6 +685,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             selectedShotId={selectedShotId}
             aspectRatio={displayProject?.aspect_ratio === "9:16" ? "9:16" : "16:9"}
             characters={displayProject?.characters || []}
+            locations={displayProject?.locations || []}
+            propsList={displayProject?.props || []}
             onSelectShot={(id) => selectShot(id)}
             onOpenDrawer={handleOpenDrawer}
             onOpenTheater={handleOpenTheater}
@@ -731,6 +733,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         <ShotDetailDrawer
           isOpen={isDrawerOpen}
           shot={activeDrawerShot}
+          characters={displayProject?.characters || []}
+          locations={displayProject?.locations || []}
+          propsList={displayProject?.props || []}
           onClose={() => setIsDrawerOpen(false)}
           onUpdateShot={saveShotRemote}
           onRegenerateImage={handleRegenerateSingleShot}

@@ -87,6 +87,13 @@ router.put("/:id", async (c) => {
   if (body.character_ids !== undefined) {
     updates.characterIds = Array.isArray(body.character_ids) ? JSON.stringify(body.character_ids) : body.character_ids;
   }
+  if (body.prop_ids !== undefined) {
+    updates.propIds = Array.isArray(body.prop_ids) ? JSON.stringify(body.prop_ids) : body.prop_ids;
+  }
+  if (body.clip_id !== undefined) updates.clipId = body.clip_id;
+  if (body.start_time !== undefined) updates.startTime = Number(body.start_time);
+  if (body.end_time !== undefined) updates.endTime = Number(body.end_time);
+  if (body.dialogue_emotion !== undefined) updates.dialogueEmotion = body.dialogue_emotion;
   if (body.location_id !== undefined) {
     updates.locationId = body.location_id;
   }
@@ -151,7 +158,10 @@ router.put("/:id", async (c) => {
   return c.json({
     ...updated,
     character_ids: JSON.parse(updated.characterIds || "[]"),
+    prop_ids: JSON.parse(updated.propIds || "[]"),
     location_id: updated.locationId || "",
+    clip_id: updated.clipId || "",
+    dialogue_emotion: updated.dialogueEmotion || "",
   });
 });
 

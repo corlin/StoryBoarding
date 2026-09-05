@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq, desc, or, isNull, and } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
-import { projects, sequences, shots, users, characters, locations } from "../db/schema";
+import { projects, sequences, shots, users, characters, locations, props } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, generateAdaptiveStoryShots } from "../agents/director/pipeline";
 import { scanLongformSeries } from "../agents/director/seriesScanner";
 import { generateCinematicStoryboardImage, runConcurrentTasks, getProjectBaseSeed } from "./generation";
@@ -85,6 +85,7 @@ router.get("/:id", async (c) => {
 
     const charList = await db.select().from(characters).where(eq(characters.projectId, id)).all();
     const locList = await db.select().from(locations).where(eq(locations.projectId, id)).all();
+    const propList = await db.select().from(props).where(eq(props.projectId, id)).all();
 
     const seqs = await db.select().from(sequences).where(eq(sequences.projectId, id)).orderBy(sequences.order).all();
 
@@ -110,9 +111,11 @@ router.get("/:id", async (c) => {
             camera_movement: s.cameraMovement ? JSON.parse(s.cameraMovement) : { type: "static" },
             subject: s.subject,
             character_ids: s.characterIds ? JSON.parse(s.characterIds) : [],
+            prop_ids: s.propIds ? JSON.parse(s.propIds) : [],
             location_id: s.locationId || "",
             action: s.action,
             dialogue: s.dialogue,
+            dialogue_emotion: s.dialogueEmotion || "",
             narrative_function: s.narrativeFunction,
             lighting: s.lighting,
             audio: s.audio ? JSON.parse(s.audio) : {},
@@ -122,6 +125,9 @@ router.get("/:id", async (c) => {
             storyboard_image_url: s.storyboardImageUrl || "",
             is_dirty: s.isDirty,
             is_locked: s.isLocked,
+            clip_id: s.clipId || "",
+            start_time: s.startTime || 0,
+            end_time: s.endTime || 0,
             beat_type: s.beatType,
             emotional_voltage: s.emotionalVoltage,
             information_gap: s.informationGap,
@@ -152,6 +158,7 @@ router.get("/:id", async (c) => {
         costume_variants: c.costumeVariants ? JSON.parse(c.costumeVariants) : [],
         avatar_url: c.avatarUrl,
         personality: c.personality,
+        voice_dna: c.voiceDna || "",
         created_at: c.createdAt,
       })),
       locations: locList.map((loc) => ({
@@ -162,7 +169,18 @@ router.get("/:id", async (c) => {
         visual_anchor: loc.visualAnchor,
         reference_image_url: loc.referenceImageUrl,
         lighting_style: loc.lightingStyle,
+        lighting_states: loc.lightingStates ? JSON.parse(loc.lightingStates) : [],
         created_at: loc.createdAt,
+      })),
+      props: propList.map((p) => ({
+        id: p.id,
+        project_id: p.projectId,
+        name: p.name,
+        category: p.category,
+        visual_anchor: p.visualAnchor,
+        reference_image_url: p.referenceImageUrl,
+        description: p.description,
+        created_at: p.createdAt,
       })),
       sequences: enrichedSeqs,
     });
@@ -578,6 +596,7 @@ router.put("/:id", async (c) => {
               turnaroundPrompt: ch.turnaround_prompt !== undefined ? ch.turnaround_prompt : existing.turnaroundPrompt,
               costumeVariants: ch.costume_variants !== undefined ? cVariants : existing.costumeVariants,
               personality: ch.personality || existing.personality,
+              voiceDna: ch.voice_dna !== undefined ? ch.voice_dna : (ch.voiceDna !== undefined ? ch.voiceDna : existing.voiceDna),
               avatarUrl: ch.avatar_url || ch.avatarUrl || existing.avatarUrl,
               updatedAt: new Date().toISOString(),
             }).where(eq(characters.id, ch.id));
@@ -591,6 +610,7 @@ router.put("/:id", async (c) => {
               turnaroundPrompt: ch.turnaround_prompt || "",
               costumeVariants: cVariants,
               personality: ch.personality || "",
+              voiceDna: ch.voice_dna || ch.voiceDna || "",
               avatarUrl: ch.avatar_url || ch.avatarUrl || "",
             });
           }
@@ -604,6 +624,7 @@ router.put("/:id", async (c) => {
             turnaroundPrompt: ch.turnaround_prompt || "",
             costumeVariants: cVariants,
             personality: ch.personality || "",
+            voiceDna: ch.voice_dna || ch.voiceDna || "",
             avatarUrl: ch.avatar_url || ch.avatarUrl || "",
           });
         }
@@ -612,6 +633,7 @@ router.put("/:id", async (c) => {
 
     if (Array.isArray(body.locations)) {
       for (const loc of body.locations) {
+        const lStates = typeof loc.lighting_states === "string" ? loc.lighting_states : JSON.stringify(loc.lighting_states || []);
         if (loc.id) {
           const existing = await db.select().from(locations).where(eq(locations.id, loc.id)).get();
           if (existing) {
@@ -621,6 +643,7 @@ router.put("/:id", async (c) => {
               visualAnchor: loc.visual_anchor || loc.visualAnchor || existing.visualAnchor,
               referenceImageUrl: loc.reference_image_url || loc.referenceImageUrl || existing.referenceImageUrl,
               lightingStyle: loc.lighting_style || loc.lightingStyle || existing.lightingStyle,
+              lightingStates: loc.lighting_states !== undefined ? lStates : existing.lightingStates,
               updatedAt: new Date().toISOString(),
             }).where(eq(locations.id, loc.id));
           } else {
@@ -632,6 +655,7 @@ router.put("/:id", async (c) => {
               visualAnchor: loc.visual_anchor || loc.visualAnchor || "",
               referenceImageUrl: loc.reference_image_url || loc.referenceImageUrl || "",
               lightingStyle: loc.lighting_style || loc.lightingStyle || "自然光",
+              lightingStates: lStates,
             });
           }
         } else if (loc.name) {
@@ -643,14 +667,54 @@ router.put("/:id", async (c) => {
             visualAnchor: loc.visual_anchor || loc.visualAnchor || "",
             referenceImageUrl: loc.reference_image_url || loc.referenceImageUrl || "",
             lightingStyle: loc.lighting_style || loc.lightingStyle || "自然光",
+            lightingStates: lStates,
           });
         }
       }
     }
 
-    // Return enriched project with latest characters & locations
+    if (Array.isArray(body.props)) {
+      for (const p of body.props) {
+        if (p.id) {
+          const existing = await db.select().from(props).where(eq(props.id, p.id)).get();
+          if (existing) {
+            await db.update(props).set({
+              name: p.name || existing.name,
+              category: p.category || existing.category,
+              visualAnchor: p.visual_anchor || p.visualAnchor || existing.visualAnchor,
+              referenceImageUrl: p.reference_image_url || p.referenceImageUrl || existing.referenceImageUrl,
+              description: p.description !== undefined ? p.description : existing.description,
+              updatedAt: new Date().toISOString(),
+            }).where(eq(props.id, p.id));
+          } else {
+            await db.insert(props).values({
+              id: p.id,
+              projectId: id,
+              name: p.name,
+              category: p.category || "general",
+              visualAnchor: p.visual_anchor || p.visualAnchor || "",
+              referenceImageUrl: p.reference_image_url || p.referenceImageUrl || "",
+              description: p.description || "",
+            });
+          }
+        } else if (p.name) {
+          await db.insert(props).values({
+            id: crypto.randomUUID(),
+            projectId: id,
+            name: p.name,
+            category: p.category || "general",
+            visualAnchor: p.visual_anchor || p.visualAnchor || "",
+            referenceImageUrl: p.reference_image_url || p.referenceImageUrl || "",
+            description: p.description || "",
+          });
+        }
+      }
+    }
+
+    // Return enriched project with latest characters, locations & props
     const latestChars = await db.select().from(characters).where(eq(characters.projectId, id)).all();
     const latestLocs = await db.select().from(locations).where(eq(locations.projectId, id)).all();
+    const latestProps = await db.select().from(props).where(eq(props.projectId, id)).all();
     return c.json({
       ...updated,
       style_config: body.style_config || {},
@@ -660,6 +724,7 @@ router.put("/:id", async (c) => {
         turnaround_prompt: c.turnaroundPrompt,
         costume_variants: c.costumeVariants ? JSON.parse(c.costumeVariants) : [],
         avatar_url: c.avatarUrl,
+        voice_dna: c.voiceDna || "",
       })),
       locations: latestLocs.map((l) => ({
         ...l,
@@ -667,6 +732,12 @@ router.put("/:id", async (c) => {
         visual_anchor: l.visualAnchor,
         reference_image_url: l.referenceImageUrl,
         lighting_style: l.lightingStyle,
+        lighting_states: l.lightingStates ? JSON.parse(l.lightingStates) : [],
+      })),
+      props: latestProps.map((p) => ({
+        ...p,
+        visual_anchor: p.visualAnchor,
+        reference_image_url: p.referenceImageUrl,
       })),
     });
   } catch (err: any) {

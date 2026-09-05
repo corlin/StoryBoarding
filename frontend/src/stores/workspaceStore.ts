@@ -79,6 +79,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           storyboard_image_url: shot.storyboard_image_url || "",
           is_dirty: Boolean(shot.is_dirty),
           is_locked: Boolean(shot.is_locked),
+          character_ids: Array.isArray(shot.character_ids) ? shot.character_ids : [],
+          prop_ids: Array.isArray(shot.prop_ids) ? shot.prop_ids : [],
+          location_id: shot.location_id || "",
+          clip_id: shot.clip_id || "",
+          start_time: Number(shot.start_time) || 0,
+          end_time: Number(shot.end_time) || 0,
+          dialogue_emotion: shot.dialogue_emotion || "",
           beat_type: shot.beat_type || "tension_build",
           emotional_voltage: Number(shot.emotional_voltage) || 50.0,
           information_gap: shot.information_gap || "",
@@ -100,6 +107,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         created_at: project.created_at || new Date().toISOString(),
         updated_at: project.updated_at || new Date().toISOString(),
         characters: Array.isArray(project.characters) ? project.characters : [],
+        locations: Array.isArray(project.locations) ? project.locations : [],
+        props: Array.isArray(project.props) ? project.props : [],
         sequences: enrichedSequences,
       };
 
