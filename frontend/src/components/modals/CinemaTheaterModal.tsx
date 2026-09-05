@@ -326,7 +326,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
 
         <div
           ref={containerRef}
-          className="relative max-h-[75vh] aspect-video w-auto max-w-[92vw] rounded-2xl overflow-hidden shadow-2xl border border-white/15 bg-slate-950 flex items-center justify-center group"
+          className="relative w-full max-w-4xl aspect-video max-h-[75vh] rounded-2xl overflow-hidden shadow-2xl border border-white/15 bg-gradient-to-b from-slate-900 via-slate-950 to-black flex items-center justify-center group"
         >
           {currentShot?.storyboard_image_url ? (
             <img
@@ -339,10 +339,15 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
               )}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center text-white/30 p-8 text-center">
-              <Film className="w-16 h-16 mb-3 opacity-40 animate-pulse" />
-              <p className="text-sm font-mono tracking-widest uppercase">
-                {currentShot?.shot_size || "MEDIUM SHOT"}
+            <div className="flex flex-col items-center justify-center text-white/40 p-8 text-center select-none">
+              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-3 text-amber-400/80 shadow-inner">
+                <Film className="w-8 h-8 opacity-70 animate-pulse" />
+              </div>
+              <p className="text-xs font-mono tracking-widest text-white/50 uppercase mb-1">
+                {SHOT_SIZE_NAME[currentShot?.shot_size] || currentShot?.shot_size?.toUpperCase() || "MEDIUM SHOT"} · 待显影画面
+              </p>
+              <p className="text-[11px] text-muted-foreground/60 max-w-md">
+                （支持在分镜画板点击「冲印画面」生成视觉画面，此处实时进行台本时间轴预演）
               </p>
             </div>
           )}
