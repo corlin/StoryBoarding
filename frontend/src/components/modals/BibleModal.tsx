@@ -83,6 +83,39 @@ const TURNAROUND_PRESETS = [
   },
 ];
 
+export const VOICE_DNA_PRESETS = [
+  {
+    id: "mature_male",
+    name: "🎩 沉稳大叔音 (35岁低沉磁性、成熟稳重、微烟嗓)",
+    prompt: "35岁成熟男性，嗓音低沉磁性且富有共鸣，语速沉稳从容，咬字清晰利落，带轻微成熟烟嗓质感与压迫感",
+  },
+  {
+    id: "cold_female",
+    name: "👠 清冷御姐音 (26岁音色清亮、语调偏冷、干练果决)",
+    prompt: "26岁职场女性，音色清亮通透，语调偏冷清从容，咬字干练利落，带有独立知性气质与决断力",
+  },
+  {
+    id: "sunny_young",
+    name: "☀️ 阳光少年音 (19岁清朗明快、朝气蓬勃、富有感染力)",
+    prompt: "19岁年轻男性，嗓音清脆明朗，语调自然上扬富有朝气活力，情绪饱满真实，语速轻快有节奏感",
+  },
+  {
+    id: "sweet_girl",
+    name: "🌸 甜美娇俏音 (22岁软糯灵动、尾音微翘、温柔亲和)",
+    prompt: "22岁年轻女性，声线甜美柔和，咬字软糯灵动，带有微翘的尾音与温柔亲和力，情感表达细腻",
+  },
+  {
+    id: "dark_villain",
+    name: "♟️ 阴鸷反派音 (42岁沙哑压抑、阴冷微气声、掌控力)",
+    prompt: "42岁中年男性，嗓音微带沙哑与压迫感，语速缓慢阴沉，伴随冷冽的气声吐字，极具威慑与控制感",
+  },
+  {
+    id: "gentle_scholar",
+    name: "📚 温润公子音 (28岁温和文雅、如沐春风、书卷气)",
+    prompt: "28岁青年男性，音色如玉般温润，谈吐平和文雅，语速适中带有谦逊教养与浓厚书卷气",
+  },
+];
+
 const STYLE_PRESETS = [
   {
     id: "graphite_previz",
@@ -648,10 +681,27 @@ export const BibleModal: React.FC<BibleModalProps> = ({
 
                     {/* Reelbench Voice DNA / Audio Prompt */}
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1 mb-1">
-                        <Mic className="w-3 h-3 text-pink-400" />
-                        <span>角色音色特征 (Voice DNA / TTS Prompt):</span>
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
+                          <Mic className="w-3 h-3 text-pink-400" />
+                          <span>角色音色特征 (Voice DNA / TTS Prompt):</span>
+                        </label>
+                        <select
+                          onChange={(e) => {
+                            const p = VOICE_DNA_PRESETS.find((x) => x.id === e.target.value);
+                            if (p) {
+                              setCharacters(characters.map((c) => (c.id === char.id ? { ...c, voice_dna: p.prompt, voiceDna: p.prompt } : c)));
+                              notify.success(`已为 ${char.name} 套用「${p.name.split(" ")[1]}」音色特征！`);
+                            }
+                          }}
+                          className="text-[10px] bg-secondary/80 border border-border/80 rounded px-2 py-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                          <option value="">套用音色预设模版...</option>
+                          {VOICE_DNA_PRESETS.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
                       <input
                         type="text"
                         value={char.voice_dna || (char as any).voiceDna || ""}
