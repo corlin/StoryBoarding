@@ -161,6 +161,10 @@ router.put("/:id", async (c) => {
 
   if (body.screen_text !== undefined) updates.screenText = body.screen_text;
   if (body.screen_text_style !== undefined) updates.screenTextStyle = body.screen_text_style;
+  if (body.h3_prompt !== undefined) updates.h3Prompt = body.h3_prompt;
+  if (body.beats_range !== undefined) {
+    updates.beatsRange = Array.isArray(body.beats_range) ? JSON.stringify(body.beats_range) : body.beats_range;
+  }
 
   updates.updatedAt = new Date().toISOString();
 
@@ -174,6 +178,8 @@ router.put("/:id", async (c) => {
     dialogue_emotion: updated.dialogueEmotion || "",
     screen_text: updated.screenText || "",
     screen_text_style: updated.screenTextStyle || "bold_impact",
+    h3_prompt: updated.h3Prompt || "",
+    beats_range: updated.beatsRange ? JSON.parse(updated.beatsRange) : [],
   });
 });
 

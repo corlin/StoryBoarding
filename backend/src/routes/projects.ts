@@ -138,6 +138,8 @@ router.get("/:id", async (c) => {
             compute_tier: s.computeTier,
             screen_text: s.screenText || "",
             screen_text_style: s.screenTextStyle || "bold_impact",
+            h3_prompt: s.h3Prompt || "",
+            beats_range: s.beatsRange ? JSON.parse(s.beatsRange) : [],
             created_at: s.createdAt,
             updated_at: s.updatedAt,
           })),

@@ -77,6 +77,9 @@ export interface ShotModel {
   end_time?: number;
   prop_ids?: string[];
   dialogue_emotion?: string;
+  beats_range?: [number, number]; // 认领剧本节拍区间 [起, 止]
+  h3_prompt?: string; // 段/分镜 MiniMax H3 结构化提示词
+  scene_index?: number;
   // Narrative OS Phase 1: Dramatic Beat State Tree
   beat_type?: 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook';
   emotional_voltage?: number; // 0.0 - 100.0 (Quantitative Tension/Payoff Voltage)

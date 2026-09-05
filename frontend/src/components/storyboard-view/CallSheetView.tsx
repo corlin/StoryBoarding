@@ -3,8 +3,10 @@
 import React, { useMemo } from "react";
 import { ShotModel, LocationModel, CharacterModel, PropModel } from "@/types/shot";
 import { StoryboardCell } from "./StoryboardCell";
-import { Layers, MapPin, Sparkles, Film, Sun, Clock, CheckCircle2 } from "lucide-react";
+import { Layers, MapPin, Sparkles, Film, Sun, Clock, CheckCircle2, Copy, Check, Download, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { generateH3Prompt } from "@/lib/h3Prompt";
+import { notify } from "@/components/ui/ToastNotification";
 
 interface CallSheetViewProps {
   shots: ShotModel[];
@@ -143,6 +145,32 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                       <span>已锚定场景底图</span>
                     </div>
                   )}
+
+                  {/* Copy Batch MiniMax H3 Prompt */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const h3Cuts = group.shots.map((s, idx) => ({
+                        id: s.id,
+                        order: idx + 1,
+                        seconds: Number(s.duration) || 2.5,
+                        shotSize: s.shot_size,
+                        cameraMovement: typeof s.camera_movement === "object" ? (s.camera_movement as any)?.type : s.camera_movement,
+                        action: s.action || "",
+                        dialogue: s.dialogue || "",
+                        dialogueEmotion: s.dialogue_emotion,
+                        speakerName: s.subject,
+                      }));
+                      const prompt = generateH3Prompt(h3Cuts, { lang: "en" });
+                      navigator.clipboard.writeText(prompt);
+                      notify.success(`已复制批次 B${gIdx + 1} 的 MiniMax H3 视频生成提示词！`);
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 border border-purple-500/30 transition-colors cursor-pointer"
+                    title="生成并复制本批次（同场景光影）所有镜头的连贯 H3 提示词"
+                  >
+                    <Video className="w-3.5 h-3.5 text-purple-400" />
+                    <span>复制 H3 批次词</span>
+                  </button>
 
                   {isComplete ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">

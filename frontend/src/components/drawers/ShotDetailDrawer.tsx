@@ -17,6 +17,7 @@ import { ShotModel, CharacterModel, LocationModel, PropModel } from "@/types/sho
 import { normalizeAssetUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { cn } from "@/lib/utils";
+import { generateH3Prompt } from "@/lib/h3Prompt";
 
 interface ShotDetailDrawerProps {
   isOpen: boolean;
@@ -72,6 +73,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   onRegenerateImage,
 }) => {
   const [formData, setFormData] = useState<Partial<ShotModel>>({});
+  const [promptLang, setPromptLang] = useState<"en" | "zh">("en");
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -630,6 +632,123 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                   onChange={(e) => handleChange("image_prompt", e.target.value)}
                   className="w-full bg-background border border-border rounded-lg p-3 text-xs font-mono leading-relaxed focus:outline-none focus:border-primary resize-none text-foreground/90"
                 />
+              </div>
+
+              {/* MiniMax Hailuo H3 Multi-Modal Video Generation Block */}
+              <div className="space-y-2 pt-2 border-t border-border/40">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <span>MiniMax 海螺 H3 官方多模态提示词 (I2VA)</span>
+                      <span className="text-[10px] font-mono bg-purple-500/15 text-purple-300 border border-purple-500/30 px-1.5 py-0.2 rounded">
+                        时间轴逐字对账
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Prompt Language Switcher (en / zh) */}
+                    <div className="flex items-center bg-secondary/80 p-0.5 rounded-md border border-border text-[10px] font-mono">
+                      <button
+                        type="button"
+                        onClick={() => setPromptLang("en")}
+                        className={cn(
+                          "px-2 py-0.5 rounded transition-all",
+                          promptLang === "en" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                        title="官方口径：正文英文禁人名，台词保留[Chinese]原文"
+                      >
+                        EN (推荐)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPromptLang("zh")}
+                        className={cn(
+                          "px-2 py-0.5 rounded transition-all",
+                          promptLang === "zh" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                        title="中文模式：正文中文放行人名，台词保留[Chinese]原文"
+                      >
+                        中文
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const h3 = generateH3Prompt([
+                          {
+                            id: shot.id,
+                            order: formData.order || shot.order || 1,
+                            seconds: formData.duration || shot.duration || 2.5,
+                            shotSize: formData.shot_size || shot.shot_size,
+                            cameraMovement: movType,
+                            action: formData.action || shot.action || "",
+                            dialogue: formData.dialogue || shot.dialogue || "",
+                            dialogueEmotion: formData.dialogue_emotion || shot.dialogue_emotion,
+                            speakerName: formData.subject || shot.subject,
+                          },
+                        ], { lang: promptLang });
+                        handleChange("h3_prompt", h3);
+                        notify.success("已基于当前分镜参数重新编译 H3 视频生成提示词");
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-secondary hover:bg-secondary/80 text-foreground border border-border text-xs font-medium cursor-pointer"
+                      title="根据当前动作、机位与台词自动重新推导"
+                    >
+                      <Sparkles className="w-3 h-3 text-purple-400" />
+                      <span>编译H3</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const content = formData.h3_prompt || generateH3Prompt([
+                          {
+                            id: shot.id,
+                            order: formData.order || shot.order || 1,
+                            seconds: formData.duration || shot.duration || 2.5,
+                            shotSize: formData.shot_size || shot.shot_size,
+                            cameraMovement: movType,
+                            action: formData.action || shot.action || "",
+                            dialogue: formData.dialogue || shot.dialogue || "",
+                            dialogueEmotion: formData.dialogue_emotion || shot.dialogue_emotion,
+                            speakerName: formData.subject || shot.subject,
+                          },
+                        ], { lang: promptLang });
+                        handleCopy(content, "h3");
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/40 text-xs font-semibold cursor-pointer"
+                    >
+                      {copiedKey === "h3" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedKey === "h3" ? "已复制H3" : "一键复制H3"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <textarea
+                  rows={4}
+                  value={
+                    formData.h3_prompt ||
+                    generateH3Prompt([
+                      {
+                        id: shot.id,
+                        order: formData.order || shot.order || 1,
+                        seconds: formData.duration || shot.duration || 2.5,
+                        shotSize: formData.shot_size || shot.shot_size,
+                        cameraMovement: movType,
+                        action: formData.action || shot.action || "",
+                        dialogue: formData.dialogue || shot.dialogue || "",
+                        dialogueEmotion: formData.dialogue_emotion || shot.dialogue_emotion,
+                        speakerName: formData.subject || shot.subject,
+                      },
+                    ], { lang: promptLang })
+                  }
+                  onChange={(e) => handleChange("h3_prompt", e.target.value)}
+                  className="w-full bg-background border border-border/80 rounded-lg p-2.5 text-[11px] font-mono leading-relaxed focus:outline-none focus:border-purple-500 resize-none text-foreground/90"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  ⏱️ 包含首行对齐指令、切点时刻推进与 &lt;d&gt;[Chinese] 台词原子块。
+                </p>
               </div>
 
               {/* Video Prompt */}

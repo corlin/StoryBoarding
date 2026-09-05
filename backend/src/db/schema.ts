@@ -135,6 +135,9 @@ export const shots = sqliteTable("shots", {
   // Screen Text & Motion Overlays (Reelbench Short Drama / Explainer Feature)
   screenText: text("screen_text").default("").notNull(),
   screenTextStyle: text("screen_text_style").default("bold_impact").notNull(), // 'bold_impact' | 'warning_banner' | 'key_point' | 'minimal_lower_third'
+  // MiniMax Hailuo H3 multi-modal prompt & beat range alignment
+  h3Prompt: text("h3_prompt").default("").notNull(),
+  beatsRange: text("beats_range").default("[]").notNull(), // JSON string [start, end]
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });

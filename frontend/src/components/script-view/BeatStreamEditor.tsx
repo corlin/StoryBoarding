@@ -36,13 +36,13 @@ interface BeatStreamEditorProps {
   onSwitchToStoryboard?: () => void;
 }
 
-// Reelbench standard formula: (chars / 4.2) + 0.8s pause, minimum 1.5s
-export function calculateDialogueDuration(dialogue: string): number {
-  const clean = dialogue.replace(/[\s.,!?;:，。！？；：“”‘’"'\-\(\)（）]/g, "");
-  const count = clean.length;
+// shuohao-skills novel-script standard formula: non-whitespace chars / 4.5 charsPerSecond (including punctuation pause)
+export function calculateDialogueDuration(dialogue: string, charsPerSecond: number = 4.5): number {
+  const nonWhitespace = String(dialogue ?? "").replace(/\s+/g, "");
+  const count = nonWhitespace.length;
   if (count === 0) return 1.5;
-  const raw = count / 4.2 + 0.8;
-  return Math.max(1.5, Math.round(raw * 10) / 10);
+  const raw = count / charsPerSecond;
+  return Math.max(1.0, Math.round(raw * 10) / 10);
 }
 
 export function parseBeatsFromScreenplay(text: string): BeatModel[] {
@@ -292,18 +292,32 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
           </span>
           <span
             className={cn(
-              "px-2 py-0.2 rounded-full font-mono text-[10px] font-bold border",
-              diffPercent === 0
+              "px-2 py-0.5 rounded-full font-mono text-[10px] font-bold border flex items-center gap-1",
+              Math.abs(diffPercent) <= 15
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                : diffPercent > 0
-                ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
-                : "bg-blue-500/10 text-blue-300 border-blue-500/30"
+                : "bg-red-500/10 text-red-400 border-red-500/30 animate-pulse"
             )}
+            title={Math.abs(diffPercent) <= 15 ? "时长落在 ±15% 安全容差带内" : "超出 ±15% 容差警戒线，需增删戏份"}
           >
-            {diffPercent > 0 ? `+${diffPercent}%` : `${diffPercent}%`}
+            <span>{diffPercent > 0 ? `+${diffPercent}%` : `${diffPercent}%`}</span>
+            <span className="text-[9px] opacity-70">
+              {Math.abs(diffPercent) <= 15 ? "(±15%安全)" : "(超容差)"}
+            </span>
           </span>
           <span className="text-muted-foreground text-[11px] hidden sm:inline">
             · {sceneGroups.length} 场 · {beats.length} 节拍 · {dialogueCount} 台词
+          </span>
+          {/* Cold-open 3-beat hook gate */}
+          <span
+            className={cn(
+              "px-1.5 py-0.5 rounded text-[10px] font-mono border hidden md:inline-flex items-center gap-1",
+              beats.length > 0 && hook.trim().length > 0
+                ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                : "bg-muted text-muted-foreground border-border"
+            )}
+            title="shuohao冷开场规则：前3拍内具象兑现开篇钩子"
+          >
+            <span>冷开场闸门: 前3拍</span>
           </span>
         </div>
 
@@ -468,10 +482,20 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
                           : "bg-blue-500/[0.03] border-border/60 hover:border-blue-500/40"
                       )}
                     >
-                      {/* Beat Index (.n.mono) */}
-                      <span className="w-5 text-center font-mono text-[11px] text-muted-foreground/80 shrink-0 pt-0.5">
-                        {idx + 1}
-                      </span>
+                      {/* Beat Index & Hook Gate Indicator */}
+                      <div className="flex flex-col items-center gap-0.5 shrink-0 pt-0.5">
+                        <span className="w-5 text-center font-mono text-[11px] text-muted-foreground/80">
+                          {idx + 1}
+                        </span>
+                        {sceneNum === 1 && idx < 3 && (
+                          <span
+                            className="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30"
+                            title="冷开场窗口期 (第 1-3 拍)"
+                          >
+                            H{idx + 1}
+                          </span>
+                        )}
+                      </div>
 
                       {/* Main Beat Slot (.slot .view) */}
                       <div className="flex-1 min-w-0">
@@ -533,9 +557,14 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
                               </div>
                             ) : (
                               <>
-                                <span className="text-foreground font-medium flex-1">
+                                <span className={cn("font-medium flex-1", beat.content.replace(/\s+/g, "").length > 35 ? "text-amber-300 underline decoration-wavy decoration-amber-500" : "text-foreground")}>
                                   {beat.content}
                                 </span>
+                                {beat.content.replace(/\s+/g, "").length > 35 && (
+                                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/15 px-1 py-0.2 rounded border border-amber-500/30 shrink-0" title="shuohao质量门：单句台词建议 ≤ 35 字">
+                                    {beat.content.replace(/\s+/g, "").length}字 (&gt;35字)
+                                  </span>
+                                )}
                                 {beat.parenthetical && (
                                   <em className="text-muted-foreground/80 text-[11px] not-italic shrink-0">
                                     （{beat.parenthetical}）

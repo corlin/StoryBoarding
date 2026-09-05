@@ -4,8 +4,10 @@ import { StoryboardCell } from "./StoryboardCell";
 import { RhythmBarcode } from "./RhythmBarcode";
 import { CallSheetView } from "./CallSheetView";
 import { VoiceAlignmentDrawer } from "@/components/drawers/VoiceAlignmentDrawer";
-import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, RefreshCw, XCircle, Crosshair, Layers, Mic } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, RefreshCw, XCircle, Crosshair, Layers, Mic, Download, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { notify } from "@/components/ui/ToastNotification";
+import { generateH3Prompt } from "@/lib/h3Prompt";
 
 interface StoryboardPanelProps {
   shots: ShotModel[];
@@ -129,6 +131,55 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
           >
             <Mic className="w-3.5 h-3.5 text-pink-400" />
             <span className="hidden sm:inline">配音对齐单</span>
+          </button>
+
+          {/* Export Storyboard JSON Button (Complying with novel-storyboard standard) */}
+          <button
+            onClick={() => {
+              const exportData = {
+                source: "StoryBoarding",
+                timestamp: new Date().toISOString(),
+                shots_count: shots.length,
+                shots: shots.map((s, idx) => ({
+                  order: idx + 1,
+                  seconds: s.duration,
+                  shot_size: s.shot_size,
+                  camera: typeof s.camera_movement === "object" ? (s.camera_movement as any)?.type : s.camera_movement,
+                  action: s.action,
+                  dialogue: s.dialogue,
+                  dialogue_emotion: s.dialogue_emotion,
+                  subject: s.subject,
+                  h3_prompt: s.h3_prompt || generateH3Prompt([
+                    {
+                      id: s.id,
+                      order: idx + 1,
+                      seconds: s.duration,
+                      shotSize: s.shot_size,
+                      cameraMovement: typeof s.camera_movement === "object" ? (s.camera_movement as any)?.type : s.camera_movement,
+                      action: s.action,
+                      dialogue: s.dialogue,
+                      dialogueEmotion: s.dialogue_emotion,
+                      speakerName: s.subject,
+                    },
+                  ], { lang: "en" }),
+                  image_prompt: s.image_prompt,
+                  storyboard_image_url: s.storyboard_image_url,
+                })),
+              };
+              const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+              const a = document.createElement("a");
+              a.setAttribute("href", dataStr);
+              a.setAttribute("download", `storyboard_h3_manifest_${Date.now()}.json`);
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              notify.success("✨ 已成功导出标准分镜与 H3 提示词投产清单！");
+            }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary/60 hover:bg-secondary text-purple-300 border border-purple-500/30 transition-colors cursor-pointer"
+            title="导出包含所有分镜参数与 H3 视频生成提示词的标准投产包 JSON"
+          >
+            <Download className="w-3.5 h-3.5 text-purple-400" />
+            <span className="hidden sm:inline">导出分镜 JSON</span>
           </button>
           {/* Unified Batch Render Action & Readiness Status */}
           {!isBatchRendering && (
