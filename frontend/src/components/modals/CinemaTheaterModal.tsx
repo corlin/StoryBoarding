@@ -67,6 +67,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isCopiedH3, setIsCopiedH3] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -219,8 +220,6 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
       setIsFullscreen(false);
     }
   };
-
-  const [isCopiedH3, setIsCopiedH3] = useState(false);
 
   const handleCopyCurrentH3 = () => {
     if (!currentShot) return;
