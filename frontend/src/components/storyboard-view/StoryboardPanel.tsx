@@ -44,7 +44,8 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   onAbortBatchRendering,
 }) => {
   const [gridCols, setGridCols] = useState<2 | 3 | 4>(3);
-  const [showHudGuide, setShowHudGuide] = useState(true);
+  const [showHudGuide, setShowHudGuide] = useState(false);
+  const [showRhythmBarcode, setShowRhythmBarcode] = useState(false);
   const [viewMode, setViewMode] = useState<"timeline" | "callsheet">("timeline");
   const [isVoiceDrawerOpen, setIsVoiceDrawerOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -78,77 +79,73 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
 
   return (
     <section className="flex flex-col h-full bg-background/50 select-none relative">
-      {/* Header Bar */}
-      <div className="h-12 border-b border-border px-4 flex items-center justify-between shrink-0 bg-card/50">
+      {/* Streamlined Clean Header Bar (Single 44px Row) */}
+      <div className="h-11 border-b border-border/70 px-4 flex items-center justify-between shrink-0 bg-card/40">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <Film className="w-4 h-4 text-primary" />
+            <Film className="w-3.5 h-3.5 text-primary" />
             <h2 className="font-semibold text-xs text-foreground tracking-wide">
-              故事板 (Storyboard)
+              故事板
             </h2>
-            <span className="text-xs text-muted-foreground font-mono">
-              [{shots.length} 镜]
+            <span className="text-[11px] text-muted-foreground font-mono">
+              ({shots.length} 镜)
             </span>
           </div>
 
-          {/* View Mode Switcher: Timeline vs Call Sheet */}
-          <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/60 text-xs">
+          {/* Clean Segmented Control: Timeline vs Call Sheet */}
+          <div className="flex items-center bg-secondary/60 p-0.5 rounded-lg border border-border/50 text-xs">
             <button
               onClick={() => setViewMode("timeline")}
               className={cn(
-                "px-2.5 py-1 rounded text-xs font-medium transition-all flex items-center gap-1.5",
+                "px-2 py-0.5 rounded text-[11px] font-medium transition-all flex items-center gap-1",
                 viewMode === "timeline"
-                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  ? "bg-background text-foreground font-semibold shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Film className="w-3.5 h-3.5" />
               <span>时间轴</span>
             </button>
             <button
               onClick={() => setViewMode("callsheet")}
               className={cn(
-                "px-2.5 py-1 rounded text-xs font-medium transition-all flex items-center gap-1.5",
+                "px-2 py-0.5 rounded text-[11px] font-medium transition-all flex items-center gap-1",
                 viewMode === "callsheet"
-                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  ? "bg-background text-foreground font-semibold shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Layers className="w-3.5 h-3.5 text-amber-400" />
-              <span>顺场表 (Call Sheet)</span>
+              <span>顺场表</span>
             </button>
           </div>
         </div>
 
-        {/* Actions & Layout Controls */}
+        {/* Right Controls: Batch Render / Rhythm Toggle / Grid switch */}
         <div className="flex items-center gap-2">
-          {/* Voice Alignment Sheet Button */}
-          <button
-            onClick={() => setIsVoiceDrawerOpen(true)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary hover:bg-muted text-foreground border border-border transition-colors cursor-pointer"
-            title="查看全剧台词与角色音色特征配音对齐单"
-          >
-            <Mic className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="hidden sm:inline">配音对齐单</span>
-          </button>
-          {/* Unified Batch Render Action & Readiness Status */}
-          {!isBatchRendering && (
-            missingImageCount > 0 && onRegenerateDirty ? (
-              <button
-                onClick={onRegenerateDirty}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black shadow-sm shadow-amber-500/20 transition-all duration-150 active:scale-95"
-                title="一键冲印渲染尚未生成画面的镜头"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>一键冲印剩余 ({missingImageCount})</span>
-              </button>
-            ) : shots.length > 0 ? (
-              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>全片 {shots.length} 镜已显影就绪</span>
-              </div>
-            ) : null
+          {/* Unified Batch Render Action */}
+          {!isBatchRendering && missingImageCount > 0 && onRegenerateDirty && (
+            <button
+              onClick={onRegenerateDirty}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black shadow-xs transition-all cursor-pointer"
+              title="一键冲印渲染尚未生成画面的镜头"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>冲印画面 ({missingImageCount})</span>
+            </button>
           )}
+
+          {/* Rhythm Barcode Strip Toggle */}
+          <button
+            onClick={() => setShowRhythmBarcode(!showRhythmBarcode)}
+            className={cn(
+              "p-1.5 rounded-md text-xs transition-colors border cursor-pointer",
+              showRhythmBarcode
+                ? "bg-primary/10 border-primary/30 text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+            )}
+            title={showRhythmBarcode ? "收起视听节奏彩条" : "展开视听节奏彩条 (Rhythm Barcode)"}
+          >
+            <span className="text-[11px] font-mono">📊 节奏</span>
+          </button>
 
           {/* Previz HUD Guide Overlay Toggle Button */}
           <button
@@ -250,12 +247,14 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
         </div>
       )}
 
-      {/* Pacing Rhythm Barcode Strip */}
-      <RhythmBarcode
-        shots={shots}
-        selectedShotId={selectedShotId}
-        onSelectShot={onSelectShot}
-      />
+      {/* Pacing Rhythm Barcode Strip (Collapsible) */}
+      {showRhythmBarcode && (
+        <RhythmBarcode
+          shots={shots}
+          selectedShotId={selectedShotId}
+          onSelectShot={onSelectShot}
+        />
+      )}
 
       {/* Storyboard Grid Canvas OR Call Sheet View */}
       <div

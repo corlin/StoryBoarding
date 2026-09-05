@@ -496,99 +496,24 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
         )}
       </div>
 
-      {/* Card Body: Action, Dialogue, Screen Text, Audio and Script Description */}
-      <div className="p-3 flex flex-col justify-between flex-1 gap-1.5 bg-card/40">
+      {/* Card Body: Clean subtitle and action statement */}
+      <div className="p-3 flex flex-col justify-between flex-1 gap-1.5 bg-card/30">
         <div>
           {/* Action Description (Always Visible, 2-line clamp) */}
           <p className="text-xs text-foreground/90 font-medium line-clamp-2 leading-relaxed" title={shot.action}>
             {shot.action || "未填写动作描述"}
           </p>
 
-          {/* Dialogue (Expanded on Hover or if Present) */}
+          {/* Dialogue (Cleanly styled quote) */}
           {shot.dialogue && (
-            <p className="text-[11px] text-foreground/80 font-medium italic mt-1.5 line-clamp-1 border-l-2 border-primary/60 pl-1.5 bg-muted/30 py-0.5 rounded-r" title={shot.dialogue}>
-              💬 “{shot.dialogue}”
+            <p className="text-[11px] text-amber-300/90 font-medium italic mt-1 line-clamp-1 pl-1 border-l-2 border-amber-500/50" title={shot.dialogue}>
+              “{shot.dialogue}”
             </p>
-          )}
-
-          {/* Progressive Micro-Badge Strip (Collapsed by default, expanded on hover) */}
-          <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[10px]">
-            {/* Screen Text Badge */}
-            {shot.screen_text && (
-              <span className="inline-flex items-center gap-1 font-semibold text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 max-w-[150px] truncate" title={`花字: ${shot.screen_text}`}>
-                <span>🔤</span>
-                <span className="hidden group-hover:inline truncate">{shot.screen_text}</span>
-              </span>
-            )}
-
-            {/* Audio Indicator */}
-            {(() => {
-              const sfx = typeof shot.audio === "object" ? (Array.isArray(shot.audio?.sfx) ? shot.audio.sfx.join("、") : (shot.audio as any)?.sfx) : "";
-              const music = typeof shot.audio === "object" ? shot.audio?.music : "";
-              if (!sfx && !music) return null;
-              return (
-                <>
-                  {sfx && (
-                    <span className="inline-flex items-center gap-0.5 text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 max-w-[120px] truncate" title={`音效: ${sfx}`}>
-                      <span>🔊</span>
-                      <span className="hidden group-hover:inline truncate">{sfx}</span>
-                    </span>
-                  )}
-                  {music && (
-                    <span className="inline-flex items-center gap-0.5 text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border max-w-[120px] truncate" title={`配乐: ${music}`}>
-                      <span>🎵</span>
-                      <span className="hidden group-hover:inline truncate">{music}</span>
-                    </span>
-                  )}
-                </>
-              );
-            })()}
-
-            {/* Narrative Voltage Pill */}
-            {shot.beat_type && (
-              <span
-                className={cn(
-                  "px-1.5 py-0.5 rounded font-mono font-bold inline-flex items-center gap-1",
-                  shot.beat_type === "cliffhanger_hook" || shot.beat_type === "hook" || shot.beat_type === "climax_payoff"
-                    ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                    : "bg-secondary text-muted-foreground border border-border"
-                )}
-                title={`节拍卡点: ${shot.beat_type} (${shot.emotional_voltage ?? 50}V)`}
-              >
-                <span>⚡</span>
-                <span className="hidden group-hover:inline">
-                  {shot.beat_type === "hook"
-                    ? "开篇钩子"
-                    : shot.beat_type === "cliffhanger_hook"
-                    ? "悬念卡点"
-                    : shot.beat_type === "climax_payoff"
-                    ? "戏剧高潮"
-                    : "情绪蓄压"}
-                </span>
-                <span className="opacity-80">({shot.emotional_voltage ?? 50}V)</span>
-              </span>
-            )}
-          </div>
-
-          {/* Featured Characters Presence Pills (Hover Progressive) */}
-          {featuredChars.length > 0 && (
-            <div className="hidden group-hover:flex items-center gap-1.5 flex-wrap mt-2 pt-1.5 border-t border-border/30">
-              {featuredChars.map((ch) => (
-                <span
-                  key={ch.id}
-                  className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border shrink-0"
-                  title={`出镜角色: ${ch.name} (${ch.role})`}
-                >
-                  <User className="w-2.5 h-2.5 text-muted-foreground" />
-                  <span>{ch.name}</span>
-                </span>
-              ))}
-            </div>
           )}
         </div>
 
         {/* Footer Info: Camera Movement & Detail Drawer Trigger */}
-        <div className="flex items-center justify-between pt-1.5 border-t border-border/40 text-[11px] text-muted-foreground">
+        <div className="flex items-center justify-between pt-1.5 border-t border-border/30 text-[11px] text-muted-foreground">
           <div
             className="flex items-center gap-1.5 truncate max-w-[170px] cursor-help"
             title={CAMERA_MOVEMENT_GLOSSARY[shot.camera_movement?.type || "static"] || `运镜: ${shot.camera_movement?.type || "固定镜头"}`}
@@ -596,7 +521,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
             <Camera className="w-3 h-3 shrink-0 text-muted-foreground" />
             <span className="truncate font-mono text-[10px] text-foreground/80">{shot.camera_movement?.type || "static"}</span>
             {shot.duration && (
-              <span className="text-[9px] font-mono text-muted-foreground bg-secondary px-1 rounded">
+              <span className="text-[9px] font-mono text-muted-foreground bg-secondary/80 px-1 rounded">
                 {shot.duration}s
               </span>
             )}
@@ -608,9 +533,9 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
                 e.stopPropagation();
                 onOpenDetail();
               }}
-              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors font-medium ml-auto cursor-pointer"
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors font-medium ml-auto cursor-pointer group-hover:text-primary"
             >
-              <span>生视频参数</span>
+              <span>精修参数</span>
               <Info className="w-3 h-3" />
             </button>
           )}

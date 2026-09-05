@@ -55,47 +55,45 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
 
   return (
     <section className="flex flex-col h-full min-h-0 overflow-hidden bg-background">
-      {/* Panel Sub-Header with Tri-Mode Toggle */}
-      <div className="h-12 px-4 border-b border-border flex items-center justify-between bg-card/40 shrink-0 select-none">
+      {/* Panel Header (Clean 44px Row) */}
+      <div className="h-11 px-4 border-b border-border/70 flex items-center justify-between bg-card/40 shrink-0 select-none">
         {/* Left: View Mode Toggle */}
-        <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/70">
+        <div className="flex items-center bg-secondary/60 p-0.5 rounded-lg border border-border/50">
           <button
             type="button"
             onClick={() => setViewMode("beats")}
             className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer",
+              "flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-medium transition-all cursor-pointer",
               viewMode === "beats"
-                ? "bg-purple-600 text-white shadow-xs font-bold"
+                ? "bg-background text-foreground font-semibold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <span>⚡ 剧本节拍流</span>
+            <span>节拍流</span>
           </button>
           <button
             type="button"
             onClick={() => setViewMode("shots")}
             className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer",
+              "flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-medium transition-all cursor-pointer",
               viewMode === "shots"
-                ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                ? "bg-background text-foreground font-semibold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Film className="w-3.5 h-3.5" />
-            <span>🎬 导演分镜 ({shots.length})</span>
+            <span>分镜列表 ({shots.length})</span>
           </button>
           <button
             type="button"
             onClick={() => setViewMode("screenplay")}
             className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer",
+              "flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-medium transition-all cursor-pointer",
               viewMode === "screenplay"
-                ? "bg-amber-500 text-black shadow-xs font-bold"
+                ? "bg-background text-foreground font-semibold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <FileText className="w-3.5 h-3.5" />
-            <span>📄 文学母本</span>
+            <span>文学母本</span>
           </button>
         </div>
 
@@ -105,10 +103,10 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
             <button
               disabled={!sequenceId}
               onClick={() => onAddShot(sequenceId)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>添加镜头</span>
+              <span>加镜头</span>
             </button>
           )}
         </div>

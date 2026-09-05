@@ -80,26 +80,22 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
     const lines: string[] = [
       `第 ${epNum} 场 · ${seq.title || `第 ${epNum} 集`} · 空间内景 · 夜`,
       "",
-      `【场景氛围】${seq.cliffhanger_summary ? `全集紧扣生死卡点：“${seq.cliffhanger_summary}”` : "紧张对峙，暗流涌动。"}`,
+      `${seq.cliffhanger_summary ? `【情境】${seq.cliffhanger_summary}` : "【情境】角色入场，氛围凝重。"}`.trim(),
       "",
     ];
 
     if (seq.shots && seq.shots.length > 0) {
       seq.shots.forEach((s, idx) => {
-        lines.push(`【镜头 #${idx + 1} · ${s.shot_size || "中景"}】${s.action || "角色展开行动。"}`);
+        // Clean natural script format: Shot order as subtle marker, clean action description
+        lines.push(`[第 ${idx + 1} 镜] ${s.action || "角色展开关键行动。"}`);
         if (s.dialogue) {
-          lines.push("");
-          lines.push(`  ${s.subject || "主角"}`);
-          lines.push(`  “${s.dialogue}”`);
-          lines.push("");
+          lines.push(`  ${s.subject || "角色"}：“${s.dialogue}”`);
         }
+        lines.push("");
       });
     } else {
-      lines.push("【动作】角色在此处展开关键行动...");
-      lines.push("");
-      lines.push("  主角");
-      lines.push("  (语气坚定)");
-      lines.push("  “这一次，我绝不会再放手。”");
+      lines.push("[第 1 镜] 角色在此处展开关键行动...");
+      lines.push("  主角：“这一次，我绝不会再放手。”");
     }
 
     return lines.join("\n");

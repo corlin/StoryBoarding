@@ -23,7 +23,6 @@ import { ProjectQualityRadarModal } from "@/components/modals/ProjectQualityRada
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
 import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibraryModal";
 import { QuickStartWizardModal } from "@/components/modals/QuickStartWizardModal";
-import { DirectorMissionBar } from "@/components/workspace/DirectorMissionBar";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
@@ -600,24 +599,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onOpenMediaLibrary={() => setIsMediaLibraryOpen(true)}
         onOpenDelete={() => setIsOpenDeleteModal(true)}
         onOpenWizard={() => setIsWizardOpen(true)}
-      />
-
-      {/* Director Mission Bar (Dynamic Contextual Step Navigation) */}
-      <DirectorMissionBar
-        shotCount={shots.length}
-        completedCount={shots.filter((s) => Boolean(s.storyboard_image_url)).length}
-        onOpenWizard={() => setIsWizardOpen(true)}
-        onOpenBible={() => {
-          setBibleMode("bible");
-          setIsOpenBibleModal(true);
-        }}
-        onBatchRender={() => startClientRenderQueue(effectiveProjectId)}
-        onOpenTheater={() => {
-          setTheaterShotId(selectedShotId || shots[0]?.id || null);
-          setIsTheaterOpen(true);
-        }}
-        onOpenRadar={() => setIsOpenRadarModal(true)}
-        onOpenExport={() => setIsOpenExportModal(true)}
       />
 
       {/* Time Travel Read-Only Banner */}
