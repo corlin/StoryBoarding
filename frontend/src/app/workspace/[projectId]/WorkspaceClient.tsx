@@ -812,6 +812,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         <ShotDetailDrawer
           isOpen={isDrawerOpen}
           shot={activeDrawerShot}
+          allShots={shots}
+          onNavigateShot={handleOpenDrawer}
           characters={displayProject?.characters || []}
           locations={displayProject?.locations || []}
           propsList={displayProject?.props || []}

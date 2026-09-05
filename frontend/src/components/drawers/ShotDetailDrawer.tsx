@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   X,
   Sparkles,
@@ -12,6 +12,8 @@ import {
   Copy,
   Check,
   Eye,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { ShotModel, CharacterModel, LocationModel, PropModel } from "@/types/shot";
 import { normalizeAssetUrl } from "@/lib/api";
@@ -24,6 +26,8 @@ interface ShotDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   shot: ShotModel | null;
+  allShots?: ShotModel[];
+  onNavigateShot?: (shotId: string) => void;
   characters?: CharacterModel[];
   locations?: LocationModel[];
   propsList?: PropModel[];
@@ -67,6 +71,8 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   isOpen,
   onClose,
   shot,
+  allShots = [],
+  onNavigateShot,
   characters = [],
   locations = [],
   propsList = [],
@@ -79,6 +85,53 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const currentIdx = allShots.findIndex((s) => s.id === shot?.id);
+  const totalCount = allShots.length;
+  const prevShot = currentIdx > 0 ? allShots[currentIdx - 1] : null;
+  const nextShot = currentIdx >= 0 && currentIdx < totalCount - 1 ? allShots[currentIdx + 1] : null;
+
+  const handleGoPrev = useCallback(() => {
+    if (prevShot && onNavigateShot) {
+      onNavigateShot(prevShot.id);
+    }
+  }, [prevShot, onNavigateShot]);
+
+  const handleGoNext = useCallback(() => {
+    if (nextShot && onNavigateShot) {
+      onNavigateShot(nextShot.id);
+    }
+  }, [nextShot, onNavigateShot]);
+
+  // Keyboard navigation: [ for prev, ] for next, or Left/Right arrows when not typing
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || "").toLowerCase();
+      const isTyping = activeTag === "input" || activeTag === "textarea" || (document.activeElement as any)?.isContentEditable;
+
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (e.key === "[" || (e.key === "ArrowLeft" && !isTyping)) {
+        if (prevShot && onNavigateShot) {
+          e.preventDefault();
+          onNavigateShot(prevShot.id);
+        }
+      } else if (e.key === "]" || (e.key === "ArrowRight" && !isTyping)) {
+        if (nextShot && onNavigateShot) {
+          e.preventDefault();
+          onNavigateShot(nextShot.id);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, prevShot, nextShot, onNavigateShot, onClose]);
 
   useEffect(() => {
     if (shot) {
@@ -124,28 +177,68 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
       <div
         className="w-full sm:max-w-xl md:max-w-2xl bg-card border-l border-border h-full flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-right duration-250"
       >
-        {/* Drawer Header */}
-        <div className="h-16 px-6 border-b border-border flex items-center justify-between bg-muted/20 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-mono font-bold text-sm border border-primary/20">
+        {/* Drawer Header with Continuous Step Controls */}
+        <div className="h-16 px-5 border-b border-border flex items-center justify-between bg-muted/20 shrink-0 gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-mono font-bold text-sm border border-primary/20 shrink-0">
               {String(shot.order).padStart(2, "0")}
             </div>
-            <div>
-              <h3 className="text-base font-semibold text-foreground">
+            <div className="min-w-0">
+              <h3 className="text-base font-semibold text-foreground truncate">
                 分镜头深度编辑与视听参数
               </h3>
-              <p className="text-xs text-muted-foreground">
-                Shot #{shot.order} · {shot.shot_size.toUpperCase()} · {shot.duration}s
+              <p className="text-xs text-muted-foreground truncate">
+                Shot #{shot.order} {totalCount > 0 && `(${currentIdx + 1}/${totalCount})`} · {shot.shot_size.toUpperCase()} · {shot.duration}s
               </p>
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Prev/Next Shot Continuous Steppers */}
+            {totalCount > 1 && onNavigateShot && (
+              <div className="flex items-center rounded-lg border border-border/70 bg-background/80 p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={handleGoPrev}
+                  disabled={!prevShot}
+                  title="上一镜快捷切换 (快捷键: [ 或 ←)"
+                  className={cn(
+                    "p-1.5 rounded-md text-xs font-medium flex items-center gap-1 transition-colors",
+                    prevShot
+                      ? "hover:bg-secondary text-foreground cursor-pointer"
+                      : "text-muted-foreground/40 cursor-not-allowed"
+                  )}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline text-[11px]">上一镜</span>
+                </button>
+                <div className="w-[1px] h-3.5 bg-border/60 mx-0.5" />
+                <button
+                  type="button"
+                  onClick={handleGoNext}
+                  disabled={!nextShot}
+                  title="下一镜快捷切换 (快捷键: ] 或 →)"
+                  className={cn(
+                    "p-1.5 rounded-md text-xs font-medium flex items-center gap-1 transition-colors",
+                    nextShot
+                      ? "hover:bg-secondary text-foreground cursor-pointer"
+                      : "text-muted-foreground/40 cursor-not-allowed"
+                  )}
+                >
+                  <span className="hidden sm:inline text-[11px]">下一镜</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              title="关闭抽屉 (Esc)"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Tab Switcher */}
