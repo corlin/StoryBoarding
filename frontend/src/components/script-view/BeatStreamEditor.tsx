@@ -27,6 +27,7 @@ import {
   Edit2,
   Check,
   RefreshCw,
+  Scissors,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,45 @@ export function calculateDialogueDuration(dialogue: string, charsPerSecond: numb
   if (count === 0) return 1.5;
   const raw = count / charsPerSecond;
   return Math.max(1.0, Math.round(raw * 10) / 10);
+}
+
+/**
+ * 智能按标点符号断句拆分（中英文逗号、分号、句号、感叹号、问号、破折号、省略号）
+ * 返回两个拆分后的子句。如果没有合适标点，则从正中折半断开。
+ */
+export function splitLongDialogue(dialogue: string): [string, string] {
+  const text = String(dialogue ?? "").trim();
+  if (text.length <= 1) return [text, ""];
+
+  // 标点符号集
+  const punctRegex = /[，,。！？!?；;……——\n]/g;
+  const matches: number[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = punctRegex.exec(text)) !== null) {
+    // 排除首字符和末字符处的无意义断点
+    if (m.index > 3 && m.index < text.length - 4) {
+      matches.push(m.index);
+    }
+  }
+
+  const mid = Math.floor(text.length / 2);
+  let bestSplitIndex = -1;
+
+  if (matches.length > 0) {
+    // 找距离正中最近的标点断点
+    bestSplitIndex = matches.reduce((prev, curr) =>
+      Math.abs(curr - mid) < Math.abs(prev - mid) ? curr : prev
+    );
+    // 包含当前断点标点在第一句中
+    const part1 = text.slice(0, bestSplitIndex + 1).trim();
+    const part2 = text.slice(bestSplitIndex + 1).trim();
+    return [part1, part2];
+  } else {
+    // 无标点，从中间折半
+    const part1 = text.slice(0, mid).trim();
+    const part2 = text.slice(mid).trim();
+    return [part1, part2];
+  }
 }
 
 export function parseBeatsFromScreenplay(text: string, fallbackSceneTitle: string = "主场景"): BeatModel[] {
@@ -276,6 +316,45 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
 
   const handleDeleteBeat = (id: string) => {
     setBeats(beats.filter((b) => b.id !== id));
+  };
+
+  const handleSplitBeat = (targetBeat: BeatModel) => {
+    const [part1, part2] = splitLongDialogue(targetBeat.content);
+    if (!part2) {
+      notify.error("未找到合适断句标点，无法拆分");
+      return;
+    }
+
+    const duration1 = calculateDialogueDuration(part1);
+    const duration2 = calculateDialogueDuration(part2);
+
+    const beat1: BeatModel = {
+      ...targetBeat,
+      content: part1,
+      duration: duration1,
+    };
+
+    const beat2: BeatModel = {
+      id: crypto.randomUUID(),
+      type: "dialogue",
+      scene_number: targetBeat.scene_number,
+      scene_title: targetBeat.scene_title,
+      speaker: targetBeat.speaker,
+      parenthetical: undefined,
+      content: part2,
+      duration: duration2,
+      location_code: targetBeat.location_code,
+      lighting_state: targetBeat.lighting_state,
+    };
+
+    // 在 targetBeat 的原位置后面紧接着插入拆分出的第二拍
+    const targetIndex = beats.findIndex((b) => b.id === targetBeat.id);
+    if (targetIndex === -1) return;
+
+    const newBeats = [...beats];
+    newBeats.splice(targetIndex, 1, beat1, beat2);
+    setBeats(newBeats);
+    notify.success("已智能拆分为双拍，已符合单句 ≤ 35 字规范！");
   };
 
   const handleSaveAll = async () => {
@@ -603,9 +682,23 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
                                   {beat.content}
                                 </span>
                                 {beat.content.replace(/\s+/g, "").length > 35 && (
-                                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/15 px-1 py-0.2 rounded border border-amber-500/30 shrink-0" title="shuohao质量门：单句台词建议 ≤ 35 字">
-                                    {beat.content.replace(/\s+/g, "").length}字 (&gt;35字)
-                                  </span>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30 shrink-0" title="shuohao质量门：单句台词建议 ≤ 35 字">
+                                      {beat.content.replace(/\s+/g, "").length}字 (&gt;35字)
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSplitBeat(beat);
+                                      }}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-amber-200 border border-amber-500/40 text-[10px] font-medium transition-all shadow-xs cursor-pointer active:scale-95"
+                                      title="智能在标点符号处断句，一分为二拆为双拍，消除超长告警"
+                                    >
+                                      <Scissors className="w-2.5 h-2.5" />
+                                      <span>⚡ 一键智能拆句</span>
+                                    </button>
+                                  </div>
                                 )}
                                 {beat.parenthetical && (
                                   <em className="text-muted-foreground/80 text-[11px] not-italic shrink-0">
