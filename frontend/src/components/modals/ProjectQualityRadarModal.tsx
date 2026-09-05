@@ -348,6 +348,24 @@ export const ProjectQualityRadarModal: React.FC<ProjectQualityRadarModalProps> =
   const warnCount = diagnostics.filter((d) => d.status === "warn").length;
   const failCount = diagnostics.filter((d) => d.status === "fail").length;
 
+  const [activeFilter, setActiveFilter] = React.useState<"all" | "action_required" | "fail" | "warn" | "pass">("all");
+
+  const filteredDiagnostics = useMemo(() => {
+    if (activeFilter === "action_required") {
+      return diagnostics.filter((d) => d.status === "fail" || d.status === "warn");
+    }
+    if (activeFilter === "fail") {
+      return diagnostics.filter((d) => d.status === "fail");
+    }
+    if (activeFilter === "warn") {
+      return diagnostics.filter((d) => d.status === "warn");
+    }
+    if (activeFilter === "pass") {
+      return diagnostics.filter((d) => d.status === "pass");
+    }
+    return diagnostics;
+  }, [diagnostics, activeFilter]);
+
   if (!isOpen) return null;
 
   return (
@@ -415,9 +433,98 @@ export const ProjectQualityRadarModal: React.FC<ProjectQualityRadarModalProps> =
           </span>
         </div>
 
+        {/* Filter Capsule Tabs */}
+        <div className="px-6 py-2.5 border-b border-border/70 bg-card/60 flex items-center gap-1.5 overflow-x-auto shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveFilter("all")}
+            className={cn(
+              "px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer",
+              activeFilter === "all"
+                ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
+                : "bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary"
+            )}
+          >
+            <span>全部指标</span>
+            <span className="font-mono text-[10px] opacity-80">({diagnostics.length})</span>
+          </button>
+
+          {(failCount > 0 || warnCount > 0) && (
+            <button
+              type="button"
+              onClick={() => setActiveFilter("action_required")}
+              className={cn(
+                "px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer",
+                activeFilter === "action_required"
+                  ? "bg-red-500 text-white shadow-2xs"
+                  : "bg-red-500/10 text-red-300 border border-red-500/20 hover:bg-red-500/20"
+              )}
+            >
+              <span>🚨 需优先处理</span>
+              <span className="font-mono text-[10px] opacity-90">({failCount + warnCount})</span>
+            </button>
+          )}
+
+          {failCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveFilter("fail")}
+              className={cn(
+                "px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer",
+                activeFilter === "fail"
+                  ? "bg-red-600 text-white font-semibold shadow-2xs"
+                  : "bg-secondary/60 text-red-400 hover:text-red-300 hover:bg-secondary"
+              )}
+            >
+              <XCircle className="w-3 h-3" />
+              <span>未通过</span>
+              <span className="font-mono text-[10px]">({failCount})</span>
+            </button>
+          )}
+
+          {warnCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveFilter("warn")}
+              className={cn(
+                "px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer",
+                activeFilter === "warn"
+                  ? "bg-amber-500 text-black font-semibold shadow-2xs"
+                  : "bg-secondary/60 text-amber-400 hover:text-amber-300 hover:bg-secondary"
+              )}
+            >
+              <AlertTriangle className="w-3 h-3" />
+              <span>待调优</span>
+              <span className="font-mono text-[10px]">({warnCount})</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setActiveFilter("pass")}
+            className={cn(
+              "px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer",
+              activeFilter === "pass"
+                ? "bg-emerald-600 text-white font-semibold shadow-2xs"
+                : "bg-secondary/60 text-emerald-400 hover:text-emerald-300 hover:bg-secondary"
+            )}
+          >
+            <CheckCircle2 className="w-3 h-3" />
+            <span>已达标</span>
+            <span className="font-mono text-[10px]">({passCount})</span>
+          </button>
+        </div>
+
         {/* Diagnostic Items List */}
         <div className="flex-1 overflow-y-auto p-6 space-y-3">
-          {diagnostics.map((item) => {
+          {filteredDiagnostics.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground text-xs">
+              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2 opacity-60" />
+              <p className="font-medium text-foreground">当前筛选分类下无体检指标项</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">请切换其他过滤选项查看完整报告</p>
+            </div>
+          ) : (
+            filteredDiagnostics.map((item) => {
             const isPass = item.status === "pass";
             const isWarn = item.status === "warn";
 
@@ -481,7 +588,7 @@ export const ProjectQualityRadarModal: React.FC<ProjectQualityRadarModalProps> =
                 )}
               </div>
             );
-          })}
+          }))}
         </div>
 
         {/* Modal Footer */}
