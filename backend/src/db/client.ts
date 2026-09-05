@@ -195,6 +195,8 @@ export async function ensureSchema(d1: D1Database) {
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN emotional_voltage REAL DEFAULT 50.0;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN information_gap TEXT DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN compute_tier TEXT DEFAULT 'standard';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN screen_text TEXT DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN screen_text_style TEXT DEFAULT 'bold_impact';`).run(); } catch (_) {}
 
     schemaInitialized = true;
   } catch (e) {

@@ -137,6 +137,9 @@ export function generateShotScriptMarkdown(
 
     lines.push(`- **动作调度**: ${s.action}`);
     if (s.dialogue) lines.push(`- **角色台词**: “${s.dialogue}”`);
+    if ((s as any).screenText) {
+      lines.push(`- **🔤 屏幕文字/花字 (Screen Text)**: **【${(s as any).screenText}】** (样式: ${(s as any).screenTextStyle || "醒目冲击"})`);
+    }
     lines.push(`- **戏剧节拍**: ${s.beatType || "情绪推进"} (${s.emotionalVoltage || 50}V)`);
     lines.push(`- **图像 Prompt**: \`${s.imagePrompt}\``);
     if (s.videoPrompt) lines.push(`- **视频运镜 Prompt**: \`${s.videoPrompt}\``);

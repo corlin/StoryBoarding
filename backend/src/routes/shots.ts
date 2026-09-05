@@ -53,6 +53,8 @@ router.post("/", async (c) => {
       imagePrompt: autoImgPrompt,
       videoPrompt: autoVidPrompt,
       continuityData: typeof body.continuity_data === "string" ? body.continuity_data : JSON.stringify(body.continuity_data || {}),
+      screenText: body.screen_text || "",
+      screenTextStyle: body.screen_text_style || "bold_impact",
       isDirty: false,
     })
     .returning();
@@ -61,6 +63,8 @@ router.post("/", async (c) => {
     ...newShot,
     character_ids: JSON.parse(newShot.characterIds || "[]"),
     location_id: newShot.locationId || "",
+    screen_text: newShot.screenText || "",
+    screen_text_style: newShot.screenTextStyle || "bold_impact",
   }, 201);
 });
 
@@ -155,6 +159,9 @@ router.put("/:id", async (c) => {
     if (body.video_prompt !== undefined) updates.videoPrompt = body.video_prompt;
   }
 
+  if (body.screen_text !== undefined) updates.screenText = body.screen_text;
+  if (body.screen_text_style !== undefined) updates.screenTextStyle = body.screen_text_style;
+
   updates.updatedAt = new Date().toISOString();
 
   const [updated] = await db.update(shots).set(updates).where(eq(shots.id, id)).returning();
@@ -165,6 +172,8 @@ router.put("/:id", async (c) => {
     location_id: updated.locationId || "",
     clip_id: updated.clipId || "",
     dialogue_emotion: updated.dialogueEmotion || "",
+    screen_text: updated.screenText || "",
+    screen_text_style: updated.screenTextStyle || "bold_impact",
   });
 });
 

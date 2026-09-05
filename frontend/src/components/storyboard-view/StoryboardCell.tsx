@@ -417,6 +417,38 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           </div>
         )}
 
+        {/* Screen Text Overlay on Canvas Preview (Reelbench Feature) */}
+        {shot.screen_text && (
+          <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center pointer-events-none">
+            {shot.screen_text_style === "warning_banner" ? (
+              <div className="w-full bg-red-600/90 text-white font-black text-xs sm:text-sm py-1 px-2.5 text-center tracking-widest uppercase shadow-2xl border-y-2 border-yellow-400 rotate-[-1deg] backdrop-blur-xs">
+                🚨 {shot.screen_text} 🚨
+              </div>
+            ) : shot.screen_text_style === "key_point" ? (
+              <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500/95 via-yellow-400/95 to-amber-500/95 text-neutral-950 font-extrabold text-xs sm:text-sm px-3 py-1 rounded-full shadow-xl border border-yellow-200">
+                <span>💡</span>
+                <span className="tracking-wide">{shot.screen_text}</span>
+              </div>
+            ) : shot.screen_text_style === "minimal_lower_third" ? (
+              <div className="absolute bottom-2 left-2 max-w-[85%] bg-black/85 text-zinc-100 font-mono text-[10px] sm:text-xs px-2.5 py-0.5 rounded-r border-l-2 border-sky-400 backdrop-blur-xs shadow-md">
+                🏷️ {shot.screen_text}
+              </div>
+            ) : (
+              /* Default: bold_impact 醒目冲击短视频大字 */
+              <div className="text-center px-2 py-1 max-w-[95%]">
+                <span
+                  className="font-black text-xs sm:text-sm tracking-wider text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase"
+                  style={{
+                    textShadow: "0 0 4px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 3px 6px rgba(0,0,0,0.9)",
+                  }}
+                >
+                  {shot.screen_text}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Persisted to R2 Status Indicator (Bottom-right overlay) */}
         {imgSrc && !isRegenerating && (
           <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/75 backdrop-blur-xs px-1.5 py-0.5 rounded text-[9px] font-mono text-emerald-400 border border-emerald-500/20 z-10 opacity-70 group-hover:opacity-100 transition-opacity">
@@ -426,7 +458,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
         )}
       </div>
 
-      {/* Card Body: Action, Dialogue, Audio and Script Description */}
+      {/* Card Body: Action, Dialogue, Screen Text, Audio and Script Description */}
       <div className="p-3 flex flex-col justify-between flex-1 gap-2 bg-card/40">
         <div>
           <p className="text-xs text-foreground/90 font-medium line-clamp-2 leading-relaxed" title={shot.action}>
@@ -437,6 +469,15 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
             <p className="text-[11px] text-sky-300 font-medium italic mt-1.5 line-clamp-1 border-l-2 border-sky-400/60 pl-1.5 bg-sky-500/5 py-0.5 rounded-r" title={shot.dialogue}>
               💬 “{shot.dialogue}”
             </p>
+          )}
+
+          {shot.screen_text && (
+            <div className="flex items-center gap-1 mt-1.5 overflow-hidden" title={`屏幕花字: ${shot.screen_text} (${shot.screen_text_style || "bold_impact"})`}>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 truncate max-w-full">
+                <span className="text-[9px]">🔤</span>
+                <span className="truncate">{shot.screen_text}</span>
+              </span>
+            </div>
           )}
 
           {(() => {

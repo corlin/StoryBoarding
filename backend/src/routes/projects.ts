@@ -136,6 +136,8 @@ router.get("/:id", async (c) => {
             emotional_voltage: s.emotionalVoltage,
             information_gap: s.informationGap,
             compute_tier: s.computeTier,
+            screen_text: s.screenText || "",
+            screen_text_style: s.screenTextStyle || "bold_impact",
             created_at: s.createdAt,
             updated_at: s.updatedAt,
           })),

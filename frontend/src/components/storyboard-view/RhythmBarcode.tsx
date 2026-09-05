@@ -112,13 +112,17 @@ export const RhythmBarcode: React.FC<RhythmBarcodeProps> = ({
               key={shot.id}
               onClick={() => onSelectShot(shot.id)}
               style={{ width: `${Math.max(widthPercent, 1.5)}%` }}
-              title={`#${shot.order} [${cfg.label}] - ${shot.duration}s: ${shot.action?.slice(0, 30)}...`}
+              title={`#${shot.order} [${cfg.label}] - ${shot.duration}s: ${shot.action?.slice(0, 30)}...${shot.screen_text ? `\n[花字]: ${shot.screen_text}` : ""}`}
               className={cn(
-                "h-full transition-all relative group cursor-pointer",
+                "h-full transition-all relative group cursor-pointer flex items-center justify-center",
                 cfg.color,
                 isSelected ? "ring-2 ring-white z-10 brightness-125" : "hover:brightness-110 opacity-85 hover:opacity-100"
               )}
-            />
+            >
+              {shot.screen_text && (
+                <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 ring-1 ring-black/80 shadow-xs pointer-events-none" />
+              )}
+            </button>
           );
         })}
       </div>
@@ -143,6 +147,10 @@ export const RhythmBarcode: React.FC<RhythmBarcodeProps> = ({
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm bg-rose-500" />
               <span>大特写 ECU</span>
+            </div>
+            <div className="flex items-center gap-1.5 ml-1 pl-2 border-l border-border/60">
+              <span className="w-2 h-2 rounded-full bg-yellow-300 ring-1 ring-black/80" />
+              <span>🔤 屏幕花字</span>
             </div>
           </div>
           <div className="font-mono">

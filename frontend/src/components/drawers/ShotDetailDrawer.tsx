@@ -160,6 +160,29 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                   暂无分镜图
                 </div>
               )}
+
+              {/* Live Overlay Preview of Screen Text on Drawer Thumbnail */}
+              {formData.screen_text && (
+                <div className="absolute inset-x-1 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center pointer-events-none">
+                  {formData.screen_text_style === "warning_banner" ? (
+                    <div className="w-full bg-red-600/90 text-white font-black text-[9px] py-0.5 px-1 text-center tracking-wider border-y border-yellow-400">
+                      🚨 {formData.screen_text}
+                    </div>
+                  ) : formData.screen_text_style === "key_point" ? (
+                    <div className="bg-amber-400 text-neutral-950 font-bold text-[9px] px-2 py-0.5 rounded-full shadow">
+                      💡 {formData.screen_text}
+                    </div>
+                  ) : formData.screen_text_style === "minimal_lower_third" ? (
+                    <div className="absolute bottom-1 left-1 bg-black/80 text-zinc-100 font-mono text-[8px] px-1 py-0.2 rounded border-l border-sky-400">
+                      🏷️ {formData.screen_text}
+                    </div>
+                  ) : (
+                    <div className="text-center font-black text-[10px] text-yellow-300 drop-shadow-[0_1px_2px_rgba(0,0,0,1)] tracking-wider">
+                      {formData.screen_text}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex-1 space-y-2 w-full">
@@ -276,6 +299,67 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                   />
                 </div>
+              </div>
+
+              {/* Reelbench Screen Text & Motion Overlays (花字/屏幕题眼) */}
+              <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+                    <span>🔤</span>
+                    <span>屏幕文字 / 核心花字 (Screen Text Overlay)</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">独立于对白的视觉卡点与题眼层</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2">
+                    <label className="text-xs text-muted-foreground block mb-1">花字文案内容</label>
+                    <input
+                      type="text"
+                      value={formData.screen_text || ""}
+                      onChange={(e) => handleChange("screen_text", e.target.value)}
+                      placeholder="例如: 🚨 高能反转 / ⚡️ 核心真相揭晓 / 关键定理..."
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">花字排版风格</label>
+                    <select
+                      value={formData.screen_text_style || "bold_impact"}
+                      onChange={(e) => handleChange("screen_text_style", e.target.value)}
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-primary"
+                    >
+                      <option value="bold_impact">💥 醒目冲击 (黄黑重字)</option>
+                      <option value="warning_banner">🚨 警示红条 (危机Banner)</option>
+                      <option value="key_point">💡 核心提要 (金色光晕)</option>
+                      <option value="minimal_lower_third">🏷️ 电影角标 (极简白条)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {formData.screen_text && (
+                  <div className="p-2.5 rounded-lg bg-black/50 border border-border/60 flex items-center justify-center min-h-[48px]">
+                    {formData.screen_text_style === "warning_banner" ? (
+                      <div className="w-full bg-red-600 text-white font-black text-xs py-1 px-3 text-center tracking-widest uppercase border-y-2 border-yellow-400">
+                        🚨 {formData.screen_text} 🚨
+                      </div>
+                    ) : formData.screen_text_style === "key_point" ? (
+                      <div className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-neutral-950 font-extrabold text-xs px-3 py-0.5 rounded-full shadow">
+                        <span>💡</span>
+                        <span>{formData.screen_text}</span>
+                      </div>
+                    ) : formData.screen_text_style === "minimal_lower_third" ? (
+                      <div className="w-full bg-black/80 text-zinc-100 font-mono text-xs px-2.5 py-1 rounded border-l-2 border-sky-400">
+                        🏷️ {formData.screen_text}
+                      </div>
+                    ) : (
+                      <div className="text-center font-black text-sm text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,1)] tracking-wider">
+                        {formData.screen_text}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Location and Props Selection (Reelbench Standard) */}

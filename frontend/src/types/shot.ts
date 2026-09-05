@@ -84,6 +84,9 @@ export interface ShotModel {
   compute_tier?: 'flagship' | 'standard' | 'economy';
   act_progression?: string; // '启动·钩子与建置' | '升级·检验与逼迫' | '假高潮·行动与质变' | '兑现·核心反转与余味'
   hook_phase?: string; // '0-3s入画' | '3-10s加压' | '10-30s揭底牌' | '后段高潮'
+  // Reelbench Screen Text & Motion Overlays
+  screen_text?: string;
+  screen_text_style?: 'bold_impact' | 'warning_banner' | 'key_point' | 'minimal_lower_third';
   created_at: string;
   updated_at: string;
 }
