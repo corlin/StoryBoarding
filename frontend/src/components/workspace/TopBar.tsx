@@ -39,6 +39,7 @@ import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { AdaptationTradeoffModal } from "@/components/modals/AdaptationTradeoffModal";
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
 import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibraryModal";
+import { ProjectQualityRadarModal } from "@/components/modals/ProjectQualityRadarModal";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
@@ -90,6 +91,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
   const [isOpenExportModal, setIsOpenExportModal] = useState(false);
   const [isOpenTradeoffModal, setIsOpenTradeoffModal] = useState(false);
+  const [isOpenRadarModal, setIsOpenRadarModal] = useState(false);
   const [isGlobalAssetOpen, setIsGlobalAssetOpen] = useState(false);
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -224,6 +226,16 @@ export const TopBar: React.FC<TopBarProps> = ({
               >
                 <BookOpen className="w-3.5 h-3.5 text-purple-400" />
                 <span>改编取舍</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsOpenRadarModal(true)}
+                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 transition-colors cursor-pointer"
+                title="AI 影视短剧工程体检雷达：全面扫描大纲、角色、空间、剧本与 H3 分镜质量门"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span>工程体检</span>
               </button>
 
               {onImportScript && (
@@ -557,6 +569,22 @@ export const TopBar: React.FC<TopBarProps> = ({
         isOpen={isOpenTradeoffModal}
         onClose={() => setIsOpenTradeoffModal(false)}
         project={project}
+      />
+
+      {/* Project Quality Radar Modal (shuohao-skills 5-Stage Diagnostic) */}
+      <ProjectQualityRadarModal
+        isOpen={isOpenRadarModal}
+        onClose={() => setIsOpenRadarModal(false)}
+        project={project}
+        shots={shots}
+        onNavigateToSection={(target) => {
+          if (target === "tradeoffs") {
+            setIsOpenTradeoffModal(true);
+          } else if (target === "bible_characters" || target === "bible_scenes" || target === "bible_props") {
+            setBibleMode("bible");
+            setIsOpenBibleModal(true);
+          }
+        }}
       />
 
       {/* Global Asset Library Modal (Cross-Project Asset Pool) */}
