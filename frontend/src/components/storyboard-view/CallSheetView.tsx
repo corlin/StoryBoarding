@@ -2,9 +2,10 @@
 
 import React, { useMemo } from "react";
 import { ShotModel, LocationModel, CharacterModel, PropModel, ProjectModel } from "@/types/shot";
-import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, FileSpreadsheet, Download, RefreshCw, Loader2 } from "lucide-react";
+import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, FileSpreadsheet, Download, RefreshCw, Loader2, Sparkles, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { buildBatchH3 } from "@/hooks/useH3Prompt";
+import { buildBatchH3, buildH3CutItem } from "@/hooks/useH3Prompt";
+import { generateH3Prompt } from "@/lib/h3Prompt";
 import { normalizeAssetUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { exportCallSheetToCsv } from "@/lib/callSheetExporter";
@@ -44,6 +45,8 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
   onRegenerateShotImage,
 }) => {
   const [renderingGroupId, setRenderingGroupId] = React.useState<string | null>(null);
+  const [renderingShotId, setRenderingShotId] = React.useState<string | null>(null);
+  const [copiedShotId, setCopiedShotId] = React.useState<string | null>(null);
   // Group shots by (Location + Lighting State) to avoid visual drift
   const groups: CallSheetGroup[] = useMemo(() => {
     const map = new Map<string, CallSheetGroup>();
@@ -242,15 +245,44 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                       <th className="py-2 px-3">对白台词</th>
                       <th className="py-2 px-3 w-16 text-right">时长</th>
                       <th className="py-2 px-3 w-16 text-center">状态</th>
+                      <th className="py-2 px-3 w-24 text-right">操作</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
                     {group.shots.map((shot, sIdx) => {
                       const isSelected = shot.id === selectedShotId;
                       const hasImage = Boolean(shot.storyboard_image_url);
+                      const isDirty = Boolean(shot.is_dirty);
+                      const isRenderingThisShot = renderingShotId === shot.id;
+                      const isCopiedThisShot = copiedShotId === shot.id;
                       const movType = typeof shot.camera_movement === "object"
                         ? (shot.camera_movement as any)?.type
                         : shot.camera_movement || "static";
+
+                      const handleCopySingleH3 = (e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        const cut = buildH3CutItem(shot, 1);
+                        const prompt = generateH3Prompt([cut], { lang: "en" });
+                        navigator.clipboard.writeText(prompt);
+                        setCopiedShotId(shot.id);
+                        notify.success(`已复制 #${sIdx + 1} 镜 MiniMax H3 视频生成提示词！`);
+                        setTimeout(() => setCopiedShotId(null), 1500);
+                      };
+
+                      const handleRenderSingle = async (e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        if (!onRegenerateShotImage || isRenderingThisShot) return;
+                        try {
+                          setRenderingShotId(shot.id);
+                          notify.info(`🎨 正在冲印 #${sIdx + 1} 镜画面，稍候...`);
+                          await onRegenerateShotImage(shot.id);
+                          notify.success(`✨ #${sIdx + 1} 镜画面已显影入库！`);
+                        } catch (err: any) {
+                          notify.error(err?.message || "冲印镜头画面失败");
+                        } finally {
+                          setRenderingShotId(null);
+                        }
+                      };
 
                       return (
                         <tr
@@ -313,11 +345,11 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
 
                           {/* Status */}
                           <td className="py-2 px-3 text-center">
-                            {hasImage && !shot.is_dirty ? (
+                            {hasImage && !isDirty ? (
                               <span className="inline-flex items-center text-emerald-400 font-bold" title="已显影就绪">
                                 ✓
                               </span>
-                            ) : shot.is_dirty ? (
+                            ) : isDirty ? (
                               <span className="text-amber-400 font-mono text-[10px]" title="台本已改待重绘">
                                 ⚡改
                               </span>
@@ -326,6 +358,42 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                                 ○
                               </span>
                             )}
+                          </td>
+
+                          {/* Action Column: In-situ Render & H3 Copy */}
+                          <td className="py-2 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* Copy Single H3 Button */}
+                              <button
+                                type="button"
+                                onClick={handleCopySingleH3}
+                                className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                title="复制此分镜的 MiniMax H3 视频生成提示词"
+                              >
+                                {isCopiedThisShot ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+
+                              {/* Single Shot Render Button */}
+                              {onRegenerateShotImage && (!hasImage || isDirty) && (
+                                <button
+                                  type="button"
+                                  disabled={isRenderingThisShot}
+                                  onClick={handleRenderSingle}
+                                  className="p-1 rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 transition-all cursor-pointer disabled:opacity-50"
+                                  title={isDirty ? "台本已改，点击重新冲印该镜" : "原位冲印显影此镜画面"}
+                                >
+                                  {isRenderingThisShot ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
