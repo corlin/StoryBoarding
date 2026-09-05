@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { ShotModel, SequenceModel } from "@/types/shot";
-import { Play, Pause, RotateCcw, FastForward, Film, Globe, Search, Sparkles } from "lucide-react";
+import { Play, Pause, RotateCcw, FastForward, Film, Globe, Search, Sparkles, SkipBack, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TimelineBarProps {
@@ -91,6 +91,37 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
     }
   };
 
+  const handleStepPrevShot = () => {
+    if (shots.length === 0) return;
+    const currentIdx = shots.findIndex((s) => s.id === selectedShotId);
+    const targetIdx = currentIdx > 0 ? currentIdx - 1 : 0;
+    const targetShot = shots[targetIdx];
+    if (targetShot) {
+      // Calculate start time of target shot
+      let startT = 0;
+      for (let i = 0; i < targetIdx; i++) {
+        startT += shots[i].duration || 2.5;
+      }
+      setCurrentTime(startT);
+      onSelectShot(targetShot.id);
+    }
+  };
+
+  const handleStepNextShot = () => {
+    if (shots.length === 0) return;
+    const currentIdx = shots.findIndex((s) => s.id === selectedShotId);
+    const targetIdx = currentIdx >= 0 && currentIdx < shots.length - 1 ? currentIdx + 1 : shots.length - 1;
+    const targetShot = shots[targetIdx];
+    if (targetShot) {
+      let startT = 0;
+      for (let i = 0; i < targetIdx; i++) {
+        startT += shots[i].duration || 2.5;
+      }
+      setCurrentTime(startT);
+      onSelectShot(targetShot.id);
+    }
+  };
+
   const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!timelineTrackRef.current) return;
     const rect = timelineTrackRef.current.getBoundingClientRect();
@@ -116,11 +147,21 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
   return (
     <footer className="h-16 border-t border-border bg-card/90 backdrop-blur px-4 flex items-center gap-3 shrink-0 select-none">
       {/* Playback Controls & Dual-Scale Switcher */}
-      <div className="flex items-center gap-2.5 pr-3 border-r border-border shrink-0">
+      <div className="flex items-center gap-2 pr-3 border-r border-border shrink-0">
+        {/* Step Prev Shot Button */}
+        <button
+          onClick={handleStepPrevShot}
+          disabled={shots.length === 0}
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 cursor-pointer"
+          title="微步切到上一镜 (吸附对齐起始点)"
+        >
+          <SkipBack className="w-3.5 h-3.5" />
+        </button>
+
         <button
           onClick={handleTogglePlay}
           className={cn(
-            "p-2 rounded-full transition-all shadow-sm flex items-center justify-center",
+            "p-2 rounded-full transition-all shadow-sm flex items-center justify-center cursor-pointer",
             isPlaying
               ? "bg-amber-500 text-black hover:bg-amber-400"
               : "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -130,9 +171,19 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
           {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
         </button>
 
+        {/* Step Next Shot Button */}
+        <button
+          onClick={handleStepNextShot}
+          disabled={shots.length === 0}
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 cursor-pointer"
+          title="微步切到下一镜 (吸附对齐起始点)"
+        >
+          <SkipForward className="w-3.5 h-3.5" />
+        </button>
+
         <button
           onClick={handleReset}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
           title="重置到片头"
         >
           <RotateCcw className="w-3.5 h-3.5" />
