@@ -26,6 +26,7 @@ import {
   Box,
   Edit2,
   Check,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,14 +46,14 @@ export function calculateDialogueDuration(dialogue: string, charsPerSecond: numb
   return Math.max(1.0, Math.round(raw * 10) / 10);
 }
 
-export function parseBeatsFromScreenplay(text: string): BeatModel[] {
+export function parseBeatsFromScreenplay(text: string, fallbackSceneTitle: string = "主场景"): BeatModel[] {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   const beats: BeatModel[] = [];
 
   let currentSpeaker: string | null = null;
   let currentParenthetical: string | null = null;
   let currentSceneNum = 1;
-  let currentSceneTitle = "渡口栈桥";
+  let currentSceneTitle = fallbackSceneTitle;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -133,6 +134,57 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [editingBeatId, setEditingBeatId] = useState<string | null>(null);
 
+  // 从分镜派生完整节拍流的通用函数
+  const deriveBeatsFromShots = (seq: SequenceModel): BeatModel[] => {
+    if (!seq.shots || seq.shots.length === 0) {
+      return [
+        {
+          id: crypto.randomUUID(),
+          type: "action",
+          scene_number: 1,
+          scene_title: seq.name || "主场次",
+          content: "展开核心剧情动作调度...",
+          duration: 2.5,
+        },
+      ];
+    }
+    const derived: BeatModel[] = [];
+    seq.shots.forEach((s) => {
+      const sceneTitle = s.subject?.split(/[,，\s]/)[0] || seq.name || `主场景`;
+      if (s.action && s.action.trim()) {
+        derived.push({
+          id: `beat-action-${s.id}`,
+          type: "action",
+          scene_number: 1,
+          scene_title: sceneTitle,
+          content: s.action.trim(),
+          duration: s.dialogue ? Math.max(1.0, (s.duration || 2.5) * 0.4) : (s.duration || 2.5),
+        });
+      }
+      if (s.dialogue && s.dialogue.trim()) {
+        derived.push({
+          id: `beat-dialogue-${s.id}`,
+          type: "dialogue",
+          scene_number: 1,
+          scene_title: sceneTitle,
+          speaker: s.subject?.split(/[,，\s]/)[0] || "人物",
+          content: s.dialogue.trim(),
+          duration: Math.max(1.5, (s.duration || 2.5) * 0.6),
+        });
+      }
+    });
+    return derived.length > 0 ? derived : [
+      {
+        id: crypto.randomUUID(),
+        type: "action",
+        scene_number: 1,
+        scene_title: seq.name || "主场次",
+        content: "展开核心剧情动作调度...",
+        duration: 2.5,
+      },
+    ];
+  };
+
   // Load beats from sequence
   useEffect(() => {
     if (!sequence) return;
@@ -141,47 +193,20 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
     setPayoff(sequence.payoff_summary || "悬念钩");
     setTargetDuration(sequence.target_duration || 60.0);
 
+    const shotsCount = sequence.shots?.length || 0;
+
     if (sequence.beats_data && sequence.beats_data.length > 0) {
       setBeats(sequence.beats_data);
     } else if (sequence.screenplay_text && sequence.screenplay_text.trim()) {
-      const parsed = parseBeatsFromScreenplay(sequence.screenplay_text);
-      setBeats(parsed);
-    } else if (sequence.shots && sequence.shots.length > 0) {
-      // 核心优化：当无独立节拍数据时，直接动态由当前分集的分镜派生，实现 100% 剧情同步与 0% 容差偏差
-      const derived: BeatModel[] = [];
-      sequence.shots.forEach((s, idx) => {
-        if (s.action && s.action.trim()) {
-          derived.push({
-            id: `beat-action-${s.id}`,
-            type: "action",
-            scene_number: 1,
-            scene_title: s.subject?.split(/[,，\s]/)[0] || `场景 1`,
-            content: s.action.trim(),
-            duration: s.dialogue ? Math.max(1.0, (s.duration || 2.5) * 0.4) : (s.duration || 2.5),
-          });
-        }
-        if (s.dialogue && s.dialogue.trim()) {
-          derived.push({
-            id: `beat-dialogue-${s.id}`,
-            type: "dialogue",
-            scene_number: 1,
-            scene_title: s.subject?.split(/[,，\s]/)[0] || `场景 1`,
-            speaker: s.subject?.split(/[,，\s]/)[0] || "人物",
-            content: s.dialogue.trim(),
-            duration: Math.max(1.5, (s.duration || 2.5) * 0.6),
-          });
-        }
-      });
-      setBeats(derived.length > 0 ? derived : [
-        {
-          id: crypto.randomUUID(),
-          type: "action",
-          scene_number: 1,
-          scene_title: sequence.name || "主场次",
-          content: "展开核心剧情动作调度...",
-          duration: 2.5,
-        }
-      ]);
+      const parsed = parseBeatsFromScreenplay(sequence.screenplay_text, sequence.name || "主场景");
+      // 若剧本仅为极简梗概（解析出的节拍过少，如仅有1拍，而分镜镜头数已有多个），优先自动采用分镜派生，避免 -96% 伪超容差
+      if (shotsCount > 2 && parsed.length <= 1) {
+        setBeats(deriveBeatsFromShots(sequence));
+      } else {
+        setBeats(parsed);
+      }
+    } else if (shotsCount > 0) {
+      setBeats(deriveBeatsFromShots(sequence));
     } else {
       setBeats([
         {
@@ -306,6 +331,21 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
               {Math.abs(diffPercent) <= 15 ? "(±15%安全)" : "(超容差)"}
             </span>
           </span>
+          {/* 当存在有效镜头时，提供从分镜一键无损同步节拍按钮 */}
+          {sequence.shots && sequence.shots.length > 0 && (
+            <button
+              onClick={() => {
+                const synced = deriveBeatsFromShots(sequence);
+                setBeats(synced);
+                notify.success(`已从本集 ${sequence.shots.length} 个镜头快速对齐 ${synced.length} 个剧本节拍！`);
+              }}
+              title="从当前分镜镜头智能反向派生节拍流与台词，消除时长容差偏差"
+              className="px-2 py-0.5 rounded-md text-[10px] font-medium border border-border bg-secondary/40 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <RefreshCw className="w-2.5 h-2.5" />
+              <span>同步分镜节拍</span>
+            </button>
+          )}
           <span className="text-muted-foreground text-[11px] hidden sm:inline" title="行业标准短剧台词按 4.5字/秒 计算预估时长">
             · {sceneGroups.length} 场 · {beats.length} 节拍 · {dialogueCount} 台词 (4.5字/s)
           </span>
