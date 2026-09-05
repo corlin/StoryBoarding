@@ -67,6 +67,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const hasAutoOpenedWizardRef = useRef(false);
+  const abortBatchRenderRef = useRef(false);
 
   const { activeEpisodeIndex, setActiveEpisodeIndex } = useWorkspaceStore();
 
@@ -200,7 +201,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       }
     : currentProject;
 
-  const activeSequence = displayProject?.sequences[activeEpisodeIndex] || displayProject?.sequences[0];
+  const activeSequence = displayProject?.sequences?.[activeEpisodeIndex] || displayProject?.sequences?.[0];
   const shots = activeSequence?.shots || [];
   const totalDuration = shots.reduce((acc, s) => acc + (s.duration || 2.5), 0);
 
@@ -301,8 +302,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     await saveShotRemote(shotId, { is_locked: locked });
     notify.info(locked ? "🔒 镜头已锁定（AI重构时将保持不变）" : "🔓 镜头已解锁");
   };
-
-  const abortBatchRenderRef = useRef(false);
 
   const handleAbortBatchRendering = () => {
     abortBatchRenderRef.current = true;

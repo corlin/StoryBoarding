@@ -2,17 +2,19 @@
 
 import React, { useState } from "react";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { ProjectModel } from "@/types/shot";
 import { Film, Users, Plus, Sparkles, Loader2, X, Rocket } from "lucide-react";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 
 interface EpisodePillTrackProps {
+  project?: ProjectModel | null;
   onOpenCharacterHub: () => void;
   onRefreshProject?: () => Promise<void> | void;
   compact?: boolean;
 }
 
-export function EpisodePillTrack({ onOpenCharacterHub, onRefreshProject, compact = false }: EpisodePillTrackProps) {
+export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject, compact = false }: EpisodePillTrackProps) {
   const { currentProject, activeEpisodeIndex, setActiveEpisodeIndex } = useWorkspaceStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [episodeTitle, setEpisodeTitle] = useState("");
@@ -27,10 +29,13 @@ export function EpisodePillTrack({ onOpenCharacterHub, onRefreshProject, compact
   const [episodesToAdd, setEpisodesToAdd] = useState(3);
   const [isExpanding, setIsExpanding] = useState(false);
 
-  if (!currentProject) return null;
+  const activeProject = project || currentProject;
+  if (!activeProject) {
+    return <div className="min-w-0 flex-1 h-7" />;
+  }
 
-  const sequences = currentProject.sequences || [];
-  const characters = currentProject.characters || [];
+  const sequences = activeProject.sequences || [];
+  const characters = activeProject.characters || [];
   const nextEpNum = sequences.length + 1;
 
   const handleOpenModal = () => {
@@ -50,7 +55,7 @@ export function EpisodePillTrack({ onOpenCharacterHub, onRefreshProject, compact
 
     try {
       setIsSubmitting(true);
-      const res = await api.addEpisode(currentProject.id, {
+      const res = await api.addEpisode(activeProject.id, {
         title: episodeTitle.trim() || `第 ${nextEpNum} 集`,
         story: episodeStory.trim(),
         target_duration: targetDuration,
@@ -76,7 +81,7 @@ export function EpisodePillTrack({ onOpenCharacterHub, onRefreshProject, compact
     e.preventDefault();
     try {
       setIsExpanding(true);
-      const res = await api.expandToSeries(currentProject.id, {
+      const res = await api.expandToSeries(activeProject.id, {
         continuation_prompt: continuationPrompt.trim(),
         episodes_to_add: episodesToAdd,
       });

@@ -150,7 +150,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         )}
 
         <div className="min-w-0 overflow-hidden flex-1">
-          <EpisodePillTrack compact={true} onOpenCharacterHub={() => onOpenBible?.("bible")} />
+          <EpisodePillTrack project={project} compact={true} onOpenCharacterHub={() => onOpenBible?.("bible")} />
         </div>
 
         <div className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground shrink-0 bg-secondary/30 px-2 py-0.5 rounded-md border border-border/50">
