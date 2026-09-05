@@ -328,18 +328,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            href="/releases"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary text-xs transition-colors"
-            title="查看近期版本更新日志"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span className="hidden sm:inline font-medium">更新动态</span>
-            <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-primary/15 text-primary font-bold">
-              v1.3.0
-            </span>
-          </Link>
-
           <button
             onClick={openSettingsModal}
             className="p-2 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
@@ -695,6 +683,36 @@ export default function DashboardPage() {
           )}
         </section>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border/40 py-6 mt-auto bg-card/20 text-center text-xs text-muted-foreground relative z-10">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Clapperboard className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-foreground">AI Director Studio</span>
+            <span>· 好莱坞影视级分镜与 AI 视频预演工作台</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/releases"
+              className="hover:text-foreground transition-colors flex items-center gap-1.5"
+            >
+              <span>版本更新日志</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                v1.3.0
+              </span>
+            </Link>
+            <a
+              href="https://github.com/corlin/StoryBoarding"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              GitHub
+            </a>
+          </div>
+        </div>
+      </footer>
 
       {/* Create Project Modal */}
       {isCreating && (
