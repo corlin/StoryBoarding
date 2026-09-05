@@ -21,6 +21,8 @@ import {
   Copy,
   Sliders,
   Check,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { normalizeAssetUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -38,6 +40,7 @@ interface CinemaTheaterModalProps {
   onSelectShot?: (shotId: string) => void;
   onOpenExport?: () => void;
   onOpenDetail?: (shot: ShotModel) => void;
+  onRegenerateShotImage?: (shotId: string) => Promise<void> | void;
 }
 
 const SHOT_SIZE_NAME: Record<string, string> = {
@@ -60,6 +63,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   onSelectShot,
   onOpenExport,
   onOpenDetail,
+  onRegenerateShotImage,
 }) => {
   const [isBingeMode, setIsBingeMode] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -68,6 +72,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isCopiedH3, setIsCopiedH3] = useState(false);
+  const [isGeneratingCurrentShot, setIsGeneratingCurrentShot] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -339,16 +344,52 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
               )}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center text-white/40 p-8 text-center select-none">
+            <div className="flex flex-col items-center justify-center text-white/40 p-8 text-center select-none z-10">
               <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-3 text-amber-400/80 shadow-inner">
-                <Film className="w-8 h-8 opacity-70 animate-pulse" />
+                {isGeneratingCurrentShot ? (
+                  <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+                ) : (
+                  <Film className="w-8 h-8 opacity-70 animate-pulse" />
+                )}
               </div>
               <p className="text-xs font-mono tracking-widest text-white/50 uppercase mb-1">
                 {SHOT_SIZE_NAME[currentShot?.shot_size] || currentShot?.shot_size?.toUpperCase() || "MEDIUM SHOT"} · 待显影画面
               </p>
-              <p className="text-[11px] text-muted-foreground/60 max-w-md">
-                （支持在分镜画板点击「冲印画面」生成视觉画面，此处实时进行台本时间轴预演）
+              <p className="text-[11px] text-muted-foreground/60 max-w-md mb-4">
+                当前镜头尚未冲印画面，可原位一键触发显影，实时无缝呈现
               </p>
+
+              {onRegenerateShotImage && currentShot && (
+                <button
+                  type="button"
+                  disabled={isGeneratingCurrentShot}
+                  onClick={async () => {
+                    try {
+                      setIsGeneratingCurrentShot(true);
+                      notify.info(`🎨 正在原位冲印 #${currentIndex + 1} 镜画面，稍候...`);
+                      await onRegenerateShotImage(currentShot.id);
+                      notify.success(`✨ #${currentIndex + 1} 镜画面已显影入库！`);
+                    } catch (err: any) {
+                      notify.error(err?.message || "冲印画面失败");
+                    } finally {
+                      setIsGeneratingCurrentShot(false);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-lg transition-all cursor-pointer disabled:opacity-50 hover:scale-105"
+                >
+                  {isGeneratingCurrentShot ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>正在显影中...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>🎨 即时显影此镜</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           )}
 
@@ -449,8 +490,41 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
               ))}
             </div>
           </div>
-
           <div className="flex items-center gap-2">
+            {/* In-situ Render Current Shot Button in Toolbar */}
+            {onRegenerateShotImage && currentShot && !currentShot.storyboard_image_url && (
+              <button
+                type="button"
+                disabled={isGeneratingCurrentShot}
+                onClick={async () => {
+                  try {
+                    setIsGeneratingCurrentShot(true);
+                    notify.info(`🎨 正在原位冲印 #${currentIndex + 1} 镜画面，稍候...`);
+                    await onRegenerateShotImage(currentShot.id);
+                    notify.success(`✨ #${currentIndex + 1} 镜画面已显影入库！`);
+                  } catch (err: any) {
+                    notify.error(err?.message || "冲印画面失败");
+                  } finally {
+                    setIsGeneratingCurrentShot(false);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-50"
+                title="原位冲印当前镜头的画面"
+              >
+                {isGeneratingCurrentShot ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>显影中...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>显影此镜</span>
+                  </>
+                )}
+              </button>
+            )}
+
             <button
               onClick={handleCopyCurrentH3}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sky-300 hover:text-sky-200 border border-sky-400/20 text-xs font-medium transition-all cursor-pointer"

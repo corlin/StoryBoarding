@@ -829,6 +829,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onClose={() => setIsTheaterOpen(false)}
         onOpenExport={() => setIsOpenExportModal(true)}
         onOpenDetail={(shot) => handleOpenDrawer(shot.id)}
+        onRegenerateShotImage={handleRegenerateSingleShot}
       />
 
       {activeDrawerShot && (
