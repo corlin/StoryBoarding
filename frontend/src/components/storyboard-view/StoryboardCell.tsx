@@ -274,9 +274,16 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
     }
   };
 
+  const handleCardBodyClick = () => {
+    onSelect();
+    if (onOpenDetail) {
+      onOpenDetail();
+    }
+  };
+
   return (
     <div
-      onClick={onSelect}
+      onClick={handleCardBodyClick}
       className={cn(
         "group relative flex flex-col rounded-xl overflow-hidden border bg-card/60 transition-all duration-150 cursor-pointer shadow-sm",
         isSelected
