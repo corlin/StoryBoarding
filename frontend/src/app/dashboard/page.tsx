@@ -29,6 +29,8 @@ import { PitchIdeaGeneratorModal } from "@/components/modals/PitchIdeaGeneratorM
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
+import { NarrativeStyleSelector } from "@/components/director/NarrativeStyleSelector";
+import { NarrativeMode, NarrativeCenter } from "@/types/narrative";
 import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
 
@@ -88,9 +90,9 @@ export default function DashboardPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newStory, setNewStory] = useState("");
   const [targetDuration, setTargetDuration] = useState(30);
-  const [narrativeMode, setNarrativeMode] = useState<"hollywood" | "drama_5min" | "commercial">("hollywood");
+  const [narrativeMode, setNarrativeMode] = useState<NarrativeMode>("hollywood");
   const [structuralArchetype, setStructuralArchetype] = useState<string>("single_space_standoff");
-  const [narrativeCenter, setNarrativeCenter] = useState<"character" | "creative" | "plot">("plot");
+  const [narrativeCenter, setNarrativeCenter] = useState<NarrativeCenter>("plot");
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
   const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
 
@@ -753,79 +755,14 @@ export default function DashboardPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="text-xs font-medium text-foreground/90 block mb-1">
-                      导演叙事风格与引擎
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: "hollywood", label: "好莱坞大片", desc: "经典六阶段与宽银幕" },
-                        { id: "drama_5min", label: "5分钟爆款短剧", desc: "30s钩子 & 四幕因果" },
-                        { id: "commercial", label: "商业广告快剪", desc: "高燃视觉与紧凑动势" },
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setNarrativeMode(item.id as any)}
-                          className={cn(
-                            "py-2 px-2.5 rounded-lg text-left border transition-all flex flex-col",
-                            narrativeMode === item.id
-                              ? "bg-primary/10 border-primary text-primary shadow-xs"
-                              : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          <span className="text-xs font-bold">{item.label}</span>
-                          <span className="text-[10px] opacity-75 line-clamp-1">{item.desc}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {narrativeMode === "drama_5min" && (
-                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-amber-400">⚡ 5-Min Drama 爆款开场设定</span>
-                        <span className="text-[10px] font-mono text-amber-300/80">3/10/30s 黄金律</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[11px] text-muted-foreground block mb-1">主叙事重心</label>
-                          <select
-                            value={narrativeCenter}
-                            onChange={(e) => setNarrativeCenter(e.target.value as any)}
-                            className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500"
-                          >
-                            <option value="plot">强剧情向 (困境抉择/立即危机)</option>
-                            <option value="character">角色向 (极致反差/性格缺陷)</option>
-                            <option value="creative">创意向 (脑洞奇观/反常规则)</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="text-[11px] text-muted-foreground block mb-1">12大高命中结构原型</label>
-                          <select
-                            value={structuralArchetype}
-                            onChange={(e) => setStructuralArchetype(e.target.value)}
-                            className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500 truncate"
-                          >
-                            <option value="single_space_standoff">1. 单空间高压对峙型</option>
-                            <option value="countdown_rules">2. 倒计时规则收缩型</option>
-                            <option value="trade_escalation">3. 交易代价升级型</option>
-                            <option value="identity_reveal">4. 身份/关系错位揭底型</option>
-                            <option value="flawed_solution_backfire">5. 错误解法反噬型</option>
-                            <option value="ritual_interruption">6. 仪式中断与夺权型</option>
-                            <option value="system_runaway">7. 系统失控推演型 (科幻)</option>
-                            <option value="multiverse_rashomon">8. 多维视角塌缩/罗生门</option>
-                            <option value="absurd_rules_swap">9. 绝对规则置换型 (寓言)</option>
-                            <option value="memory_tampering">10. 记忆/认知篡改型</option>
-                            <option value="loop_overdraft">11. 困境死循环/代价透支</option>
-                            <option value="concept_predation">12. 概念具象化掠夺型</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <NarrativeStyleSelector
+                    mode={narrativeMode}
+                    onModeChange={setNarrativeMode}
+                    archetype={structuralArchetype}
+                    onArchetypeChange={setStructuralArchetype}
+                    center={narrativeCenter}
+                    onCenterChange={setNarrativeCenter}
+                  />
 
                   <div>
                     <label className="text-xs font-medium text-foreground/90 block mb-1">

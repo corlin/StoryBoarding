@@ -611,6 +611,31 @@ export function formatDirectorVideoPrompt(
   return `[Camera]: ${cameraTraj}. [Action]: ${subjectName} presents ${cleanAction}, maintaining continuous visual momentum across the 16:9 frame in ${screenDir} trajectory. [Dynamics]: Natural atmospheric environmental flow, dynamic weather physics, volumetric lighting shifts. [Quality]: Smooth 24fps cinematic temporal motion, realistic momentum physics, continuous seamless trajectory, no morphing, no distortion.`;
 }
 
+export function getActProgressionAndHookPhase(
+  orderIndex: number,
+  totalShots: number,
+  overrides?: { act_progression?: string; hook_phase?: string }
+): { act_progression: string; hook_phase: string } {
+  let actProgression = overrides?.act_progression;
+  if (!actProgression) {
+    const ratio = (orderIndex + 1) / Math.max(1, totalShots);
+    if (ratio <= 0.25) actProgression = "启动·钩子与建置";
+    else if (ratio <= 0.5) actProgression = "升级·检验与逼迫";
+    else if (ratio <= 0.75) actProgression = "假高潮·行动与质变";
+    else actProgression = "兑现·核心反转与余味";
+  }
+
+  let hookPhase = overrides?.hook_phase;
+  if (!hookPhase) {
+    if (orderIndex === 0) hookPhase = "0-3s入画";
+    else if (orderIndex === 1) hookPhase = "3-10s加压";
+    else if (orderIndex === 2) hookPhase = "10-30s揭底牌";
+    else hookPhase = "后段高潮";
+  }
+
+  return { act_progression: actProgression, hook_phase: hookPhase };
+}
+
 // Generate story-adaptive storyboard with genre-aware cinematic beats, vivid dialogues & full audio design
 export function generateAdaptiveStoryShots(storyText: string, targetDuration: number = 30.0): ShotPlan[] {
   const cleanStory = normalizeAndPreprocessStory(storyText);
@@ -1088,6 +1113,8 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
       computeTier = "standard";
     }
 
+    const { act_progression, hook_phase } = getActProgressionAndHookPhase(idx, totalCount);
+
     return {
       order: idx + 1,
       duration: durPerShot,
@@ -1118,6 +1145,8 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
       emotional_voltage: emotionalVoltage,
       information_gap: infoGap,
       compute_tier: computeTier,
+      act_progression,
+      hook_phase,
     };
   });
 }
@@ -1285,23 +1314,10 @@ export async function generateDirectorPipeline(
               const infoGap = (s.information_gap || "").trim() || (idx === totalParsed - 1 ? "绝境反转未解，强刺激驱动下一集" : "危机步步紧逼，行动后果悬念未决");
               const computeTier = s.compute_tier || (beatType === "climax_payoff" || beatType === "cliffhanger_hook" ? "flagship" : "standard");
 
-              // Compute 4-act and 30s hook phase default mapping
-              let actProgression = s.act_progression;
-              if (!actProgression) {
-                const ratio = (idx + 1) / totalParsed;
-                if (ratio <= 0.25) actProgression = "启动·钩子与建置";
-                else if (ratio <= 0.5) actProgression = "升级·检验与逼迫";
-                else if (ratio <= 0.75) actProgression = "假高潮·行动与质变";
-                else actProgression = "兑现·核心反转与余味";
-              }
-
-              let hookPhase = s.hook_phase;
-              if (!hookPhase) {
-                if (idx === 0) hookPhase = "0-3s入画";
-                else if (idx === 1) hookPhase = "3-10s加压";
-                else if (idx === 2) hookPhase = "10-30s揭底牌";
-                else hookPhase = "后段高潮";
-              }
+              const { act_progression, hook_phase } = getActProgressionAndHookPhase(idx, totalParsed, {
+                act_progression: s.act_progression,
+                hook_phase: s.hook_phase,
+              });
 
               return {
                 order: s.order || idx + 1,
@@ -1322,8 +1338,8 @@ export async function generateDirectorPipeline(
                 emotional_voltage: emotionalVoltage,
                 information_gap: infoGap,
                 compute_tier: computeTier,
-                act_progression: actProgression,
-                hook_phase: hookPhase,
+                act_progression: act_progression,
+                hook_phase: hook_phase,
               };
             });
 
