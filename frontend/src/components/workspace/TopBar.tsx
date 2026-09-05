@@ -48,6 +48,7 @@ interface TopBarProps {
   onOpenAssetLibrary?: () => void;
   onOpenMediaLibrary?: () => void;
   onOpenDelete?: () => void;
+  onOpenWizard?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -69,6 +70,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenAssetLibrary,
   onOpenMediaLibrary,
   onOpenDelete,
+  onOpenWizard,
 }) => {
   const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
   const [isMoreToolsOpen, setIsMoreToolsOpen] = useState(false);
@@ -114,6 +116,17 @@ export const TopBar: React.FC<TopBarProps> = ({
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               <span>{activeVersionTag}</span>
+            </button>
+          )}
+
+          {onOpenWizard && (
+            <button
+              onClick={onOpenWizard}
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gradient-to-r from-amber-500/15 to-orange-500/15 hover:from-amber-500/25 hover:to-orange-500/25 border border-amber-500/30 text-amber-300 hover:text-amber-200 transition-all shadow-2xs cursor-pointer"
+              title="一键拉起 3 步极速短剧生成向导"
+            >
+              <span>⚡</span>
+              <span className="hidden sm:inline">极速向导</span>
             </button>
           )}
         </div>

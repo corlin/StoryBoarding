@@ -20,12 +20,45 @@ interface StoryboardCellProps {
 
 const SHOT_SIZE_ABBR: Record<string, string> = {
   extreme_wide_shot: "EWS",
+  extreme_wide: "EWS",
   wide_shot: "WS",
+  wide: "WS",
   full_shot: "FS",
+  medium_wide: "MWS",
   medium_shot: "MS",
+  medium: "MS",
   medium_close_up: "MCU",
+  medium_close: "MCU",
   close_up: "CU",
   extreme_close_up: "ECU",
+};
+
+export const SHOT_SIZE_GLOSSARY: Record<string, string> = {
+  extreme_wide_shot: "大远景 (EWS) · 交代宏观地理与空间格局",
+  extreme_wide: "大远景 (EWS) · 交代宏观地理与空间格局",
+  wide_shot: "全景 (WS) · 呈现人物全身与周围环境关系",
+  wide: "全景 (WS) · 呈现人物全身与周围环境关系",
+  full_shot: "全景全身 (FS) · 聚焦人物全身动作与体态",
+  medium_wide: "中远景 (MWS) · 膝盖以上，兼顾动作与互动",
+  medium_shot: "中景 (MS) · 腰部以上，黄金对话与叙事景别",
+  medium: "中景 (MS) · 腰部以上，黄金对话与叙事景别",
+  medium_close_up: "中近景 (MCU) · 胸部以上，强化微表情与台词反应",
+  medium_close: "中近景 (MCU) · 胸部以上，强化微表情与台词反应",
+  close_up: "特写 (CU) · 肩颈面部，聚焦强烈情感冲击",
+  extreme_close_up: "大特写 (ECU) · 局部器官（眼睛/嘴角/持物），极度张力",
+};
+
+export const CAMERA_MOVEMENT_GLOSSARY: Record<string, string> = {
+  static: "固定镜头 · 稳健客观记录，无机位晃动",
+  push_in: "缓缓推进 · 聚焦人物内心或紧张感提升",
+  pull_out: "缓缓拉出 · 揭示周围环境或孤独疏离感",
+  pan_left: "向左摇镜 · 视线水平扫过场景",
+  pan_right: "向右摇镜 · 视线水平扫过场景",
+  tilt_up: "向上俯仰 · 仰望高大目标或力量对比",
+  tilt_down: "向下俯仰 · 俯瞰地面细节或压迫感",
+  tracking: "跟随横移 · 伴随人物奔跑或行走",
+  crane: "升降机调度 · 升起越过障碍，大片感",
+  orbital: "环绕运镜 · 360度环顾人物，高光时刻",
 };
 
 function PrevizHudOverlay({ shot }: { shot: ShotModel }) {
@@ -334,7 +367,12 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
         <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-background/90 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-mono border border-border/60 shadow-sm z-20">
           <span className="font-bold text-sky-400">{String(index + 1).padStart(2, "0")}</span>
           <span className="text-muted-foreground">·</span>
-          <span className="font-semibold text-foreground">{sizeAbbr}</span>
+          <span
+            className="font-semibold text-foreground cursor-help"
+            title={SHOT_SIZE_GLOSSARY[shot.shot_size] || `景别: ${sizeAbbr}`}
+          >
+            {sizeAbbr}
+          </span>
           <span className="text-muted-foreground">·</span>
           <span className="text-emerald-400 font-semibold">{shot.duration}s</span>
 
@@ -551,7 +589,10 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
 
         {/* Footer Info: Camera Movement & Detail Drawer Trigger */}
         <div className="flex items-center justify-between pt-1.5 border-t border-border/40 text-[11px] text-muted-foreground">
-          <div className="flex items-center gap-1.5 truncate max-w-[170px]" title={`运镜: ${shot.camera_movement?.type || "固定机位"}`}>
+          <div
+            className="flex items-center gap-1.5 truncate max-w-[170px] cursor-help"
+            title={CAMERA_MOVEMENT_GLOSSARY[shot.camera_movement?.type || "static"] || `运镜: ${shot.camera_movement?.type || "固定镜头"}`}
+          >
             <Camera className="w-3 h-3 shrink-0 text-muted-foreground" />
             <span className="truncate font-mono text-[10px] text-foreground/80">{shot.camera_movement?.type || "static"}</span>
             {shot.duration && (

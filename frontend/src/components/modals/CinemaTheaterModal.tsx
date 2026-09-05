@@ -17,9 +17,16 @@ import {
   Camera,
   Sparkles,
   Layers,
+  Download,
+  Copy,
+  Sliders,
+  Check,
 } from "lucide-react";
 import { normalizeAssetUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { buildH3CutItem } from "@/hooks/useH3Prompt";
+import { generateH3Prompt } from "@/lib/h3Prompt";
+import { notify } from "@/components/ui/ToastNotification";
 
 interface CinemaTheaterModalProps {
   isOpen: boolean;
@@ -29,6 +36,8 @@ interface CinemaTheaterModalProps {
   initialShotId?: string | null;
   targetDuration?: number;
   onSelectShot?: (shotId: string) => void;
+  onOpenExport?: () => void;
+  onOpenDetail?: (shot: ShotModel) => void;
 }
 
 const SHOT_SIZE_NAME: Record<string, string> = {
@@ -49,6 +58,8 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   initialShotId,
   targetDuration = 30,
   onSelectShot,
+  onOpenExport,
+  onOpenDetail,
 }) => {
   const [isBingeMode, setIsBingeMode] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -209,21 +220,66 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
     }
   };
 
+  const [isCopiedH3, setIsCopiedH3] = useState(false);
+
+  const handleCopyCurrentH3 = () => {
+    if (!currentShot) return;
+    try {
+      const cutItem = buildH3CutItem(currentShot, currentIndex + 1);
+      const promptText = generateH3Prompt([cutItem], { lang: "zh" });
+      navigator.clipboard.writeText(promptText);
+      setIsCopiedH3(true);
+      notify.success(`已复制 #${currentIndex + 1} 镜标准 H3 视频生成提示词`);
+      setTimeout(() => setIsCopiedH3(false), 2000);
+    } catch (e) {
+      notify.error("复制提示词失败");
+    }
+  };
+
+  const getKenBurnsClass = (movType?: string, playing?: boolean) => {
+    if (!playing) return "scale-100 translate-x-0 translate-y-0";
+    switch (movType) {
+      case "push_in":
+      case "zoom_in":
+        return "scale-110 transition-transform duration-[4500ms] ease-out";
+      case "pull_out":
+      case "zoom_out":
+        return "scale-95 transition-transform duration-[4500ms] ease-out";
+      case "pan_left":
+        return "scale-105 -translate-x-3 transition-transform duration-[4500ms] ease-out";
+      case "pan_right":
+        return "scale-105 translate-x-3 transition-transform duration-[4500ms] ease-out";
+      case "tilt_up":
+        return "scale-105 -translate-y-2.5 transition-transform duration-[4500ms] ease-out";
+      case "tilt_down":
+        return "scale-105 translate-y-2.5 transition-transform duration-[4500ms] ease-out";
+      default:
+        return "scale-[1.03] transition-transform duration-[4500ms] ease-out";
+    }
+  };
+
+  const camType = typeof currentShot?.camera_movement === "object"
+    ? (currentShot?.camera_movement as any)?.type
+    : currentShot?.camera_movement;
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col justify-between overflow-hidden select-none animate-in fade-in duration-200">
-      {/* Top Header Bar */}
-      <div className="h-14 px-3 sm:px-6 flex items-center justify-between border-b border-white/10 bg-black/40 text-white z-20 shrink-0">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/20 text-primary border border-primary/30 text-xs font-semibold shrink-0">
-            <Film className="w-4 h-4" />
-            <span className="hidden sm:inline">影院监看 · 动态预演</span>
+    <div
+      className={cn(
+        "fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col justify-between select-none animate-in fade-in duration-200",
+        isFullscreen ? "p-0" : ""
+      )}
+    >
+      <div className="h-16 px-6 border-b border-white/10 flex items-center justify-between bg-black/40 backdrop-blur-md z-20">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-amber-400 font-mono text-sm tracking-wider uppercase font-bold">
+            <Film className="w-4 h-4 animate-pulse" />
+            <span className="hidden sm:inline">PREVIZ CINEMA THEATER</span>
             <span className="sm:hidden font-mono">PREVIZ</span>
           </div>
           <span className="text-xs sm:text-sm font-medium text-white/90 font-mono shrink-0">
             {String(currentIndex + 1).padStart(2, "0")} / {String(activeShots.length).padStart(2, "0")}
           </span>
 
-          {/* Binge Mode Toggle Button */}
           {sequences.length > 1 && (
             <button
               onClick={() => {
@@ -232,48 +288,35 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
                 setCurrentTime(0);
               }}
               className={cn(
-                "px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all shrink-0",
+                "px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all shrink-0",
                 isBingeMode
                   ? "bg-amber-500 text-black shadow-sm font-bold"
                   : "bg-white/10 text-white/80 hover:bg-white/20 border border-white/15"
               )}
-              title={isBingeMode ? "切换为当前单集预演" : "开启全剧多集连续试映连播 (Binge Previz)"}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{isBingeMode ? "🎬 全剧连播 (全集)" : "🔍 单集精看"}</span>
-              <span className="sm:hidden">{isBingeMode ? "全集" : "单集"}</span>
+              <span className="hidden sm:inline">{isBingeMode ? "🎬 全剧连播" : "🔍 单集精看"}</span>
             </button>
           )}
-        </div>
-
-        {/* Center Hotkeys Hint */}
-        <div className="hidden md:flex items-center gap-4 text-xs text-white/50">
-          <span><kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[11px]">空格</kbd> 播放/暂停</span>
-          <span><kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[11px]">← / →</kbd> 切镜</span>
-          <span><kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[11px]">Esc</kbd> 退出即修</span>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={toggleFullscreen}
             className="p-2 rounded-lg bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-colors"
-            title={isFullscreen ? "退出全屏" : "全屏监看"}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
           <button
             onClick={handleClose}
             className="p-2 rounded-lg bg-white/10 hover:bg-red-500/80 text-white/80 hover:text-white transition-colors"
-            title="关闭监看 (Esc)"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Center Cinematic Display Stage */}
-      <div className="flex-1 relative flex items-center justify-center p-4 md:p-8 min-h-0">
-        {/* Left Arrow Navigation */}
+      <div className="flex-1 relative flex items-center justify-center p-4 md:p-8 min-h-0 overflow-hidden">
         <button
           onClick={handlePrevShot}
           disabled={currentIndex === 0}
@@ -282,16 +325,19 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
           <ChevronLeft className="w-6 h-6" />
         </button>
 
-        {/* 16:9 Large Master Storyboard Frame */}
         <div
           ref={containerRef}
           className="relative max-h-[75vh] aspect-video w-auto max-w-[92vw] rounded-2xl overflow-hidden shadow-2xl border border-white/15 bg-slate-950 flex items-center justify-center group"
         >
           {currentShot?.storyboard_image_url ? (
             <img
+              key={currentShot.id + (isPlaying ? "_playing" : "_static")}
               src={normalizeAssetUrl(currentShot.storyboard_image_url)}
               alt={`Shot ${currentIndex + 1}`}
-              className="w-full h-full object-cover transition-all duration-300"
+              className={cn(
+                "w-full h-full object-cover will-change-transform",
+                getKenBurnsClass(camType, isPlaying)
+              )}
             />
           ) : (
             <div className="flex flex-col items-center justify-center text-white/30 p-8 text-center">
@@ -302,49 +348,39 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
             </div>
           )}
 
-          {/* Top Left Shot Badge */}
-          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 flex items-center gap-1.5 sm:gap-2 bg-black/85 backdrop-blur-md px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg border border-white/20 shadow-lg text-white font-mono text-xs sm:text-sm">
+          <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/85 backdrop-blur-md px-3.5 py-1.5 rounded-lg border border-white/20 shadow-lg text-white font-mono text-sm">
             {currentSequence && (
               <>
-                <span className="font-bold text-amber-400">
-                  EP {currentSequence.episode_number || currentSequence.order}
-                </span>
+                <span className="font-bold text-amber-400">EP {currentSequence.episode_number || currentSequence.order}</span>
                 <span className="text-white/40">·</span>
               </>
             )}
-            <span className="font-bold text-sky-400">
-              #{String(currentIndex + 1).padStart(2, "0")}
-            </span>
+            <span className="font-bold text-sky-400">#{String(currentIndex + 1).padStart(2, "0")}</span>
             <span className="text-white/40">·</span>
-            <span className="font-semibold text-white/90">
-              {SHOT_SIZE_NAME[currentShot?.shot_size] || currentShot?.shot_size?.toUpperCase()}
-            </span>
+            <span className="font-semibold text-white/90">{SHOT_SIZE_NAME[currentShot?.shot_size] || currentShot?.shot_size?.toUpperCase()}</span>
             <span className="text-white/40">·</span>
             <span className="text-emerald-400 font-bold">{currentShot?.duration || 2.5}s</span>
           </div>
 
-          {/* Top Right Camera Angle / Movement Badge */}
-          {currentShot?.camera_movement?.type && currentShot.camera_movement.type !== "static" && (
+          {camType && camType !== "static" && (
             <div className="hidden sm:flex absolute top-4 right-4 items-center gap-1.5 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/15 text-xs font-mono text-sky-300">
               <Camera className="w-3.5 h-3.5 text-sky-400" />
-              <span>运镜: {currentShot.camera_movement.type}</span>
+              <span>运镜动势: {camType}</span>
             </div>
           )}
 
-          {/* Bottom Subtitle / Screenplay Action Box */}
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/85 to-transparent p-3 sm:p-6 pt-8 sm:pt-12 text-center flex flex-col items-center justify-end max-h-[45%] overflow-y-auto">
-            <p className="text-xs sm:text-base md:text-xl font-medium text-white/95 tracking-wide drop-shadow-md max-w-4xl leading-relaxed">
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/85 to-transparent p-6 pt-12 text-center flex flex-col items-center justify-end max-h-[45%] overflow-y-auto">
+            <p className="text-base md:text-xl font-medium text-white/95 tracking-wide drop-shadow-md max-w-4xl leading-relaxed">
               {currentShot?.action || "（无动作描述）"}
             </p>
             {currentShot?.dialogue && (
-              <p className="text-[11px] sm:text-sm md:text-base font-serif italic text-amber-300/90 mt-1 sm:mt-2">
+              <p className="text-sm md:text-base font-serif italic text-amber-300/90 mt-2">
                 “{currentShot.dialogue}”
               </p>
             )}
           </div>
         </div>
 
-        {/* Right Arrow Navigation */}
         <button
           onClick={handleNextShot}
           disabled={currentIndex === activeShots.length - 1}
@@ -354,9 +390,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
         </button>
       </div>
 
-      {/* Bottom Transport Control Bar */}
-      <div className="h-20 px-6 border-t border-white/10 bg-black/60 backdrop-blur-md flex flex-col justify-center gap-2 z-20">
-        {/* Scrubber Progress Bar */}
+      <div className="h-22 px-6 border-t border-white/10 bg-black/70 backdrop-blur-md flex flex-col justify-center gap-2 z-20">
         <div
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
@@ -372,11 +406,11 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
           />
         </div>
 
-        <div className="flex items-center justify-between text-white text-xs">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between text-white text-xs gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
             >
               {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
             </button>
@@ -386,7 +420,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
                 setCurrentTime(0);
                 setCurrentIndex(0);
               }}
-              className="p-1.5 rounded-lg text-white/70 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg text-white/70 hover:text-white transition-colors cursor-pointer"
               title="重置到开头"
             >
               <RotateCcw className="w-4 h-4" />
@@ -395,21 +429,60 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
             <span className="font-mono text-white/70">
               {currentTime.toFixed(1)}s / {totalDuration.toFixed(1)}s
             </span>
+
+            <div className="flex items-center gap-1 ml-1 hidden sm:flex">
+              {[1, 1.5, 2].map((rate) => (
+                <button
+                  key={rate}
+                  onClick={() => setPlaybackRate(rate)}
+                  className={cn(
+                    "px-2 py-0.5 rounded font-mono text-[11px] cursor-pointer",
+                    playbackRate === rate ? "bg-white/20 text-white font-bold" : "text-white/40 hover:text-white"
+                  )}
+                >
+                  {rate}x
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {[1, 1.5, 2].map((rate) => (
+            <button
+              onClick={handleCopyCurrentH3}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sky-300 hover:text-sky-200 border border-sky-400/20 text-xs font-medium transition-all cursor-pointer"
+              title="复制当前分镜的海螺标准多模态生视频词 (H3 Prompt)"
+            >
+              {isCopiedH3 ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{isCopiedH3 ? "已复制H3词" : "复制此镜H3"}</span>
+            </button>
+
+            {onOpenDetail && currentShot && (
               <button
-                key={rate}
-                onClick={() => setPlaybackRate(rate)}
-                className={cn(
-                  "px-2 py-0.5 rounded font-mono text-[11px]",
-                  playbackRate === rate ? "bg-white/20 text-white font-bold" : "text-white/40 hover:text-white"
-                )}
+                onClick={() => {
+                  onClose();
+                  onOpenDetail(currentShot);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold transition-all cursor-pointer"
+                title="关闭影院，打开此镜头的深度参数精修面板"
               >
-                {rate}x
+                <Sliders className="w-3.5 h-3.5" />
+                <span>精修此镜</span>
               </button>
-            ))}
+            )}
+
+            {onOpenExport && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenExport();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-sm transition-all cursor-pointer"
+                title="导出全套工业分镜交付包 (PDF/ZIP/H3)"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>导出交付包</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -22,6 +22,8 @@ import { AdaptationTradeoffModal } from "@/components/modals/AdaptationTradeoffM
 import { ProjectQualityRadarModal } from "@/components/modals/ProjectQualityRadarModal";
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
 import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibraryModal";
+import { QuickStartWizardModal } from "@/components/modals/QuickStartWizardModal";
+import { DirectorMissionBar } from "@/components/workspace/DirectorMissionBar";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
@@ -64,6 +66,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [isGlobalAssetOpen, setIsGlobalAssetOpen] = useState(false);
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const hasAutoOpenedWizardRef = useRef(false);
 
   const { activeEpisodeIndex, setActiveEpisodeIndex } = useWorkspaceStore();
 
@@ -229,6 +233,17 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
     return () => clearInterval(timer);
   }, [currentProject, shots, previewVersion, effectiveProjectId, fetchProject, isBatchRendering]);
+
+  // If newly created blank project (0 shots), automatically launch the 3-step Quick Wizard
+  useEffect(() => {
+    if (currentProject && !previewVersion && !hasAutoOpenedWizardRef.current) {
+      const allShots = currentProject.sequences?.flatMap((seq) => seq.shots || []) || [];
+      if (allShots.length === 0) {
+        hasAutoOpenedWizardRef.current = true;
+        setIsWizardOpen(true);
+      }
+    }
+  }, [currentProject, previewVersion]);
 
   // Handlers for Version Time Machine
   const handleCreateSnapshot = async (name: string, tag?: string) => {
@@ -584,6 +599,25 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onOpenAssetLibrary={() => setIsGlobalAssetOpen(true)}
         onOpenMediaLibrary={() => setIsMediaLibraryOpen(true)}
         onOpenDelete={() => setIsOpenDeleteModal(true)}
+        onOpenWizard={() => setIsWizardOpen(true)}
+      />
+
+      {/* Director Mission Bar (Dynamic Contextual Step Navigation) */}
+      <DirectorMissionBar
+        shotCount={shots.length}
+        completedCount={shots.filter((s) => Boolean(s.storyboard_image_url)).length}
+        onOpenWizard={() => setIsWizardOpen(true)}
+        onOpenBible={() => {
+          setBibleMode("bible");
+          setIsOpenBibleModal(true);
+        }}
+        onBatchRender={() => startClientRenderQueue(effectiveProjectId)}
+        onOpenTheater={() => {
+          setTheaterShotId(selectedShotId || shots[0]?.id || null);
+          setIsTheaterOpen(true);
+        }}
+        onOpenRadar={() => setIsOpenRadarModal(true)}
+        onOpenExport={() => setIsOpenExportModal(true)}
       />
 
       {/* Time Travel Read-Only Banner */}
@@ -790,6 +824,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         initialShotId={theaterShotId}
         onSelectShot={selectShot}
         onClose={() => setIsTheaterOpen(false)}
+        onOpenExport={() => setIsOpenExportModal(true)}
+        onOpenDetail={(shot) => handleOpenDrawer(shot.id)}
       />
 
       {activeDrawerShot && (
@@ -881,6 +917,35 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         isOpen={isMediaLibraryOpen}
         onClose={() => setIsMediaLibraryOpen(false)}
         projectId={effectiveProjectId}
+      />
+
+      <QuickStartWizardModal
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        onSwitchToPro={() => setIsWizardOpen(false)}
+        onComplete={async (story, options) => {
+          setIsWizardOpen(false);
+          // 1. Update project visual style preset
+          if (options?.styleId) {
+            try {
+              await api.updateProject(effectiveProjectId, {
+                style_config: {
+                  preset_id: options.styleId,
+                  style_name: options.styleName,
+                  positive_prompt: options.stylePrompt,
+                },
+              });
+            } catch (e) {
+              console.warn("Failed to persist wizard style preset:", e);
+            }
+          }
+          // 2. Trigger generation with chosen story in commercial/micro-drama mode
+          await handleGenerateFromStory(story, {
+            narrative_mode: "commercial",
+            structural_archetype: "three_act",
+            narrative_center: "character",
+          });
+        }}
       />
     </div>
   );

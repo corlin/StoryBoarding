@@ -292,30 +292,30 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
           </span>
           <span
             className={cn(
-              "px-2 py-0.5 rounded-full font-mono text-[10px] font-bold border flex items-center gap-1",
+              "px-2 py-0.5 rounded-full font-mono text-[10px] font-bold border flex items-center gap-1 cursor-help",
               Math.abs(diffPercent) <= 15
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                 : "bg-red-500/10 text-red-400 border-red-500/30 animate-pulse"
             )}
-            title={Math.abs(diffPercent) <= 15 ? "时长落在 ±15% 安全容差带内" : "超出 ±15% 容差警戒线，需增删戏份"}
+            title={Math.abs(diffPercent) <= 15 ? "【黄金节奏】时长落在目标 ±15% 安全容差内（短剧黄金语速按 4.5字/秒 测算）" : "【节奏失衡】超出 ±15% 容差警戒线，建议增删台词或动作节拍，防止观众出戏"}
           >
             <span>{diffPercent > 0 ? `+${diffPercent}%` : `${diffPercent}%`}</span>
             <span className="text-[9px] opacity-70">
               {Math.abs(diffPercent) <= 15 ? "(±15%安全)" : "(超容差)"}
             </span>
           </span>
-          <span className="text-muted-foreground text-[11px] hidden sm:inline">
-            · {sceneGroups.length} 场 · {beats.length} 节拍 · {dialogueCount} 台词
+          <span className="text-muted-foreground text-[11px] hidden sm:inline" title="行业标准短剧台词按 4.5字/秒 计算预估时长">
+            · {sceneGroups.length} 场 · {beats.length} 节拍 · {dialogueCount} 台词 (4.5字/s)
           </span>
           {/* Cold-open 3-beat hook gate */}
           <span
             className={cn(
-              "px-1.5 py-0.5 rounded text-[10px] font-mono border hidden md:inline-flex items-center gap-1",
+              "px-1.5 py-0.5 rounded text-[10px] font-mono border hidden md:inline-flex items-center gap-1 cursor-help",
               beats.length > 0 && hook.trim().length > 0
                 ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
                 : "bg-muted text-muted-foreground border-border"
             )}
-            title="shuohao冷开场规则：前3拍内具象兑现开篇钩子"
+            title="【黄金3秒冷开场】前3拍内必须兑现核心冲突设问，抓住短剧完播率黄金窗口"
           >
             <span>冷开场闸门: 前3拍</span>
           </span>
