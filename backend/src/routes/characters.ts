@@ -229,4 +229,53 @@ router.post("/:id/set-from-shot", async (c) => {
   }
 });
 
+// PUT /api/characters/:id (更新角色全部属性，包括 Reelbench profile_json)
+router.put("/:id", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const charId = c.req.param("id");
+    const body = await c.req.json();
+
+    const existing = await db.select().from(characters).where(eq(characters.id, charId)).get();
+    if (!existing) return c.json({ detail: "未找到角色" }, 404);
+
+    const updates: any = {
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (body.name !== undefined) updates.name = body.name;
+    if (body.role !== undefined) updates.role = body.role;
+    if (body.visual_anchor !== undefined) updates.visualAnchor = body.visual_anchor;
+    if (body.turnaround_prompt !== undefined) updates.turnaroundPrompt = body.turnaround_prompt;
+    if (body.personality !== undefined) updates.personality = body.personality;
+    if (body.voice_dna !== undefined) updates.voiceDna = body.voice_dna;
+    if (body.avatar_url !== undefined) updates.avatarUrl = body.avatar_url;
+    if (body.costume_variants !== undefined) {
+      updates.costumeVariants = typeof body.costume_variants === "string" ? body.costume_variants : JSON.stringify(body.costume_variants);
+    }
+    if (body.profile_json !== undefined) {
+      updates.profileJson = typeof body.profile_json === "string" ? body.profile_json : JSON.stringify(body.profile_json);
+    }
+
+    const [updated] = await db
+      .update(characters)
+      .set(updates)
+      .where(eq(characters.id, charId))
+      .returning();
+
+    return c.json({
+      success: true,
+      character: {
+        ...updated,
+        costume_variants: updated.costumeVariants ? JSON.parse(updated.costumeVariants) : [],
+        profile_json: updated.profileJson ? JSON.parse(updated.profileJson) : {},
+      },
+    });
+  } catch (err: any) {
+    console.error("Update character error:", err);
+    return c.json({ detail: `更新角色档案失败: ${err?.message || err}` }, 500);
+  }
+});
+
 export default router;

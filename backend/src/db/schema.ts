@@ -54,6 +54,8 @@ export const characters = sqliteTable("characters", {
   avatarUrl: text("avatar_url").default("").notNull(),
   personality: text("personality").default("").notNull(),
   voiceDna: text("voice_dna").default("").notNull(), // Reelbench TTS Voice prompt & tone anchor
+  // Reelbench STAGE 02 Cast Profile & Evidence Architecture
+  profileJson: text("profile_json").default("{}").notNull(),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });

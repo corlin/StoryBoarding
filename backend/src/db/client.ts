@@ -175,6 +175,7 @@ export async function ensureSchema(d1: D1Database) {
     try { await d1.prepare(`ALTER TABLE characters ADD COLUMN turnaround_prompt TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE characters ADD COLUMN costume_variants TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE characters ADD COLUMN voice_dna TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE characters ADD COLUMN profile_json TEXT NOT NULL DEFAULT '{}';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE locations ADD COLUMN lighting_states TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE locations ADD COLUMN active_lighting_state TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE locations ADD COLUMN is_variant INTEGER NOT NULL DEFAULT 0;`).run(); } catch (_) {}

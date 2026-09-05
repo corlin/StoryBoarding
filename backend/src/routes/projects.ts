@@ -166,6 +166,7 @@ router.get("/:id", async (c) => {
         avatar_url: c.avatarUrl,
         personality: c.personality,
         voice_dna: c.voiceDna || "",
+        profile_json: c.profileJson ? JSON.parse(c.profileJson) : {},
         created_at: c.createdAt,
       })),
       locations: locList.map((loc) => ({
@@ -614,6 +615,7 @@ router.put("/:id", async (c) => {
               personality: ch.personality || existing.personality,
               voiceDna: ch.voice_dna !== undefined ? ch.voice_dna : (ch.voiceDna !== undefined ? ch.voiceDna : existing.voiceDna),
               avatarUrl: ch.avatar_url || ch.avatarUrl || existing.avatarUrl,
+              profileJson: ch.profile_json !== undefined ? (typeof ch.profile_json === "string" ? ch.profile_json : JSON.stringify(ch.profile_json)) : existing.profileJson,
               updatedAt: new Date().toISOString(),
             }).where(eq(characters.id, ch.id));
           } else {
@@ -628,6 +630,7 @@ router.put("/:id", async (c) => {
               personality: ch.personality || "",
               voiceDna: ch.voice_dna || ch.voiceDna || "",
               avatarUrl: ch.avatar_url || ch.avatarUrl || "",
+              profileJson: typeof ch.profile_json === "object" ? JSON.stringify(ch.profile_json) : (ch.profile_json || "{}"),
             });
           }
         } else if (ch.name) {
@@ -642,6 +645,7 @@ router.put("/:id", async (c) => {
             personality: ch.personality || "",
             voiceDna: ch.voice_dna || ch.voiceDna || "",
             avatarUrl: ch.avatar_url || ch.avatarUrl || "",
+            profileJson: typeof ch.profile_json === "object" ? JSON.stringify(ch.profile_json) : (ch.profile_json || "{}"),
           });
         }
       }

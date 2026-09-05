@@ -22,12 +22,14 @@ import {
   Package,
   Mic,
   Sun,
+  ExternalLink,
 } from "lucide-react";
 import { ProjectModel, CharacterModel, LocationModel, PropModel } from "@/types/shot";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { cn } from "@/lib/utils";
+import { CharacterProfileDrawer } from "@/components/drawers/CharacterProfileDrawer";
 
 interface BibleModalProps {
   isOpen: boolean;
@@ -121,6 +123,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
   const [newCharRole, setNewCharRole] = useState<"protagonist" | "antagonist" | "supporting">("supporting");
   const [newCharAnchor, setNewCharAnchor] = useState("");
   const [newCharPersonality, setNewCharPersonality] = useState("");
+  const [profileDrawerChar, setProfileDrawerChar] = useState<CharacterModel | null>(null);
   const [newCharVoice, setNewCharVoice] = useState("");
   const [newCharTurnaround, setNewCharTurnaround] = useState(TURNAROUND_PRESETS[1].template);
 
@@ -608,6 +611,28 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                         }}
                         className="w-full bg-secondary/30 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-pink-200 focus:outline-none focus:border-pink-500/60 font-mono"
                       />
+                    </div>
+
+                    {/* Reelbench 4-Part Cast Profile & Evidence Entry */}
+                    <div className="pt-2 border-t border-border/60 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 font-medium">
+                          {char.profile_json?.tags?.length ? `${char.profile_json.tags.length} 个锚点标签` : "标准人设"}
+                        </span>
+                        {char.profile_json?.evidences?.length ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 font-medium">
+                            {char.profile_json.evidences.length} 条原著佐证
+                          </span>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setProfileDrawerChar(char)}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-purple-400 hover:text-purple-300 transition-colors py-1 px-2 rounded-md hover:bg-purple-500/10 cursor-pointer"
+                      >
+                        <span>详情：画像 · 弧光 · 关系 · 原文佐证</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
                 );
@@ -1150,6 +1175,18 @@ export const BibleModal: React.FC<BibleModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Character Profile & Voice DNA Drawer */}
+      <CharacterProfileDrawer
+        isOpen={Boolean(profileDrawerChar)}
+        onClose={() => setProfileDrawerChar(null)}
+        character={profileDrawerChar}
+        allCharacters={characters}
+        onSave={(updatedChar) => {
+          setCharacters(characters.map((c) => (c.id === updatedChar.id ? updatedChar : c)));
+          setProfileDrawerChar(null);
+        }}
+      />
     </div>
   );
 };

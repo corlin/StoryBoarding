@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ProjectModel, ShotModel, LocationModel, BeatModel } from "@/types/shot";
+import { ProjectModel, ShotModel, LocationModel, BeatModel, CharacterModel } from "@/types/shot";
 
 export type ProjectListItem = ProjectModel;
 
@@ -356,6 +356,11 @@ export const api = {
 
   async setCharacterAvatarFromShot(charId: string, payload: { shot_id?: string; image_url?: string }): Promise<{ success: boolean; character: any }> {
     const { data } = await apiClient.post(`/characters/${charId}/set-from-shot`, payload);
+    return data;
+  },
+
+  async updateCharacter(charId: string, payload: Partial<CharacterModel>): Promise<{ success: boolean; character: CharacterModel }> {
+    const { data } = await apiClient.put(`/characters/${charId}`, payload);
     return data;
   },
 

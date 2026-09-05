@@ -91,6 +91,42 @@ export interface ShotModel {
   updated_at: string;
 }
 
+export interface CharacterProfile {
+  code?: string; // e.g. 'C01'
+  title_alias?: string; // e.g. '姑娘' | '货郎'
+  gender?: string;
+  age?: string;
+  identity?: string;
+  appearance?: string;
+  disposition?: string;
+  motivation?: string;
+  tags?: string[]; // e.g. ['拘谨', '警觉', '倔强']
+  arc_static?: string; // CAST 中的静态人物设定
+  arc_dynamic?: string; // OUTLINE 中的戏剧转变弧光
+  relations?: Array<{
+    target_character_name?: string;
+    target_name?: string;
+    relationship?: string;
+    relation?: string;
+    description?: string;
+  }>;
+  evidences?: Array<{
+    source_chapter?: string;
+    quote: string;
+    annotation?: string;
+  }>; // 小说原文支持佐证原句
+  voice_traits?: {
+    timbre?: string;
+    pitch?: string;
+    speed?: string;
+    accent?: string;
+    emotion?: string;
+    emotion_baseline?: string;
+    tts_prompt?: string;
+    reference?: string;
+  };
+}
+
 export interface CharacterModel {
   id: string;
   project_id: string;
@@ -104,6 +140,7 @@ export interface CharacterModel {
   personality?: string;
   voice_dna?: string;
   voiceDna?: string;
+  profile_json?: CharacterProfile;
   created_at?: string;
 }
 
