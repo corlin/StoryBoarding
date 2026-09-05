@@ -204,6 +204,90 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
     setPayoffBeats([...payoffBeats, newBeat]);
   };
 
+  /**
+   * 智能补齐爽点真空期，确保全剧相邻爽点间隔 <= 3 集
+   */
+  const handleAutoFillGaps = () => {
+    const existingEpSet = new Set(payoffBeats.map((b) => b.episode));
+    const sortedEps = Array.from(existingEpSet).sort((a, b) => a - b);
+    const newBeatsToAdd: PayoffBeatItem[] = [];
+
+    const BEAT_TEMPLATES: { type: string; weight: "major" | "minor"; setup: string; payoff: string }[] = [
+      { type: "悬念钩", weight: "minor", setup: "关键物证意外显露破绽", payoff: "全场焦点骤聚，人物关系瞬间紧绷" },
+      { type: "身份揭破", weight: "major", setup: "暗线代号被无意间呼应", payoff: "真实立场被迫摊牌，攻守之势异也" },
+      { type: "反转", weight: "major", setup: "看似落入死局的陷阱", payoff: "原来早在三步前布下绝地反杀契机" },
+      { type: "冲突爆发", weight: "minor", setup: "利益矛盾暗流涌动", payoff: "正面针锋相对，情绪电压达到峰值" },
+      { type: "高潮收束", weight: "major", setup: "所有伏线暗合一处", payoff: "真相大白，旧悬念终局兑现" },
+    ];
+
+    // Check gap before first beat
+    let currentLast = 0;
+    for (const ep of sortedEps) {
+      if (ep - currentLast > 3) {
+        // Fill gaps in step of 2 or 3
+        let targetEp = currentLast + 3;
+        while (targetEp < ep) {
+          const tpl = BEAT_TEMPLATES[(newBeatsToAdd.length + payoffBeats.length) % BEAT_TEMPLATES.length];
+          newBeatsToAdd.push({
+            id: `B${String(payoffBeats.length + newBeatsToAdd.length + 1).padStart(2, "0")}`,
+            type: tpl.type,
+            weight: tpl.weight,
+            episode: targetEp,
+            setup: tpl.setup,
+            payoff: tpl.payoff,
+          });
+          targetEp += 3;
+        }
+      }
+      currentLast = ep;
+    }
+
+    // Check gap after last beat to end
+    if (totalEpisodes - currentLast > 3) {
+      let targetEp = currentLast + 3;
+      while (targetEp <= totalEpisodes) {
+        const tpl = BEAT_TEMPLATES[(newBeatsToAdd.length + payoffBeats.length) % BEAT_TEMPLATES.length];
+        newBeatsToAdd.push({
+          id: `B${String(payoffBeats.length + newBeatsToAdd.length + 1).padStart(2, "0")}`,
+          type: tpl.type,
+          weight: tpl.weight,
+          episode: targetEp,
+          setup: tpl.setup,
+          payoff: tpl.payoff,
+        });
+        targetEp += 3;
+      }
+    }
+
+    // If completely empty, fill E1, E3, E5 ...
+    if (sortedEps.length === 0) {
+      for (let ep = 1; ep <= totalEpisodes; ep += 2) {
+        const tpl = BEAT_TEMPLATES[(newBeatsToAdd.length) % BEAT_TEMPLATES.length];
+        newBeatsToAdd.push({
+          id: `B${String(newBeatsToAdd.length + 1).padStart(2, "0")}`,
+          type: tpl.type,
+          weight: tpl.weight,
+          episode: ep,
+          setup: tpl.setup,
+          payoff: tpl.payoff,
+        });
+      }
+    }
+
+    if (newBeatsToAdd.length > 0) {
+      const merged = [...payoffBeats, ...newBeatsToAdd].sort((a, b) => a.episode - b.episode);
+      // Re-index IDs
+      const reindexed = merged.map((b, idx) => ({
+        ...b,
+        id: `B${String(idx + 1).padStart(2, "0")}`,
+      }));
+      setPayoffBeats(reindexed);
+      notify.success(`⚡ 已智能补齐 ${newBeatsToAdd.length} 处真空爽点，Gate 2 节奏门已通过！`);
+    } else {
+      notify.info("当前全剧爽点节奏已非常紧凑，无需补齐！");
+    }
+  };
+
   const handleDeletePayoffBeat = (id: string) => {
     setPayoffBeats(payoffBeats.filter((b) => b.id !== id));
   };
@@ -528,14 +612,28 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleAddPayoffBeat}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 text-white hover:bg-purple-500 transition-colors shadow-xs cursor-pointer shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>新增爽点 (B{String(payoffBeats.length + 1).padStart(2, "0")})</span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {!beatGapAnalysis.passed && (
+                  <button
+                    type="button"
+                    onClick={handleAutoFillGaps}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-sm animate-pulse cursor-pointer"
+                    title="自动计算集数间隔并在真空期智能补齐起承转合伏笔与爽点，瞬间达标"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-current" />
+                    <span>⚡ 一键智能补齐真空爽点</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleAddPayoffBeat}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 text-white hover:bg-purple-500 transition-colors shadow-xs cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>新增爽点 (B{String(payoffBeats.length + 1).padStart(2, "0")})</span>
+                </button>
+              </div>
             </div>
 
             {/* Episode Timeline Track (E1 to E6 in Reelbench) */}
