@@ -242,18 +242,30 @@ export const BibleModal: React.FC<BibleModalProps> = ({
         prompt: char.turnaround_prompt,
       });
       if (res.success && res.character?.avatar_url) {
-        setCharacters(
-          characters.map((c) =>
-            c.id === char.id
-              ? {
-                  ...c,
-                  avatar_url: res.character.avatar_url,
-                  turnaround_prompt: res.character.turnaround_prompt || c.turnaround_prompt,
-                }
-              : c
-          )
+        const nextChars = characters.map((c) =>
+          c.id === char.id
+            ? {
+                ...c,
+                avatar_url: res.character.avatar_url,
+                turnaround_prompt: res.character.turnaround_prompt || c.turnaround_prompt,
+              }
+            : c
         );
-        notify.success(`✨ ${char.name} 的基准定妆照已成功生成并存入资产库！`);
+        setCharacters(nextChars);
+
+        // Auto-persist character changes to project DB
+        if (project?.id) {
+          try {
+            await api.updateProject(project.id, {
+              characters: nextChars,
+            });
+            await fetchProject(project.id);
+          } catch (persistErr) {
+            console.warn("Auto-persist character failed:", persistErr);
+          }
+        }
+
+        notify.success(`✨ ${char.name} 的基准定妆照已生成并自动入库存档！`);
       }
     } catch (err: any) {
       console.error(err);
@@ -321,14 +333,25 @@ export const BibleModal: React.FC<BibleModalProps> = ({
       setGeneratingLocId(loc.id);
       const res = await api.generateLocationConcept(loc.id);
       if (res.success && res.location?.reference_image_url) {
-        setLocations(
-          locations.map((l) =>
-            l.id === loc.id
-              ? { ...l, reference_image_url: res.location.reference_image_url }
-              : l
-          )
+        const nextLocs = locations.map((l) =>
+          l.id === loc.id
+            ? { ...l, reference_image_url: res.location.reference_image_url }
+            : l
         );
-        notify.success(`✨ 场景「${loc.name}」概念基准图已生成！`);
+        setLocations(nextLocs);
+
+        if (project?.id) {
+          try {
+            await api.updateProject(project.id, {
+              locations: nextLocs as any,
+            });
+            await fetchProject(project.id);
+          } catch (persistErr) {
+            console.warn("Auto-persist location failed:", persistErr);
+          }
+        }
+
+        notify.success(`✨ 场景「${loc.name}」概念基准图已生成并自动入库存档！`);
       }
     } catch (err: any) {
       console.error(err);
@@ -384,14 +407,25 @@ export const BibleModal: React.FC<BibleModalProps> = ({
       setGeneratingPropId(prop.id);
       const res = await api.generatePropConcept(prop.id);
       if (res.success && res.prop?.reference_image_url) {
-        setPropsList(
-          propsList.map((p) =>
-            p.id === prop.id
-              ? { ...p, reference_image_url: res.prop.reference_image_url }
-              : p
-          )
+        const nextProps = propsList.map((p) =>
+          p.id === prop.id
+            ? { ...p, reference_image_url: res.prop.reference_image_url }
+            : p
         );
-        notify.success(`✨ 道具「${prop.name}」纯白底特写基准图已生成！`);
+        setPropsList(nextProps);
+
+        if (project?.id) {
+          try {
+            await api.updateProject(project.id, {
+              props: nextProps as any,
+            });
+            await fetchProject(project.id);
+          } catch (persistErr) {
+            console.warn("Auto-persist prop failed:", persistErr);
+          }
+        }
+
+        notify.success(`✨ 道具「${prop.name}」纯白底特写基准图已生成并自动入库存档！`);
       }
     } catch (err: any) {
       console.error(err);
