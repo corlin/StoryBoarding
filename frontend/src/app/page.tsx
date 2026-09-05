@@ -312,6 +312,17 @@ export default function HomePage() {
               <span>4 大工业起步模板</span>
             </Link>
 
+            <Link
+              href="/releases"
+              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+              </span>
+              <span>更新日志</span>
+            </Link>
+
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <Link
@@ -523,6 +534,9 @@ export default function HomePage() {
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="hover:text-foreground transition-colors">
               分镜看板
+            </Link>
+            <Link href="/releases" className="hover:text-foreground transition-colors">
+              版本更新日志
             </Link>
             <a
               href="https://github.com/corlin/StoryBoarding"

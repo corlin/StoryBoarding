@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { User, Settings, LogOut, ChevronDown, Sparkles, Mail } from "lucide-react";
+import Link from "next/link";
+import { User, Settings, LogOut, ChevronDown, Sparkles, Mail, History } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { notify } from "@/components/ui/ToastNotification";
 
@@ -83,6 +84,25 @@ export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ align = "rig
 
           {/* Action Links */}
           <div className="py-1.5 space-y-0.5">
+            <Link
+              href="/releases"
+              onClick={() => setIsOpen(false)}
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-secondary/80 transition-colors text-left"
+            >
+              <History className="w-3.5 h-3.5 text-primary" />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="block font-semibold">版本更新动态</span>
+                  <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-primary/15 text-primary font-bold">
+                    v1.3.0
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground block">
+                  短剧引擎、手机端优化等新特性
+                </span>
+              </div>
+            </Link>
+
             <button
               type="button"
               onClick={() => {

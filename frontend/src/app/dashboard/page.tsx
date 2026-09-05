@@ -328,6 +328,18 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <Link
+            href="/releases"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary text-xs transition-colors"
+            title="查看近期版本更新日志"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <span className="hidden sm:inline font-medium">更新动态</span>
+            <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-primary/15 text-primary font-bold">
+              v1.3.0
+            </span>
+          </Link>
+
           <button
             onClick={openSettingsModal}
             className="p-2 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
