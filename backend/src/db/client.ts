@@ -171,6 +171,7 @@ export async function ensureSchema(d1: D1Database) {
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN location_id TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN dialogue TEXT DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN dialogue_emotion TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE shots ADD COLUMN image_history TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN is_locked INTEGER NOT NULL DEFAULT 0;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN clip_id TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN startTime REAL NOT NULL DEFAULT 0.0;`).run(); } catch (_) {}

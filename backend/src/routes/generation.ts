@@ -768,8 +768,14 @@ const handleGenerateSingleShotImage = async (c: any) => {
     options
   );
 
+  const existingHistory: string[] = shot.imageHistory ? JSON.parse(shot.imageHistory) : [];
+  const updatedHistory = imageUrl && !existingHistory.includes(imageUrl) 
+    ? [imageUrl, ...existingHistory].slice(0, 10) 
+    : existingHistory;
+
   await db.update(shots).set({
     storyboardImageUrl: imageUrl,
+    imageHistory: JSON.stringify(updatedHistory),
     isDirty: false,
     updatedAt: new Date().toISOString(),
   }).where(eq(shots.id, shotId));
@@ -778,6 +784,7 @@ const handleGenerateSingleShotImage = async (c: any) => {
     status: "success",
     shot_id: shotId,
     storyboard_image_url: imageUrl,
+    image_history: updatedHistory,
   });
 };
 

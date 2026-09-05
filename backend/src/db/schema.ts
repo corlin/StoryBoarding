@@ -111,6 +111,7 @@ export const shots = sqliteTable("shots", {
   videoPrompt: text("video_prompt").default(""),
   continuityData: text("continuity_data").default("{}").notNull(), // JSON string
   storyboardImageUrl: text("storyboard_image_url"),
+  imageHistory: text("image_history").default("[]").notNull(), // Reelbench Asset Pool: JSON array of historical image URLs
   isDirty: integer("is_dirty", { mode: "boolean" }).default(false).notNull(),
   isLocked: integer("is_locked", { mode: "boolean" }).default(false).notNull(),
   // Two-Tier Video Generation Hierarchy (Clip <= 15s -> Shot 2-5s)

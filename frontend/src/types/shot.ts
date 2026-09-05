@@ -65,6 +65,7 @@ export interface ShotModel {
   transition: string;
   notes?: string;
   storyboard_image_url?: string;
+  image_history?: string[]; // Reelbench Content-Addressed History Asset Pool
   image_prompt?: string;
   video_prompt?: string;
   continuity_data: ContinuityData;

@@ -111,6 +111,9 @@ router.put("/:id", async (c) => {
     updates.storyboardImageUrl = body.storyboard_image_url;
     updates.isDirty = false;
   }
+  if (body.image_history !== undefined) {
+    updates.imageHistory = Array.isArray(body.image_history) ? JSON.stringify(body.image_history) : body.image_history;
+  }
   if (body.is_dirty !== undefined) updates.isDirty = Boolean(body.is_dirty);
   if (body.is_locked !== undefined) updates.isLocked = Boolean(body.is_locked);
   if (body.isLocked !== undefined) updates.isLocked = Boolean(body.isLocked);

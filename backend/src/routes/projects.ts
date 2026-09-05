@@ -126,6 +126,7 @@ router.get("/:id", async (c) => {
             video_prompt: s.videoPrompt,
             continuity_data: s.continuityData ? JSON.parse(s.continuityData) : {},
             storyboard_image_url: s.storyboardImageUrl || "",
+            image_history: s.imageHistory ? JSON.parse(s.imageHistory) : [],
             is_dirty: s.isDirty,
             is_locked: s.isLocked,
             clip_id: s.clipId || "",

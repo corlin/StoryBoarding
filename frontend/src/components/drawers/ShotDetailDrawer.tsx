@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { ShotModel, CharacterModel, LocationModel, PropModel } from "@/types/shot";
 import { normalizeAssetUrl } from "@/lib/api";
+import { notify } from "@/components/ui/ToastNotification";
+import { cn } from "@/lib/utils";
 
 interface ShotDetailDrawerProps {
   isOpen: boolean;
@@ -166,7 +168,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                 <button
                   onClick={handleRegenerate}
                   disabled={isRegenerating}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
                 >
                   {isRegenerating ? (
                     <>
@@ -182,8 +184,48 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                 </button>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                可随时在下方修改 Midjourney / Grok 英文提示词，点击重绘即可刷新当前分镜画面。
+                可随时在下方修改 Midjourney / Grok 英文提示词，点击重绘将自动将新生成画面存入历史图库，杜绝旧图丢失。
               </p>
+
+              {/* Reelbench History Asset Pool (改坏了随时找回) */}
+              {shot.image_history && shot.image_history.length > 0 && (
+                <div className="pt-2 border-t border-border/60">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
+                      <span>🎞️ 历史生成底片池 ({shot.image_history.length})</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">点击任意历史版即可直接复原设为当前</span>
+                  </div>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                    {shot.image_history.map((histUrl, hIdx) => {
+                      const isActive = shot.storyboard_image_url === histUrl;
+                      return (
+                        <div
+                          key={histUrl + hIdx}
+                          onClick={() => {
+                            if (!isActive) {
+                              onUpdateShot(shot.id, { storyboard_image_url: histUrl });
+                              notify.success(`已复原激活第 ${hIdx + 1} 版历史分镜底片`);
+                            }
+                          }}
+                          className={cn(
+                            "w-16 h-10 rounded border overflow-hidden shrink-0 cursor-pointer relative transition-all group",
+                            isActive
+                              ? "border-primary ring-2 ring-primary/40 shadow-xs"
+                              : "border-border/80 hover:border-primary/60 opacity-70 hover:opacity-100"
+                          )}
+                          title={`点击复原为第 ${hIdx + 1} 版画面`}
+                        >
+                          <img src={normalizeAssetUrl(histUrl)} alt="" className="w-full h-full object-cover" />
+                          <span className="absolute bottom-0 right-0 bg-black/70 text-[8px] font-mono px-1 text-white">
+                            #{hIdx + 1}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
