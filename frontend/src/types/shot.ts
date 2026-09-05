@@ -125,6 +125,15 @@ export interface BeatModel {
   prop_ids?: string[];
 }
 
+export interface PayoffBeatItem {
+  id: string; // e.g. 'B01'
+  type: string; // '悬念钩' | '身份揭破' | '反转' | '收束'
+  weight: "major" | "minor";
+  episode: number; // e.g. 1, 3, 5
+  setup: string; // 前期因果铺垫 (Setup)
+  payoff: string; // 当期戏剧兑现 (Payoff)
+}
+
 export interface AdaptationTradeoffItem {
   id: string;
   title: string;
@@ -133,10 +142,13 @@ export interface AdaptationTradeoffItem {
 }
 
 export interface AdaptationTradeoffs {
+  dramatic_core?: string; // Reelbench 改编内核
+  scale_desc?: string; // 规模与体裁
   keep?: AdaptationTradeoffItem[];
   cut?: AdaptationTradeoffItem[];
   merge?: AdaptationTradeoffItem[];
   risk?: AdaptationTradeoffItem[];
+  payoff_beats?: PayoffBeatItem[]; // Reelbench 爽点表与门控
 }
 
 export interface LocationModel {

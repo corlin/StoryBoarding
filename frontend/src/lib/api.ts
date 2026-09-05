@@ -474,4 +474,12 @@ export const api = {
     const { data } = await apiClient.post(`/projects/${projectId}/media-library/clean-orphans`);
     return data;
   },
+
+  // Adaptation Tradeoffs & Payoff Radar Studio
+  async updateProjectAdaptationTradeoffs(projectId: string, tradeoffs: any): Promise<any> {
+    const { data } = await apiClient.put(`/projects/${projectId}`, {
+      adaptation_tradeoffs: tradeoffs,
+    });
+    return data;
+  },
 };
