@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { ShotModel, LocationModel, CharacterModel, PropModel, ProjectModel } from "@/types/shot";
-import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, FileSpreadsheet, Download } from "lucide-react";
+import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, FileSpreadsheet, Download, RefreshCw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildBatchH3 } from "@/hooks/useH3Prompt";
 import { normalizeAssetUrl } from "@/lib/api";
@@ -41,7 +41,9 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
   selectedShotId,
   onSelectShot,
   onOpenDrawer,
+  onRegenerateShotImage,
 }) => {
+  const [renderingGroupId, setRenderingGroupId] = React.useState<string | null>(null);
   // Group shots by (Location + Lighting State) to avoid visual drift
   const groups: CallSheetGroup[] = useMemo(() => {
     const map = new Map<string, CallSheetGroup>();
@@ -175,6 +177,44 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                     <Video className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>复制 H3 批次词</span>
                   </button>
+
+                  {/* 一键冲印本批次 (Batch Render within Call Sheet) */}
+                  {!isComplete && onRegenerateShotImage && (
+                    <button
+                      type="button"
+                      disabled={renderingGroupId === group.groupKey}
+                      onClick={async () => {
+                        const unrendered = group.shots.filter((s) => !s.storyboard_image_url || s.is_dirty);
+                        if (unrendered.length === 0) return;
+                        try {
+                          setRenderingGroupId(group.groupKey);
+                          notify.info(`🎨 正在冲印批次 B${gIdx + 1} (${group.locationName}) 的 ${unrendered.length} 个镜头画面...`);
+                          for (const s of unrendered) {
+                            await onRegenerateShotImage(s.id);
+                          }
+                          notify.success(`✨ 批次 B${gIdx + 1} 全部镜头画面冲印显影完毕！`);
+                        } catch (err: any) {
+                          notify.error(err?.message || "冲印批次镜头失败");
+                        } finally {
+                          setRenderingGroupId(null);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                      title="一键并发或顺序冲印本批次下所有待显影镜头画面"
+                    >
+                      {renderingGroupId === group.groupKey ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>冲印中...</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3 h-3" />
+                          <span>冲印本批次 ({group.shots.length - completedCount})</span>
+                        </>
+                      )}
+                    </button>
+                  )}
 
                   {isComplete ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
