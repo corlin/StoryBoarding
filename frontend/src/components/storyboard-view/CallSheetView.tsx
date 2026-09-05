@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { ShotModel, LocationModel, CharacterModel, PropModel } from "@/types/shot";
-import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock } from "lucide-react";
+import { ShotModel, LocationModel, CharacterModel, PropModel, ProjectModel } from "@/types/shot";
+import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, FileSpreadsheet, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildBatchH3 } from "@/hooks/useH3Prompt";
 import { normalizeAssetUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
+import { exportCallSheetToCsv } from "@/lib/callSheetExporter";
 
 interface CallSheetViewProps {
+  project?: ProjectModel | null;
   shots: ShotModel[];
   locations: LocationModel[];
   characters: CharacterModel[];
@@ -32,8 +34,10 @@ interface CallSheetGroup {
 }
 
 export const CallSheetView: React.FC<CallSheetViewProps> = ({
+  project,
   shots,
   locations,
+  characters,
   selectedShotId,
   onSelectShot,
   onOpenDrawer,
@@ -78,8 +82,8 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
 
   return (
     <div className="p-4 space-y-5 overflow-y-auto h-full text-xs">
-      {/* Introduction Banner */}
-      <div className="p-3.5 bg-secondary/50 border border-border rounded-xl flex items-start justify-between gap-3 text-xs text-foreground">
+      {/* Introduction Banner with Export Action */}
+      <div className="p-3.5 bg-secondary/50 border border-border rounded-xl flex items-center justify-between gap-3 text-xs text-foreground">
         <div className="flex items-start gap-2.5">
           <Layers className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
           <div>
@@ -94,6 +98,24 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
             </p>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            try {
+              exportCallSheetToCsv(project || null, shots, locations, characters);
+              notify.success("📊 剧组制片顺场表 (CSV) 已成功导出并下载！");
+            } catch (e: any) {
+              notify.error(e?.message || "导出顺场表失败");
+            }
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-xs font-semibold shadow-xs transition-all cursor-pointer shrink-0"
+          title="一键导出标准 Excel / CSV 制片顺场排期表"
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+          <span>导出 CSV 顺场表</span>
+          <Download className="w-3 h-3 text-emerald-400" />
+        </button>
       </div>
 
       {/* Batch Groups Table List */}

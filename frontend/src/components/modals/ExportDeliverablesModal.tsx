@@ -13,10 +13,12 @@ import {
   Layers,
   BookOpen,
   Sparkles,
+  FileSpreadsheet,
 } from "lucide-react";
 import { ProjectModel, ShotModel } from "@/types/shot";
 import { api } from "@/lib/api";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
+import { exportCallSheetToCsv } from "@/lib/callSheetExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { cn } from "@/lib/utils";
 import { generateH3Prompt } from "@/lib/h3Prompt";
@@ -231,6 +233,43 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
               ) : (
                 <Download className="w-4 h-4 text-sky-400 group-hover:scale-110 transition-transform" />
               )}
+            </div>
+          </button>
+
+          {/* 2. Call Sheet CSV Table */}
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                exportCallSheetToCsv(
+                  project,
+                  currentShots,
+                  project.locations || [],
+                  project.characters || []
+                );
+                notify.success("📊 剧组制片顺场表 (CSV / Excel) 已成功导出并下载！");
+              } catch (e: any) {
+                notify.error(e?.message || "导出顺场表失败");
+              }
+            }}
+            disabled={currentShots.length === 0}
+            className="w-full flex items-center justify-between p-3.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all group text-left cursor-pointer disabled:opacity-50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
+                <FileSpreadsheet className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-emerald-300">
+                  2. 📊 影视剧组制片顺场排期表 (Call Sheet CSV / Excel)
+                </h4>
+                <p className="text-[11px] text-muted-foreground">
+                  按拍摄场景与光效归类批次，包含镜号、机位调度、角色、动作台词与时长，带 UTF-8 BOM，Excel 打开 100% 不乱码
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+              <Download className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
             </div>
           </button>
 

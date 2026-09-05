@@ -738,6 +738,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           )}
         >
           <StoryboardPanel
+            project={displayProject}
             shots={shots}
             selectedShotId={selectedShotId}
             aspectRatio={displayProject?.aspect_ratio === "9:16" ? "9:16" : "16:9"}

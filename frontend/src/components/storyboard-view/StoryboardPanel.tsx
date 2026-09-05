@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ShotModel, CharacterModel, LocationModel, PropModel } from "@/types/shot";
+import { ShotModel, CharacterModel, LocationModel, PropModel, ProjectModel } from "@/types/shot";
 import { StoryboardCell } from "./StoryboardCell";
 import { RhythmBarcode } from "./RhythmBarcode";
 import { CallSheetView } from "./CallSheetView";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { notify } from "@/components/ui/ToastNotification";
 
 interface StoryboardPanelProps {
+  project?: ProjectModel | null;
   shots: ShotModel[];
   selectedShotId: string | null;
   aspectRatio?: "16:9" | "9:16";
@@ -27,6 +28,7 @@ interface StoryboardPanelProps {
 }
 
 export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
+  project,
   shots,
   selectedShotId,
   aspectRatio = "16:9",
@@ -263,6 +265,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
       >
         {viewMode === "callsheet" ? (
           <CallSheetView
+            project={project}
             shots={shots}
             locations={locations}
             characters={characters}
