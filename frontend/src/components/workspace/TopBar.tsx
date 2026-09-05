@@ -38,6 +38,7 @@ import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { AdaptationTradeoffModal } from "@/components/modals/AdaptationTradeoffModal";
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
+import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibraryModal";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
@@ -90,6 +91,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [isOpenExportModal, setIsOpenExportModal] = useState(false);
   const [isOpenTradeoffModal, setIsOpenTradeoffModal] = useState(false);
   const [isGlobalAssetOpen, setIsGlobalAssetOpen] = useState(false);
+  const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [bibleMode, setBibleMode] = useState<"bible" | "style">("bible");
   const [storyText, setStoryText] = useState("");
@@ -292,6 +294,16 @@ export const TopBar: React.FC<TopBarProps> = ({
               >
                 <Layers className="w-3.5 h-3.5 text-purple-400" />
                 <span>资产库</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsMediaLibraryOpen(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-sky-300 hover:text-sky-200 hover:bg-sky-500/20 transition-colors cursor-pointer"
+                title="全项目多模态素材库：盘点在用图片、提示词及被替换素材回收站 (Reelbench Standard)"
+              >
+                <Archive className="w-3.5 h-3.5 text-sky-400" />
+                <span>素材库</span>
               </button>
 
               <button
@@ -554,6 +566,16 @@ export const TopBar: React.FC<TopBarProps> = ({
         currentProjectId={project?.id}
         onImportSuccess={() => {
           // Trigger a refresh or toast
+          window.location.reload();
+        }}
+      />
+
+      {/* Project Media Library Modal (Reelbench /p/1/library) */}
+      <ProjectMediaLibraryModal
+        isOpen={isMediaLibraryOpen}
+        onClose={() => setIsMediaLibraryOpen(false)}
+        projectId={project?.id}
+        onRestoreSuccess={() => {
           window.location.reload();
         }}
       />

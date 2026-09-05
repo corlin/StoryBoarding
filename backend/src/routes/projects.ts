@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, desc, or, isNull, and } from "drizzle-orm";
+import { eq, desc, or, isNull, and, inArray } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import { projects, sequences, shots, users, characters, locations, props } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, generateAdaptiveStoryShots } from "../agents/director/pipeline";
@@ -1511,6 +1511,253 @@ router.delete("/:id", async (c) => {
   } catch (err: any) {
     console.error("[Delete Project Error]:", err);
     return c.json({ detail: `删除工程失败: ${err?.message || err}` }, 500);
+  }
+});
+
+// GET /api/projects/:id/media-library (Reelbench Standard: Aggregate active assets & orphaned replaced assets)
+router.get("/:id/media-library", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const projectId = c.req.param("id");
+
+    const proj = await db.select().from(projects).where(eq(projects.id, projectId)).get();
+    if (!proj) return c.json({ detail: "Project not found" }, 404);
+
+    const charList = await db.select().from(characters).where(eq(characters.projectId, projectId)).all();
+    const locList = await db.select().from(locations).where(eq(locations.projectId, projectId)).all();
+    const propList = await db.select().from(props).where(eq(props.projectId, projectId)).all();
+    const seqList = await db.select().from(sequences).where(eq(sequences.projectId, projectId)).all();
+
+    const seqIds = seqList.map((s) => s.id);
+    const allShots = seqIds.length > 0
+      ? await db.select().from(shots).where(inArray(shots.sequenceId, seqIds)).all()
+      : [];
+
+    // 1. Active Images
+    const activeImages: any[] = [];
+    // Shots active images
+    allShots.forEach((s) => {
+      if (s.storyboardImageUrl) {
+        activeImages.push({
+          id: `shot-${s.id}`,
+          type: "shot",
+          shot_id: s.id,
+          order: s.order,
+          title: `分镜 #${s.order}`,
+          subtitle: s.action ? s.action.slice(0, 30) : "未填写动作",
+          image_url: s.storyboardImageUrl,
+          prompt: s.imagePrompt,
+          is_active: true,
+        });
+      }
+    });
+    // Characters active images
+    charList.forEach((ch) => {
+      if (ch.avatarUrl) {
+        activeImages.push({
+          id: `char-${ch.id}`,
+          type: "character",
+          name: ch.name,
+          title: `角色 · ${ch.name}`,
+          subtitle: ch.role === "protagonist" ? "主角" : ch.role === "antagonist" ? "反派" : "配角",
+          image_url: ch.avatarUrl,
+          prompt: ch.visualAnchor,
+          is_active: true,
+        });
+      }
+    });
+    // Locations active images
+    locList.forEach((loc) => {
+      if (loc.referenceImageUrl) {
+        activeImages.push({
+          id: `loc-${loc.id}`,
+          type: "location",
+          name: loc.name,
+          title: `场景 · ${loc.name}`,
+          subtitle: loc.environmentType === "interior" ? "室内空间" : "室外空间",
+          image_url: loc.referenceImageUrl,
+          prompt: loc.visualAnchor,
+          is_active: true,
+        });
+      }
+    });
+    // Props active images
+    propList.forEach((pr) => {
+      if (pr.referenceImageUrl) {
+        activeImages.push({
+          id: `prop-${pr.id}`,
+          type: "prop",
+          name: pr.name,
+          title: `道具 · ${pr.name}`,
+          subtitle: pr.category,
+          image_url: pr.referenceImageUrl,
+          prompt: pr.visualAnchor,
+          is_active: true,
+        });
+      }
+    });
+
+    // 2. Active Prompts
+    const promptList: any[] = [];
+    allShots.forEach((s) => {
+      if (s.imagePrompt) {
+        promptList.push({
+          id: `prompt-img-${s.id}`,
+          target: `分镜 #${s.order} 生图提示词`,
+          type: "image_prompt",
+          content: s.imagePrompt,
+        });
+      }
+      if (s.videoPrompt) {
+        promptList.push({
+          id: `prompt-vid-${s.id}`,
+          target: `分镜 #${s.order} 运镜提示词`,
+          type: "video_prompt",
+          content: s.videoPrompt,
+        });
+      }
+    });
+
+    // 3. Orphaned / Replaced Images (from shots.image_history)
+    const replacedImages: any[] = [];
+    allShots.forEach((s) => {
+      let history: string[] = [];
+      try {
+        history = typeof s.imageHistory === "string" ? JSON.parse(s.imageHistory) : (s.imageHistory || []);
+      } catch {}
+
+      if (Array.isArray(history)) {
+        history.forEach((histUrl, idx) => {
+          // If not currently used
+          if (histUrl && histUrl !== s.storyboardImageUrl) {
+            replacedImages.push({
+              id: `replaced-${s.id}-${idx}`,
+              shot_id: s.id,
+              order: s.order,
+              title: `分镜 #${s.order} 历史打样 (版本 ${idx + 1})`,
+              image_url: histUrl,
+              action: s.action ? s.action.slice(0, 30) : "",
+              replaced_at: s.updatedAt,
+            });
+          }
+        });
+      }
+    });
+
+    // Stats
+    const totalActiveImages = activeImages.length;
+    const totalPrompts = promptList.length;
+    const totalReplaced = replacedImages.length;
+    // Estimate ~2MB per generated image
+    const estimatedOrphanBytes = totalReplaced * 2 * 1024 * 1024;
+
+    return c.json({
+      project_id: projectId,
+      project_title: proj.title,
+      stats: {
+        total_active_images: totalActiveImages,
+        total_prompts: totalPrompts,
+        total_replaced_images: totalReplaced,
+        estimated_replaced_mb: (estimatedOrphanBytes / (1024 * 1024)).toFixed(1),
+      },
+      active_images: activeImages,
+      prompts: promptList,
+      replaced_images: replacedImages,
+    });
+  } catch (err: any) {
+    console.error("[Get Media Library Error]:", err);
+    return c.json({ detail: `获取素材库失败: ${err?.message || err}` }, 500);
+  }
+});
+
+// POST /api/projects/:id/media-library/restore-image (Restore an orphaned image to current shot)
+router.post("/:id/media-library/restore-image", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const body = await c.req.json();
+    const { shot_id, image_url } = body;
+
+    if (!shot_id || !image_url) {
+      return c.json({ detail: "缺少 shot_id 或 image_url" }, 400);
+    }
+
+    const shot = await db.select().from(shots).where(eq(shots.id, shot_id)).get();
+    if (!shot) return c.json({ detail: "未找到对应分镜" }, 404);
+
+    let history: string[] = [];
+    try {
+      history = typeof shot.imageHistory === "string" ? JSON.parse(shot.imageHistory) : (shot.imageHistory || []);
+    } catch {}
+
+    // Ensure the restored image is in history and set as active
+    if (!history.includes(image_url)) {
+      history.push(image_url);
+    }
+
+    await db
+      .update(shots)
+      .set({
+        storyboardImageUrl: image_url,
+        imageHistory: JSON.stringify(history),
+        isDirty: false,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(shots.id, shot_id));
+
+    return c.json({ success: true, message: `已将图片恢复为分镜 #${shot.order} 的主画面` });
+  } catch (err: any) {
+    console.error("[Restore Image Error]:", err);
+    return c.json({ detail: `恢复素材失败: ${err?.message || err}` }, 500);
+  }
+});
+
+// POST /api/projects/:id/media-library/clean-orphans (Clean all replaced images from history)
+router.post("/:id/media-library/clean-orphans", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const projectId = c.req.param("id");
+
+    const seqList = await db.select().from(sequences).where(eq(sequences.projectId, projectId)).all();
+    const seqIds = seqList.map((s) => s.id);
+
+    if (seqIds.length === 0) {
+      return c.json({ success: true, cleaned_count: 0 });
+    }
+
+    const allShots = await db.select().from(shots).where(inArray(shots.sequenceId, seqIds)).all();
+    let cleanedCount = 0;
+
+    for (const s of allShots) {
+      let history: string[] = [];
+      try {
+        history = typeof s.imageHistory === "string" ? JSON.parse(s.imageHistory) : (s.imageHistory || []);
+      } catch {}
+
+      // Keep only current image if exists
+      const kept = s.storyboardImageUrl ? [s.storyboardImageUrl] : [];
+      if (history.length > kept.length) {
+        cleanedCount += (history.length - kept.length);
+        await db
+          .update(shots)
+          .set({
+            imageHistory: JSON.stringify(kept),
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(shots.id, s.id));
+      }
+    }
+
+    return c.json({
+      success: true,
+      cleaned_count: cleanedCount,
+      message: `已成功清理 ${cleanedCount} 张未引用的废弃打样图片，释放存储空间`,
+    });
+  } catch (err: any) {
+    console.error("[Clean Orphans Error]:", err);
+    return c.json({ detail: `清理被替换素材失败: ${err?.message || err}` }, 500);
   }
 });
 

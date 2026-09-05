@@ -115,6 +115,14 @@ export interface BeatModel {
   parenthetical?: string;
   duration: number; // calculated or customized duration in seconds
   payoff_tag?: string; // '悬念钩' | '身份揭破' | '反转' | '收束' | null
+  // Reelbench Scene and Asset Continuity metadata
+  scene_number?: number;
+  scene_title?: string;
+  location_id?: string;
+  location_code?: string; // e.g. 'S01' | 'S02'
+  lighting_state?: string; // e.g. '浓雾清晨' | '晨雾'
+  character_ids?: string[];
+  prop_ids?: string[];
 }
 
 export interface AdaptationTradeoffItem {

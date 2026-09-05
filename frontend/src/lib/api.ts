@@ -455,4 +455,23 @@ export const api = {
     const base = getApiBaseUrl();
     return base ? `${base}/api/export/package-zip/${projectId}` : `/api/export/package-zip/${projectId}`;
   },
+
+  // Reelbench Project Media Library & Asset Recycle Bin
+  async getProjectMediaLibrary(projectId: string): Promise<any> {
+    const { data } = await apiClient.get(`/projects/${projectId}/media-library`);
+    return data;
+  },
+
+  async restoreLibraryImage(projectId: string, shotId: string, imageUrl: string): Promise<any> {
+    const { data } = await apiClient.post(`/projects/${projectId}/media-library/restore-image`, {
+      shot_id: shotId,
+      image_url: imageUrl,
+    });
+    return data;
+  },
+
+  async cleanProjectOrphanAssets(projectId: string): Promise<any> {
+    const { data } = await apiClient.post(`/projects/${projectId}/media-library/clean-orphans`);
+    return data;
+  },
 };

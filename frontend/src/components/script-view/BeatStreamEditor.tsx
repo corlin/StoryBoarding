@@ -19,6 +19,13 @@ import {
   Save,
   Loader2,
   Flame,
+  ArrowRight,
+  BookOpen,
+  MapPin,
+  Users,
+  Box,
+  Edit2,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +33,7 @@ interface BeatStreamEditorProps {
   project: ProjectModel | null;
   sequence: SequenceModel | null;
   onRefreshProject?: () => Promise<void>;
+  onSwitchToStoryboard?: () => void;
 }
 
 // Reelbench standard formula: (chars / 4.2) + 0.8s pause, minimum 1.5s
@@ -43,13 +51,22 @@ export function parseBeatsFromScreenplay(text: string): BeatModel[] {
 
   let currentSpeaker: string | null = null;
   let currentParenthetical: string | null = null;
+  let currentSceneNum = 1;
+  let currentSceneTitle = "渡口栈桥";
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Skip scene headers
-    if (line.startsWith("第") && line.includes("场")) continue;
-    if (line.startsWith("【场景氛围】")) continue;
+    // Scene headers: e.g. 第 1 场 / 场次 1
+    const sceneMatch = line.match(/第\s*(\d+)\s*场/) || line.match(/场次\s*(\d+)/);
+    if (sceneMatch) {
+      currentSceneNum = parseInt(sceneMatch[1], 10) || 1;
+      continue;
+    }
+    if (line.startsWith("【场景氛围】") || line.startsWith("【场景】")) {
+      currentSceneTitle = line.replace(/【.*?】/, "").trim();
+      continue;
+    }
 
     // Dialogue quotes: "..." or “...”
     const quoteMatch = line.match(/^“([^”]+)”$/) || line.match(/^"([^"]+)"$/);
@@ -62,19 +79,22 @@ export function parseBeatsFromScreenplay(text: string): BeatModel[] {
         parenthetical: currentParenthetical || undefined,
         content: dialogueText,
         duration: calculateDialogueDuration(dialogueText),
+        scene_number: currentSceneNum,
+        scene_title: currentSceneTitle,
       });
       currentSpeaker = null;
       currentParenthetical = null;
       continue;
     }
 
-    // Parenthetical: (xxx)
-    if (line.startsWith("(") && line.endsWith(")")) {
-      currentParenthetical = line.slice(1, -1);
+    // Parenthetical: (xxx) or （xxx）
+    const parenMatch = line.match(/^[\(（]([^\)）]+)[\)）]$/);
+    if (parenMatch) {
+      currentParenthetical = parenMatch[1];
       continue;
     }
 
-    // Speaker line (short name, no punctuation, next line is quote or parenthetical)
+    // Speaker line
     if (line.length <= 8 && !line.startsWith("【") && i + 1 < lines.length) {
       currentSpeaker = line;
       continue;
@@ -88,6 +108,8 @@ export function parseBeatsFromScreenplay(text: string): BeatModel[] {
         type: "action",
         content: cleanAction,
         duration: 2.5, // Reelbench action beat standard default
+        scene_number: currentSceneNum,
+        scene_title: currentSceneTitle,
       });
     }
     currentSpeaker = null;
@@ -101,6 +123,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
   project,
   sequence,
   onRefreshProject,
+  onSwitchToStoryboard,
 }) => {
   const [beats, setBeats] = useState<BeatModel[]>([]);
   const [hook, setHook] = useState("");
@@ -108,8 +131,9 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
   const [payoff, setPayoff] = useState("");
   const [targetDuration, setTargetDuration] = useState(60.0);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingBeatId, setEditingBeatId] = useState<string | null>(null);
 
-  // Load beats from sequence or parse from screenplayText
+  // Load beats from sequence
   useEffect(() => {
     if (!sequence) return;
     setHook(sequence.hook_summary || "");
@@ -127,16 +151,44 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
         {
           id: crypto.randomUUID(),
           type: "action",
+          scene_number: 1,
+          scene_title: "渡口栈桥",
+          location_code: "S02",
+          lighting_state: "浓雾清晨",
           content: "浓雾里传来脚步声，栈桥显露，老周蹲在船头抽旱烟。",
           duration: 2.5,
         },
         {
           id: crypto.randomUUID(),
           type: "dialogue",
+          scene_number: 1,
+          scene_title: "渡口栈桥",
+          location_code: "S02",
           speaker: "老周",
           parenthetical: "扯着嗓子，不急不躁",
           content: "上船喽——过河的抓紧，雾要变天。",
           duration: 3.6,
+        },
+        {
+          id: crypto.randomUUID(),
+          type: "action",
+          scene_number: 2,
+          scene_title: "渡船船舱",
+          location_code: "S01",
+          lighting_state: "晨雾",
+          content: "舱里坐着两个人。胡二爷的货担占了半条长凳，陆行远靠着舱壁，右手揣在大衣口袋里没动过。",
+          duration: 2.5,
+        },
+        {
+          id: crypto.randomUUID(),
+          type: "dialogue",
+          scene_number: 2,
+          scene_title: "渡船船舱",
+          location_code: "S01",
+          speaker: "胡二爷",
+          parenthetical: "自来熟地凑近",
+          content: "姑娘头回走这条水路吧？我一看一个准。",
+          duration: 4.0,
         },
       ]);
     }
@@ -156,6 +208,17 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
     return beats.filter((b) => b.type === "dialogue").length;
   }, [beats]);
 
+  // Group beats by scene
+  const sceneGroups = useMemo(() => {
+    const map = new Map<number, BeatModel[]>();
+    beats.forEach((b) => {
+      const sNum = b.scene_number || 1;
+      if (!map.has(sNum)) map.set(sNum, []);
+      map.get(sNum)!.push(b);
+    });
+    return Array.from(map.entries()).sort(([a], [b]) => a - b);
+  }, [beats]);
+
   const handleUpdateDuration = (beatId: string, newDuration: number) => {
     setBeats(
       beats.map((b) => (b.id === beatId ? { ...b, duration: Math.max(0.5, Math.round(newDuration * 10) / 10) } : b))
@@ -172,16 +235,11 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
     );
   };
 
-  const handleUpdatePayoffTag = (beatId: string, tag: string | null) => {
-    setBeats(
-      beats.map((b) => (b.id === beatId ? { ...b, payoff_tag: tag || undefined } : b))
-    );
-  };
-
-  const handleAddBeat = (type: "action" | "dialogue") => {
+  const handleAddBeatToScene = (sceneNum: number, type: "action" | "dialogue") => {
     const newBeat: BeatModel = {
       id: crypto.randomUUID(),
       type,
+      scene_number: sceneNum,
       speaker: type === "dialogue" ? "主角" : undefined,
       content: type === "dialogue" ? "新台词内容" : "角色展开新行动动作描写...",
       duration: type === "dialogue" ? 2.5 : 2.5,
@@ -218,240 +276,301 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
 
   if (!sequence) return null;
 
+  const characters = project?.characters || [];
+
   return (
-    <div className="flex flex-col h-full bg-background overflow-hidden">
-      {/* 1. Reelbench Stage 04 Duration & Drama Dashboard */}
-      <div className="p-3.5 bg-secondary/30 border-b border-border/80 space-y-3 shrink-0">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {/* Duration Meter */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-400" />
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-base font-extrabold font-mono text-foreground">{totalDuration}s</span>
-                <span className="text-xs text-muted-foreground font-mono">/ {targetDuration}s</span>
-              </div>
-            </div>
-
-            <span
-              className={cn(
-                "px-2 py-0.5 rounded-full text-xs font-mono font-bold border",
-                diffPercent === 0
-                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                  : diffPercent > 0
-                  ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                  : "bg-blue-500/15 text-blue-300 border-blue-500/30"
-              )}
-            >
-              {diffPercent > 0 ? `+${diffPercent}%` : `${diffPercent}%`} 时长偏差
-            </span>
-
-            <span className="text-xs text-muted-foreground hidden sm:inline">
-              · {beats.length} 节拍 ({dialogueCount} 台词 · {beats.length - dialogueCount} 动作)
-            </span>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleAddBeat("action")}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-colors cursor-pointer"
-            >
-              <Plus className="w-3 h-3 text-amber-400" />
-              <span>动作节拍 (2.5s)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAddBeat("dialogue")}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-colors cursor-pointer"
-            >
-              <Volume2 className="w-3 h-3 text-blue-400" />
-              <span>台词节拍 (字数折算)</span>
-            </button>
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={handleSaveAll}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs disabled:opacity-50 cursor-pointer"
-            >
-              {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              <span>保存节拍流</span>
-            </button>
-          </div>
+    <div className="flex flex-col h-full bg-background overflow-hidden select-none">
+      {/* 1. Reelbench Stage 04 Top Navigation & Quick Switcher */}
+      <div className="px-5 py-3 border-b border-border/80 bg-card/40 flex items-center justify-between gap-4 shrink-0 flex-wrap">
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-muted-foreground font-mono">剧本 /</span>
+          <span className="font-bold text-foreground">
+            第 {sequence.episode_number || sequence.order || 1} 集
+          </span>
+          <span className="font-mono text-muted-foreground ml-1">
+            {totalDuration}s / {targetDuration}s
+          </span>
+          <span
+            className={cn(
+              "px-2 py-0.2 rounded-full font-mono text-[10px] font-bold border",
+              diffPercent === 0
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                : diffPercent > 0
+                ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                : "bg-blue-500/10 text-blue-300 border-blue-500/30"
+            )}
+          >
+            {diffPercent > 0 ? `+${diffPercent}%` : `${diffPercent}%`}
+          </span>
+          <span className="text-muted-foreground text-[11px] hidden sm:inline">
+            · {sceneGroups.length} 场 · {beats.length} 节拍 · {dialogueCount} 台词
+          </span>
         </div>
 
-        {/* 2. Hook & Cliffhanger & Payoff Trio (Reelbench Standard) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1 border-t border-border/50 text-xs">
-          <div className="bg-background/80 border border-border/70 rounded-lg p-2 flex flex-col gap-1">
-            <div className="flex items-center justify-between text-[11px] font-bold text-amber-400">
-              <span className="flex items-center gap-1">
-                <Target className="w-3.5 h-3.5" />
-                🪝 本集钩子 (Hook 0-3s)
+        <div className="flex items-center gap-2">
+          {onSwitchToStoryboard && (
+            <button
+              onClick={onSwitchToStoryboard}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+            >
+              <span>看分镜</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          <button
+            onClick={handleSaveAll}
+            disabled={isSaving}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+          >
+            {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            <span>保存剧本</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Reelbench Triad Anchors (Hook / Cliffhanger / Payoff) */}
+      <div className="p-4 border-b border-border/80 bg-secondary/20 space-y-2.5 shrink-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Hook Card */}
+          <div className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
+                <Target className="w-3 h-3" />
+                <span>钩子 (Hook · 0-3s 抓人设问)</span>
               </span>
-              <span className="text-[10px] text-muted-foreground">留存抓手</span>
+              <span className="text-[9px] text-muted-foreground font-mono">双击改</span>
             </div>
             <input
               type="text"
               value={hook}
               onChange={(e) => setHook(e.target.value)}
-              placeholder="如: 皮箱里到底装了什么，值得她指节发白"
-              className="bg-transparent border-none p-0 text-xs text-foreground focus:outline-none placeholder:text-muted-foreground/50"
+              placeholder="例如: 皮箱里到底装了什么，值得她指节发白..."
+              className="w-full bg-transparent border-none p-0 text-xs font-medium text-foreground focus:outline-none"
             />
           </div>
 
-          <div className="bg-background/80 border border-border/70 rounded-lg p-2 flex flex-col gap-1">
-            <div className="flex items-center justify-between text-[11px] font-bold text-rose-400">
-              <span className="flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5" />
-                ⚡ 本集断点 (Cliffhanger)
+          {/* Cliffhanger Card */}
+          <div className="p-2.5 rounded-xl border border-red-500/30 bg-red-500/5 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-bold text-red-400 flex items-center gap-1">
+                <Zap className="w-3 h-3" />
+                <span>断点 (Cliffhanger · 集尾高压死结)</span>
               </span>
-              <span className="text-[10px] text-muted-foreground">集尾卡点</span>
+              <span className="text-[9px] text-muted-foreground font-mono">双击改</span>
             </div>
             <input
               type="text"
               value={cliffhanger}
               onChange={(e) => setCliffhanger(e.target.value)}
-              placeholder="如: 陆行远的右手从上船起就没离开过大衣口袋"
-              className="bg-transparent border-none p-0 text-xs text-foreground focus:outline-none placeholder:text-muted-foreground/50"
-            />
-          </div>
-
-          <div className="bg-background/80 border border-border/70 rounded-lg p-2 flex flex-col gap-1">
-            <div className="flex items-center justify-between text-[11px] font-bold text-purple-400">
-              <span className="flex items-center gap-1">
-                <Flame className="w-3.5 h-3.5" />
-                💥 爽点认领 (Payoff / Twist)
-              </span>
-              <span className="text-[10px] text-muted-foreground">情绪高潮</span>
-            </div>
-            <input
-              type="text"
-              value={payoff}
-              onChange={(e) => setPayoff(e.target.value)}
-              placeholder="如: 悬念钩 / 身份揭破 / 反转 / 收束"
-              className="bg-transparent border-none p-0 text-xs text-foreground focus:outline-none placeholder:text-muted-foreground/50"
+              placeholder="例如: 陆行远的右手从上船起就没离开过大衣口袋..."
+              className="w-full bg-transparent border-none p-0 text-xs font-medium text-foreground focus:outline-none"
             />
           </div>
         </div>
-      </div>
 
-      {/* 3. Beat Stream List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-        {beats.map((beat, idx) => {
-          const isAction = beat.type === "action";
-          return (
-            <div
-              key={beat.id}
+        {/* Payoff Selector Tag */}
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-[11px] text-muted-foreground">爽点认领：</span>
+          {["悬念钩", "身份揭破", "反转", "收束"].map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => setPayoff(tag)}
               className={cn(
-                "p-3 rounded-xl border transition-all flex items-start gap-3 group relative",
-                isAction
-                  ? "bg-card/40 border-border/70 hover:border-border"
-                  : "bg-blue-500/5 border-blue-500/20 hover:border-blue-500/40"
+                "px-2 py-0.5 rounded-full text-[10px] font-medium transition-all cursor-pointer border",
+                payoff === tag
+                  ? "bg-purple-500 text-white border-purple-400 shadow-xs font-bold"
+                  : "bg-secondary/60 text-muted-foreground hover:text-foreground border-border/60"
               )}
             >
-              {/* Beat Number & Type Icon */}
-              <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
-                <span className="w-5 h-5 rounded-full bg-secondary/80 text-[10px] font-mono font-bold flex items-center justify-center text-muted-foreground">
-                  {idx + 1}
-                </span>
-                {isAction ? (
-                  <span className="text-[10px] px-1 py-0.2 rounded bg-amber-500/15 text-amber-400 font-mono">动</span>
-                ) : (
-                  <span className="text-[10px] px-1 py-0.2 rounded bg-blue-500/15 text-blue-400 font-mono">台</span>
-                )}
+              {tag}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. Scene-by-Scene Atomic Beat Flow (Reelbench Standard Container) */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {sceneGroups.map(([sceneNum, sceneBeats]) => {
+          const firstBeat = sceneBeats[0];
+          const sceneTitle = firstBeat?.scene_title || `第 ${sceneNum} 场场景`;
+          const sceneLocCode = firstBeat?.location_code || `S0${sceneNum}`;
+          const sceneLighting = firstBeat?.lighting_state || "自然光影";
+
+          return (
+            <div
+              key={sceneNum}
+              className="rounded-2xl border border-border/80 bg-card/60 overflow-hidden shadow-xs"
+            >
+              {/* Scene Header Strip (.scene-h in Reelbench) */}
+              <div className="px-4 py-2.5 bg-secondary/50 border-b border-border/80 flex items-center justify-between gap-3 flex-wrap text-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="font-mono font-bold text-foreground">场次 {sceneNum}</span>
+                  <span className="font-mono text-primary font-bold bg-primary/10 px-1.5 py-0.2 rounded border border-primary/20">
+                    {sceneLocCode}
+                  </span>
+                  <b className="text-foreground truncate">{sceneTitle}</b>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-mono text-[10px] border border-amber-500/30 shrink-0">
+                    {sceneLighting}
+                  </span>
+                </div>
+
+                {/* Character & Prop Presence Pills (.badge.b-dim in Reelbench) */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {characters.slice(0, 3).map((c) => (
+                    <span
+                      key={c.id}
+                      className="px-1.5 py-0.5 rounded bg-secondary/80 text-muted-foreground text-[10px] border border-border/60"
+                    >
+                      {c.name}
+                    </span>
+                  ))}
+                  <span className="px-1.5 py-0.5 rounded bg-secondary/80 text-muted-foreground text-[10px] border border-border/60 font-mono">
+                    P01
+                  </span>
+
+                  <div className="flex items-center gap-1 ml-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAddBeatToScene(sceneNum, "action")}
+                      className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-colors"
+                      title="在该场次添加动作描写节拍"
+                    >
+                      + 动作
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddBeatToScene(sceneNum, "dialogue")}
+                      className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 border border-blue-500/30 transition-colors"
+                      title="在该场次添加角色台词节拍"
+                    >
+                      + 台词
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Main Content Area */}
-              <div className="flex-1 min-w-0 space-y-1.5">
-                {!isAction && (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={beat.speaker || ""}
-                      onChange={(e) => {
-                        const speaker = e.target.value;
-                        setBeats(beats.map((b) => (b.id === beat.id ? { ...b, speaker } : b)));
-                      }}
-                      placeholder="说话角色"
-                      className="text-xs font-bold text-blue-300 bg-secondary/40 border border-border/60 rounded px-1.5 py-0.5 max-w-[100px] focus:outline-none focus:border-blue-500/60"
-                    />
-                    <input
-                      type="text"
-                      value={beat.parenthetical || ""}
-                      onChange={(e) => {
-                        const parenthetical = e.target.value;
-                        setBeats(beats.map((b) => (b.id === beat.id ? { ...b, parenthetical } : b)));
-                      }}
-                      placeholder="语气/副动作 (如: 旱烟不离嘴)"
-                      className="text-[11px] text-muted-foreground bg-transparent border-none p-0 focus:outline-none placeholder:text-muted-foreground/40 italic"
-                    />
-                  </div>
-                )}
+              {/* Atomic Beats Flow List (.flow in Reelbench) */}
+              <div className="p-3 space-y-2">
+                {sceneBeats.map((beat, idx) => {
+                  const isAction = beat.type === "action";
+                  const isEditing = editingBeatId === beat.id;
 
-                <textarea
-                  rows={2}
-                  value={beat.content}
-                  onChange={(e) => handleUpdateContent(beat.id, e.target.value)}
-                  placeholder={isAction ? "输入动作推进节拍描写..." : "输入台词文本..."}
-                  className="w-full bg-transparent border-none p-0 text-xs text-foreground focus:outline-none resize-none leading-relaxed"
-                />
+                  return (
+                    <div
+                      key={beat.id}
+                      onDoubleClick={() => setEditingBeatId(beat.id)}
+                      className={cn(
+                        "group relative flex items-start gap-3 p-2.5 rounded-xl border transition-all text-xs",
+                        isAction
+                          ? "bg-amber-500/[0.03] border-border/60 hover:border-amber-500/40"
+                          : "bg-blue-500/[0.03] border-border/60 hover:border-blue-500/40"
+                      )}
+                    >
+                      {/* Beat Index (.n.mono) */}
+                      <span className="w-5 text-center font-mono text-[11px] text-muted-foreground/80 shrink-0 pt-0.5">
+                        {idx + 1}
+                      </span>
 
-                {/* Tags Row */}
-                <div className="flex items-center gap-2 pt-0.5">
-                  {beat.payoff_tag ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40">
-                      <Flame className="w-2.5 h-2.5" />
-                      <span>{beat.payoff_tag}</span>
+                      {/* Main Beat Slot (.slot .view) */}
+                      <div className="flex-1 min-w-0">
+                        {isAction ? (
+                          /* Action Beat (.is-act) */
+                          <div>
+                            {isEditing ? (
+                              <textarea
+                                autoFocus
+                                rows={2}
+                                value={beat.content}
+                                onBlur={() => setEditingBeatId(null)}
+                                onChange={(e) => handleUpdateContent(beat.id, e.target.value)}
+                                className="w-full bg-background border border-primary rounded p-1.5 text-xs text-foreground focus:outline-none resize-none leading-relaxed"
+                              />
+                            ) : (
+                              <p className="text-foreground/90 leading-relaxed font-normal">
+                                {beat.content}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          /* Dialogue Beat (.is-line) */
+                          <div className="flex items-start gap-2 flex-wrap">
+                            <span className="font-mono font-bold text-sky-400 shrink-0">
+                              {beat.speaker || "角色"}
+                            </span>
+
+                            {isEditing ? (
+                              <div className="flex-1 min-w-[200px] space-y-1">
+                                <input
+                                  type="text"
+                                  value={beat.speaker || ""}
+                                  onChange={(e) => {
+                                    const speaker = e.target.value;
+                                    setBeats(beats.map((b) => (b.id === beat.id ? { ...b, speaker } : b)));
+                                  }}
+                                  placeholder="角色名"
+                                  className="text-xs bg-background border border-border px-1 py-0.5 rounded mr-2"
+                                />
+                                <input
+                                  type="text"
+                                  value={beat.parenthetical || ""}
+                                  onChange={(e) => {
+                                    const parenthetical = e.target.value;
+                                    setBeats(beats.map((b) => (b.id === beat.id ? { ...b, parenthetical } : b)));
+                                  }}
+                                  placeholder="语气提示 (如: 旱烟不离嘴)"
+                                  className="text-xs bg-background border border-border px-1 py-0.5 rounded text-muted-foreground italic"
+                                />
+                                <textarea
+                                  autoFocus
+                                  rows={2}
+                                  value={beat.content}
+                                  onBlur={() => setEditingBeatId(null)}
+                                  onChange={(e) => handleUpdateContent(beat.id, e.target.value)}
+                                  className="w-full bg-background border border-primary rounded p-1.5 text-xs text-foreground focus:outline-none resize-none leading-relaxed mt-1"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <span className="text-foreground font-medium flex-1">
+                                  {beat.content}
+                                </span>
+                                {beat.parenthetical && (
+                                  <em className="text-muted-foreground/80 text-[11px] not-italic shrink-0">
+                                    （{beat.parenthetical}）
+                                  </em>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Pen Helper Tag (.pen 双击改) */}
+                      {!isEditing && (
+                        <span className="text-[10px] text-muted-foreground/40 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pt-0.5">
+                          双击改
+                        </span>
+                      )}
+
+                      {/* Duration Tag (.secs.mono in Reelbench) */}
+                      <span className="font-mono text-muted-foreground text-[11px] shrink-0 pt-0.5 w-10 text-right">
+                        {beat.duration}s
+                      </span>
+
+                      {/* Delete Beat Button */}
                       <button
                         type="button"
-                        onClick={() => handleUpdatePayoffTag(beat.id, null)}
-                        className="hover:text-red-400 ml-0.5"
+                        onClick={() => handleDeleteBeat(beat.id)}
+                        className="p-1 rounded text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 cursor-pointer"
+                        title="删除该节拍"
                       >
-                        ×
+                        <Trash2 className="w-3 h-3" />
                       </button>
-                    </span>
-                  ) : (
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {["悬念钩", "身份揭破", "反转"].map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => handleUpdatePayoffTag(beat.id, tag)}
-                          className="text-[9px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground hover:text-purple-300 hover:bg-purple-500/15 transition-colors border border-border/50 cursor-pointer"
-                        >
-                          +{tag}
-                        </button>
-                      ))}
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Duration Capsule (Click to edit) */}
-              <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                <div className="flex items-center gap-1 bg-secondary/80 border border-border/80 px-2 py-1 rounded-lg">
-                  <Clock className="w-3 h-3 text-muted-foreground" />
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0.5"
-                    max="30"
-                    value={beat.duration}
-                    onChange={(e) => handleUpdateDuration(beat.id, parseFloat(e.target.value) || 2.5)}
-                    className="w-12 bg-transparent text-xs font-mono font-bold text-foreground text-right focus:outline-none"
-                  />
-                  <span className="text-[10px] text-muted-foreground font-mono">s</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleDeleteBeat(beat.id)}
-                  className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                  title="删除此节拍"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                  );
+                })}
               </div>
             </div>
           );

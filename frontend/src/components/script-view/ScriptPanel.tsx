@@ -121,6 +121,7 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
             project={project || null}
             sequence={sequence || null}
             onRefreshProject={onRefreshProject}
+            onSwitchToStoryboard={() => setViewMode("shots")}
           />
         </div>
       ) : viewMode === "screenplay" ? (
