@@ -101,6 +101,8 @@ export interface CharacterProfile {
   disposition?: string;
   motivation?: string;
   tags?: string[]; // e.g. ['拘谨', '警觉', '倔强']
+  sheet_style?: "realistic" | "ghibli";
+  sheet_prompt?: string; // 16:9 三区设定图出图指令
   arc_static?: string; // CAST 中的静态人物设定
   arc_dynamic?: string; // OUTLINE 中的戏剧转变弧光
   relations?: Array<{
@@ -119,11 +121,17 @@ export interface CharacterProfile {
     timbre?: string;
     pitch?: string;
     speed?: string;
+    pace?: string;
     accent?: string;
     emotion?: string;
     emotion_baseline?: string;
-    tts_prompt?: string;
+    reference_hint?: string; // 克隆系引擎参考提示 (如: 渡口喊了四十年的老船夫)
     reference?: string;
+    resonance?: string; // 共鸣与胸腔支撑 (e.g. thin chest support, deep chest resonance)
+    dynamic_range?: string; // 动态范围 (e.g. narrow / wide dynamic range)
+    volume?: string; // 音量基准 (e.g. quiet / resonant / projection)
+    inflection?: string; // 语调微习惯 (e.g. rising inflection at phrase ends)
+    tts_prompt?: string; // 高密度英文声学参数提示词 (<= 400 字符)
   };
 }
 

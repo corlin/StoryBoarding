@@ -15,6 +15,9 @@ import {
   HeartHandshake,
   Volume2,
   Tag,
+  Camera,
+  Layers,
+  Wand2,
 } from "lucide-react";
 import { CharacterModel, CharacterProfile } from "@/types/shot";
 import { notify } from "@/components/ui/ToastNotification";
@@ -74,6 +77,11 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
           speed: "中速从容",
           accent: "标准普通话",
           emotion_baseline: "内敛平静",
+          reference_hint: `像一个${existing.identity || character.personality || "沉稳有深度"}的人`,
+          resonance: "胸腔共鸣自然",
+          dynamic_range: "适中平稳",
+          volume: "常态适中",
+          inflection: "句末从容自然",
           tts_prompt: character.voice_dna || "",
         },
       });
@@ -148,16 +156,22 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
     const currentVoice = profile.voice_traits || {};
     const updatedVoice = { ...currentVoice, [field]: value };
 
-    // Auto-synthesize tts_prompt if changing traits
+    // Auto-synthesize high-density acoustic prompt if changing traits
     if (field !== "tts_prompt") {
-      const parts = [
-        updatedVoice.timbre,
-        updatedVoice.pitch ? `${updatedVoice.pitch}音高` : "",
-        updatedVoice.speed,
-        updatedVoice.accent,
-        updatedVoice.emotion_baseline ? `常态情绪:${updatedVoice.emotion_baseline}` : "",
-      ].filter(Boolean);
-      updatedVoice.tts_prompt = parts.join("，");
+      // Acoustic instrument specification conforming to shuohao-skills (<= 400 chars)
+      const ageGender = `${profile.age || "adult"} ${profile.gender === "女" ? "female" : profile.gender === "男" ? "male" : "speaker"}`;
+      const timbrePart = updatedVoice.timbre || "neutral tone";
+      const pitchPart = updatedVoice.pitch ? `${updatedVoice.pitch} pitch` : "mid pitch";
+      const resonancePart = updatedVoice.resonance || "natural chest resonance";
+      const dynamicPart = updatedVoice.dynamic_range ? `${updatedVoice.dynamic_range} dynamic range` : "controlled dynamic range";
+      const volumePart = updatedVoice.volume || "moderate volume";
+      const speedPart = updatedVoice.speed || "steady pace";
+      const inflectionPart = updatedVoice.inflection || "natural inflection";
+      const accentPart = updatedVoice.accent || "Standard Mandarin";
+      const emotionPart = updatedVoice.emotion_baseline || "calm and poised";
+
+      const englishAcousticPrompt = `${ageGender}, ${timbrePart}, ${pitchPart}, ${resonancePart}, ${dynamicPart}. ${volumePart}, ${speedPart}, ${inflectionPart}. ${accentPart}. ${emotionPart}.`;
+      updatedVoice.tts_prompt = englishAcousticPrompt;
     }
 
     setProfile({ ...profile, voice_traits: updatedVoice });
@@ -168,9 +182,10 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
       ...character,
       profile_json: profile,
       voice_dna: profile.voice_traits?.tts_prompt || character.voice_dna,
+      turnaround_prompt: profile.sheet_prompt || character.turnaround_prompt,
     };
     onSave(updatedCharacter);
-    notify.success(`✨ 已更新「${character.name}」的深度人设与声音DNA档案！`);
+    notify.success(`✨ 已更新「${character.name}」的深度人设、16:9 三区设定卡与声音 DNA 档案！`);
     onClose();
   };
 
@@ -337,6 +352,60 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                       className="w-full bg-secondary/40 border border-border/80 rounded-lg p-2.5 text-xs text-foreground focus:outline-none focus:border-purple-500 leading-relaxed font-mono"
                     />
                   </div>
+                </div>
+
+                {/* Reelbench & shuohao-skills 16:9 Model Sheet Generator */}
+                <div className="space-y-3 pt-2 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>16:9 黄金三区定妆卡指令 (Character Model Sheet)</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={profile.sheet_style || "realistic"}
+                        onChange={(e: any) => {
+                          const newStyle = e.target.value;
+                          setProfile({ ...profile, sheet_style: newStyle });
+                        }}
+                        className="text-[10px] bg-secondary/80 border border-border rounded px-2 py-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        <option value="realistic">半写实厚涂 (Realistic · 推荐)</option>
+                        <option value="ghibli">吉卜力手绘 (Ghibli Cel)</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const style = profile.sheet_style || "realistic";
+                          const desc = profile.appearance || character.visual_anchor || "East Asian features, realistic clothing";
+                          const tags = (profile.tags || []).join(", ") || "character details";
+                          
+                          let prompt = "";
+                          if (style === "realistic") {
+                            prompt = `Single character model sheet on ONE 16:9 landscape canvas. The canvas is divided into three zones by thin hairline rules. LEFT ZONE — vertical column occupying about 34% width: one bust portrait, head and shoulders, front-facing, centred, like an ID photograph, BOTH SHOULDERS FULLY VISIBLE, ending in a clean straight horizontal cut. Face rendered in sharpest focus: ${desc}. Young/adult skin with visible pores, wet specular eye highlight, natural asymmetry. LIGHTING IN LEFT ZONE ONLY: soft directional key light from upper left with gentle falloff, subtle ambient occlusion under chin. RIGHT-TOP ZONE — remaining 66%: three FULL-BODY views of SAME character standing side by side (front view, side profile, back view) on shared ground line. PROPORTIONS ARE CRITICAL: identical height, ratio, correct anatomy, relaxed posture. LIGHTING IN RIGHT ZONES: flat even orthographic lighting with no directional key and no cast shadows. RIGHT-BOTTOM ZONE: detail strip of 4-5 small isolated close-up studies (${tags}), detail studies give way, not the figures. Pure white background (#FFFFFF). Semi-realistic character illustration, painterly rendering, soft blended edges, anatomically grounded, 8k uhd --no plastic waxy skin, over-smoothed doll face, perfectly symmetrical face`;
+                          } else {
+                            prompt = `Single character model sheet on ONE 16:9 landscape canvas divided into three zones by thin hairline rules. Hand-painted anime cel illustration in the manner of classic Studio Ghibli feature animation: clean confident ink linework, simple flat cel shading, warm naturalistic palette. LEFT ZONE (~34% width): bust portrait front-facing, centred ID framing: ${desc}. Clean flat skin tone with single soft shadow shape and warm blush, clear expressive eyes with round highlight. RIGHT-TOP ZONE: three FULL-BODY views of SAME character standing side by side (front, side, back) on shared ground line, identical height and proportions. LIGHTING: even gentle daylight across whole sheet with single soft shadow tone. RIGHT-BOTTOM ZONE: 4-5 small isolated close-up studies of key props (${tags}). Pure white background (#FFFFFF). Clean lineart, masterpiece --no photorealistic, 3d render, hyperrealistic skin texture, visible pores, subsurface scattering, harsh contrast`;
+                          }
+                          setProfile({ ...profile, sheet_prompt: prompt });
+                          notify.success(`✨ 已生成 16:9 ${style === "realistic" ? "半写实厚涂" : "吉卜力"} 工业级三区定妆提示词！`);
+                        }}
+                        className="inline-flex items-center gap-1 text-[10px] font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 rounded px-2 py-0.5 transition-colors cursor-pointer"
+                      >
+                        <Wand2 className="w-3 h-3" />
+                        <span>自动合成 16:9 提示词</span>
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={profile.sheet_prompt || ""}
+                    onChange={(e) => setProfile({ ...profile, sheet_prompt: e.target.value })}
+                    placeholder="点击右上角「自动合成 16:9 提示词」生成符合黄金三区分区的完整英文指令..."
+                    className="w-full bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-2.5 text-xs text-indigo-200 focus:outline-none focus:border-indigo-500 font-mono leading-relaxed"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    📐 <strong>shuohao-skills 规范：</strong>左区 34% 头像定面部骨骼（带方向柔光）+ 右上三视图（正交平光无投影）+ 右下细节条。
+                  </p>
                 </div>
 
                 {/* Character Tags / Pills */}
@@ -592,90 +661,178 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="p-3.5 bg-pink-500/10 border border-pink-500/20 rounded-xl flex items-start gap-3 text-pink-300 text-xs">
                   <Volume2 className="w-4 h-4 shrink-0 mt-0.5" />
-                  <p className="leading-relaxed text-[11px]">
-                    <strong>Reelbench 六维声音 DNA 架构：</strong>音色（Timbre）、音高（Pitch）、语速（Speed）、口音（Accent）、情绪基准（Emotion
-                    Baseline）与 TTS 提示词。此设定将直接注入配音引擎（CosyVoice / ElevenLabs /
-                    F5-TTS），确保全剧对白配音的一致性与声线辨识度。
-                  </p>
+                  <div className="space-y-1 text-[11px] leading-relaxed">
+                    <p className="font-semibold text-pink-200">
+                      Reelbench 工业级双轨声线引擎架构（shuohao-skills 规范）：
+                    </p>
+                    <p>
+                      <strong>1. 克隆系引擎 (CosyVoice / IndexTTS2 / F5-TTS)</strong>：吃 <span className="text-amber-300 font-medium">参考音频提示 (Reference Hint)</span> 与情绪通道。
+                    </p>
+                    <p>
+                      <strong>2. Voice Design 设计引擎 (ElevenLabs / MiniMax / Qwen3-TTS)</strong>：直接吃 <span className="text-sky-300 font-medium">英文声学参数 Prompt (≤400字符)</span>。严禁文学比喻与表演指导，严格按声学乐器参数构建。
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] text-muted-foreground block mb-1">1. 音色特征 (Timbre)</label>
-                      <input
-                        type="text"
-                        value={profile.voice_traits?.timbre || ""}
-                        onChange={(e) => handleVoiceChange("timbre", e.target.value)}
-                        placeholder="例如: 磁性清冽、带微哑质感、偏冷中音"
-                        className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-pink-500"
-                      />
+                  {/* Track 1: Clone Engine Reference Hint */}
+                  <div className="p-3 bg-secondary/30 border border-border/80 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-amber-300 flex items-center gap-1.5">
+                        <span>克隆参考音频提示 (Reference Hint for Voice Cloning)</span>
+                      </label>
+                      <span className="text-[10px] text-muted-foreground">用于在录音库中挑选匹配的原声音频基准</span>
                     </div>
-                    <div>
-                      <label className="text-[10px] text-muted-foreground block mb-1">2. 音高 (Pitch)</label>
-                      <select
-                        value={profile.voice_traits?.pitch || "中"}
-                        onChange={(e) => handleVoiceChange("pitch", e.target.value)}
-                        className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-pink-500 cursor-pointer"
-                      >
-                        <option value="低沉">低沉 (Deep Bass)</option>
-                        <option value="偏低">偏低 (Low-Mid)</option>
-                        <option value="中">中 (Mid / Neutral)</option>
-                        <option value="偏高">偏高 (High-Mid)</option>
-                        <option value="高亢">高亢 (High / Sharp)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] text-muted-foreground block mb-1">3. 语速习惯 (Speed / Pacing)</label>
-                      <input
-                        type="text"
-                        value={profile.voice_traits?.speed || ""}
-                        onChange={(e) => handleVoiceChange("speed", e.target.value)}
-                        placeholder="例如: 节奏平缓从容，句尾微收"
-                        className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-pink-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-muted-foreground block mb-1">4. 地域口音 / 方言 (Accent)</label>
-                      <input
-                        type="text"
-                        value={profile.voice_traits?.accent || ""}
-                        onChange={(e) => handleVoiceChange("accent", e.target.value)}
-                        placeholder="例如: 标准普通话 / 略带南方软音 / 港风腔调"
-                        className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-pink-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] text-muted-foreground block mb-1">5. 常态情绪基准 (Emotion Baseline)</label>
                     <input
                       type="text"
-                      value={profile.voice_traits?.emotion_baseline || ""}
-                      onChange={(e) => handleVoiceChange("emotion_baseline", e.target.value)}
-                      placeholder="例如: 克制警惕，波澜不惊，不轻易流露情绪波动"
-                      className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-pink-500"
+                      value={profile.voice_traits?.reference_hint || ""}
+                      onChange={(e) => handleVoiceChange("reference_hint", e.target.value)}
+                      placeholder="例如: 像一个在同一家医院急诊室连续值班十年的清冷主治女医师"
+                      className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-amber-500"
                     />
                   </div>
 
+                  {/* Track 2: High-Density Acoustic Parameters */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                        <span>声学实体参数解构 (Acoustic Instrument Parameters)</span>
+                      </h4>
+                      <span className="text-[10px] text-muted-foreground">声学乐器物理参数 · 杜绝文学散文</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">1. 音色特征 (Timbre)</label>
+                        <input
+                          type="text"
+                          value={profile.voice_traits?.timbre || ""}
+                          onChange={(e) => handleVoiceChange("timbre", e.target.value)}
+                          placeholder="例如: 磁性清冽、微哑质感、偏冷中音"
+                          className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">2. 音区与音高 (Pitch)</label>
+                        <select
+                          value={profile.voice_traits?.pitch || "中"}
+                          onChange={(e) => handleVoiceChange("pitch", e.target.value)}
+                          className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-sky-500 cursor-pointer"
+                        >
+                          <option value="低沉">低沉 (Deep Bass)</option>
+                          <option value="偏低">偏低 (Low-Mid)</option>
+                          <option value="中">中 (Mid / Neutral)</option>
+                          <option value="偏高">偏高 (High-Mid)</option>
+                          <option value="高亢">高亢 (High / Sharp)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">3. 胸腔共鸣与支撑 (Resonance)</label>
+                        <input
+                          type="text"
+                          value={profile.voice_traits?.resonance || ""}
+                          onChange={(e) => handleVoiceChange("resonance", e.target.value)}
+                          placeholder="例如: 沉稳胸腔共鸣 / 气声偏重轻微支撑"
+                          className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">4. 动态起伏范围 (Dynamic Range)</label>
+                        <input
+                          type="text"
+                          value={profile.voice_traits?.dynamic_range || ""}
+                          onChange={(e) => handleVoiceChange("dynamic_range", e.target.value)}
+                          placeholder="例如: 窄动态极度克制 / 宽动态富有张力"
+                          className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">5. 音量基准 (Volume)</label>
+                        <input
+                          type="text"
+                          value={profile.voice_traits?.volume || ""}
+                          onChange={(e) => handleVoiceChange("volume", e.target.value)}
+                          placeholder="例如: 偏轻克制 / 适中平稳 / 穿透力强"
+                          className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">6. 语速节奏 (Speed / Pace)</label>
+                        <input
+                          type="text"
+                          value={profile.voice_traits?.speed || ""}
+                          onChange={(e) => handleVoiceChange("speed", e.target.value)}
+                          placeholder="例如: 节奏从容微慢 / 紧凑利落"
+                          className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">7. 语调微习惯 (Inflection)</label>
+                        <input
+                          type="text"
+                          value={profile.voice_traits?.inflection || ""}
+                          onChange={(e) => handleVoiceChange("inflection", e.target.value)}
+                          placeholder="例如: 句尾微降收敛 / 平直不带波动"
+                          className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">8. 地域口音 / 方言 (Accent)</label>
+                        <input
+                          type="text"
+                          value={profile.voice_traits?.accent || ""}
+                          onChange={(e) => handleVoiceChange("accent", e.target.value)}
+                          placeholder="例如: 标准普通话 (Standard Mandarin)"
+                          className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground block mb-1">9. 常态默认情绪 (Emotion)</label>
+                        <input
+                          type="text"
+                          value={profile.voice_traits?.emotion_baseline || ""}
+                          onChange={(e) => handleVoiceChange("emotion_baseline", e.target.value)}
+                          placeholder="例如: 克制警惕，波澜不惊"
+                          className="w-full bg-secondary/40 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Synthesized Voice Prompt Display */}
                   <div className="pt-2 border-t border-border">
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[10px] font-semibold text-foreground flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-pink-400" />
-                        <span>6. 综合 TTS 声音驱动提示词 (Synthesized Prompt)</span>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+                        <span>Voice Design 高密度声学提示词 (Synthesized Prompt)</span>
                       </label>
-                      <span className="text-[10px] text-muted-foreground font-mono">注入语音合成端</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground">
+                          字符数: <strong className={(profile.voice_traits?.tts_prompt?.length || 0) > 400 ? "text-red-400" : "text-emerald-400"}>{profile.voice_traits?.tts_prompt?.length || 0}</strong> / 400 字符限制门
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-pink-500/10 text-pink-300 font-mono">ElevenLabs / MiniMax</span>
+                      </div>
                     </div>
                     <textarea
                       rows={3}
                       value={profile.voice_traits?.tts_prompt || ""}
                       onChange={(e) => handleVoiceChange("tts_prompt", e.target.value)}
-                      placeholder="例如: 24岁年轻女性，磁性清冽偏冷中音，节奏平缓从容，克制警惕，不带多余情绪波动"
+                      placeholder="Acoustic parameter string conforming to shuohao-skills specification..."
                       className="w-full bg-pink-500/5 border border-pink-500/30 rounded-xl p-3 text-xs text-pink-200 focus:outline-none focus:border-pink-500 font-mono leading-relaxed"
                     />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      💡 提示：该提示词由上方声学乐器物理参数自动合成，不含表演台词与文学比喻，直接输入 ElevenLabs Voice Design / MiniMax TTS 引擎。
+                    </p>
                   </div>
                 </div>
               </div>

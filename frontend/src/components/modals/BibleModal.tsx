@@ -40,6 +40,20 @@ interface BibleModalProps {
 
 const TURNAROUND_PRESETS = [
   {
+    id: "reelbench_16x9_realistic",
+    name: "🏆 16:9 黄金三区定妆卡 · 半写实厚涂 (Reelbench 工业基准 · 推荐)",
+    desc: "左区34%半身像面部基准 + 右上全身正/侧/背三视图平光量体 + 右下4-5个细节条，纯白底",
+    template:
+      "Single character model sheet on ONE 16:9 landscape canvas. The canvas is divided into three zones by thin hairline rules. LEFT ZONE — about 34% width: one bust portrait, head and shoulders, front-facing, centred, like an ID photograph, BOTH SHOULDERS FULLY VISIBLE, ending in a clean straight cut. LIGHTING IN LEFT ZONE ONLY: soft directional key light from upper left with gentle falloff, subtle ambient occlusion under chin and neck. RIGHT-TOP ZONE — remaining 66%: three FULL-BODY views of SAME character standing side by side (front view, side profile, back view) on shared ground line. PROPORTIONS ARE CRITICAL: identical height, ratio, relaxed posture. LIGHTING IN RIGHT ZONES: flat even orthographic lighting with no directional key and no cast shadows. RIGHT-BOTTOM ZONE: detail strip of 4-5 small isolated close-up studies of key costume/props/accessories, detail studies give way, not the figures. Pure white background (#FFFFFF). Semi-realistic character illustration, painterly rendering, soft blended edges, anatomically grounded, 8k uhd --no plastic waxy skin, over-smoothed doll face, perfectly symmetrical face",
+  },
+  {
+    id: "reelbench_16x9_ghibli",
+    name: "🎨 16:9 黄金三区定妆卡 · 吉卜力手绘 (Ghibli Cel Shading)",
+    desc: "手绘赛璐璐动画风格，全图均匀日光无阴影，左区头像基准 + 右上三视图 + 右下细节",
+    template:
+      "Single character model sheet on ONE 16:9 landscape canvas divided into three zones by thin hairline rules. Hand-painted anime cel illustration in the manner of classic Studio Ghibli feature animation: clean confident ink linework, simple flat cel shading, warm naturalistic palette. LEFT ZONE (~34% width): bust portrait front-facing, centred ID framing, clean flat skin tone with single soft shadow shape and warm blush, clear expressive eyes with round highlight, grouped hair clumps. RIGHT-TOP ZONE: three FULL-BODY views of SAME character standing side by side (front, side, back) on one shared ground line, identical height and proportions. LIGHTING: even gentle daylight across the whole sheet with single soft shadow tone, flat lighting throughout. RIGHT-BOTTOM ZONE: 4-5 small isolated close-up studies of key props and details. Pure white background (#FFFFFF). Clean lineart, masterpiece --no photorealistic, 3d render, hyperrealistic skin texture, visible pores, subsurface scattering, harsh contrast",
+  },
+  {
     id: "turnaround_3view",
     name: "工业三视图 (Front/Side/Back)",
     desc: "全身三视图，正视、侧视、后背，对齐标准建模与多角度生图",
