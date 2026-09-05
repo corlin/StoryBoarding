@@ -33,7 +33,18 @@ router.post("/:id/generate-concept", async (c) => {
     const envLabel = loc.environmentType === "interior" ? "interior architectural space" : "exterior landscape environment";
     const lightingDesc = loc.activeLightingState ? `${loc.activeLightingState} lighting atmospheric mood` : (loc.lightingStyle || "natural cinematic light");
     const variantDesc = loc.isVariant && loc.reuseStrategy ? `, scene variant based on master environment: ${loc.reuseStrategy}` : "";
-    const prompt = `${loc.name}, ${envLabel}, ${loc.visualAnchor || "cinematic scene establishment"}${variantDesc}, lighting: ${lightingDesc}, wide angle cinematic environment concept art, empty scene without people, highly detailed, photorealistic 8k uhd`;
+    
+    // Parse 3-5 concrete anchors
+    let anchorsText = "";
+    try {
+      const parsedAnchors = loc.anchorsJson ? JSON.parse(loc.anchorsJson) : [];
+      if (Array.isArray(parsedAnchors) && parsedAnchors.length > 0) {
+        anchorsText = ", concrete spatial anchors: " + parsedAnchors.map((a: any) => `${a.name}: ${a.desc}`).join("; ");
+      }
+    } catch (_) {}
+
+    // shuohao-skills novel-art hard rule: Absolutely no people anywhere, empty scene
+    const prompt = `Environment reference establishing shot of ${loc.name}, ${envLabel}, ${loc.visualAnchor || "cinematic scene establishment"}${anchorsText}${variantDesc}, lighting: ${lightingDesc}. Wide angle master view, grounded architectural perspective, cinematic depth, lived-in weathered materials, atmospheric depth. Absolutely no people anywhere, empty scene without people, pure environment art, 8k resolution`;
 
     const apiKey = settings.llmApiKey;
     const apiBase = settings.llmApiBase || "https://openrouter.ai/api/v1";

@@ -74,6 +74,9 @@ export const locations = sqliteTable("locations", {
   isVariant: integer("is_variant", { mode: "boolean" }).default(false).notNull(), // Reelbench 变体场景标记
   parentLocationId: text("parent_location_id").default("").notNull(), // 继承的主场景 ID
   reuseStrategy: text("reuse_strategy").default("").notNull(), // 复用方案描述 (如同一机位换背板)
+  // Reelbench & shuohao-skills novel-art standard: Design Summary & 3-5 Concrete Anchors
+  designSummary: text("design_summary").default("").notNull(), // 空间设计意图 (非户型说明)
+  anchorsJson: text("anchors_json").default("[]").notNull(), // 3-5个具象可核对实体锚点 [{name, desc}]
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });

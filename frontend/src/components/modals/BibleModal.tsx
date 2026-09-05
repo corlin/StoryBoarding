@@ -150,6 +150,8 @@ export const BibleModal: React.FC<BibleModalProps> = ({
   const [newLocIsVariant, setNewLocIsVariant] = useState(false);
   const [newLocParentId, setNewLocParentId] = useState("");
   const [newLocReuseStrategy, setNewLocReuseStrategy] = useState("");
+  const [newLocDesignSummary, setNewLocDesignSummary] = useState("");
+  const [newLocAnchors, setNewLocAnchors] = useState("");
 
   // New prop form (Reelbench Narrative Props)
   const [newPropName, setNewPropName] = useState("");
@@ -236,6 +238,19 @@ export const BibleModal: React.FC<BibleModalProps> = ({
       .map((s) => s.trim())
       .filter(Boolean);
 
+    // Parse anchors from comma/newline separated string
+    const anchorsList = newLocAnchors
+      .split(/[\n;；]/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split(/[:：]/);
+        if (parts.length >= 2) {
+          return { name: parts[0].trim(), desc: parts.slice(1).join(":").trim() };
+        }
+        return { name: line, desc: "关键视觉识别基准" };
+      });
+
     const newLoc: LocationModel = {
       id: crypto.randomUUID(),
       project_id: project?.id || "",
@@ -248,12 +263,16 @@ export const BibleModal: React.FC<BibleModalProps> = ({
       is_variant: newLocIsVariant,
       parent_location_id: newLocIsVariant ? newLocParentId : "",
       reuse_strategy: newLocIsVariant ? newLocReuseStrategy.trim() : "",
+      design_summary: newLocDesignSummary.trim(),
+      anchors: anchorsList,
     };
     setLocations([...locations, newLoc]);
     setNewLocName("");
     setNewLocAnchor("");
     setNewLocIsVariant(false);
     setNewLocReuseStrategy("");
+    setNewLocDesignSummary("");
+    setNewLocAnchors("");
     notify.success(`已添加场景空间「${newLoc.name}」`);
   };
 
@@ -752,12 +771,17 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                               </span>
                             )}
                           </div>
+                          {loc.design_summary && (
+                            <p className="text-[11px] text-amber-200/90 mt-1 italic leading-relaxed">
+                              🎯 设计意图: {loc.design_summary}
+                            </p>
+                          )}
                           {loc.is_variant && loc.reuse_strategy && (
                             <div className="text-[11px] text-purple-300/90 mt-0.5 flex items-center gap-1">
                               <span>🔄 复用方案: {loc.reuse_strategy}</span>
                             </div>
                           )}
-                          <span className="text-xs text-muted-foreground truncate block max-w-[320px]">{loc.visual_anchor || "核心场景空间"}</span>
+                          <span className="text-xs text-muted-foreground truncate block max-w-[320px] mt-0.5">{loc.visual_anchor || "核心场景空间"}</span>
                         </div>
                       </div>
 
@@ -851,9 +875,38 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       />
                     </div>
 
+                    {/* shuohao-skills 3-5 Concrete Anchors List */}
+                    <div className="bg-secondary/30 border border-border/60 rounded-lg p-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-foreground">
+                        <span className="flex items-center gap-1 text-amber-300">
+                          <Layers className="w-3 h-3 text-amber-400" />
+                          <span>一致性具象锚点 (3–5个可画可核对特征):</span>
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {loc.anchors?.length || 0} 个锚点 · 空景生成不漂移
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(loc.anchors || []).map((anc, aIdx) => (
+                          <span
+                            key={aIdx}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                            title={anc.desc}
+                          >
+                            <strong>{anc.name}</strong>: {anc.desc}
+                          </span>
+                        ))}
+                        {(!loc.anchors || loc.anchors.length === 0) && (
+                          <span className="text-[10px] text-muted-foreground italic">
+                            暂未细化具体实体锚点（可通过编辑或登记时补充）
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
                     <div>
                       <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                        场景空间透视与光影特征描述 (Visual Spatial Anchor):
+                        场景空间透视与光影特征描述 (Visual Spatial Anchor · 自动锁定空景):
                       </label>
                       <textarea
                         rows={2}
@@ -944,9 +997,26 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                 </div>
               )}
 
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="空间设计意图 (例如: 人与人避不开视线的狭窄审讯室，逼出所有秘密)"
+                  value={newLocDesignSummary}
+                  onChange={(e) => setNewLocDesignSummary(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-500"
+                />
+                <input
+                  type="text"
+                  placeholder="3-5个具象一致性锚点 (如: 补丁船篷:漏下一道光缝; 船头铜铃:拳头大绿锈斑驳)"
+                  value={newLocAnchors}
+                  onChange={(e) => setNewLocAnchors(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
               <input
                 type="text"
-                placeholder="场景空间与建筑特征 (例如: 老旧木质渡口栈桥伸入浓密白雾，第七块木板修补痕迹，系船石墩)"
+                placeholder="场景空间透视特征提示词 (例如: Interior of an old wooden ferry passenger cabin, canvas canopy, empty scene without people)"
                 value={newLocAnchor}
                 onChange={(e) => setNewLocAnchor(e.target.value)}
                 className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:border-primary"

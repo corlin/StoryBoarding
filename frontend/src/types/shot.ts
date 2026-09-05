@@ -209,6 +209,8 @@ export interface LocationModel {
   is_variant?: boolean;
   parent_location_id?: string;
   reuse_strategy?: string;
+  design_summary?: string; // 空间设计意图 (非户型说明)
+  anchors?: Array<{ name: string; desc: string }>; // 3-5个具象可核对实体锚点
   created_at?: string;
 }
 

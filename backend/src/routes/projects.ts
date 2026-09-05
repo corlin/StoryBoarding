@@ -182,6 +182,8 @@ router.get("/:id", async (c) => {
         is_variant: Boolean(loc.isVariant),
         parent_location_id: loc.parentLocationId || "",
         reuse_strategy: loc.reuseStrategy || "",
+        design_summary: (loc as any).designSummary || "",
+        anchors: (loc as any).anchorsJson ? JSON.parse((loc as any).anchorsJson) : [],
         created_at: loc.createdAt,
       })),
       props: propList.map((p) => ({
@@ -668,6 +670,8 @@ router.put("/:id", async (c) => {
               isVariant: loc.is_variant !== undefined ? Boolean(loc.is_variant) : existing.isVariant,
               parentLocationId: loc.parent_location_id !== undefined ? loc.parent_location_id : existing.parentLocationId,
               reuseStrategy: loc.reuse_strategy !== undefined ? loc.reuse_strategy : existing.reuseStrategy,
+              designSummary: loc.design_summary !== undefined ? loc.design_summary : (existing as any).designSummary,
+              anchorsJson: loc.anchors !== undefined ? (typeof loc.anchors === "string" ? loc.anchors : JSON.stringify(loc.anchors)) : (existing as any).anchorsJson,
               updatedAt: new Date().toISOString(),
             }).where(eq(locations.id, loc.id));
           } else {
@@ -684,6 +688,8 @@ router.put("/:id", async (c) => {
               isVariant: Boolean(loc.is_variant),
               parentLocationId: loc.parent_location_id || "",
               reuseStrategy: loc.reuse_strategy || "",
+              designSummary: loc.design_summary || "",
+              anchorsJson: typeof loc.anchors === "object" ? JSON.stringify(loc.anchors) : (loc.anchors || "[]"),
             });
           }
         } else if (loc.name) {
@@ -700,6 +706,8 @@ router.put("/:id", async (c) => {
             isVariant: Boolean(loc.is_variant),
             parentLocationId: loc.parent_location_id || "",
             reuseStrategy: loc.reuse_strategy || "",
+            designSummary: loc.design_summary || "",
+            anchorsJson: typeof loc.anchors === "object" ? JSON.stringify(loc.anchors) : (loc.anchors || "[]"),
           });
         }
       }

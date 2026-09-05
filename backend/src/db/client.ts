@@ -181,6 +181,8 @@ export async function ensureSchema(d1: D1Database) {
     try { await d1.prepare(`ALTER TABLE locations ADD COLUMN is_variant INTEGER NOT NULL DEFAULT 0;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE locations ADD COLUMN parent_location_id TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE locations ADD COLUMN reuse_strategy TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE locations ADD COLUMN design_summary TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE locations ADD COLUMN anchors_json TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN character_ids TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN prop_ids TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
