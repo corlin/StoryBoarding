@@ -183,6 +183,9 @@ export async function ensureSchema(d1: D1Database) {
     try { await d1.prepare(`ALTER TABLE locations ADD COLUMN reuse_strategy TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE locations ADD COLUMN design_summary TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE locations ADD COLUMN anchors_json TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE props ADD COLUMN scale TEXT NOT NULL DEFAULT 'handheld';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE props ADD COLUMN anchors_json TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE props ADD COLUMN states_json TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN "order" INTEGER NOT NULL DEFAULT 1;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN character_ids TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN prop_ids TEXT NOT NULL DEFAULT '[]';`).run(); } catch (_) {}

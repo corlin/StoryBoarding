@@ -156,6 +156,8 @@ export const BibleModal: React.FC<BibleModalProps> = ({
   // New prop form (Reelbench Narrative Props)
   const [newPropName, setNewPropName] = useState("");
   const [newPropCat, setNewPropCat] = useState<"weapon" | "token" | "document" | "general">("token");
+  const [newPropScale, setNewPropScale] = useState<"handheld" | "tabletop" | "furniture">("handheld");
+  const [newPropAnchors, setNewPropAnchors] = useState("");
   const [newPropAnchor, setNewPropAnchor] = useState("");
   const [newPropDesc, setNewPropDesc] = useState("");
 
@@ -308,18 +310,34 @@ export const BibleModal: React.FC<BibleModalProps> = ({
       notify.error("请输入道具名称");
       return;
     }
+    const scalePhrase = newPropScale === "furniture" ? "furniture scale" : newPropScale === "tabletop" ? "tabletop scale" : "handheld scale";
+    const anchorsList = newPropAnchors
+      .split(/[\n;；]/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split(/[:：]/);
+        if (parts.length >= 2) {
+          return { name: parts[0].trim(), desc: parts.slice(1).join(":").trim() };
+        }
+        return { name: line, desc: "特写可核对特征" };
+      });
+
     const newProp: PropModel = {
       id: crypto.randomUUID(),
       project_id: project?.id || "",
       name: newPropName.trim(),
       category: newPropCat,
-      visual_anchor: newPropAnchor.trim() || `${newPropName.trim()}, narrative key prop, isolated on white background, sharp studio photography, 8k uhd`,
+      scale: newPropScale,
+      visual_anchor: newPropAnchor.trim() || `${newPropName.trim()}, ${scalePhrase}, isolated on pure white background (#FFFFFF), sharp studio photography, 8k uhd --no hands, fingers`,
       description: newPropDesc.trim() || "关键叙事道具",
+      anchors: anchorsList,
     };
     setPropsList([...propsList, newProp]);
     setNewPropName("");
     setNewPropAnchor("");
     setNewPropDesc("");
+    setNewPropAnchors("");
     notify.success(`已添加叙事道具「${newProp.name}」`);
   };
 
@@ -1072,6 +1090,9 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                             <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                               {p.category === "weapon" ? "武器刀械" : p.category === "token" ? "信物道具" : p.category === "document" ? "密函公文" : "常规物品"}
                             </span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                              {p.scale === "furniture" ? "家具级" : p.scale === "tabletop" ? "桌面级" : "手持级"}
+                            </span>
                           </div>
                           <span className="text-xs text-muted-foreground">{p.description || "叙事关键物品"}</span>
                         </div>
@@ -1117,9 +1138,38 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       </div>
                     </div>
 
+                    {/* shuohao-skills Prop Anchors & Scale Control */}
+                    <div className="bg-secondary/30 border border-border/60 rounded-lg p-2 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-foreground">
+                        <span className="flex items-center gap-1 text-emerald-300">
+                          <Package className="w-3 h-3 text-emerald-400" />
+                          <span>经得起特写的细节锚点 (3–5个微观特征):</span>
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          尺度：<strong>{p.scale === "furniture" ? "furniture scale" : p.scale === "tabletop" ? "tabletop scale" : "handheld scale"}</strong> · 纯白可抠
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(p.anchors || []).map((anc, aIdx) => (
+                          <span
+                            key={aIdx}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                            title={anc.desc}
+                          >
+                            <strong>{anc.name}</strong>: {anc.desc}
+                          </span>
+                        ))}
+                        {(!p.anchors || p.anchors.length === 0) && (
+                          <span className="text-[10px] text-muted-foreground italic">
+                            暂未登记微观特写锚点（如铜扣划痕、磨损边角）
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
                     <div>
                       <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                        道具纯白底特写视觉基因 (Visual DNA):
+                        道具纯白底特写视觉基因 (Visual DNA · 强制注入尺度短语与无手指令):
                       </label>
                       <textarea
                         rows={2}

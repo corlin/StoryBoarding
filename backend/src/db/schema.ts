@@ -90,6 +90,10 @@ export const props = sqliteTable("props", {
   visualAnchor: text("visual_anchor").notNull().default(""), // Pure English visual DNA prompt (white-backdrop closeup)
   referenceImageUrl: text("reference_image_url").default("").notNull(),
   description: text("description").default("").notNull(),
+  // Reelbench & shuohao-skills novel-art prop standards:
+  scale: text("scale").default("handheld").notNull(), // 'handheld' (手持级) | 'tabletop' (桌面级) | 'furniture' (家具级)
+  anchorsJson: text("anchors_json").default("[]").notNull(), // 经得起特写的细节锚点 (3-5个)
+  statesJson: text("states_json").default("[]").notNull(), // 道具状态变体 (如: 合上/打开) [{state, prompt}]
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });

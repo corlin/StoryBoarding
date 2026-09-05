@@ -194,6 +194,9 @@ router.get("/:id", async (c) => {
         visual_anchor: p.visualAnchor,
         reference_image_url: p.referenceImageUrl,
         description: p.description,
+        scale: (p as any).scale || "handheld",
+        anchors: (p as any).anchorsJson ? JSON.parse((p as any).anchorsJson) : [],
+        states: (p as any).statesJson ? JSON.parse((p as any).statesJson) : [],
         created_at: p.createdAt,
       })),
       sequences: enrichedSeqs,
@@ -724,6 +727,9 @@ router.put("/:id", async (c) => {
               visualAnchor: p.visual_anchor || p.visualAnchor || existing.visualAnchor,
               referenceImageUrl: p.reference_image_url || p.referenceImageUrl || existing.referenceImageUrl,
               description: p.description !== undefined ? p.description : existing.description,
+              scale: p.scale !== undefined ? p.scale : (existing as any).scale,
+              anchorsJson: p.anchors !== undefined ? (typeof p.anchors === "string" ? p.anchors : JSON.stringify(p.anchors)) : (existing as any).anchorsJson,
+              statesJson: p.states !== undefined ? (typeof p.states === "string" ? p.states : JSON.stringify(p.states)) : (existing as any).statesJson,
               updatedAt: new Date().toISOString(),
             }).where(eq(props.id, p.id));
           } else {
@@ -735,6 +741,9 @@ router.put("/:id", async (c) => {
               visualAnchor: p.visual_anchor || p.visualAnchor || "",
               referenceImageUrl: p.reference_image_url || p.referenceImageUrl || "",
               description: p.description || "",
+              scale: p.scale || "handheld",
+              anchorsJson: typeof p.anchors === "object" ? JSON.stringify(p.anchors) : (p.anchors || "[]"),
+              statesJson: typeof p.states === "object" ? JSON.stringify(p.states) : (p.states || "[]"),
             });
           }
         } else if (p.name) {
@@ -746,6 +755,9 @@ router.put("/:id", async (c) => {
             visualAnchor: p.visual_anchor || p.visualAnchor || "",
             referenceImageUrl: p.reference_image_url || p.referenceImageUrl || "",
             description: p.description || "",
+            scale: p.scale || "handheld",
+            anchorsJson: typeof p.anchors === "object" ? JSON.stringify(p.anchors) : (p.anchors || "[]"),
+            statesJson: typeof p.states === "object" ? JSON.stringify(p.states) : (p.states || "[]"),
           });
         }
       }

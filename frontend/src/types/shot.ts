@@ -223,6 +223,9 @@ export interface PropModel {
   visualAnchor?: string;
   reference_image_url?: string;
   description?: string;
+  scale?: "handheld" | "tabletop" | "furniture"; // 尺度分级 (手持级 / 桌面级 / 家具级)
+  anchors?: Array<{ name: string; desc: string }>; // 经得起特写的细节锚点 (3-5个)
+  states?: Array<{ state: string; prompt: string }>; // 道具状态变体 (如: 合上/打开)
   created_at?: string;
 }
 

@@ -145,8 +145,20 @@ router.post("/:id/generate-concept", async (c) => {
       return c.json({ detail: "请先在设置中配置 OpenRouter API Key" }, 400);
     }
 
-    // White backdrop studio prop closeup prompt (Reelbench standard)
-    const prompt = `studio prop photography, ${prop.name}, category: ${prop.category}, ${prop.visualAnchor || prop.description || "cinematic narrative key item"}, extreme close-up detail shot, isolated on pure white background, studio softbox lighting, pristine sharp focus, hyper-realistic 8k resolution, macro lens`;
+    // shuohao-skills novel-art prop standards: Scale phrase & no hands
+    const scalePhrase = prop.scale === "furniture" ? "furniture scale" : prop.scale === "tabletop" ? "tabletop scale" : "handheld scale";
+    
+    // Parse 3-5 anchors
+    let anchorsText = "";
+    try {
+      const parsedAnchors = prop.anchorsJson ? JSON.parse(prop.anchorsJson) : [];
+      if (Array.isArray(parsedAnchors) && parsedAnchors.length > 0) {
+        anchorsText = ", narrative key features: " + parsedAnchors.map((a: any) => `${a.name}: ${a.desc}`).join("; ");
+      }
+    } catch (_) {}
+
+    // White backdrop studio prop closeup prompt (shuohao-skills hard rule: isolated on pure white background, absolutely no hands, no fingers, no people)
+    const prompt = `studio prop reference photography of ${prop.name}, ${scalePhrase}, category: ${prop.category}, ${prop.visualAnchor || prop.description || "cinematic narrative key item"}${anchorsText}, extreme close-up detail shot, isolated on pure white background (#FFFFFF), studio softbox lighting, pristine sharp focus, clean cutout, 8k resolution --no hands, fingers, holding, human figure, people, shadows on background`;
 
     const apiKey = settings.llmApiKey;
     const apiBase = settings.llmApiBase || "https://openrouter.ai/api/v1";
