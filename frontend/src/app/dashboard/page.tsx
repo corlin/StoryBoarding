@@ -205,18 +205,27 @@ export default function DashboardPage() {
     setIsCreating(true);
   };
 
-  const handleApplyTemplate = (tmpl: typeof STARTER_TEMPLATES[0]) => {
+  const handleApplyTemplate = async (tmpl: typeof STARTER_TEMPLATES[0]) => {
+    // 零 Token 成本样板房策略：未登录用户点击直接以官方 Demo 账号免密进入体验现成工程，无需调用 LLM 与生图接口
     if (!isAuthenticated) {
-      notify.info("🎬 请先登录或注册导演账号，即可一键套用模板创建私有工程");
-      openAuthModal("login");
-      return;
+      try {
+        await login("demo@caifu.social", "demo123");
+        notify.success("🎬 已为您一键载入官方精品样板工程（免等待、零消耗 Token）！");
+        // 导向系统现成的官方精品样片工程，0 消耗体验全功能
+        router.push("/workspace?id=6f01c422-48ea-4796-afc7-09cc6447f764");
+        return;
+      } catch (err) {
+        // Fallback to opening login modal if demo login encounters network issue
+        openAuthModal("login");
+        return;
+      }
     }
+
     const hasKey = !!user?.custom_settings?.llmApiKey;
     if (!hasKey) {
-      notify.info("🎬 请先在「设置」中填入您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
-      openSettingsModal();
-      return;
+      notify.info("🎬 已为您填入模板故事！若要使用 AI 重新规划新镜头，请在「设置 ⚙️」中配置您的专属 OpenRouter API Key");
     }
+
     setNewTitle(tmpl.storyTitle);
     setNewStory(tmpl.desc);
     setTargetDuration(tmpl.duration);
@@ -585,7 +594,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-current/15 text-[11px] font-medium">
-                  <span className="opacity-80">一键套用剧本</span>
+                  <span className="opacity-80">一键体验样片</span>
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </div>
               </button>
