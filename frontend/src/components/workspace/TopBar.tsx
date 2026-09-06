@@ -21,6 +21,9 @@ import {
   Scale,
   MoreVertical,
   ChevronDown,
+  Keyboard,
+  X,
+  HelpCircle,
 } from "lucide-react";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
@@ -76,6 +79,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
   const [isMoreToolsOpen, setIsMoreToolsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const moreToolsRef = useRef<HTMLDivElement>(null);
 
   // Close more tools dropdown when clicking outside
@@ -87,6 +91,27 @@ export const TopBar: React.FC<TopBarProps> = ({
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Press '?' to toggle Shortcuts Guide Modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.key === "?" || (e.shiftKey && e.code === "Slash")) {
+        e.preventDefault();
+        setIsShortcutsModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const isOverDuration = totalDuration > (project?.target_duration || 30);
@@ -377,6 +402,21 @@ export const TopBar: React.FC<TopBarProps> = ({
                 </button>
               )}
 
+              {/* 剪辑台键盘快捷键指南 */}
+              <button
+                onClick={() => {
+                  setIsMoreToolsOpen(false);
+                  setIsShortcutsModalOpen(true);
+                }}
+                className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <Keyboard className="w-3.5 h-3.5 text-amber-400" />
+                  <span>剪辑台快捷键指南</span>
+                </div>
+                <span className="font-mono text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border">?</span>
+              </button>
+
               {onOpenDelete && (
                 <>
                   <div className="h-px bg-border my-1" />
@@ -575,6 +615,80 @@ export const TopBar: React.FC<TopBarProps> = ({
               <span>删除工程</span>
             </button>
           )}
+        </div>
+      )}
+
+      {/* Keyboard Shortcuts Guide Modal */}
+      {isShortcutsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150 relative">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+                  <Keyboard className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-foreground">影视剪辑台键盘快捷键指南</h3>
+                  <p className="text-[11px] text-muted-foreground">好莱坞 NLE 标准剪辑手感</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsShortcutsModalOpen(false)}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">时间轴与视听预演 (Timeline & Previz)</span>
+                <div className="bg-secondary/40 border border-border/70 rounded-xl p-2.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground">播放 / 暂停预演</span>
+                    <kbd className="px-2 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">Space</kbd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground">微步吸附切到上一镜</span>
+                    <kbd className="px-2 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">←</kbd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground">微步吸附切到下一镜</span>
+                    <kbd className="px-2 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">→</kbd>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">工作台全局操控 (Workspace Global)</span>
+                <div className="bg-secondary/40 border border-border/70 rounded-xl p-2.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground">随时打开此快捷键指南</span>
+                    <kbd className="px-2 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">?</kbd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground">双击分栏中线</span>
+                    <span className="text-muted-foreground">恢复 50:50 等比分屏</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground">双击剧本节拍</span>
+                    <span className="text-muted-foreground">原位极速编辑台词/动作</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-1 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsShortcutsModalOpen(false)}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer"
+              >
+                我知道了 (ESC)
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </header>
