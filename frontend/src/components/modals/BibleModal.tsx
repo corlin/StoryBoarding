@@ -23,11 +23,13 @@ import {
   Mic,
   Sun,
   ExternalLink,
+  Key,
 } from "lucide-react";
 import { ProjectModel, CharacterModel, LocationModel, PropModel } from "@/types/shot";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
 import { CharacterProfileDrawer } from "@/components/drawers/CharacterProfileDrawer";
 
@@ -194,6 +196,33 @@ export const BibleModal: React.FC<BibleModalProps> = ({
   const [newPropAnchor, setNewPropAnchor] = useState("");
   const [newPropDesc, setNewPropDesc] = useState("");
 
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号，样板设定已就绪！如需自主${actionName}，请注册专属导演账号并绑定专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在右上角「设置」中配置您专属的 OpenRouter / 生图 API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
+
   useEffect(() => {
     if (project) {
       setCharacters(project.characters || []);
@@ -236,6 +265,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
 
   const handleGenerateAvatar = async (char: CharacterModel) => {
     if (!char.id) return;
+    if (!checkAuthAndKey("生成角色定妆照")) return;
     try {
       setGeneratingCharId(char.id);
       const res = await api.generateCharacterAvatar(char.id, {
@@ -329,6 +359,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
 
   const handleGenerateLocConcept = async (loc: LocationModel) => {
     if (!loc.id) return;
+    if (!checkAuthAndKey("生成场景空间概念基准图")) return;
     try {
       setGeneratingLocId(loc.id);
       const res = await api.generateLocationConcept(loc.id);
@@ -403,6 +434,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
 
   const handleGeneratePropConcept = async (prop: PropModel) => {
     if (!prop.id) return;
+    if (!checkAuthAndKey("生成道具参考图")) return;
     try {
       setGeneratingPropId(prop.id);
       const res = await api.generatePropConcept(prop.id);
@@ -637,13 +669,34 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                           type="button"
                           disabled={isGenerating}
                           onClick={() => handleGenerateAvatar(char)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 transition-all disabled:opacity-50 cursor-pointer"
-                          title="使用多角度定妆提示词一键 AI 生成定妆照"
+                          className={cn(
+                            "inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 cursor-pointer",
+                            isDemoUser || !hasCustomKey
+                              ? "bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.1)]"
+                              : "bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300"
+                          )}
+                          title={
+                            isDemoUser
+                              ? "当前为公共体验账号：点击注册专属账号以生成角色定妆照"
+                              : !hasCustomKey
+                              ? "未配置生图Key：点击前往设置配置后生成"
+                              : "使用多角度定妆提示词一键 AI 生成定妆照"
+                          }
                         >
                           {isGenerating ? (
                             <>
                               <Loader2 className="w-3 h-3 animate-spin" />
                               <span>定妆中...</span>
+                            </>
+                          ) : isDemoUser ? (
+                            <>
+                              <Key className="w-3 h-3 text-amber-400" />
+                              <span className="font-semibold text-amber-300">🔑 注册账号定妆</span>
+                            </>
+                          ) : !hasCustomKey ? (
+                            <>
+                              <Key className="w-3 h-3 text-amber-400" />
+                              <span className="font-semibold text-amber-300">🔑 填Key定妆</span>
                             </>
                           ) : (
                             <>
@@ -901,13 +954,34 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                           type="button"
                           disabled={isGenerating}
                           onClick={() => handleGenerateLocConcept(loc)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 transition-all disabled:opacity-50 cursor-pointer"
-                          title="一键 AI 生成场景空间概念基准图"
+                          className={cn(
+                            "inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 cursor-pointer",
+                            isDemoUser || !hasCustomKey
+                              ? "bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.1)]"
+                              : "bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300"
+                          )}
+                          title={
+                            isDemoUser
+                              ? "当前为公共体验账号：点击注册专属账号以生成场景空间概念基准图"
+                              : !hasCustomKey
+                              ? "未配置生图Key：点击前往设置配置后生成"
+                              : "一键 AI 生成场景空间概念基准图"
+                          }
                         >
                           {isGenerating ? (
                             <>
                               <Loader2 className="w-3 h-3 animate-spin" />
                               <span>生成中...</span>
+                            </>
+                          ) : isDemoUser ? (
+                            <>
+                              <Key className="w-3 h-3 text-amber-400" />
+                              <span className="font-semibold text-amber-300">🔑 注册生成基准图</span>
+                            </>
+                          ) : !hasCustomKey ? (
+                            <>
+                              <Key className="w-3 h-3 text-amber-400" />
+                              <span className="font-semibold text-amber-300">🔑 填Key生成</span>
                             </>
                           ) : (
                             <>
@@ -1196,13 +1270,34 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                           type="button"
                           disabled={isGenerating}
                           onClick={() => handleGeneratePropConcept(p)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition-all disabled:opacity-50 cursor-pointer"
-                          title="一键 AI 生成纯白底特写道具参考图"
+                          className={cn(
+                            "inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 cursor-pointer",
+                            isDemoUser || !hasCustomKey
+                              ? "bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.1)]"
+                              : "bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300"
+                          )}
+                          title={
+                            isDemoUser
+                              ? "当前为公共体验账号：点击注册专属账号以生成道具参考图"
+                              : !hasCustomKey
+                              ? "未配置生图Key：点击前往设置配置后生成"
+                              : "一键 AI 生成纯白底特写道具参考图"
+                          }
                         >
                           {isGenerating ? (
                             <>
                               <Loader2 className="w-3 h-3 animate-spin" />
                               <span>生成中...</span>
+                            </>
+                          ) : isDemoUser ? (
+                            <>
+                              <Key className="w-3 h-3 text-amber-400" />
+                              <span className="font-semibold text-amber-300">🔑 注册生成参考图</span>
+                            </>
+                          ) : !hasCustomKey ? (
+                            <>
+                              <Key className="w-3 h-3 text-amber-400" />
+                              <span className="font-semibold text-amber-300">🔑 填Key生成</span>
                             </>
                           ) : (
                             <>
