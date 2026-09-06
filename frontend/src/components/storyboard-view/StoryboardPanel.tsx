@@ -4,7 +4,7 @@ import { StoryboardCell } from "./StoryboardCell";
 import { RhythmBarcode } from "./RhythmBarcode";
 import { CallSheetView } from "./CallSheetView";
 import { VoiceAlignmentDrawer } from "@/components/drawers/VoiceAlignmentDrawer";
-import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video, SlidersHorizontal, Settings2, Check } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video, SlidersHorizontal, Settings2, Check, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/components/ui/ToastNotification";
 
@@ -22,6 +22,8 @@ interface StoryboardPanelProps {
   onToggleLock?: (shotId: string, locked: boolean) => void;
   onOpenTheater?: (shotId: string) => void;
   onOpenDrawer?: (shotId: string) => void;
+  onOpenGenerateModal?: () => void;
+  onOpenImportScript?: () => void;
   isBatchRendering?: boolean;
   batchProgress?: { current: number; total: number };
   onAbortBatchRendering?: () => void;
@@ -41,6 +43,8 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   onToggleLock,
   onOpenTheater,
   onOpenDrawer,
+  onOpenGenerateModal,
+  onOpenImportScript,
   isBatchRendering = false,
   batchProgress,
   onAbortBatchRendering,
@@ -332,10 +336,38 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
             onOpenDrawer={onOpenDrawer}
           />
         ) : shots.length === 0 ? (
-          <div className="h-48 border border-dashed border-border rounded-xl flex flex-col items-center justify-center text-muted-foreground p-6 text-center">
-            <ImageIcon className="w-8 h-8 mb-2 opacity-40" />
-            <p className="text-sm font-medium mb-1">故事板画布为空</p>
-            <p className="text-xs text-muted-foreground">在左侧脚本中添加镜头，或点击顶部「AI 导演智能拆镜」</p>
+          <div className="h-64 border border-dashed border-border/80 rounded-2xl flex flex-col items-center justify-center text-center p-8 bg-card/20 space-y-4">
+            <div className="p-3 rounded-full bg-primary/10 text-primary border border-primary/20">
+              <Sparkles className="w-7 h-7" />
+            </div>
+            <div className="space-y-1 max-w-md">
+              <h3 className="text-sm font-semibold text-foreground">故事板画布暂无分镜</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                输入一段剧情梗概，让好莱坞 AI 导演为您自动规划 12 镜起承转合分镜；或在左侧打字机中撰写剧本。
+              </p>
+            </div>
+            <div className="flex items-center gap-3 pt-1">
+              {onOpenGenerateModal && (
+                <button
+                  type="button"
+                  onClick={onOpenGenerateModal}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>🎬 开启 AI 导演智能拆镜</span>
+                </button>
+              )}
+              {onOpenImportScript && (
+                <button
+                  type="button"
+                  onClick={onOpenImportScript}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5 text-sky-400" />
+                  <span>导入场次剧本</span>
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className={`grid ${gridClass}`}>

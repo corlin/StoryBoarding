@@ -824,6 +824,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             onRegenerateDirty={handleRegenerateDirty}
             onRegenerateShotImage={handleRegenerateSingleShot}
             onToggleLock={handleToggleLockShot}
+            onOpenGenerateModal={() => setIsOpenAIGenerateModal(true)}
+            onOpenImportScript={() => setIsOpenScriptModal(true)}
             isBatchRendering={isBatchRendering}
             batchProgress={batchProgress}
             onAbortBatchRendering={handleAbortBatchRendering}
