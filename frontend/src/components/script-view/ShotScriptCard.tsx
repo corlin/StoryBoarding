@@ -181,7 +181,7 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
                 e.stopPropagation();
                 onOpenDrawer();
               }}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
               title="展开深度编辑抽屉"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
