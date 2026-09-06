@@ -297,19 +297,19 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                   <span className="text-[11px] text-muted-foreground font-mono">
-                    {group.shots.length} 镜 · {group.totalDuration.toFixed(1)}s · 显影 {completedCount}/{group.shots.length}
+                    {group.shots.length} 镜 · {group.totalDuration.toFixed(1)}s
                   </span>
 
                   {group.location?.reference_image_url && (
-                    <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-secondary border border-border text-[10px] text-muted-foreground">
-                      <img src={group.location.reference_image_url} alt="基准" className="w-4 h-4 rounded object-cover" />
-                      <span>已定场景基准</span>
+                    <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded bg-secondary border border-border text-[10px] text-muted-foreground">
+                      <img src={group.location.reference_image_url} alt="基准" className="w-3.5 h-3.5 rounded object-cover" />
+                      <span>场景基准</span>
                     </div>
                   )}
 
-                  {/* Copy Batch MiniMax H3 Prompt (Unified) */}
+                  {/* Copy Batch MiniMax H3 Prompt (Compact Icon Button) */}
                   <button
                     type="button"
                     onClick={() => {
@@ -317,35 +317,11 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                       navigator.clipboard.writeText(prompt);
                       notify.success(`已复制批次 B${gIdx + 1} 的 MiniMax H3 视频生成提示词！`);
                     }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary hover:bg-muted text-foreground border border-border transition-colors cursor-pointer"
-                    title="生成并复制本批次所有镜头的连贯 H3 提示词"
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-secondary hover:bg-muted text-foreground border border-border transition-colors cursor-pointer"
+                    title="生成并复制本批次所有镜头的连贯 MiniMax H3 视频生成提示词"
                   >
                     <Video className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span>复制 H3 批次词</span>
-                  </button>
-
-                  {/* Export Single Batch Call Sheet CSV */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      try {
-                        exportCallSheetToCsv(
-                          project || null,
-                          group.shots,
-                          locations,
-                          characters,
-                          `B${gIdx + 1}_${group.locationName}`
-                        );
-                        notify.success(`📊 批次 B${gIdx + 1} (${group.locationName}) 顺场表 CSV 已成功导出并下载！`);
-                      } catch (e: any) {
-                        notify.error(e?.message || "导出批次顺场表失败");
-                      }
-                    }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary hover:bg-muted text-foreground border border-border transition-colors cursor-pointer"
-                    title={`单独导出批次 B${gIdx + 1} (${group.locationName}) 的制片分场排期表 (CSV)`}
-                  >
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>导出此批次 CSV</span>
+                    <span className="font-mono text-[10px]">H3</span>
                   </button>
 
                   {/* 一键冲印本批次 (Batch Render within Call Sheet) */}
@@ -380,7 +356,7 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                       ) : (
                         <>
                           <RefreshCw className="w-3 h-3" />
-                          <span>冲印本批次 ({group.shots.length - completedCount})</span>
+                          <span>冲印 ({group.shots.length - completedCount})</span>
                         </>
                       )}
                     </button>
