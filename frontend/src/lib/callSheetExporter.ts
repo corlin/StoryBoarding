@@ -17,7 +17,8 @@ export function exportCallSheetToCsv(
   project: ProjectModel | null,
   shots: ShotModel[],
   locations: LocationModel[] = [],
-  characters: CharacterModel[] = []
+  characters: CharacterModel[] = [],
+  batchTag?: string
 ): void {
   if (!shots || shots.length === 0) {
     throw new Error("暂无可导出的镜头数据");
@@ -150,7 +151,8 @@ export function exportCallSheetToCsv(
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${projectTitle.replace(/\s+/g, "_")}_制片顺场表_${new Date().toISOString().slice(0, 10)}.csv`;
+  const tagSuffix = batchTag ? `_批次_${batchTag}` : "";
+  link.download = `${projectTitle.replace(/\s+/g, "_")}_制片顺场表${tagSuffix}_${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

@@ -286,6 +286,30 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                     <span>复制 H3 批次词</span>
                   </button>
 
+                  {/* Export Single Batch Call Sheet CSV */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        exportCallSheetToCsv(
+                          project || null,
+                          group.shots,
+                          locations,
+                          characters,
+                          `B${gIdx + 1}_${group.locationName}`
+                        );
+                        notify.success(`📊 批次 B${gIdx + 1} (${group.locationName}) 顺场表 CSV 已成功导出并下载！`);
+                      } catch (e: any) {
+                        notify.error(e?.message || "导出批次顺场表失败");
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary hover:bg-muted text-foreground border border-border transition-colors cursor-pointer"
+                    title={`单独导出批次 B${gIdx + 1} (${group.locationName}) 的制片分场排期表 (CSV)`}
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>导出此批次 CSV</span>
+                  </button>
+
                   {/* 一键冲印本批次 (Batch Render within Call Sheet) */}
                   {!isComplete && onRegenerateShotImage && (
                     <button
