@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ShotModel, SequenceModel } from "@/types/shot";
 import {
   Film,
@@ -89,6 +89,26 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
     : shots;
 
   const totalDuration = activeShots.reduce((acc, s) => acc + (s.duration || 2.5), 0) || targetDuration;
+
+  // Precompute precise start and end times for each shot to power the segmented scrubber
+  const shotTimings = useMemo(() => {
+    let accum = 0;
+    return activeShots.map((s, idx) => {
+      const dur = s.duration || 2.5;
+      const start = accum;
+      const end = accum + dur;
+      accum = end;
+      return {
+        shotId: s.id,
+        order: idx + 1,
+        shotSize: s.shot_size,
+        start,
+        end,
+        duration: dur,
+        weightPct: totalDuration > 0 ? (dur / totalDuration) * 100 : 0,
+      };
+    });
+  }, [activeShots, totalDuration]);
 
   // Auto-hide controls when playing and idle for 2.5 seconds
   const handleUserActivity = useCallback(() => {
@@ -534,6 +554,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
           !showControls && isPlaying ? "opacity-0 translate-y-full pointer-events-none" : "opacity-100 translate-y-0"
         )}
       >
+        {/* Segmented Shot Track with Micro-gaps */}
         <div
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
@@ -541,12 +562,45 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
             const pct = Math.max(0, Math.min(1, clickX / rect.width));
             setCurrentTime(pct * totalDuration);
           }}
-          className="h-2 w-full bg-white/10 rounded-full cursor-pointer relative overflow-hidden group"
+          className="h-3 w-full bg-white/5 rounded-md cursor-pointer relative flex items-center gap-1 group py-0.5 select-none"
+          title="点击节拍轨跳转播放定位"
         >
-          <div
-            style={{ width: `${Math.min(100, (currentTime / Math.max(totalDuration, 0.1)) * 100)}%` }}
-            className="h-full bg-gradient-to-r from-primary to-amber-400 rounded-full relative transition-[width] duration-75"
-          />
+          {shotTimings.map((st) => {
+            const isCompleted = currentTime >= st.end;
+            const isCurrent = currentTime >= st.start && currentTime < st.end;
+            const fillPct = isCompleted
+              ? 100
+              : isCurrent
+              ? Math.min(100, Math.max(0, ((currentTime - st.start) / Math.max(st.duration, 0.01)) * 100))
+              : 0;
+
+            return (
+              <div
+                key={st.shotId}
+                style={{ width: `${st.weightPct}%` }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentTime(st.start);
+                  setCurrentIndex(st.order - 1);
+                }}
+                className={cn(
+                  "h-2 rounded-sm relative overflow-hidden transition-all duration-150 group/seg hover:h-2.5",
+                  isCurrent ? "bg-white/20 ring-1 ring-amber-400/50" : "bg-white/10 hover:bg-white/15"
+                )}
+                title={`#${st.order} 镜 (${st.duration.toFixed(1)}s) - ${st.shotSize || "标准"}`}
+              >
+                <div
+                  style={{ width: `${fillPct}%` }}
+                  className={cn(
+                    "h-full rounded-sm transition-[width] duration-75",
+                    isCurrent
+                      ? "bg-gradient-to-r from-amber-400 to-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
+                      : "bg-primary/90"
+                  )}
+                />
+              </div>
+            );
+          })}
         </div>
 
         <div className="flex items-center justify-between text-white text-xs gap-4 flex-wrap">
@@ -570,7 +624,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
             </button>
 
             <span className="font-mono text-white/70">
-              {currentTime.toFixed(1)}s / {totalDuration.toFixed(1)}s
+              {Math.min(currentTime, totalDuration).toFixed(1)}s / {totalDuration.toFixed(1)}s
             </span>
 
             <div className="flex items-center gap-1 ml-1 hidden sm:flex">
