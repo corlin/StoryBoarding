@@ -335,20 +335,24 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
 
           {sequences.length > 1 && (
             <button
+              type="button"
               onClick={() => {
-                setIsBingeMode(!isBingeMode);
+                const nextBinge = !isBingeMode;
+                setIsBingeMode(nextBinge);
                 setCurrentIndex(0);
                 setCurrentTime(0);
+                notify.info(nextBinge ? `🎬 已开启全剧连播模式（共 ${sequences.flatMap(s => s.shots || []).length} 镜）` : `🔍 已切换为当前单场精看模式（共 ${shots.length} 镜）`);
               }}
               className={cn(
-                "px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all shrink-0",
+                "px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer shadow-sm",
                 isBingeMode
-                  ? "bg-amber-500 text-black shadow-sm font-bold"
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-black font-bold ring-2 ring-amber-400/40"
                   : "bg-white/10 text-white/80 hover:bg-white/20 border border-white/15"
               )}
+              title={isBingeMode ? "点击切换为仅播放当前单场" : "点击开启全剧跨场次连续试映"}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{isBingeMode ? "🎬 全剧连播" : "🔍 单集精看"}</span>
+              <span>{isBingeMode ? `🎬 全剧连续试映 (${activeShots.length}镜)` : `🔍 当前单场试映 (${activeShots.length}镜)`}</span>
             </button>
           )}
         </div>
@@ -446,6 +450,14 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
           )}
 
           <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/85 backdrop-blur-md px-3.5 py-1.5 rounded-lg border border-white/20 shadow-lg text-white font-mono text-sm">
+            {isBingeMode && (
+              <>
+                <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                  全剧连播
+                </span>
+                <span className="text-white/40">·</span>
+              </>
+            )}
             {currentSequence && (
               <>
                 <span className="font-bold text-amber-400">EP {currentSequence.episode_number || currentSequence.order}</span>
