@@ -1,9 +1,8 @@
-"use client";
-
 import React, { useState } from "react";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { useAuthStore } from "@/stores/authStore";
 import { ProjectModel } from "@/types/shot";
-import { Film, Users, Plus, Sparkles, Loader2, X, Rocket } from "lucide-react";
+import { Film, Users, Plus, Sparkles, Loader2, X, Rocket, Key } from "lucide-react";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 
@@ -38,12 +37,41 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
   const characters = activeProject.characters || [];
   const nextEpNum = sequences.length + 1;
 
+  // Validation helper for AI generation operations
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!isAuthenticated) {
+      notify.info(`🎬 请先注册或登录导演账号`);
+      openAuthModal("register");
+      return false;
+    }
+    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+    if (isDemoUser) {
+      notify.info(`🎬 当前为公共体验账号！如需使用 AI 导演${actionName}，请注册专属导演账号并在设置中填入 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const hasKey = !!user?.custom_settings?.llmApiKey;
+    if (!hasKey) {
+      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
+
   const handleOpenModal = () => {
+    if (!checkAuthAndKey("追加短剧新集数")) return;
     setEpisodeTitle(`第 ${nextEpNum} 集 · 危机升级`);
     setEpisodeStory("");
     setCliffhangerHook("生死悬念与突发反转");
     setTargetDuration(60);
     setIsAddModalOpen(true);
+  };
+
+  const handleOpenExpandModal = () => {
+    if (!checkAuthAndKey("升维扩写短剧")) return;
+    setIsExpandModalOpen(true);
   };
 
   const handleAddEpisode = async (e: React.FormEvent) => {
@@ -166,7 +194,7 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
           {/* Scene-to-Series Expansion Engine Trigger */}
           {sequences.length <= 1 && (
             <button
-              onClick={() => setIsExpandModalOpen(true)}
+              onClick={handleOpenExpandModal}
               className={`flex items-center gap-1 ${
                 compact ? "px-2 py-0.5 text-[11px]" : "px-3 py-1.5 text-xs"
               } bg-secondary hover:bg-muted border border-border text-foreground font-medium rounded-md transition shrink-0 shadow-2xs`}
@@ -284,32 +312,38 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>AI 导演正在并发拆镜...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>立即生成新集数</span>
-                    </>
-                  )}
-                </button>
+              <div className="flex items-center justify-between pt-3 border-t border-border">
+                <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  <Key className="w-3 h-3" />
+                  <span>专属 API Key 已就绪</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>AI 导演正在并发拆镜...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>立即生成新集数</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -390,32 +424,38 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  disabled={isExpanding}
-                  onClick={() => setIsExpandModalOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  disabled={isExpanding}
-                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-purple-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 text-white transition-all shadow-sm disabled:opacity-50"
-                >
-                  {isExpanding ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>AI 编剧正在并发推演各集大纲与分镜...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Rocket className="w-3.5 h-3.5" />
-                      <span>立即升维扩写短剧</span>
-                    </>
-                  )}
-                </button>
+              <div className="flex items-center justify-between pt-3 border-t border-border">
+                <div className="flex items-center gap-1.5 text-[11px] font-mono text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded border border-purple-500/30">
+                  <Key className="w-3 h-3 text-purple-400" />
+                  <span>专属 API Key 已就绪</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isExpanding}
+                    onClick={() => setIsExpandModalOpen(false)}
+                    className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isExpanding}
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-purple-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 text-white transition-all shadow-sm disabled:opacity-50"
+                  >
+                    {isExpanding ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>AI 编剧正在并发推演各集大纲与分镜...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Rocket className="w-3.5 h-3.5" />
+                        <span>立即升维扩写短剧</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
