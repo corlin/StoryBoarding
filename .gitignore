@@ -37,4 +37,6 @@ Thumbs.db
 
 # Temporary test outputs
 test_export.png
+test_workspace.png
+flow_*.png
 *.tsbuildinfo

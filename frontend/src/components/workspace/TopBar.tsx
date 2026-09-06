@@ -143,7 +143,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   }, [project, shots]);
 
   return (
-    <header className="h-12 border-b border-border/80 bg-card/90 backdrop-blur px-3 md:px-4 flex items-center justify-between shrink-0 select-none z-20 gap-3">
+    <header className="h-12 border-b border-border/80 bg-card/90 backdrop-blur px-3 md:px-4 flex items-center justify-between shrink-0 select-none relative z-40 gap-3">
       {/* Left: Project title, version & quick toggle */}
       <div className="flex items-center gap-2.5 shrink-0 min-w-0">
         <Link

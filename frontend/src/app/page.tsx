@@ -21,7 +21,10 @@ import {
   ChevronRight,
   Loader2,
   BookOpen,
+  Key,
+  CheckCircle2,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -133,6 +136,13 @@ export default function HomePage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && Boolean(
+    user?.custom_settings?.has_llm_key ||
+    user?.custom_settings?.llmApiKey ||
+    user?.custom_settings?.llm_api_key
+  );
+
   // Check and resume stashed creation upon login
   useEffect(() => {
     if (isAuthenticated) {
@@ -175,20 +185,23 @@ export default function HomePage() {
         "stashed_story_creation",
         JSON.stringify({ story: trimmedStory, duration: targetDuration })
       );
-      notify.info("🎬 请先登录或注册导演账号，登录后将自动开工！");
-      openAuthModal("login");
+      notify.info("🎬 请先注册或登录专属导演账号，登录后将自动开工！");
+      openAuthModal("register");
       return;
     }
 
-    // Pre-flight check: ensure user has configured an OpenRouter Key
-    const hasKey = Boolean(
-      user?.custom_settings?.has_llm_key ||
-      user?.custom_settings?.llmApiKey ||
-      user?.custom_settings?.llm_api_key
-    );
+    if (isDemoUser) {
+      sessionStorage.setItem(
+        "stashed_story_creation",
+        JSON.stringify({ story: trimmedStory, duration: targetDuration })
+      );
+      notify.info("🎬 当前为公共体验账号！如需创建并生成 AI 故事板，请注册专属导演账号并在设置中填入 Key");
+      openAuthModal("register");
+      return;
+    }
 
-    if (!hasKey) {
-      notify.info("🔑 请先配置您的专属 OpenRouter API Key，即可开启好莱坞 AI 故事板创作");
+    if (!hasCustomKey) {
+      notify.info("🔑 请先在「设置」中配置您的专属 OpenRouter API Key，即可开启好莱坞 AI 故事板创作");
       openSettingsModal();
       return;
     }
@@ -424,8 +437,42 @@ export default function HomePage() {
               </button>
             </div>
 
-            {/* Right Submit Circle Button */}
-            <div className="flex items-center justify-end gap-2">
+            {/* Right Submit Circle Button & Key Status */}
+            <div className="flex items-center justify-end gap-2.5">
+              {/* Real-time Key Status Pill */}
+              <div
+                className={cn(
+                  "hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono select-none transition-colors border shadow-2xs",
+                  !isAuthenticated || isDemoUser
+                    ? "bg-amber-500/10 text-amber-300 border-amber-500/25"
+                    : !hasCustomKey
+                    ? "bg-amber-500/10 text-amber-300 border-amber-500/25"
+                    : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                )}
+              >
+                {!isAuthenticated ? (
+                  <>
+                    <Key className="w-3 h-3 text-amber-400" />
+                    <span>未登录</span>
+                  </>
+                ) : isDemoUser ? (
+                  <>
+                    <Key className="w-3 h-3 text-amber-400" />
+                    <span>体验账号无专属 Key</span>
+                  </>
+                ) : !hasCustomKey ? (
+                  <>
+                    <Key className="w-3 h-3 text-amber-400" />
+                    <span>未配置专属 Key</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <span>专属 Key 已就绪</span>
+                  </>
+                )}
+              </div>
+
               <span className="text-[11px] text-muted-foreground hidden sm:inline font-mono">
                 Enter ↵ 发送
               </span>
@@ -433,11 +480,26 @@ export default function HomePage() {
                 type="button"
                 onClick={handleStartCreation}
                 disabled={isCreating}
-                className="w-10 h-10 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center transition-all shadow-md hover:scale-105 active:scale-95 disabled:opacity-50"
-                title="立即开始智能创作"
+                className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer",
+                  !isAuthenticated || isDemoUser || !hasCustomKey
+                    ? "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20"
+                    : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                )}
+                title={
+                  !isAuthenticated
+                    ? "点击注册或登录专属账号"
+                    : isDemoUser
+                    ? "当前为公共体验账号，点击注册专属账号并配置 Key"
+                    : !hasCustomKey
+                    ? "点击前往设置配置专属 OpenRouter Key"
+                    : "立即开始智能创作"
+                }
               >
                 {isCreating ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
+                ) : !isAuthenticated || isDemoUser || !hasCustomKey ? (
+                  <Key className="w-4 h-4 text-black stroke-[2.5]" />
                 ) : (
                   <ArrowUp className="w-5 h-5 stroke-[2.5]" />
                 )}

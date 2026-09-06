@@ -118,7 +118,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   return (
     <section className="flex flex-col h-full bg-background/50 select-none relative">
       {/* Streamlined Clean Header Bar (Single 44px Row) */}
-      <div className="h-11 border-b border-border/70 px-4 flex items-center justify-between shrink-0 bg-card/40">
+      <div className="h-11 border-b border-border/70 px-4 flex items-center justify-between shrink-0 bg-card/40 relative z-20">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Film className="w-3.5 h-3.5 text-primary" />

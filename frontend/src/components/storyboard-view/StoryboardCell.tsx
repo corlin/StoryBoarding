@@ -316,7 +316,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
     <div
       onClick={handleCardBodyClick}
       className={cn(
-        "group relative flex flex-col rounded-xl overflow-hidden border bg-card/60 transition-all duration-150 cursor-pointer shadow-sm",
+        "group relative isolate flex flex-col rounded-xl overflow-hidden border bg-card/60 transition-all duration-150 cursor-pointer shadow-sm",
         isSelected
           ? "border-primary ring-2 ring-primary/40 shadow-md bg-card/95"
           : "border-border/70 hover:border-border hover:bg-card/90"

@@ -264,8 +264,15 @@ export default function DashboardPage() {
     if (!newTitle.trim()) return;
 
     if (!isAuthenticated) {
-      notify.info("🎬 请先登录或注册导演账号后再创建工程");
-      openAuthModal("login");
+      notify.info("🎬 请先注册或登录专属导演账号后再创建工程");
+      openAuthModal("register");
+      return;
+    }
+
+    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+    if (isDemoUser) {
+      notify.info("🎬 当前为公共体验账号！如需创建私有工程并生成 AI 分镜，请注册专属导演账号并在设置中填入 Key");
+      openAuthModal("register");
       return;
     }
 
@@ -277,7 +284,7 @@ export default function DashboardPage() {
     );
 
     if (!hasKey) {
-      notify.info("🔑 请先配置您的专属 OpenRouter API Key，即可开启好莱坞 AI 故事板创作");
+      notify.info("🔑 请先在「设置」中配置您的专属 OpenRouter API Key，即可开启好莱坞 AI 故事板创作");
       openSettingsModal();
       return;
     }
