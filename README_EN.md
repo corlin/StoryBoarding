@@ -1,111 +1,113 @@
-# 🎬 AI Director & Narrative OS (Hollywood Narrative OS & Multi-Episode Series Compiler)
+# 🎬 StoryBoarding · AI Director & Narrative OS (Commercial Short Drama Workstation)
 
 English | [简体中文](./README.md)
 
-> **Executable Script · Visual DNA Continuity · Reelbench Studio Benchmark · 0ms Edge Cold Start**  
+> **Executable Script · Industrial Storyboard Pipeline · Reelbench Standards · 0ms Edge Cold Start**  
 > 
-> A Unified Hollywood Narrative OS for Long-Form Series Compilation, Visual DNA Continuity, Reelbench Short Drama Standards, and Cinematic Previz Orchestration.  
-> **Powered by Cloudflare Serverless Edge Architecture (Hono + D1 + R2 + Pages).**
+> An all-in-one industrial-grade studio for film directors, micro-drama screenwriters, and AI creators. Covers the entire production lifecycle: from literary core distillation, four-quadrant adaptation matrix, payoff beat radar, unified visual bible, and dual-pane synchronization to call sheet clustering, cinema previz theater, and production deliverables packaging.  
+> **Powered by Cloudflare Serverless Edge Stack (Next.js + Hono + D1 + R2 + Pages).**
 
 ---
 
-## 🌟 Vision & Organic Fusion Architecture ("Cheng · Chéng · Ying · Yǔ")
+## 🏗️ System Architecture Logic
 
-Cinema and short drama production are undergoing a paradigm shift from oral director staging to an **Executable Script-driven Narrative OS**. Screenplays are no longer merely literary prose; they are **Source Code** compiled, verified, rendered, and packaged into industrial-grade assets.
+The system is built on the philosophy of **"Script as Code (Executable Script)"**, treating screenplays as structured, verifiable Storyboard State Trees. The complete pipeline is organized into **7 Core Production Stages**, seamlessly linking pre-production, directing, and asset delivery:
 
-To prevent features from becoming isolated add-ons, the system follows the classic narrative and product philosophy of **"Cheng · Chéng · Ying · Yǔ"**, unifying series compilation, visual bibles, split-pane editing, emotional voltage waveforms, previz theaters, and production deliverables:
+```mermaid
+flowchart TD
+    subgraph Literature ["Pre-Production & Screenwriting"]
+        S1["STAGE 01: Adaptation Tradeoffs & Payoff Radar<br/>(4-Quadrant Matrix / Gate 2 Pacing / Table Read MD)"]
+        S2["STAGE 02: Unified Visual Bible<br/>(Character DNA Sheets / Environment Anchors / Props)"]
+        S3["STAGE 03: Dual-Pane Screenplay Editor<br/>(Dialogue ≤35 Char Warning / Split-to-Dual / Dirty State)"]
+    end
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                 AI Director: Organic Interconnection Topology                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 1. [Chéng / Inheritance & Ground Truth]:                                    │
-│    • Unified Visual Bible: Character DNA, Environment Anchors & Prop Vault; │
-│    • 100% shared across single scene previz and multi-episode series.       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 2. [Chèng / Momentum & Expansion]:                                          │
-│    • Single-scene to multi-episode expansion in one click;                  │
-│    • Freezes existing shots as "EP 1", carrying over protagonists & sets;   │
-│    • AI synthesizes subsequent episodes based on cliffhanger hooks.         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 3. [Yìng / Resonance & Duality]:                                            │
-│    • Dual-scale emotional voltage timeline;                                 │
-│    • Seamless zoom between [Shot Precision (12 shots)] & [Series Overview]; │
-│    • Cliffhanger buoys placed visually at every episode tail.               │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 4. [Yǔ / Mutual Feed & Deliverables]:                                       │
-│    • Cinema theater binge previz with automatic title cards;                │
-│    • Complete package export: Markdown script, Canvas sheet, H3 & ZIP files.│
-└─────────────────────────────────────────────────────────────────────────────┘
+    subgraph Directing ["Directing & Visual Staging"]
+        S4["STAGE 04: Storyboard Workshop<br/>(4:3 / 16:9 / 9:16 Adaptive Grids / HUD / Batch Lock)"]
+        S5["STAGE 05: Call Sheet Production<br/>(Location + Lighting Clustering / MiniMax H3 / CSV Export)"]
+        S6["STAGE 06: Cinema Theater Previz<br/>(Ken Burns Parallax / Typewriter Subtitles / Segmented Scrubber)"]
+    end
+
+    subgraph Packaging ["Asset Packaging & Delivery"]
+        S7["STAGE 07: Studio Deliverables Package<br/>(16:9 Draft Sheet / Multi-Episode Markdown / AI Video Manifest / ZIP)"]
+    end
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
 ```
 
 ---
 
-## 💎 Core Feature Modules (v2.1.0 Reelbench Milestone)
+## 💎 Core Capability Modules
 
 ### 1. ⚖️ STAGE 01 · Adaptation Tradeoffs & Payoff Radar
-- **Novel Core Extraction**: Distills commercial hooks and core dramatic conflict from long-form fiction;
-- **Four-Quadrant Matrix**: Keep (iconic highlights), Cut (unproductive subplots), Merge (character/set aggregation), Risk (production budget traps);
-- **Gate 2 Beat-Gap Gatekeeper**: Enforces `maxBeatGap ≤ 3` episodes between payoffs, with one-click AI auto-fill for dramatic vacuums;
-- **Screenplay Readthrough Markdown Export**: One-click formatted markdown copy to clipboard and downloadable `.md` files for table reads and executive meetings.
+- **Dramatic Core Distillation**: Extracts key conflicts, stakes, and commercial hooks from long-form text or outlines;
+- **Four-Quadrant Matrix (Adaptation Tradeoffs)**:
+  - **Keep**: Core iconic visual moments and essential character traits;
+  - **Cut**: Redundant subplots and pacing drags;
+  - **Merge**: Secondary character and location aggregations;
+  - **Risk**: Logical vulnerabilities and high-cost CGI/production traps;
+- **Gate 2 Payoff Beat-Gap Gatekeeper**:
+  - Automatically audits payoff distribution to enforce `maxBeatGap ≤ 3` episodes;
+  - One-click AI synthesis to bridge dramatic vacuums;
+- **Table Read Markdown Summary**: One-click formatted markdown copy and `.md` file download for executive reviews and cast readings.
 
 ---
 
 ### 2. 🎭 STAGE 02 · Unified Visual Bible
-- **Character Visual DNA**:
-  - 16:9 triple-zone reference sheets (close-up / full body / dynamic action) with English visual prompts to prevent face drifting;
-  - Acoustic DNA trait modeling (timbre, resonance, pacing, and English TTS prompt).
+- **Single Source of Truth**: Eliminates inconsistencies between character banks and production bibles;
+- **Character DNA Specifications**:
+  - 16:9 triple-zone sheets (close-up / full body / dynamic action);
+  - Standardized English Visual DNA anchors to prevent facial and stylistic drift across shots;
+  - Acoustic DNA parameters (timbre, resonance, speech rate, and English TTS prompt);
 - **Environment Anchors**:
-  - Solidifies architectural materials, natural/top/night lighting states, and 3-5 verifiable entity anchors per set.
+  - Solidifies architectural materials, lighting state variants (day/top/night), and 3-5 verifiable entity anchors per set;
 - **Prop Specifications**:
   - Handheld, tabletop, and furniture-scale tiering with operational states (open / closed / damaged).
 
 ---
 
 ### 3. ✍️ STAGE 03 · Dual-Pane Screenplay & Dirty-State Self-Healing
-- **Dual-Pane Interactive Studio**: Seamless real-time synchronization between screenplay beats and storyboard cells;
-- **Pacing Breath Monitor**: Highlights dialogue exceeding 35 characters to maintain tight short-drama tempo;
-- **Split-to-Dual-Shots**: One-click split of a single beat into complementary dual-angle camera shots;
-- **Dirty State Detection**: Automatically flags shots as `Dirty (Needs Re-render)` when script text changes, enabling targeted in-situ re-rendering.
+- **Dual-Pane Interactive Studio**: Millisecond-level synchronization between screenplay beats and storyboard cells;
+- **Pacing Breath Monitor**: Automatically flags dialogues over 35 characters to maintain tight pacing;
+- **Split-to-Dual-Shots**: Splits a single beat into complementary dual-angle camera shots in one click;
+- **Dirty State Detection**: Automatically highlights shots as `Needs Re-render` when underlying script text changes, enabling incremental re-rendering without disturbing intact shots.
 
 ---
 
-### 4. 📋 STAGE 04 & 05 · Storyboard & Call Sheet Management
-- **Storyboard Grid Workshop**:
-  - Adaptive 4:3, 16:9, and 9:16 aspect ratio grids with HUD overlays, camera angle badges, and lock protection;
-  - One-click batch lock/unlock to protect verified shots from accidental re-renders.
+### 4. 📋 STAGE 04 & 05 · Storyboard Workshop & Call Sheet Management
+- **Storyboard Workshop**:
+  - Seamless toggle across 4:3, 16:9 cinematic widescreen, and 9:16 vertical short drama viewports;
+  - HUD overlay with camera parameters, shot scale badges, and individual/batch lock protection;
 - **Call Sheet Production View**:
-  - Automatically clusters shots into production units (B1, B2...) by `Location + Lighting State`;
-  - Collapsible batch cards with global toggle; automatic search reset when switching episodes;
+  - Clusters shots into production units (B1, B2...) by `Location + Lighting State`, tracking unit runtimes;
+  - Independent batch collapse/expand with global toggle;
   - **MiniMax Hailuo H3 Multi-Modal Prompts**: One-click generation and clipboard copy of coherent video prompts;
-  - **CSV Call Sheet Export**: Export production-ready call sheets directly to Excel / CSV.
+  - **CSV Call Sheet Export**: Instant export to standard Excel / CSV call sheets.
 
 ---
 
-### 5. 🎬 STAGE 06 · Cinema Theater & Binge Previz
-- **Full-Screen Darkroom Playback**: Full 16:9 widescreen and 9:16 vertical short drama viewports;
-- **Multi-Modal Motion**: Ken Burns dynamic camera parallax and typewriter subtitles;
-- **Segmented Shot Scrubber**: Studio-grade segmented capsule bar indicating exact shot index and timeline progress;
+### 5. 🎬 STAGE 06 · Cinema Theater Previz
+- **Darkroom Full-Screen Previz**: Adaptive fullscreen playback featuring Ken Burns motion parallax;
+- **Multi-Modal Captions**: Synchronized typewriter dialogue subtitles;
+- **Segmented Capsule Scrubber**: Clear visual indication of current shot index and shot duration progress;
 - **Full Director Keybindings**:
   - `Space`: Play / Pause playback
-  - `←` / `→`: Step forward / backward by shot
+  - `←` / `→`: Step backward / forward across shots
   - `C`: Toggle typewriter subtitles
   - `B`: Toggle multi-episode Binge Previz mode
-  - `ESC`: Exit theater and center focus on active shot in workspace
+  - `ESC`: Exit theater and focus on active shot in workspace
 
 ---
 
-### 6. 🛡️ Public Demo Guardrails & Zero Resource Leakage
+### 6. 🛡️ Studio Security & Multi-Tenant Isolation
 - **Zero Resource Consumption for Public Demos**:
   - Pre-flight `checkAuthAndKey` guards placed across AI Generate, Quick Start Wizard, Visual Bible, Script Import, and Hook Doctor;
-  - Eliminated misleading hardcoded "Key Ready" status indicators; replaced with dynamic status capsules;
-  - Unified amber gold buttons (`🔑 Register Account to Generate / Direct`);
-  - Safe modal interception that preserves user story inputs without closing wizards unexpectedly;
-  - System settings gear intercepts public demo clicks and guides users to register personal director accounts.
+  - Friendly registration prompts that **never dismiss modals or lose user inputs**;
+- **AES-256-GCM Key Vault**: User-provided API keys are encrypted with individual salts before database storage; plaintext keys are never returned to client;
+- **Zero-Fallback Architecture**: Strict isolation preventing accidental key exposure or unauthorized resource consumption.
 
 ---
 
-### 7. 📦 Deliverables & Production Package Export
+### 7. 📦 STAGE 07 · Deliverables & Production Package Export
 - **5 Standardized Studio Deliverables**:
   1. 🖼️ **16:9 Storyboard Work Draft (PNG Sheet)** (Instant client-side canvas offline export);
   2. 📝 **Director Multi-Episode Screenplay (Markdown)** (Formatted by `## 🎬 EPISODE 01`, with cliffhanger notes and runtime metrics);
@@ -115,15 +117,16 @@ To prevent features from becoming isolated add-ons, the system follows the class
 
 ---
 
-## 🛠️ Architecture (Cloudflare Serverless Edge Stack)
+## 🛠️ Technology Stack
 
-| Layer | Technology | Description |
+| Layer | Technology | Primary Role |
 | :--- | :--- | :--- |
-| **Frontend** | **Next.js 14 / React 18 / Tailwind CSS / Zustand** | Deployed on **Cloudflare Pages** (Global CDN Edge) |
-| **Backend** | **Hono (TypeScript)** | Deployed on **Cloudflare Workers** (0ms cold start, high concurrency) |
-| **Edge DB** | **Cloudflare D1 ➕ Drizzle ORM** | Distributed Serverless SQLite with automated type-safe migrations |
-| **Storage** | **Cloudflare R2** | S3-compatible object storage with zero egress fees |
-| **Security** | **AES-256-GCM Key Vault** | Individual salt encryption; no plaintext keys ever exposed to frontend |
+| **Frontend** | **Next.js 14 / React 18 / Tailwind CSS** | Modern responsive dual-pane workspace, fully type-safe |
+| **State Management** | **Zustand** | Lightweight, reactive store for storyboard trees and auth |
+| **Edge Runtime** | **Hono (TypeScript) on Cloudflare Workers** | 0ms cold start, ultra-high concurrency edge API gateway |
+| **Edge Database** | **Cloudflare D1 ➕ Drizzle ORM** | Distributed Serverless SQLite with automated migrations |
+| **Object Storage** | **Cloudflare R2** | S3-compatible asset storage with zero egress fees |
+| **Model Integration** | **OpenRouter / MiniMax H3 / Seedream** | Multi-modal prompt compiler and image/video synthesis |
 
 ---
 
