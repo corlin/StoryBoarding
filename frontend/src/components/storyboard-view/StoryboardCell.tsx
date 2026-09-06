@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { ShotModel, CharacterModel } from "@/types/shot";
-import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock, CheckCircle, Compass, Palette, CloudUpload, User } from "lucide-react";
+import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock, CheckCircle, Compass, Palette, CloudUpload, User, Key } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeAssetUrl } from "@/lib/api";
+import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
 
 interface StoryboardCellProps {
   shot: ShotModel;
@@ -190,6 +192,34 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
   const [elapsed, setElapsed] = useState(0);
   const [imgSrc, setImgSrc] = useState<string>(normalizeAssetUrl(shot.storyboard_image_url));
 
+  // Auth & Key state perception
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号，样板画面已就绪！如需自主${actionName}，请注册专属导演账号并绑定专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter / 生图 API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
+
   const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || "MS";
   const isLocked = Boolean(shot.is_locked);
   const isActivelyDeveloping = isRegenerating;
@@ -258,6 +288,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
 
   const handleRegenerate = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!checkAuthAndKey("冲印镜头视觉画面")) return;
     if (!onRegenerateImage || isRegenerating) return;
     try {
       setIsRegenerating(true);
@@ -396,11 +427,15 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           {shot.is_dirty && !isActivelyDeveloping && (
             <button
               onClick={handleRegenerate}
-              className="flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 px-2 py-0.5 rounded text-[10px] font-medium animate-pulse shadow-sm transition-all ml-1"
-              title="台本已修改且提示词已重新编译，点击重绘以匹配最新台本"
+              className="flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 px-2 py-0.5 rounded text-[10px] font-medium animate-pulse shadow-sm transition-all ml-1 cursor-pointer"
+              title={hasCustomKey ? "台本已修改且提示词已重新编译，点击重绘以匹配最新台本" : "当前为 Demo 体验模式，请注册专属账号并绑定 Key 进行重绘"}
             >
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>⚡ 台本已改·重绘</span>
+              {hasCustomKey ? (
+                <Sparkles className="w-3 h-3 text-amber-400" />
+              ) : (
+                <Key className="w-3 h-3 text-amber-400" />
+              )}
+              <span>{hasCustomKey ? "⚡ 台本已改·重绘" : "🔑 注册账号重绘"}</span>
             </button>
           )}
         </div>
@@ -429,14 +464,26 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
               onClick={handleRegenerate}
               disabled={isActivelyDeveloping}
               className={cn(
-                "p-1.5 rounded-md backdrop-blur-md border transition-all duration-150 shadow-sm",
+                "p-1.5 rounded-md backdrop-blur-md border transition-all duration-150 shadow-sm cursor-pointer",
                 isActivelyDeveloping
                   ? "bg-muted/80 text-muted-foreground border-border/40 cursor-not-allowed"
-                  : "bg-background/80 border-border/60 text-muted-foreground hover:text-foreground hover:bg-background opacity-0 group-hover:opacity-100"
+                  : hasCustomKey
+                  ? "bg-background/80 border-border/60 text-muted-foreground hover:text-foreground hover:bg-background opacity-0 group-hover:opacity-100"
+                  : "bg-background/80 border-amber-400/30 text-amber-400/80 hover:text-amber-300 hover:bg-background opacity-0 group-hover:opacity-100"
               )}
-              title="重新打样当前分镜画面 (存入 R2)"
+              title={
+                hasCustomKey
+                  ? "重新打样当前分镜画面 (存入 R2)"
+                  : "当前为 Demo 体验模式，请注册专属账号并绑定 Key 进行重绘"
+              }
             >
-              <RefreshCw className={cn("w-3.5 h-3.5", isActivelyDeveloping && "animate-spin text-primary")} />
+              {isActivelyDeveloping ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-primary" />
+              ) : hasCustomKey ? (
+                <RefreshCw className="w-3.5 h-3.5" />
+              ) : (
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+              )}
             </button>
           )}
 
