@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { ShotModel, LocationModel, CharacterModel, PropModel, ProjectModel } from "@/types/shot";
-import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, FileSpreadsheet, Download, RefreshCw, Loader2, Sparkles, Copy } from "lucide-react";
+import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, FileSpreadsheet, Download, RefreshCw, Loader2, Sparkles, Copy, Filter, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildBatchH3, buildH3CutItem } from "@/hooks/useH3Prompt";
 import { generateH3Prompt } from "@/lib/h3Prompt";
@@ -47,6 +47,9 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
   const [renderingGroupId, setRenderingGroupId] = React.useState<string | null>(null);
   const [renderingShotId, setRenderingShotId] = React.useState<string | null>(null);
   const [copiedShotId, setCopiedShotId] = React.useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = React.useState<"all" | "pending" | "completed">("all");
+  const [sortBy, setSortBy] = React.useState<"default" | "duration_desc" | "shots_desc">("default");
+
   // Group shots by (Location + Lighting State) to avoid visual drift
   const groups: CallSheetGroup[] = useMemo(() => {
     const map = new Map<string, CallSheetGroup>();
@@ -75,6 +78,25 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
 
     return Array.from(map.values());
   }, [shots, locations]);
+
+  // Filter & Sort Groups for production focus
+  const processedGroups = useMemo(() => {
+    let result = groups.filter((g) => {
+      const completedCount = g.shots.filter((s) => s.storyboard_image_url && !s.is_dirty).length;
+      const isComplete = completedCount === g.shots.length;
+      if (filterStatus === "pending") return !isComplete;
+      if (filterStatus === "completed") return isComplete;
+      return true;
+    });
+
+    if (sortBy === "duration_desc") {
+      result = [...result].sort((a, b) => b.totalDuration - a.totalDuration);
+    } else if (sortBy === "shots_desc") {
+      result = [...result].sort((a, b) => b.shots.length - a.shots.length);
+    }
+
+    return result;
+  }, [groups, filterStatus, sortBy]);
 
   if (shots.length === 0) {
     return (
@@ -123,17 +145,100 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
         </button>
       </div>
 
+      {/* Control Strip: Filter & Sort Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-xl bg-card/40 border border-border/80 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+            <Filter className="w-3 h-3 text-primary" />
+            批次筛选：
+          </span>
+          <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/60 text-[11px]">
+            <button
+              type="button"
+              onClick={() => setFilterStatus("all")}
+              className={cn(
+                "px-2 py-0.5 rounded-md font-medium transition-all cursor-pointer",
+                filterStatus === "all"
+                  ? "bg-background text-foreground shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              全部 ({groups.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterStatus("pending")}
+              className={cn(
+                "px-2 py-0.5 rounded-md font-medium transition-all cursor-pointer flex items-center gap-1",
+                filterStatus === "pending"
+                  ? "bg-amber-500 text-black shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-amber-400"
+              )}
+            >
+              <span>待冲印</span>
+              <span className="font-mono text-[10px]">
+                ({groups.filter((g) => g.shots.some((s) => !s.storyboard_image_url || s.is_dirty)).length})
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterStatus("completed")}
+              className={cn(
+                "px-2 py-0.5 rounded-md font-medium transition-all cursor-pointer flex items-center gap-1",
+                filterStatus === "completed"
+                  ? "bg-emerald-500 text-white shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-emerald-400"
+              )}
+            >
+              <span>已全显影</span>
+              <span className="font-mono text-[10px]">
+                ({groups.filter((g) => g.shots.every((s) => s.storyboard_image_url && !s.is_dirty)).length})
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+            排序：
+          </span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="bg-secondary/80 border border-border/60 rounded-lg px-2 py-1 text-[11px] text-foreground focus:outline-none focus:border-primary cursor-pointer font-mono"
+          >
+            <option value="default">默认剧本场次顺序</option>
+            <option value="shots_desc">镜数由多到少</option>
+            <option value="duration_desc">批次时长由长到短</option>
+          </select>
+        </div>
+      </div>
+
       {/* Batch Groups Table List */}
       <div className="space-y-4">
-        {groups.map((group, gIdx) => {
-          const completedCount = group.shots.filter((s) => s.storyboard_image_url && !s.is_dirty).length;
-          const isComplete = completedCount === group.shots.length;
-
-          return (
-            <div
-              key={group.groupKey}
-              className="bg-card/70 border border-border rounded-xl shadow-xs overflow-hidden"
+        {processedGroups.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground bg-card/30 border border-dashed border-border rounded-xl text-xs space-y-1">
+            <Layers className="w-6 h-6 mx-auto opacity-40 mb-1" />
+            <p>没有符合当前筛选条件的生产批次</p>
+            <button
+              type="button"
+              onClick={() => setFilterStatus("all")}
+              className="text-primary hover:underline text-[11px] cursor-pointer"
             >
+              重置筛选条件
+            </button>
+          </div>
+        ) : (
+          processedGroups.map((group, gIdx) => {
+            const completedCount = group.shots.filter((s) => s.storyboard_image_url && !s.is_dirty).length;
+            const isComplete = completedCount === group.shots.length;
+
+            return (
+              <div
+                key={group.groupKey}
+                className="bg-card/70 border border-border rounded-xl shadow-xs overflow-hidden"
+              >
               {/* Group Header */}
               <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/20 border-b border-border">
                 <div className="flex items-center gap-3">
@@ -403,7 +508,8 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
               </div>
             </div>
           );
-        })}
+        })
+      )}
       </div>
     </div>
   );
