@@ -775,16 +775,24 @@ export const TopBar: React.FC<TopBarProps> = ({
                 <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">时间轴与视听预演 (Timeline & Previz)</span>
                 <div className="bg-secondary/40 border border-border/70 rounded-xl p-2.5 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-foreground">播放 / 暂停预演</span>
+                    <span className="text-foreground">播放 / 暂停试映</span>
                     <kbd className="px-2 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">Space</kbd>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-foreground">微步吸附切到上一镜</span>
-                    <kbd className="px-2 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">←</kbd>
+                    <span className="text-foreground">上一镜 / 下一镜切换</span>
+                    <div className="flex items-center gap-1">
+                      <kbd className="px-1.5 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">←</kbd>
+                      <span className="text-muted-foreground">/</span>
+                      <kbd className="px-1.5 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">→</kbd>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-foreground">微步吸附切到下一镜</span>
-                    <kbd className="px-2 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">→</kbd>
+                    <span className="text-foreground">显示 / 隐藏字幕对白</span>
+                    <kbd className="px-2 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">C</kbd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground">退出影院全屏试映</span>
+                    <kbd className="px-2 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">Esc</kbd>
                   </div>
                 </div>
               </div>
