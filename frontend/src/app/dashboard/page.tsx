@@ -187,8 +187,14 @@ export default function DashboardPage() {
 
   const handleOpenCreateModal = () => {
     if (!isAuthenticated) {
-      notify.info("🎬 请先登录或注册导演账号，即可创建并永久保存您的私有故事板工程");
-      openAuthModal("login");
+      notify.info("🎬 请先注册或登录导演账号，即可创建并永久保存您的私有故事板工程");
+      openAuthModal("register");
+      return;
+    }
+    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+    if (isDemoUser) {
+      notify.info("🎬 当前为公共体验账号，不可创建新工程！请注册专属导演账号，并在个人设置中填入专属 Key 开启私有创作");
+      openAuthModal("register");
       return;
     }
     const hasKey = !!user?.custom_settings?.llmApiKey;
