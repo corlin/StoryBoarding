@@ -347,8 +347,12 @@ export const ProjectQualityRadarModal: React.FC<ProjectQualityRadarModalProps> =
   const passCount = diagnostics.filter((d) => d.status === "pass").length;
   const warnCount = diagnostics.filter((d) => d.status === "warn").length;
   const failCount = diagnostics.filter((d) => d.status === "fail").length;
+  const hasIssues = failCount > 0 || warnCount > 0;
 
-  const [activeFilter, setActiveFilter] = React.useState<"all" | "action_required" | "fail" | "warn" | "pass">("all");
+  // Default to focusing on issues when issues exist; otherwise show all
+  const [activeFilter, setActiveFilter] = React.useState<"all" | "action_required" | "fail" | "warn" | "pass">(
+    hasIssues ? "action_required" : "all"
+  );
 
   const filteredDiagnostics = useMemo(() => {
     if (activeFilter === "action_required") {
@@ -433,15 +437,34 @@ export const ProjectQualityRadarModal: React.FC<ProjectQualityRadarModalProps> =
           </span>
         </div>
 
-        {/* Filter Capsule Tabs */}
-        <div className="px-6 py-2.5 border-b border-border/70 bg-card/60 flex items-center gap-1.5 overflow-x-auto shrink-0">
+        {/* Filter Capsule Tabs: Focused on Action Required */}
+        <div className="px-6 py-2.5 border-b border-border/70 bg-card/60 flex items-center gap-2 overflow-x-auto shrink-0">
+          {(failCount > 0 || warnCount > 0) && (
+            <button
+              type="button"
+              onClick={() => setActiveFilter("action_required")}
+              className={cn(
+                "px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                activeFilter === "action_required"
+                  ? "bg-amber-500 text-black shadow-xs"
+                  : "bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25"
+              )}
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>待处理事项</span>
+              <span className="font-mono text-[10px] bg-black/20 px-1.5 py-0.2 rounded-full">
+                {failCount + warnCount}
+              </span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setActiveFilter("all")}
             className={cn(
               "px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer",
               activeFilter === "all"
-                ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
+                ? "bg-primary text-primary-foreground font-semibold shadow-xs"
                 : "bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary"
             )}
           >
@@ -449,67 +472,17 @@ export const ProjectQualityRadarModal: React.FC<ProjectQualityRadarModalProps> =
             <span className="font-mono text-[10px] opacity-80">({diagnostics.length})</span>
           </button>
 
-          {(failCount > 0 || warnCount > 0) && (
-            <button
-              type="button"
-              onClick={() => setActiveFilter("action_required")}
-              className={cn(
-                "px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer",
-                activeFilter === "action_required"
-                  ? "bg-red-500 text-white shadow-2xs"
-                  : "bg-red-500/10 text-red-300 border border-red-500/20 hover:bg-red-500/20"
-              )}
-            >
-              <span>🚨 需优先处理</span>
-              <span className="font-mono text-[10px] opacity-90">({failCount + warnCount})</span>
-            </button>
-          )}
-
-          {failCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setActiveFilter("fail")}
-              className={cn(
-                "px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer",
-                activeFilter === "fail"
-                  ? "bg-red-600 text-white font-semibold shadow-2xs"
-                  : "bg-secondary/60 text-red-400 hover:text-red-300 hover:bg-secondary"
-              )}
-            >
-              <XCircle className="w-3 h-3" />
-              <span>未通过</span>
-              <span className="font-mono text-[10px]">({failCount})</span>
-            </button>
-          )}
-
-          {warnCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setActiveFilter("warn")}
-              className={cn(
-                "px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer",
-                activeFilter === "warn"
-                  ? "bg-amber-500 text-black font-semibold shadow-2xs"
-                  : "bg-secondary/60 text-amber-400 hover:text-amber-300 hover:bg-secondary"
-              )}
-            >
-              <AlertTriangle className="w-3 h-3" />
-              <span>待调优</span>
-              <span className="font-mono text-[10px]">({warnCount})</span>
-            </button>
-          )}
-
           <button
             type="button"
             onClick={() => setActiveFilter("pass")}
             className={cn(
               "px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer",
               activeFilter === "pass"
-                ? "bg-emerald-600 text-white font-semibold shadow-2xs"
-                : "bg-secondary/60 text-emerald-400 hover:text-emerald-300 hover:bg-secondary"
+                ? "bg-emerald-600 text-white font-semibold shadow-xs"
+                : "bg-secondary/60 text-muted-foreground hover:text-emerald-400 hover:bg-secondary"
             )}
           >
-            <CheckCircle2 className="w-3 h-3" />
+            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
             <span>已达标</span>
             <span className="font-mono text-[10px]">({passCount})</span>
           </button>
