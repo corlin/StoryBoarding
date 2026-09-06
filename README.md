@@ -13,26 +13,7 @@
 
 系统采用**“剧本即代码 (Executable Script)”**的工程设计思想，将文学文本抽象为结构化的分镜状态树（State Tree）。整个生产流水线划分为 **7 大核心工序（Stages）**，打通前期筹备、导演规划到后期交付的全部数据链路：
 
-```mermaid
-flowchart TD
-    subgraph Literature ["前期筹备与剧作工序"]
-        S1["STAGE 01: 大纲改编与爽点雷达<br/>(四象限取舍 / Gate 2 节拍门控 / 会审通告)"]
-        S2["STAGE 02: 剧组视觉设定集 (Bible)<br/>(角色定妆三区图 / 场景空间锚点 / 道具特写)"]
-        S3["STAGE 03: 双栏文学剧本流<br/>(单句≤35字呼吸感预警 / 拆镜 / 脏状态检测)"]
-    end
-
-    subgraph Directing ["导演台与视听编排"]
-        S4["STAGE 04: 故事板视听工坊<br/>(4:3 / 16:9 / 9:16 自适应网格 / HUD / 镜头锁定保护)"]
-        S5["STAGE 05: 顺场表排期 (Call Sheet)<br/>(按场景+光影聚类 / MiniMax H3 连贯提示词 / CSV 导出)"]
-        S6["STAGE 06: Cinema Theater 放映影院<br/>(Ken Burns 动态视差 / 字幕打字机 / 分段胶囊进度条)"]
-    end
-
-    subgraph Packaging ["制片资产交付"]
-        S7["STAGE 07: 工业级制片交付包<br/>(16:9 画布打样单 / Markdown 分卷台本 / AI 视频清单 / ZIP)"]
-    end
-
-    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
-```
+![StoryBoarding Architecture](./docs/assets/architecture.png)
 
 ---
 

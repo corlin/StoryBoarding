@@ -13,26 +13,7 @@ English | [简体中文](./README.md)
 
 The system is built on the philosophy of **"Script as Code (Executable Script)"**, treating screenplays as structured, verifiable Storyboard State Trees. The complete pipeline is organized into **7 Core Production Stages**, seamlessly linking pre-production, directing, and asset delivery:
 
-```mermaid
-flowchart TD
-    subgraph Literature ["Pre-Production & Screenwriting"]
-        S1["STAGE 01: Adaptation Tradeoffs & Payoff Radar<br/>(4-Quadrant Matrix / Gate 2 Pacing / Table Read MD)"]
-        S2["STAGE 02: Unified Visual Bible<br/>(Character DNA Sheets / Environment Anchors / Props)"]
-        S3["STAGE 03: Dual-Pane Screenplay Editor<br/>(Dialogue ≤35 Char Warning / Split-to-Dual / Dirty State)"]
-    end
-
-    subgraph Directing ["Directing & Visual Staging"]
-        S4["STAGE 04: Storyboard Workshop<br/>(4:3 / 16:9 / 9:16 Adaptive Grids / HUD / Batch Lock)"]
-        S5["STAGE 05: Call Sheet Production<br/>(Location + Lighting Clustering / MiniMax H3 / CSV Export)"]
-        S6["STAGE 06: Cinema Theater Previz<br/>(Ken Burns Parallax / Typewriter Subtitles / Segmented Scrubber)"]
-    end
-
-    subgraph Packaging ["Asset Packaging & Delivery"]
-        S7["STAGE 07: Studio Deliverables Package<br/>(16:9 Draft Sheet / Multi-Episode Markdown / AI Video Manifest / ZIP)"]
-    end
-
-    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
-```
+![StoryBoarding Architecture](./docs/assets/architecture.png)
 
 ---
 
