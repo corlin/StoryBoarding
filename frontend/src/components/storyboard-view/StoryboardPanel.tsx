@@ -4,7 +4,7 @@ import { StoryboardCell } from "./StoryboardCell";
 import { RhythmBarcode } from "./RhythmBarcode";
 import { CallSheetView } from "./CallSheetView";
 import { VoiceAlignmentDrawer } from "@/components/drawers/VoiceAlignmentDrawer";
-import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video, SlidersHorizontal, Settings2, Check, FileText, Play } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video, SlidersHorizontal, Settings2, Check, FileText, Play, Lock, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -250,6 +250,45 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                   </div>
                   {showRhythmBarcode && <Check className="w-3.5 h-3.5 text-primary" />}
                 </button>
+
+                {/* Batch Shot Lock Management */}
+                {onToggleLock && shots.length > 0 && (
+                  <>
+                    <div className="px-2 pt-2 pb-1 text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-wider border-t border-border/60">
+                      分镜批量保护 (Lock)
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        shots.forEach((s) => {
+                          if (!s.is_locked) onToggleLock(s.id, true);
+                        });
+                        notify.success(`🔒 已锁定全片 ${shots.length} 个镜头（保护画面不被全片重绘覆盖）`);
+                        setIsDisplaySettingsOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-amber-400 hover:bg-amber-500/15 transition-colors cursor-pointer"
+                      title="一键将本集所有镜头打上锁定保护"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>一键锁定全部镜头</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        shots.forEach((s) => {
+                          if (s.is_locked) onToggleLock(s.id, false);
+                        });
+                        notify.info(`🔓 已解除全片 ${shots.length} 个镜头的锁定保护`);
+                        setIsDisplaySettingsOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                      title="一键解除本集所有镜头的锁定保护"
+                    >
+                      <Unlock className="w-3.5 h-3.5" />
+                      <span>一键解锁全部镜头</span>
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
