@@ -20,16 +20,16 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
     version: "v2.1.0",
-    title: "Reelbench 商业短剧工业级标准导演台 & 全链路安全闭环",
+    title: "Director Studio 商业短剧工业级标准导演台 & 全链路安全闭环",
     date: "2026-09-06",
     badge: "重磅里程碑",
     isLatest: true,
     summary:
-      "全面对齐 Reelbench 短剧工业基准，实现从原著小说抽核、四象限结构取舍与爽点雷达、剧组视觉设定集、文学分镜双向拆解、顺场排期到好莱坞全屏预演的全链路体验闭环，并对公共演示与安全红线实施全方位前置防护。",
+      "全面对齐 Director Studio 短剧工业基准，实现从原著小说抽核、四象限结构取舍与爽点雷达、剧组视觉设定集、文学分镜双向拆解、顺场排期到好莱坞全屏预演的全链路体验闭环，并对公共演示与安全红线实施全方位前置防护。",
     changeGroups: [
       {
         type: "highlight",
-        label: "🎬 Reelbench 影视工业级创作流",
+        label: "🎬 Director Studio 影视工业级创作流",
         items: [
           {
             title: "STAGE 01 · 改编取舍与爽点雷达工作室",

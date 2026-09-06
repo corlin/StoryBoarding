@@ -38,7 +38,7 @@ interface BeatStreamEditorProps {
   onSwitchToStoryboard?: () => void;
 }
 
-// shuohao-skills novel-script standard formula: non-whitespace chars / 4.5 charsPerSecond (including punctuation pause)
+// industry-standard novel-script standard formula: non-whitespace chars / 4.5 charsPerSecond (including punctuation pause)
 export function calculateDialogueDuration(dialogue: string, charsPerSecond: number = 4.5): number {
   const nonWhitespace = String(dialogue ?? "").replace(/\s+/g, "");
   const count = nonWhitespace.length;
@@ -148,7 +148,7 @@ export function parseBeatsFromScreenplay(text: string, fallbackSceneTitle: strin
         id: crypto.randomUUID(),
         type: "action",
         content: cleanAction,
-        duration: 2.5, // Reelbench action beat standard default
+        duration: 2.5, // Director Studio action beat standard default
         scene_number: currentSceneNum,
         scene_title: currentSceneTitle,
       });
@@ -458,7 +458,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden select-none">
-      {/* 1. Reelbench Stage 04 Top Navigation & Quick Switcher */}
+      {/* 1. Director Studio Stage 04 Top Navigation & Quick Switcher */}
       <div className="px-5 py-3 border-b border-border/80 bg-card/40 flex items-center justify-between gap-4 shrink-0 flex-wrap">
         <div className="flex items-center gap-2 text-xs">
           <span className="text-muted-foreground font-mono">剧本 /</span>
@@ -543,7 +543,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
         </div>
       </div>
 
-      {/* 2. Reelbench Triad Anchors (Hook / Cliffhanger / Payoff) */}
+      {/* 2. Director Studio Triad Anchors (Hook / Cliffhanger / Payoff) */}
       <div className="p-4 border-b border-border/80 bg-secondary/20 space-y-2.5 shrink-0">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Hook Card */}
@@ -604,7 +604,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
         </div>
       </div>
 
-      {/* 3. Scene-by-Scene Atomic Beat Flow (Reelbench Standard Container) */}
+      {/* 3. Scene-by-Scene Atomic Beat Flow (Industry Standard Container) */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {sceneGroups.map(([sceneNum, sceneBeats]) => {
           const firstBeat = sceneBeats[0];
@@ -617,7 +617,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
               key={sceneNum}
               className="rounded-2xl border border-border/80 bg-card/60 overflow-hidden shadow-xs"
             >
-              {/* Scene Header Strip (.scene-h in Reelbench) */}
+              {/* Scene Header Strip (.scene-h in Director Studio) */}
               <div className="px-4 py-2.5 bg-secondary/50 border-b border-border/80 flex items-center justify-between gap-3 flex-wrap text-xs">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="font-mono font-bold text-foreground">场次 {sceneNum}</span>
@@ -630,7 +630,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
                   </span>
                 </div>
 
-                {/* Character & Prop Presence Pills (.badge.b-dim in Reelbench) */}
+                {/* Character & Prop Presence Pills (.badge.b-dim in Director Studio) */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {characters.slice(0, 3).map((c) => (
                     <span
@@ -665,7 +665,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
                 </div>
               </div>
 
-              {/* Atomic Beats Flow List (.flow in Reelbench) */}
+              {/* Atomic Beats Flow List (.flow in Director Studio) */}
               <div className="p-3 space-y-2">
                 {sceneBeats.map((beat, idx) => {
                   const isAction = beat.type === "action";
@@ -754,7 +754,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
                                 </span>
                                 {beat.content.replace(/\s+/g, "").length > 35 && (
                                   <div className="flex items-center gap-1.5 shrink-0">
-                                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30 shrink-0" title="shuohao质量门：单句台词建议 ≤ 35 字">
+                                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30 shrink-0" title="影视工业质量门：单句台词建议 ≤ 35 字">
                                       {beat.content.replace(/\s+/g, "").length}字 (&gt;35字)
                                     </span>
                                     <button
@@ -789,7 +789,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
                         </span>
                       )}
 
-                      {/* Duration Tag (.secs.mono in Reelbench) */}
+                      {/* Duration Tag (.secs.mono in Director Studio) */}
                       <span className="font-mono text-muted-foreground text-[11px] shrink-0 pt-0.5 w-10 text-right">
                         {beat.duration}s
                       </span>

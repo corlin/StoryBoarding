@@ -2,7 +2,7 @@
 
 English | [简体中文](./README.md)
 
-> **Executable Script · Industrial Storyboard Pipeline · Reelbench Standards · 0ms Edge Cold Start**  
+> **Executable Script · Industrial Storyboard Pipeline · Industry Standards · 0ms Edge Cold Start**  
 > 
 > An all-in-one industrial-grade studio for film directors, micro-drama screenwriters, and AI creators. Covers the entire production lifecycle: from literary core distillation, four-quadrant adaptation matrix, payoff beat radar, unified visual bible, and dual-pane synchronization to call sheet clustering, cinema previz theater, and production deliverables packaging.  
 > **Powered by Cloudflare Serverless Edge Stack (Next.js + Hono + D1 + R2 + Pages).**

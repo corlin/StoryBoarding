@@ -1093,7 +1093,7 @@ export default function DashboardPage() {
         }}
       />
 
-      {/* User-Level Global Cross-Project Asset Library Modal (Reelbench Standard) */}
+      {/* User-Level Global Cross-Project Asset Library Modal (Industry Standard) */}
       <GlobalAssetLibraryModal
         isOpen={isGlobalAssetModalOpen}
         onClose={() => setIsGlobalAssetModalOpen(false)}

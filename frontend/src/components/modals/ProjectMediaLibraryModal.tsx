@@ -150,7 +150,7 @@ export const ProjectMediaLibraryModal: React.FC<ProjectMediaLibraryModalProps> =
                   全项目多模态素材库 · MEDIA LIBRARY
                 </h3>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  Reelbench 工业标准
+                  影视工业标准
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -167,7 +167,7 @@ export const ProjectMediaLibraryModal: React.FC<ProjectMediaLibraryModalProps> =
           </button>
         </div>
 
-        {/* Stats Summary Strip (Reelbench Header Stats) */}
+        {/* Stats Summary Strip (Director Studio Header Stats) */}
         <div className="px-6 py-2.5 bg-secondary/40 border-b border-border/80 flex items-center justify-between gap-4 flex-wrap text-xs select-none">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 font-medium text-foreground">

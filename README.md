@@ -2,7 +2,7 @@
 
 [English](./README_EN.md) | 简体中文
 
-> **剧本即代码 (Executable Script) · 工业级分镜编排 · Reelbench 规范体系 · 0ms 边缘冷启动**  
+> **剧本即代码 (Executable Script) · 工业级分镜编排 · 工业短剧规范体系 · 0ms 边缘冷启动**  
 > 
 > 面向影视导演、短剧编剧与 AI 创作者的一站式工业级工作站，提供从「原著文学抽核、四象限结构取舍、爽点节拍雷达、剧组视听设定集、文学分镜双向联动」到「顺场表排期、沉浸式影院预演与全套制片资产交付」的全链路能力。  
 > **基于 Cloudflare 全栈 Serverless 边缘架构构建 (Next.js + Hono + D1 + R2 + Pages)。**

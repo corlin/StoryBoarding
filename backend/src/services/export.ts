@@ -403,7 +403,7 @@ export async function generateGenerationPackageZip(
   const globalPromptMd = generateDirectorGlobalPrompt(project, shots);
   zip.file("PROFESSIONAL_DIRECTOR_GLOBAL_PROMPT.md", globalPromptMd);
 
-  // 7. MiniMax Hailuo H3 / Kling 1.5 Multimodal Long Video Prompts (Reelbench Standard)
+  // 7. MiniMax Hailuo H3 / Kling 1.5 Multimodal Long Video Prompts (Industry Standard)
   const h3Prompts = generateH3LongVideoPrompts(project, shots, characters, locations);
   zip.file("H3_LONG_VIDEO_TIMESTAMP_PROMPTS.txt", h3Prompts);
 

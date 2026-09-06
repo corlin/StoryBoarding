@@ -11,7 +11,7 @@ interface RhythmBarcodeProps {
   onSelectShot: (shotId: string) => void;
 }
 
-// Reelbench shot size color coding
+// Director Studio shot size color coding
 const SHOT_SIZE_CONFIG: Record<string, { label: string; color: string; group: "wide" | "medium" | "close" }> = {
   extreme_wide_shot: { label: "大远景 EWS", color: "bg-emerald-500", group: "wide" },
   wide_shot: { label: "全景 WS", color: "bg-teal-500", group: "wide" },

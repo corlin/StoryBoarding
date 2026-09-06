@@ -42,14 +42,14 @@ interface BibleModalProps {
 
 const TURNAROUND_PRESETS = [
   {
-    id: "reelbench_16x9_realistic",
-    name: "🏆 16:9 黄金三区定妆卡 · 半写实厚涂 (Reelbench 工业基准 · 推荐)",
+    id: "studio_16x9_realistic",
+    name: "🏆 16:9 黄金三区定妆卡 · 半写实厚涂 (工业级短剧基准 · 推荐)",
     desc: "左区34%半身像面部基准 + 右上全身正/侧/背三视图平光量体 + 右下4-5个细节条，纯白底",
     template:
       "Single character model sheet on ONE 16:9 landscape canvas. The canvas is divided into three zones by thin hairline rules. LEFT ZONE — about 34% width: one bust portrait, head and shoulders, front-facing, centred, like an ID photograph, BOTH SHOULDERS FULLY VISIBLE, ending in a clean straight cut. LIGHTING IN LEFT ZONE ONLY: soft directional key light from upper left with gentle falloff, subtle ambient occlusion under chin and neck. RIGHT-TOP ZONE — remaining 66%: three FULL-BODY views of SAME character standing side by side (front view, side profile, back view) on shared ground line. PROPORTIONS ARE CRITICAL: identical height, ratio, relaxed posture. LIGHTING IN RIGHT ZONES: flat even orthographic lighting with no directional key and no cast shadows. RIGHT-BOTTOM ZONE: detail strip of 4-5 small isolated close-up studies of key costume/props/accessories, detail studies give way, not the figures. Pure white background (#FFFFFF). Semi-realistic character illustration, painterly rendering, soft blended edges, anatomically grounded, 8k uhd --no plastic waxy skin, over-smoothed doll face, perfectly symmetrical face",
   },
   {
-    id: "reelbench_16x9_ghibli",
+    id: "studio_16x9_ghibli",
     name: "🎨 16:9 黄金三区定妆卡 · 吉卜力手绘 (Ghibli Cel Shading)",
     desc: "手绘赛璐璐动画风格，全图均匀日光无阴影，左区头像基准 + 右上三视图 + 右下细节",
     template:
@@ -188,7 +188,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
   const [newLocDesignSummary, setNewLocDesignSummary] = useState("");
   const [newLocAnchors, setNewLocAnchors] = useState("");
 
-  // New prop form (Reelbench Narrative Props)
+  // New prop form (Director Studio Narrative Props)
   const [newPropName, setNewPropName] = useState("");
   const [newPropCat, setNewPropCat] = useState<"weapon" | "token" | "document" | "general">("token");
   const [newPropScale, setNewPropScale] = useState<"handheld" | "tabletop" | "furniture">("handheld");
@@ -660,7 +660,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                           type="button"
                           onClick={() => handleCollectGlobalAsset("character", char)}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 transition-all cursor-pointer"
-                          title="将此角色存入用户级跨项目全局资产库（Reelbench Standard）"
+                          title="将此角色存入用户级跨项目全局资产库（Industry Standard）"
                         >
                           <Layers className="w-3 h-3" />
                           <span className="hidden sm:inline">加入资产库</span>
@@ -766,7 +766,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       />
                     </div>
 
-                    {/* Reelbench Voice DNA / Audio Prompt */}
+                    {/* Director Studio Voice DNA / Audio Prompt */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
@@ -801,7 +801,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       />
                     </div>
 
-                    {/* Reelbench 4-Part Cast Profile & Evidence Entry */}
+                    {/* Director Studio 4-Part Cast Profile & Evidence Entry */}
                     <div className="pt-2 border-t border-border/60 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 font-medium">
@@ -945,7 +945,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                           type="button"
                           onClick={() => handleCollectGlobalAsset("location", loc)}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 transition-all cursor-pointer"
-                          title="将此场景空间存入用户级跨项目全局资产库（Reelbench Standard）"
+                          title="将此场景空间存入用户级跨项目全局资产库（Industry Standard）"
                         >
                           <Layers className="w-3 h-3" />
                           <span className="hidden sm:inline">加入资产库</span>
@@ -1001,7 +1001,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Reelbench Lighting States Bar */}
+                    {/* Director Studio Lighting States Bar */}
                     <div className="bg-secondary/40 border border-border/60 rounded-lg p-2 flex flex-wrap items-center gap-2 text-xs">
                       <div className="flex items-center gap-1 text-muted-foreground text-[11px] font-medium shrink-0">
                         <Sun className="w-3.5 h-3.5 text-amber-400" />
@@ -1051,7 +1051,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       />
                     </div>
 
-                    {/* shuohao-skills 3-5 Concrete Anchors List */}
+                    {/* industry-standard 3-5 Concrete Anchors List */}
                     <div className="bg-secondary/30 border border-border/60 rounded-lg p-2.5 space-y-1.5">
                       <div className="flex items-center justify-between text-[11px] font-semibold text-foreground">
                         <span className="flex items-center gap-1 text-amber-300">
@@ -1208,7 +1208,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
           </div>
         )}
 
-        {/* Tab Content: Narrative Props (Reelbench Standard) */}
+        {/* Tab Content: Narrative Props (Industry Standard) */}
         {activeTab === "props" && (
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
             <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-2.5 text-xs text-emerald-300">
@@ -1261,7 +1261,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                           type="button"
                           onClick={() => handleCollectGlobalAsset("prop", p)}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 transition-all cursor-pointer"
-                          title="将此道具存入用户级跨项目全局资产库（Reelbench Standard）"
+                          title="将此道具存入用户级跨项目全局资产库（Industry Standard）"
                         >
                           <Layers className="w-3 h-3" />
                           <span className="hidden sm:inline">加入资产库</span>
@@ -1317,7 +1317,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       </div>
                     </div>
 
-                    {/* shuohao-skills Prop Anchors & Scale Control */}
+                    {/* industry-standard Prop Anchors & Scale Control */}
                     <div className="bg-secondary/30 border border-border/60 rounded-lg p-2 space-y-1.5">
                       <div className="flex items-center justify-between text-[11px] font-semibold text-foreground">
                         <span className="flex items-center gap-1 text-emerald-300">

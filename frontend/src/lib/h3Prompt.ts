@@ -1,6 +1,6 @@
 /**
  * MiniMax Hailuo H3 Prompt & Multi-Modal Alignment Engine
- * Aligned with /Users/corlin/2026/shuohao-skills/skills/novel-storyboard
+ * Aligned with /Users/corlin/2026/industry-standard/skills/novel-storyboard
  */
 
 export interface H3CutItem {

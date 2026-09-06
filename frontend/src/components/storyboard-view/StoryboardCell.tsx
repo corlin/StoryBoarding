@@ -509,7 +509,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           </div>
         )}
 
-        {/* Screen Text Overlay on Canvas Preview (Reelbench Feature) */}
+        {/* Screen Text Overlay on Canvas Preview (Industry Feature) */}
         {shot.screen_text && (
           <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center pointer-events-none">
             {shot.screen_text_style === "warning_banner" ? (

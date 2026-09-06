@@ -158,7 +158,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
 
     // Auto-synthesize high-density acoustic prompt if changing traits
     if (field !== "tts_prompt") {
-      // Acoustic instrument specification conforming to shuohao-skills (<= 400 chars)
+      // Acoustic instrument specification conforming to industry-standard (<= 400 chars)
       const ageGender = `${profile.age || "adult"} ${profile.gender === "女" ? "female" : profile.gender === "男" ? "male" : "speaker"}`;
       const timbrePart = updatedVoice.timbre || "neutral tone";
       const pitchPart = updatedVoice.pitch ? `${updatedVoice.pitch} pitch` : "mid pitch";
@@ -210,7 +210,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                   )}
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Reelbench 工业级人设档案 · 六维画像 · 双轨弧光 · 关系网 · 声音DNA
+                  Director Studio 工业级人设档案 · 六维画像 · 双轨弧光 · 关系网 · 声音DNA
                 </p>
               </div>
             </div>
@@ -354,7 +354,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                   </div>
                 </div>
 
-                {/* Reelbench & shuohao-skills 16:9 Model Sheet Generator */}
+                {/* Director Studio & industry-standard 16:9 Model Sheet Generator */}
                 <div className="space-y-3 pt-2 border-t border-border">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
@@ -404,7 +404,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                     className="w-full bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-2.5 text-xs text-indigo-200 focus:outline-none focus:border-indigo-500 font-mono leading-relaxed"
                   />
                   <p className="text-[10px] text-muted-foreground">
-                    📐 <strong>shuohao-skills 规范：</strong>左区 34% 头像定面部骨骼（带方向柔光）+ 右上三视图（正交平光无投影）+ 右下细节条。
+                    📐 <strong>影视工业规范：</strong>左区 34% 头像定面部骨骼（带方向柔光）+ 右上三视图（正交平光无投影）+ 右下细节条。
                   </p>
                 </div>
 
@@ -450,7 +450,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                   </div>
                 </div>
 
-                {/* Reelbench Novel Evidences */}
+                {/* Director Studio Novel Evidences */}
                 <div className="space-y-3 pt-2 border-t border-border">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
@@ -663,7 +663,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                   <Volume2 className="w-4 h-4 shrink-0 mt-0.5" />
                   <div className="space-y-1 text-[11px] leading-relaxed">
                     <p className="font-semibold text-pink-200">
-                      Reelbench 工业级双轨声线引擎架构（shuohao-skills 规范）：
+                      Director Studio 工业级双轨声线引擎架构（影视工业规范）：
                     </p>
                     <p>
                       <strong>1. 克隆系引擎 (CosyVoice / IndexTTS2 / F5-TTS)</strong>：吃 <span className="text-amber-300 font-medium">参考音频提示 (Reference Hint)</span> 与情绪通道。
@@ -827,7 +827,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                       rows={3}
                       value={profile.voice_traits?.tts_prompt || ""}
                       onChange={(e) => handleVoiceChange("tts_prompt", e.target.value)}
-                      placeholder="Acoustic parameter string conforming to shuohao-skills specification..."
+                      placeholder="Acoustic parameter string conforming to studio specification..."
                       className="w-full bg-pink-500/5 border border-pink-500/30 rounded-xl p-3 text-xs text-pink-200 focus:outline-none focus:border-pink-500 font-mono leading-relaxed"
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">

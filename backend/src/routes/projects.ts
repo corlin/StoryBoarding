@@ -1540,7 +1540,7 @@ router.delete("/:id", async (c) => {
   }
 });
 
-// GET /api/projects/:id/media-library (Reelbench Standard: Aggregate active assets & orphaned replaced assets)
+// GET /api/projects/:id/media-library (Industry Standard: Aggregate active assets & orphaned replaced assets)
 router.get("/:id/media-library", async (c) => {
   try {
     await ensureSchema(c.env.DB);

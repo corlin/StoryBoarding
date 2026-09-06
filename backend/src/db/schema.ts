@@ -20,7 +20,7 @@ export const projects = sqliteTable("projects", {
   story: text("story"),
   targetDuration: real("target_duration").default(30.0).notNull(),
   aspectRatio: text("aspect_ratio").default("9:16").notNull(), // '9:16' | '16:9'
-  adaptationTradeoffs: text("adaptation_tradeoffs").default("{}").notNull(), // Reelbench Outline Stage: { keep: [], cut: [], merge: [], risk: [] }
+  adaptationTradeoffs: text("adaptation_tradeoffs").default("{}").notNull(), // Director Studio Outline Stage: { keep: [], cut: [], merge: [], risk: [] }
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -32,12 +32,12 @@ export const sequences = sqliteTable("sequences", {
   order: integer("order").default(1).notNull(),
   // Multi-Episode Series Enhancements
   episodeNumber: integer("episode_number").default(1).notNull(),
-  hookSummary: text("hook_summary").default("").notNull(), // Reelbench 本集钩子 (Hook 0-3s)
+  hookSummary: text("hook_summary").default("").notNull(), // Director Studio 本集钩子 (Hook 0-3s)
   cliffhangerSummary: text("cliffhanger_summary").default("").notNull(), // 集尾强悬念卡点
   payoffSummary: text("payoff_summary").default("").notNull(), // 本集爽点/收束 (Payoff/Twist)
   targetDuration: real("target_duration").default(60.0).notNull(), // 单集目标时长
   screenplayText: text("screenplay_text").default("").notNull(), // 核心文学剧本母本正文 (Master Screenplay)
-  beatsData: text("beats_data").default("[]").notNull(), // Reelbench Script Stage: 结构化动作/台词节拍流
+  beatsData: text("beats_data").default("[]").notNull(), // Director Studio Script Stage: 结构化动作/台词节拍流
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -53,8 +53,8 @@ export const characters = sqliteTable("characters", {
   costumeVariants: text("costume_variants").default("[]").notNull(), // JSON string array of costume variants
   avatarUrl: text("avatar_url").default("").notNull(),
   personality: text("personality").default("").notNull(),
-  voiceDna: text("voice_dna").default("").notNull(), // Reelbench TTS Voice prompt & tone anchor
-  // Reelbench STAGE 02 Cast Profile & Evidence Architecture
+  voiceDna: text("voice_dna").default("").notNull(), // Director Studio TTS Voice prompt & tone anchor
+  // Director Studio STAGE 02 Cast Profile & Evidence Architecture
   profileJson: text("profile_json").default("{}").notNull(),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
@@ -71,10 +71,10 @@ export const locations = sqliteTable("locations", {
   lightingStyle: text("lighting_style").default("自然光").notNull(),
   lightingStates: text("lighting_states").default("[]").notNull(), // JSON string array of lighting variants, e.g. ["晨雾", "浓雾清晨", "薄雾午前"]
   activeLightingState: text("active_lighting_state").default("").notNull(),
-  isVariant: integer("is_variant", { mode: "boolean" }).default(false).notNull(), // Reelbench 变体场景标记
+  isVariant: integer("is_variant", { mode: "boolean" }).default(false).notNull(), // Director Studio 变体场景标记
   parentLocationId: text("parent_location_id").default("").notNull(), // 继承的主场景 ID
   reuseStrategy: text("reuse_strategy").default("").notNull(), // 复用方案描述 (如同一机位换背板)
-  // Reelbench & shuohao-skills novel-art standard: Design Summary & 3-5 Concrete Anchors
+  // Director Studio & industry-standard novel-art standard: Design Summary & 3-5 Concrete Anchors
   designSummary: text("design_summary").default("").notNull(), // 空间设计意图 (非户型说明)
   anchorsJson: text("anchors_json").default("[]").notNull(), // 3-5个具象可核对实体锚点 [{name, desc}]
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
@@ -90,7 +90,7 @@ export const props = sqliteTable("props", {
   visualAnchor: text("visual_anchor").notNull().default(""), // Pure English visual DNA prompt (white-backdrop closeup)
   referenceImageUrl: text("reference_image_url").default("").notNull(),
   description: text("description").default("").notNull(),
-  // Reelbench & shuohao-skills novel-art prop standards:
+  // Director Studio & industry-standard novel-art prop standards:
   scale: text("scale").default("handheld").notNull(), // 'handheld' (手持级) | 'tabletop' (桌面级) | 'furniture' (家具级)
   anchorsJson: text("anchors_json").default("[]").notNull(), // 经得起特写的细节锚点 (3-5个)
   statesJson: text("states_json").default("[]").notNull(), // 道具状态变体 (如: 合上/打开) [{state, prompt}]
@@ -120,7 +120,7 @@ export const shots = sqliteTable("shots", {
   videoPrompt: text("video_prompt").default(""),
   continuityData: text("continuity_data").default("{}").notNull(), // JSON string
   storyboardImageUrl: text("storyboard_image_url"),
-  imageHistory: text("image_history").default("[]").notNull(), // Reelbench Asset Pool: JSON array of historical image URLs
+  imageHistory: text("image_history").default("[]").notNull(), // Director Studio Asset Pool: JSON array of historical image URLs
   isDirty: integer("is_dirty", { mode: "boolean" }).default(false).notNull(),
   isLocked: integer("is_locked", { mode: "boolean" }).default(false).notNull(),
   // Two-Tier Video Generation Hierarchy (Clip <= 15s -> Shot 2-5s)
@@ -132,7 +132,7 @@ export const shots = sqliteTable("shots", {
   emotionalVoltage: real("emotional_voltage").default(50.0).notNull(), // 0.0 - 100.0 (Quantitative Tension/Payoff Voltage)
   informationGap: text("information_gap").default("").notNull(), // Why audience must watch the next shot (Dramatic Hook)
   computeTier: text("compute_tier").default("standard").notNull(), // 'flagship' | 'standard' | 'economy'
-  // Screen Text & Motion Overlays (Reelbench Short Drama / Explainer Feature)
+  // Screen Text & Motion Overlays (Director Studio Short Drama / Explainer Feature)
   screenText: text("screen_text").default("").notNull(),
   screenTextStyle: text("screen_text_style").default("bold_impact").notNull(), // 'bold_impact' | 'warning_banner' | 'key_point' | 'minimal_lower_third'
   // MiniMax Hailuo H3 multi-modal prompt & beat range alignment

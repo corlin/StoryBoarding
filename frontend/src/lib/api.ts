@@ -369,7 +369,7 @@ export const api = {
     return data;
   },
 
-  // Narrative Props Library (Reelbench Standard)
+  // Narrative Props Library (Industry Standard)
   async getProps(projectId: string): Promise<{ props: any[] }> {
     const { data } = await apiClient.get(`/props/project/${projectId}`);
     return data;
@@ -402,7 +402,7 @@ export const api = {
     return data;
   },
 
-  // Reelbench User-Level Global Cross-Project Asset Library
+  // Director Studio User-Level Global Cross-Project Asset Library
   async getGlobalAssets(type?: "character" | "location" | "prop"): Promise<{ total: number; assets: any[] }> {
     const url = type ? `/global-assets?type=${type}` : "/global-assets";
     const { data } = await apiClient.get(url);
@@ -461,7 +461,7 @@ export const api = {
     return base ? `${base}/api/export/package-zip/${projectId}` : `/api/export/package-zip/${projectId}`;
   },
 
-  // Reelbench Project Media Library & Asset Recycle Bin
+  // Director Studio Project Media Library & Asset Recycle Bin
   async getProjectMediaLibrary(projectId: string): Promise<any> {
     const { data } = await apiClient.get(`/projects/${projectId}/media-library`);
     return data;

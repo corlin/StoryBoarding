@@ -229,7 +229,7 @@ router.post("/:id/set-from-shot", async (c) => {
   }
 });
 
-// PUT /api/characters/:id (更新角色全部属性，包括 Reelbench profile_json)
+// PUT /api/characters/:id (更新角色全部属性，包括 Director Studio profile_json)
 router.put("/:id", async (c) => {
   try {
     await ensureSchema(c.env.DB);

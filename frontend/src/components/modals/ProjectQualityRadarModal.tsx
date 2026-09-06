@@ -386,7 +386,7 @@ export const ProjectQualityRadarModal: React.FC<ProjectQualityRadarModalProps> =
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                 AI 影视短剧工程体检雷达 (Quality Gate Diagnostic)
                 <span className="text-[10px] font-mono bg-primary/20 text-primary border border-primary/30 px-1.5 py-0.2 rounded">
-                  shuohao-skills 5阶全链路标准
+                  影视工业 5阶全链路标准
                 </span>
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">

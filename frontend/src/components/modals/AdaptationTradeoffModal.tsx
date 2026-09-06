@@ -143,7 +143,7 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
     ]);
   }, [project, totalEpisodes]);
 
-  // Reelbench Beat-Gap Gate Calculation (maxBeatGap <= 3)
+  // Director Studio Beat-Gap Gate Calculation (maxBeatGap <= 3)
   const beatGapAnalysis = useMemo(() => {
     const activeEpSet = new Set(payoffBeats.map((b) => b.episode));
     const sortedEps = Array.from(activeEpSet).sort((a, b) => a - b);
@@ -336,7 +336,7 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
 
     let md = `# 🎬 《${projectName}》剧作大纲取舍与爽点雷达会审通告\n\n`;
     md += `> **生成时间**：${dateStr}  \n`;
-    md += `> **工业基准**：Reelbench 电影级短剧标准 · Gate 2 爽点节拍门控  \n`;
+    md += `> **工业基准**：Director Studio 电影级短剧标准 · Gate 2 爽点节拍门控  \n`;
     md += `> **剧集体量**：${scaleDesc}（全剧共 ${totalEpisodes} 集）\n\n`;
 
     md += `## 🎯 一、全剧戏剧核心与商业钩子 (Dramatic Core)\n\n`;
@@ -405,7 +405,7 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
       md += `\n`;
     }
 
-    md += `---\n*本通告由 AI 电影短剧导演台（StoryBoarding Reelbench）自动导出生成*`;
+    md += `---\n*本通告由 AI 电影短剧导演台（StoryBoarding Studio）自动导出生成*`;
     return md;
   };
 
@@ -496,7 +496,7 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
               <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                 <span>STAGE 01 · 大纲改编与爽点雷达工作室</span>
                 <span className="text-xs px-2 py-0.5 rounded bg-primary/15 text-primary border border-primary/25 font-mono">
-                  Reelbench 标准
+                  工业电影级标准
                 </span>
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -588,7 +588,7 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
         {activeTab === "tradeoffs" ? (
           /* Tab 1: Dramatic Core & 4 Quadrants */
           <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
-            {/* Dramatic Core Box (.kernel in Reelbench) */}
+            {/* Dramatic Core Box (.kernel in Director Studio) */}
             <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-start gap-3 shrink-0">
               <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
@@ -714,7 +714,7 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
             </div>
           </div>
         ) : (
-          /* Tab 2: Reelbench Payoff Timeline Track & Beat-Gap Gate */
+          /* Tab 2: Director Studio Payoff Timeline Track & Beat-Gap Gate */
           <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden">
             {/* Top Gate Status Indicator (maxBeatGap <= 3) */}
             <div
@@ -743,7 +743,7 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
                     </span>
                   </div>
                   <p className="text-[11px] opacity-80 mt-0.5">
-                    Reelbench 工业规范：相邻爽点间隔上限绝对不能超过 3 集，防止观众弃剧流失。
+                    Director Studio 工业规范：相邻爽点间隔上限绝对不能超过 3 集，防止观众弃剧流失。
                   </p>
                 </div>
               </div>
@@ -772,7 +772,7 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
               </div>
             </div>
 
-            {/* Episode Timeline Track (E1 to E6 in Reelbench) */}
+            {/* Episode Timeline Track (E1 to E6 in Director Studio) */}
             <div className="p-3 bg-secondary/30 rounded-xl border border-border/80">
               <span className="text-[11px] font-semibold text-muted-foreground block mb-2">
                 爽点在集数数轴上的分布 (Payoff Timeline Track)
@@ -826,7 +826,7 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
               </div>
             </div>
 
-            {/* Paired Setup vs Payoff Table (Reelbench Standard Table) */}
+            {/* Paired Setup vs Payoff Table (Industry Standard Table) */}
             <div className="flex-1 min-h-0 overflow-y-auto border border-border rounded-xl">
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="bg-muted/40 border-b border-border sticky top-0 z-10 text-[11px] font-mono text-muted-foreground select-none">

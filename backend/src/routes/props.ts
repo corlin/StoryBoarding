@@ -145,7 +145,7 @@ router.post("/:id/generate-concept", async (c) => {
       return c.json({ detail: "请先在设置中配置 OpenRouter API Key" }, 400);
     }
 
-    // shuohao-skills novel-art prop standards: Scale phrase & no hands
+    // industry-standard novel-art prop standards: Scale phrase & no hands
     const scalePhrase = prop.scale === "furniture" ? "furniture scale" : prop.scale === "tabletop" ? "tabletop scale" : "handheld scale";
     
     // Parse 3-5 anchors
@@ -157,7 +157,7 @@ router.post("/:id/generate-concept", async (c) => {
       }
     } catch (_) {}
 
-    // White backdrop studio prop closeup prompt (shuohao-skills hard rule: isolated on pure white background, absolutely no hands, no fingers, no people)
+    // White backdrop studio prop closeup prompt (industry-standard hard rule: isolated on pure white background, absolutely no hands, no fingers, no people)
     const prompt = `studio prop reference photography of ${prop.name}, ${scalePhrase}, category: ${prop.category}, ${prop.visualAnchor || prop.description || "cinematic narrative key item"}${anchorsText}, extreme close-up detail shot, isolated on pure white background (#FFFFFF), studio softbox lighting, pristine sharp focus, clean cutout, 8k resolution --no hands, fingers, holding, human figure, people, shadows on background`;
 
     const apiKey = settings.llmApiKey;

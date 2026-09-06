@@ -43,7 +43,7 @@ router.post("/:id/generate-concept", async (c) => {
       }
     } catch (_) {}
 
-    // shuohao-skills novel-art hard rule: Absolutely no people anywhere, empty scene
+    // industry-standard novel-art hard rule: Absolutely no people anywhere, empty scene
     const prompt = `Environment reference establishing shot of ${loc.name}, ${envLabel}, ${loc.visualAnchor || "cinematic scene establishment"}${anchorsText}${variantDesc}, lighting: ${lightingDesc}. Wide angle master view, grounded architectural perspective, cinematic depth, lived-in weathered materials, atmospheric depth. Absolutely no people anywhere, empty scene without people, pure environment art, 8k resolution`;
 
     const apiKey = settings.llmApiKey;

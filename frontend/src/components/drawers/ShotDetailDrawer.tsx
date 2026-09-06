@@ -522,7 +522,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                 </p>
               )}
 
-              {/* Reelbench History Asset Pool (改坏了随时找回) */}
+              {/* Director Studio History Asset Pool (改坏了随时找回) */}
               {shot.image_history && shot.image_history.length > 0 && (
                 <div className="pt-2 border-t border-border/60">
                   <div className="flex items-center justify-between mb-1.5">
