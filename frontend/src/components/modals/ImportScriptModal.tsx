@@ -1,5 +1,8 @@
 import React, { useState } from "react";
-import { FileCode2, Sparkles, Loader2, Key } from "lucide-react";
+import { FileCode2, Sparkles, Loader2, Key, CheckCircle2 } from "lucide-react";
+import { useAuthStore } from "@/stores/authStore";
+import { notify } from "@/components/ui/ToastNotification";
+import { cn } from "@/lib/utils";
 
 interface ImportScriptModalProps {
   isOpen: boolean;
@@ -15,10 +18,38 @@ export const ImportScriptModal: React.FC<ImportScriptModalProps> = ({
   const [scriptText, setScriptText] = useState("");
   const [isImporting, setIsImporting] = useState(false);
 
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号，即可使用 ${actionName}`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号！如需${actionName}，请注册专属导演账号并在个人设置中填入专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!checkAuthAndKey("导入私有剧本进行解析拆镜")) return;
     if (!scriptText.trim()) return;
     try {
       setIsImporting(true);
@@ -72,28 +103,63 @@ export const ImportScriptModal: React.FC<ImportScriptModalProps> = ({
           </div>
 
           <div className="flex items-center justify-between pt-3 border-t border-border">
-            <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-              <Key className="w-3 h-3" />
-              <span>专属 API Key 已就绪</span>
-            </div>
+            {isDemoUser ? (
+              <div
+                onClick={() => useAuthStore.getState().openAuthModal("register")}
+                className="flex items-center gap-1.5 text-[11px] font-mono text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30 cursor-pointer transition-colors"
+                title="点击注册专属账号"
+              >
+                <Key className="w-3 h-3 text-amber-400" />
+                <span>公共体验模式 · 拆镜受限</span>
+              </div>
+            ) : !hasCustomKey ? (
+              <div
+                onClick={() => useAuthStore.getState().openSettingsModal()}
+                className="flex items-center gap-1.5 text-[11px] font-mono text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30 cursor-pointer transition-colors"
+                title="点击前往设置配置 Key"
+              >
+                <Key className="w-3 h-3 text-amber-400" />
+                <span>未配置 OpenRouter Key</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                <span>专属 API Key 已就绪</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 disabled={isImporting}
                 onClick={onClose}
-                className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
               >
                 取消
               </button>
               <button
                 type="submit"
-                disabled={isImporting || !scriptText.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow disabled:opacity-50 transition-all"
+                disabled={isImporting || (!isDemoUser && !scriptText.trim())}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-semibold shadow disabled:opacity-50 transition-all cursor-pointer",
+                  isDemoUser || !hasCustomKey
+                    ? "bg-amber-500 hover:bg-amber-400 text-black border border-amber-400 shadow-amber-500/20"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
               >
                 {isImporting ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>正在解析剧本...</span>
+                  </>
+                ) : isDemoUser ? (
+                  <>
+                    <Key className="w-3.5 h-3.5 text-black" />
+                    <span>🔑 注册专属账号解析生成</span>
+                  </>
+                ) : !hasCustomKey ? (
+                  <>
+                    <Key className="w-3.5 h-3.5 text-black" />
+                    <span>🔑 填Key解析生成</span>
                   </>
                 ) : (
                   <>
