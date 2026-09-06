@@ -21,6 +21,7 @@ import {
   BookOpen,
   Lightbulb,
   Smartphone,
+  ChevronDown,
 } from "lucide-react";
 import { api, ProjectListItem, normalizeAssetUrl } from "@/lib/api";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
@@ -133,6 +134,23 @@ export default function DashboardPage() {
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
   const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
   const [isGlobalAssetModalOpen, setIsGlobalAssetModalOpen] = useState(false);
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+  const toolsMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close tools menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(e.target as Node)) {
+        setIsToolsMenuOpen(false);
+      }
+    };
+    if (isToolsMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isToolsMenuOpen]);
 
   // Creation progress states
   const [isSubmittingProject, setIsSubmittingProject] = useState(false);
@@ -427,27 +445,78 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <button
-            onClick={() => setIsPitchModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 hover:from-amber-500/30 hover:to-rose-500/30 border border-amber-500/40 transition-all shadow-xs"
-            title="只需一句话灵感，AI 自动衍生 3 款短剧提案"
-          >
-            <Lightbulb className="w-4 h-4 text-amber-400" />
-            <span>💡 一句话点子成剧</span>
-          </button>
+          {/* Advanced Creation Tools Dropdown */}
+          <div className="relative" ref={toolsMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsToolsMenuOpen((prev) => !prev)}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-xs",
+                isToolsMenuOpen
+                  ? "bg-secondary text-foreground border-border"
+                  : "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border-border/70"
+              )}
+              title="更多智能剧本与长篇小说衍生工具"
+            >
+              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+              <span>创作工具</span>
+              <ChevronDown className={cn("w-3 h-3 text-muted-foreground transition-transform", isToolsMenuOpen && "rotate-180")} />
+            </button>
 
-          <button
-            onClick={() => setIsSeriesModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-secondary hover:bg-muted text-foreground border border-border transition-all"
-            title="输入长篇小说或多集剧本，一键提炼角色与切分多集"
-          >
-            <BookOpen className="w-4 h-4 text-sky-400" />
-            <span>长篇小说成剧</span>
-          </button>
+            {isToolsMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-60 bg-popover/95 backdrop-blur-md border border-border rounded-xl shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsToolsMenuOpen(false);
+                    setIsPitchModalOpen(true);
+                  }}
+                  className="w-full flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/80 text-left transition-colors cursor-pointer group"
+                >
+                  <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20 transition-colors mt-0.5">
+                    <Lightbulb className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                      <span>一句话点子成剧</span>
+                      <span className="text-[10px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-normal">AI孵化</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+                      输入一句话脑洞，AI 自动生成 3 款短剧提案
+                    </p>
+                  </div>
+                </button>
+
+                <div className="my-1 border-t border-border/40" />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsToolsMenuOpen(false);
+                    setIsSeriesModalOpen(true);
+                  }}
+                  className="w-full flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/80 text-left transition-colors cursor-pointer group"
+                >
+                  <div className="p-1.5 rounded-md bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20 transition-colors mt-0.5">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                      <span>长篇小说成剧</span>
+                      <span className="text-[10px] px-1 py-0.2 rounded bg-sky-500/20 text-sky-300 font-normal">多集切分</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+                      批量提炼核心角色设定与切分多集剧本
+                    </p>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             onClick={handleOpenCreateModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>新建分镜工程</span>
