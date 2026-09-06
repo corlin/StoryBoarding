@@ -495,26 +495,34 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
         )}
       </div>
 
-      {/* Card Body: Clean subtitle and action statement */}
-      <div className="p-3 flex flex-col justify-between flex-1 gap-1.5 bg-card/30">
-        <div>
-          {/* Action Description (Always Visible, 2-line clamp) */}
-          <p className="text-xs text-foreground/90 font-medium line-clamp-2 leading-relaxed" title={shot.action}>
-            {shot.action || "未填写动作描述"}
+      {/* Card Body: Standardized information area with uniform height and line-clamped text */}
+      <div className="p-2.5 flex flex-col justify-between flex-1 gap-2 bg-card/30">
+        <div className="space-y-1">
+          {/* Action Statement (Strictly clamped to 2 lines for uniform card height) */}
+          <p
+            className="text-xs text-foreground/90 font-medium line-clamp-2 leading-snug min-h-[2.25rem] cursor-help"
+            title={shot.action ? `动作描述: ${shot.action}` : "未填写动作描述"}
+          >
+            {shot.action || <span className="text-muted-foreground/60 italic">未填写动作描述</span>}
           </p>
 
-          {/* Dialogue (Cleanly styled quote) */}
-          {shot.dialogue && (
-            <p className="text-[11px] text-amber-300/90 font-medium italic mt-1 line-clamp-1 pl-1 border-l-2 border-amber-500/50" title={shot.dialogue}>
+          {/* Dialogue (Single line clamp with clean left border quote) */}
+          {shot.dialogue ? (
+            <p
+              className="text-[11px] text-amber-300/90 font-medium italic truncate pl-1.5 border-l-2 border-amber-500/50 cursor-help"
+              title={`对白台词: “${shot.dialogue}”`}
+            >
               “{shot.dialogue}”
             </p>
+          ) : (
+            <div className="h-[18px]" aria-hidden="true" />
           )}
         </div>
 
         {/* Footer Info: Camera Movement & Detail Drawer Trigger */}
         <div className="flex items-center justify-between pt-1.5 border-t border-border/30 text-[11px] text-muted-foreground">
           <div
-            className="flex items-center gap-1.5 truncate max-w-[170px] cursor-help"
+            className="flex items-center gap-1.5 truncate max-w-[150px] cursor-help"
             title={CAMERA_MOVEMENT_GLOSSARY[shot.camera_movement?.type || "static"] || `运镜: ${shot.camera_movement?.type || "固定镜头"}`}
           >
             <Camera className="w-3 h-3 shrink-0 text-muted-foreground" />
@@ -527,9 +535,10 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
                 e.stopPropagation();
                 onOpenDetail();
               }}
-              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors font-medium ml-auto cursor-pointer group-hover:text-primary"
+              className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors font-medium ml-auto cursor-pointer"
+              title="打开镜头详细参数抽屉"
             >
-              <span>精修参数</span>
+              <span>精修</span>
               <Info className="w-3 h-3" />
             </button>
           )}
