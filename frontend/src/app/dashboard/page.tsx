@@ -22,6 +22,7 @@ import {
   Lightbulb,
   Smartphone,
   ChevronDown,
+  Key,
 } from "lucide-react";
 import { api, ProjectListItem, normalizeAssetUrl } from "@/lib/api";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
@@ -185,30 +186,48 @@ export default function DashboardPage() {
     loadProjects();
   }, [user]);
 
-  const handleOpenCreateModal = () => {
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
     if (!isAuthenticated) {
-      notify.info("🎬 请先注册或登录导演账号，即可创建并永久保存您的私有故事板工程");
+      notify.info(`🎬 请先注册或登录专属导演账号，即可使用 ${actionName}`);
       openAuthModal("register");
-      return;
+      return false;
     }
-    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
     if (isDemoUser) {
-      notify.info("🎬 当前为公共体验账号，不可创建新工程！请注册专属导演账号，并在个人设置中填入专属 Key 开启私有创作");
+      notify.info(`🎬 当前为公共体验账号，不可创建新工程！如需使用 ${actionName}，请注册专属导演账号并在个人设置中填入专属 Key`);
       openAuthModal("register");
-      return;
+      return false;
     }
-    const hasKey = !!user?.custom_settings?.llmApiKey;
-    if (!hasKey) {
-      notify.info("🎬 请先在「设置」中填入您的专属 OpenRouter API Key，开启 AI 智能拆镜服务");
+    if (!hasCustomKey) {
+      notify.info(`🎬 请先在「设置」中填入您的专属 OpenRouter API Key，开启 ${actionName}`);
       openSettingsModal();
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const handleOpenCreateModal = () => {
+    if (!checkAuthAndKey("新建分镜工程")) return;
     setNewTitle("");
     setNewStory("");
     setTargetDuration(30);
     setIsSubmittingProject(false);
     setCreationError(null);
     setIsCreating(true);
+  };
+
+  const handleOpenPitchModal = () => {
+    setIsToolsMenuOpen(false);
+    if (!checkAuthAndKey("一句话点子成剧")) return;
+    setIsPitchModalOpen(true);
+  };
+
+  const handleOpenSeriesModal = () => {
+    setIsToolsMenuOpen(false);
+    if (!checkAuthAndKey("长篇小说成剧")) return;
+    setIsSeriesModalOpen(true);
   };
 
   const handleApplyTemplate = async (tmpl: typeof STARTER_TEMPLATES[0]) => {
@@ -482,19 +501,28 @@ export default function DashboardPage() {
               <div className="absolute right-0 top-full mt-1.5 w-60 bg-popover/95 backdrop-blur-md border border-border rounded-xl shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsToolsMenuOpen(false);
-                    setIsPitchModalOpen(true);
-                  }}
+                  onClick={handleOpenPitchModal}
                   className="w-full flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/80 text-left transition-colors cursor-pointer group"
                 >
-                  <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20 transition-colors mt-0.5">
-                    <Lightbulb className="w-4 h-4" />
+                  <div className={cn(
+                    "p-1.5 rounded-md transition-colors mt-0.5",
+                    isDemoUser || !hasCustomKey ? "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500/25" : "bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20"
+                  )}>
+                    {isDemoUser || !hasCustomKey ? <Key className="w-4 h-4" /> : <Lightbulb className="w-4 h-4" />}
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-foreground flex items-center gap-1">
                       <span>一句话点子成剧</span>
-                      <span className="text-[10px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-normal">AI孵化</span>
+                      <span className={cn(
+                        "text-[10px] px-1 py-0.2 rounded font-normal",
+                        isDemoUser
+                          ? "bg-amber-500/20 text-amber-300 font-semibold"
+                          : !hasCustomKey
+                          ? "bg-amber-500/20 text-amber-300 font-semibold"
+                          : "bg-amber-500/20 text-amber-300"
+                      )}>
+                        {isDemoUser ? "🔑 注册体验" : !hasCustomKey ? "🔑 填Key体验" : "AI孵化"}
+                      </span>
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
                       输入一句话脑洞，AI 自动生成 3 款短剧提案
@@ -506,19 +534,28 @@ export default function DashboardPage() {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsToolsMenuOpen(false);
-                    setIsSeriesModalOpen(true);
-                  }}
+                  onClick={handleOpenSeriesModal}
                   className="w-full flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/80 text-left transition-colors cursor-pointer group"
                 >
-                  <div className="p-1.5 rounded-md bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20 transition-colors mt-0.5">
-                    <BookOpen className="w-4 h-4" />
+                  <div className={cn(
+                    "p-1.5 rounded-md transition-colors mt-0.5",
+                    isDemoUser || !hasCustomKey ? "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500/25" : "bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20"
+                  )}>
+                    {isDemoUser || !hasCustomKey ? <Key className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-foreground flex items-center gap-1">
                       <span>长篇小说成剧</span>
-                      <span className="text-[10px] px-1 py-0.2 rounded bg-sky-500/20 text-sky-300 font-normal">多集切分</span>
+                      <span className={cn(
+                        "text-[10px] px-1 py-0.2 rounded font-normal",
+                        isDemoUser
+                          ? "bg-amber-500/20 text-amber-300 font-semibold"
+                          : !hasCustomKey
+                          ? "bg-amber-500/20 text-amber-300 font-semibold"
+                          : "bg-sky-500/20 text-sky-300"
+                      )}>
+                        {isDemoUser ? "🔑 注册体验" : !hasCustomKey ? "🔑 填Key体验" : "多集切分"}
+                      </span>
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
                       批量提炼核心角色设定与切分多集剧本

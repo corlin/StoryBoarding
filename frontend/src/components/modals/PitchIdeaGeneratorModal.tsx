@@ -15,9 +15,12 @@ import {
   Compass,
   CheckCircle2,
   Plus,
+  Key,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
+import { cn } from "@/lib/utils";
 
 interface PitchProposal {
   id: string;
@@ -68,6 +71,33 @@ export const PitchIdeaGeneratorModal: React.FC<PitchIdeaGeneratorModalProps> = (
   const [selectedProposalIndex, setSelectedProposalIndex] = useState<number | null>(null);
   const [isAdopting, setIsAdopting] = useState(false);
 
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号，即可使用 ${actionName}`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号，不可创建新工程！如需自主${actionName}，请注册专属导演账号并在个人设置中填入专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
+
   if (!isOpen) return null;
 
   const handleAddBeat = () => {
@@ -83,6 +113,7 @@ export const PitchIdeaGeneratorModal: React.FC<PitchIdeaGeneratorModalProps> = (
   };
 
   const handleGenerateProposals = async () => {
+    if (!checkAuthAndKey("一句话点子孵化提案")) return;
     if (!prompt.trim()) {
       notify.error("请输入您的一句话点子或灵感想法");
       return;
@@ -117,6 +148,7 @@ export const PitchIdeaGeneratorModal: React.FC<PitchIdeaGeneratorModalProps> = (
   };
 
   const handleAdoptProposal = async (proposal: PitchProposal) => {
+    if (!checkAuthAndKey("采纳提案创建工程")) return;
     try {
       setIsAdopting(true);
       notify.info("🚀 正在采纳提案并自动编译为短剧工作工程...");
@@ -407,14 +439,29 @@ export const PitchIdeaGeneratorModal: React.FC<PitchIdeaGeneratorModalProps> = (
             <div className="flex justify-end pt-1">
               <button
                 type="button"
-                disabled={isGenerating || !prompt.trim()}
+                disabled={isGenerating || (!isDemoUser && !prompt.trim())}
                 onClick={handleGenerateProposals}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-black shadow-lg disabled:opacity-50 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                className={cn(
+                  "inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold shadow-lg disabled:opacity-50 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer",
+                  isDemoUser || !hasCustomKey
+                    ? "bg-amber-500 hover:bg-amber-400 text-black border border-amber-400 shadow-amber-500/20"
+                    : "bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-black"
+                )}
               >
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-black" />
                     <span>AI 编剧专家正在极速孵化 3 组提案...</span>
+                  </>
+                ) : isDemoUser ? (
+                  <>
+                    <Key className="w-4 h-4 text-black" />
+                    <span>🔑 注册账号生成 3 款短剧提案</span>
+                  </>
+                ) : !hasCustomKey ? (
+                  <>
+                    <Key className="w-4 h-4 text-black" />
+                    <span>🔑 填Key生成 3 款短剧提案</span>
                   </>
                 ) : (
                   <>

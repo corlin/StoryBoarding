@@ -2,8 +2,11 @@
 
 import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { X, Sparkles, BookOpen, Users, Film, ArrowRight, CheckCircle, RefreshCw, AlertCircle, Eye } from "lucide-react";
+import { X, Sparkles, BookOpen, Users, Film, ArrowRight, CheckCircle, RefreshCw, AlertCircle, Eye, Key } from "lucide-react";
 import { api } from "@/lib/api";
+import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
+import { cn } from "@/lib/utils";
 
 interface SeriesBlueprintModalProps {
   isOpen: boolean;
@@ -42,10 +45,38 @@ export function SeriesBlueprintModal({ isOpen, onClose, onOpenSettings }: Series
     }>
   >([]);
 
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号，即可使用 ${actionName}`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号，不可创建新工程！如需自主${actionName}，请注册专属导演账号并在个人设置中填入专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
+
   if (!isOpen) return null;
 
   // Step 1: Macro Narrative Scanner
   const handleAnalyze = async () => {
+    if (!checkAuthAndKey("长篇宏观扫描与多集切分")) return;
     if (!rawText.trim()) {
       setErrorMsg("请先粘贴小说、长篇剧本或企划文案");
       return;
@@ -74,6 +105,7 @@ export function SeriesBlueprintModal({ isOpen, onClose, onOpenSettings }: Series
 
   // Step 2: Confirm & Create Multi-Episode Project
   const handleConfirmCreate = async () => {
+    if (!checkAuthAndKey("创建多集短剧工程")) return;
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
     setStep("compiling");
@@ -208,14 +240,32 @@ export function SeriesBlueprintModal({ isOpen, onClose, onOpenSettings }: Series
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleAnalyze}
-                  disabled={step === "analyzing" || !rawText.trim()}
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs rounded-lg flex items-center gap-2 transition disabled:opacity-50 shadow-lg shadow-amber-500/20"
+                  disabled={step === "analyzing" || (!isDemoUser && !rawText.trim())}
+                  className={cn(
+                    "px-5 py-2.5 font-semibold text-xs rounded-lg flex items-center gap-2 transition disabled:opacity-50 shadow-lg shadow-amber-500/20 cursor-pointer",
+                    isDemoUser || !hasCustomKey
+                      ? "bg-amber-500 hover:bg-amber-400 text-black border border-amber-400"
+                      : "bg-amber-500 hover:bg-amber-400 text-black"
+                  )}
                 >
                   {step === "analyzing" ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
                       宏观叙事扫描中 (约 2~3 秒)...
+                    </>
+                  ) : isDemoUser ? (
+                    <>
+                      <Key className="w-4 h-4" />
+                      🔑 注册账号开启长篇扫描 (Stage 1)
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  ) : !hasCustomKey ? (
+                    <>
+                      <Key className="w-4 h-4" />
+                      🔑 填Key开启长篇扫描 (Stage 1)
+                      <ArrowRight className="w-4 h-4" />
                     </>
                   ) : (
                     <>
@@ -367,12 +417,29 @@ export function SeriesBlueprintModal({ isOpen, onClose, onOpenSettings }: Series
                 type="button"
                 onClick={handleConfirmCreate}
                 disabled={step === "compiling"}
-                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs rounded-lg flex items-center gap-2 transition disabled:opacity-50 shadow-lg shadow-amber-500/20"
+                className={cn(
+                  "px-6 py-2.5 font-semibold text-xs rounded-lg flex items-center gap-2 transition disabled:opacity-50 shadow-lg shadow-amber-500/20 cursor-pointer",
+                  isDemoUser || !hasCustomKey
+                    ? "bg-amber-500 hover:bg-amber-400 text-black border border-amber-400"
+                    : "bg-amber-500 hover:bg-amber-400 text-black"
+                )}
               >
                 {step === "compiling" ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
                     各集微观并发拆拍中 (约 5~8 秒)...
+                  </>
+                ) : isDemoUser ? (
+                  <>
+                    <Key className="w-4 h-4" />
+                    🔑 注册账号一键建构整部短剧
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                ) : !hasCustomKey ? (
+                  <>
+                    <Key className="w-4 h-4" />
+                    🔑 填Key一键建构整部短剧
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 ) : (
                   <>
