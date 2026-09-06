@@ -19,11 +19,84 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "v2.1.0",
+    title: "Reelbench 商业短剧工业级标准导演台 & 全链路安全闭环",
+    date: "2026-09-06",
+    badge: "重磅里程碑",
+    isLatest: true,
+    summary:
+      "全面对齐 Reelbench 短剧工业基准，实现从原著小说抽核、四象限结构取舍与爽点雷达、剧组视觉设定集、文学分镜双向拆解、顺场排期到好莱坞全屏预演的全链路体验闭环，并对公共演示与安全红线实施全方位前置防护。",
+    changeGroups: [
+      {
+        type: "highlight",
+        label: "🎬 Reelbench 影视工业级创作流",
+        items: [
+          {
+            title: "STAGE 01 · 改编取舍与爽点雷达工作室",
+            description:
+              "原著小说核心提炼、四象限（保留/砍掉/合并/风险）结构取舍与 Gate 2 爽点节拍门控（maxBeatGap ≤ 3 集），支持一键导出剧本围读 Markdown 会审通告与 .md 文件下载。",
+          },
+          {
+            title: "Cinema Theater 全屏放映影院系统",
+            description:
+              "沉浸式暗场播放，支持 Ken Burns 运镜动态视差、字幕打字机（C键）、连播模式（B键）、好莱坞级分段胶囊进度条与全套导演快捷键体系。",
+          },
+          {
+            title: "顺场表 (Call Sheet) 智能排期与 H3 连贯提示词",
+            description:
+              "按「拍摄空间 + 光影氛围」聚类归并生产批次，支持一键生成并复制 MiniMax Hailuo H3 视频生成提示词，以及一键导出 CSV 剧组排期表。",
+          },
+          {
+            title: "台本脏状态检测与分镜自愈重绘",
+            description:
+              "台本动作或对白修改后即时标记镜头脏状态，支持原位重新冲印显影与一键全剧本复制。",
+          },
+        ],
+      },
+      {
+        type: "improvement",
+        label: "🎨 交互与工作台流转优化",
+        items: [
+          {
+            title: "跨剧集切换状态联动清理",
+            description:
+              "切换 EP 剧集时，自动关闭已打开的抽屉、重置分镜选中项至新集首镜，并在顺场表中智能重置局部搜索与折叠状态，杜绝空屏与镜头丢失假象。",
+          },
+          {
+            title: "工程体检雷达 (Radar) 智能跳转与修复",
+            description:
+              "体检雷达诊断项细分通过/警告/失败状态，针对未达标规范提供高亮「立即修复」与「查看设定」快捷跳转。",
+          },
+          {
+            title: "分镜卡片批量锁定与解锁保护",
+            description:
+              "故事板面板支持一键全选锁定或解除锁定，有效保护已有优质分镜不被批量重绘意外覆盖。",
+          },
+        ],
+      },
+      {
+        type: "fix",
+        label: "🛡️ 演示体验与安全红线闭环",
+        items: [
+          {
+            title: "公共 Demo 资源消耗全链路前置拦截",
+            description:
+              "在 AI 智能拆镜、3步向导、剧组设定集、脚本导入与爆点重构中全面接入 checkAuthAndKey，剔除虚假就绪绿标，统一换装琥珀金引导按钮，杜绝 Demo 模式违规耗费资源。",
+          },
+          {
+            title: "系统设置入口与个人专属账号引导",
+            description:
+              "针对 Demo 体验账号点击顶栏设置齿轮与用户菜单进行友好拦截，智能引导注册专属导演账号以保障用户私密 API Key 安全。",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v1.3.0",
     title: "5分钟短剧高能叙事引擎 & 节奏大师",
     date: "2026-09-05",
-    badge: "今日最新",
-    isLatest: true,
+    isLatest: false,
     summary:
       "针对快节奏短剧创作深度定制，引入前30秒高能黄金律与四幕因果推进法则，让分镜叙事更抓人、悬念更扣人心弦。",
     changeGroups: [
