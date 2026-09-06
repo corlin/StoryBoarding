@@ -697,6 +697,26 @@ export async function resolveShotPromptAndOptions(
     }
   }
 
+  // Resolve bound narrative props
+  let shotPropIds: string[] = [];
+  try {
+    shotPropIds = typeof shot.propIds === "string" ? JSON.parse(shot.propIds) : shot.propIds || [];
+  } catch {}
+
+  let propAnchor = "";
+  let propRefImages: string[] = [];
+  if (proj && shotPropIds.length > 0) {
+    const allProps = await db.select().from(props).where(eq(props.projectId, proj.id)).all();
+    const boundProps = allProps.filter((p: any) => shotPropIds.includes(p.id));
+    if (boundProps.length > 0) {
+      const propPhrases = boundProps.map((p: any) => `Key Prop: ${p.name} (${p.visualAnchor || p.description || "narrative item"})`);
+      propAnchor = propPhrases.join("; ");
+      propRefImages = boundProps
+        .map((p: any) => p.referenceImageUrl)
+        .filter((url: any) => Boolean(url && typeof url === "string" && url.startsWith("http")));
+    }
+  }
+
   let finalPrompt = shot.imagePrompt || "";
   let spatialScopingPrefix = "";
 
@@ -717,14 +737,29 @@ export async function resolveShotPromptAndOptions(
     spatialScopingPrefix += `Setting: ${locAnchor}. `;
   }
 
+  if (propAnchor) {
+    spatialScopingPrefix += `Props: ${propAnchor}. `;
+  }
+
   if (!finalPrompt) {
     finalPrompt = formatDirectorImagePrompt(shot.action, shot.shotSize, shot.cameraAngle, "static");
   }
 
-  const enrichedPrompt = spatialScopingPrefix ? `${spatialScopingPrefix}${finalPrompt}` : finalPrompt;
-  const referenceImageUrls: string[] = boundChars
+  // Inject Project Director Visual Style if configured
+  let directorStyleSuffix = "";
+  try {
+    const styleConf = typeof proj?.styleConfig === "string" ? JSON.parse(proj.styleConfig) : proj?.styleConfig || {};
+    if (styleConf.director_style_prompt) {
+      directorStyleSuffix = ` ${styleConf.director_style_prompt}`;
+    }
+  } catch {}
+
+  const enrichedPrompt = (spatialScopingPrefix ? `${spatialScopingPrefix}${finalPrompt}` : finalPrompt) + directorStyleSuffix;
+  const charRefImages: string[] = boundChars
     .map((c: any) => c.avatarUrl)
     .filter((url: any) => Boolean(url && typeof url === "string" && url.startsWith("http")));
+
+  const referenceImageUrls: string[] = [...charRefImages, ...propRefImages].slice(0, 3);
 
   return {
     prompt: enrichedPrompt,

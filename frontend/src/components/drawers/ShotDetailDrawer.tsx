@@ -699,6 +699,52 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                       )}
                     </div>
 
+                    {/* Character Cast Binding (Visual DNA Continuity) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
+                          <span>🎭 本镜出场角色 (Cast Binding · 视觉DNA锚定):</span>
+                        </label>
+                        <span className="text-[10px] text-muted-foreground">出场人物面容与服装自动锁定</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 p-1 bg-background border border-border rounded-lg min-h-[34px] items-center">
+                        {characters.length === 0 ? (
+                          <span className="text-[10px] text-muted-foreground px-1">全剧暂未登记角色（可在视听设定中添加）</span>
+                        ) : (
+                          characters.map((char) => {
+                            const isSelected = (formData.character_ids || []).includes(char.id);
+                            return (
+                              <button
+                                key={char.id}
+                                type="button"
+                                onClick={() => {
+                                  const currentIds = formData.character_ids || [];
+                                  const next = isSelected
+                                    ? currentIds.filter((id) => id !== char.id)
+                                    : [...currentIds, char.id];
+                                  handleChange("character_ids", next);
+                                }}
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer",
+                                  isSelected
+                                    ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-2xs"
+                                    : "bg-secondary text-muted-foreground hover:text-foreground border border-border/60"
+                                )}
+                              >
+                                {char.avatar_url ? (
+                                  <img src={normalizeAssetUrl(char.avatar_url)} alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" />
+                                ) : (
+                                  <span className="text-[9px]">👤</span>
+                                )}
+                                <span>{char.name}</span>
+                                {isSelected && <span className="text-[9px] text-sky-400">✓</span>}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+
                     <div className="h-[1px] bg-border/60" />
 
                     {/* Location and Props Selection */}

@@ -121,24 +121,35 @@ export const VOICE_DNA_PRESETS = [
 const STYLE_PRESETS = [
   {
     id: "graphite_previz",
-    name: "1. 经典好莱坞石墨素描 (Graphite Previz · 推荐)",
+    name: "🏆 1. 经典好莱坞石墨素描 (Graphite Previz · 推荐)",
+    badge: "导演预演基准",
     desc: "纯黑白与克制灰阶、粗犷石墨铅笔速写线、自信结构笔触与运动指示箭头",
     prompt:
       "Professional pre-production director's storyboard sketch, 16:9 cinematic frame, rough graphite and dark pencil construction lines, bold confident gestural strokes, selective grayscale wash shading, clear silhouette staging, directional movement arrows --no speech balloons, comic panels, manga screentones, finished 3D render, saturated color painting, photorealistic film still, text paragraphs",
   },
   {
-    id: "cinematic_value",
-    name: "2. 电影感明暗大反差 (Cinematic Chiaroscuro)",
-    desc: "强调高反差明暗光影、体积光雾与镜头景深，适合悬疑与动作大片",
+    id: "cinematic_35mm",
+    name: "🎬 2. 35mm 胶片写实电影感 (35mm Cinematic Film Still)",
+    badge: "院线质感",
+    desc: "柯达 5219 胶片质感、微颗粒、自然光学大光圈虚化、自然体积光影与真实人物皮肤肌理",
     prompt:
-      "Cinematic storyboard previsualization, high-contrast chiaroscuro graphite wash shading, strong atmospheric volumetric lighting, expressive film blocking, depth-of-field staging, directional arrows --no speech balloons, comic panels, finished 3D render",
+      "Cinematic 35mm film still, Kodak Vision3 5219 color grade, natural volumetric atmosphere, shallow depth of field, authentic film grain, high dynamic range, master cinematography, realistic authentic textures, edge-to-edge full frame --no watermark, subtitle bar, border frame, cartoon, 3d render, plastic doll skin",
+  },
+  {
+    id: "neo_anime_cel",
+    name: "🎨 3. 新国风 / 赛璐璐动漫 (Neo-Anime Cel / Ghibli)",
+    badge: "短剧/番剧爆款",
+    desc: "精美手绘线稿、清爽赛璐璐分层光影、高通透温润色彩，适合玄幻古装与二次元都市题材",
+    prompt:
+      "Masterpiece anime cel animation still, crisp clean lineart, vibrant painterly background, Studio Ghibli inspired lighting, gentle cinematic depth, soft watercolor hues, expressive character acting --no realistic photograph, 3d cgi render, blurry compression",
   },
   {
     id: "accent_glow",
-    name: "3. 局部点缀色高反差稿 (Monochrome with Accent)",
-    desc: "90% 黑白灰阶速写 ➕ 10% 关键视觉焦点荧光点缀（如赛博青绿/警示红）",
+    name: "⚡ 4. 局部荧光暗黑悬疑 (Monochrome with Accent Glow)",
+    badge: "悬疑反转",
+    desc: "90% 黑白灰阶速写 ➕ 10% 关键视觉焦点荧光点缀（如警示绯红/赛博青绿），极强戏剧张力",
     prompt:
-      "Monochromatic director's storyboard sketch with subtle glowing cyan and amber accents, bold graphite contours, dynamic motion vectors, cinematic wide composition --no speech balloons, full color painting",
+      "Monochromatic noir director's storyboard sketch with subtle glowing cyan and crimson accents, high-contrast chiaroscuro, bold graphite contours, dynamic motion vectors, cinematic wide composition --no speech balloons, full color painting, over-saturated backdrop",
   },
 ];
 
@@ -617,11 +628,25 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                 return (
                   <div key={char.id || idx} className="p-4 bg-background border border-border/70 rounded-xl space-y-3 relative group">
                     <div className="flex items-start justify-between gap-4">
-                      {/* Avatar preview */}
+                      {/* 16:9 Industrial Model Sheet / Avatar preview */}
                       <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 rounded-xl bg-secondary/80 border border-border flex items-center justify-center overflow-hidden shrink-0 relative group/avatar">
+                        <div
+                          onClick={() => {
+                            if (char.avatar_url) window.open(char.avatar_url, "_blank");
+                          }}
+                          className={cn(
+                            "w-24 h-14 rounded-xl bg-secondary/80 border border-border flex items-center justify-center overflow-hidden shrink-0 relative group/avatar transition-all",
+                            char.avatar_url && "cursor-zoom-in hover:border-primary/80 hover:shadow-sm"
+                          )}
+                          title={char.avatar_url ? "点击新标签页查看 16:9 黄金定妆卡大图" : "暂未生成定妆照"}
+                        >
                           {char.avatar_url ? (
-                            <img src={char.avatar_url} alt={char.name} className="w-full h-full object-cover" />
+                            <>
+                              <img src={char.avatar_url} alt={char.name} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-[10px] text-white font-mono">
+                                🔍 预览大图
+                              </div>
+                            </>
                           ) : (
                             <div className="flex flex-col items-center justify-center text-muted-foreground gap-0.5">
                               <Camera className="w-4 h-4 opacity-50" />
@@ -1418,7 +1443,15 @@ export const BibleModal: React.FC<BibleModalProps> = ({
         {/* Tab Content: Style */}
         {activeTab === "style" && (
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-start gap-2.5 text-xs text-purple-300">
+              <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-purple-400" />
+              <p className="leading-relaxed text-[11px]">
+                <strong>全剧画风统一基准 (Global Visual Style Bible)：</strong>
+                此处选定的流派与控制词将作为全剧所有分镜头的底层光影与质感基调自动注入，并强行阻断气泡框、文字水印、贴纸边框与过度平滑塑胶脸，确保影视级纯净构图。
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {STYLE_PRESETS.map((preset) => (
                 <button
                   key={preset.id}
@@ -1426,33 +1459,46 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                     setSelectedPresetId(preset.id);
                     setStylePrompt(preset.prompt);
                   }}
-                  className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                  className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
                     selectedPresetId === preset.id
-                      ? "border-primary bg-primary/10 shadow-xs"
+                      ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary/40"
                       : "border-border/70 bg-secondary/40 hover:bg-secondary hover:border-border"
                   }`}
                 >
-                  <div>
-                    <h4 className="text-xs font-bold text-foreground mb-1">{preset.name}</h4>
-                    <p className="text-[10px] text-muted-foreground leading-relaxed">{preset.desc}</p>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs font-bold text-foreground">{preset.name}</h4>
+                      {preset.badge && (
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-secondary border border-border/80 text-muted-foreground shrink-0">
+                          {preset.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{preset.desc}</p>
                   </div>
                   {selectedPresetId === preset.id && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-primary font-bold mt-2">
-                      <Check className="w-3 h-3" />
-                      当前画风
-                    </span>
+                    <div className="inline-flex items-center gap-1 text-[11px] text-primary font-bold mt-3 pt-2 border-t border-primary/20">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>已选为全剧主画风基准</span>
+                    </div>
                   )}
                 </button>
               ))}
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-foreground block mb-1">导演画风控制 Prompt (Global Style Suffix):</label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5 text-purple-400" />
+                  <span>导演画风底层注入 Prompt (Global Style Suffix):</span>
+                </label>
+                <span className="text-[10px] font-mono text-muted-foreground">已挂载至全剧生成管道</span>
+              </div>
               <textarea
                 rows={4}
                 value={stylePrompt}
                 onChange={(e) => setStylePrompt(e.target.value)}
-                className="w-full bg-background border border-border rounded-xl p-3 text-xs font-mono leading-relaxed focus:outline-none focus:border-primary"
+                className="w-full bg-background border border-border rounded-xl p-3 text-xs font-mono leading-relaxed focus:outline-none focus:border-primary text-foreground/90"
               />
             </div>
           </div>
