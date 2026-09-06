@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { EpisodePillTrack } from "@/components/workspace/EpisodePillTrack";
 import { computeProjectQualityDiagnostics } from "@/components/modals/ProjectQualityRadarModal";
 import { COLOR } from "@/lib/colorTokens";
@@ -84,16 +85,23 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenTour,
 }) => {
   const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
+  const { activeEpisodeIndex, setActiveEpisodeIndex } = useWorkspaceStore();
   const [isMoreToolsOpen, setIsMoreToolsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [isEpisodeDropdownOpen, setIsEpisodeDropdownOpen] = useState(false);
   const moreToolsRef = useRef<HTMLDivElement>(null);
+  const episodeDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close more tools dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (moreToolsRef.current && !moreToolsRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (moreToolsRef.current && !moreToolsRef.current.contains(target)) {
         setIsMoreToolsOpen(false);
+      }
+      if (episodeDropdownRef.current && !episodeDropdownRef.current.contains(target)) {
+        setIsEpisodeDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -124,6 +132,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   const isOverDuration = totalDuration > (project?.target_duration || 30);
   const unrenderedCount = shots.filter((s) => !s.storyboard_image_url || s.is_dirty).length;
   const allRendered = shots.length > 0 && unrenderedCount === 0;
+
+  const sequences = project?.sequences || [];
+  const currentSeq = sequences[activeEpisodeIndex] || sequences[0];
 
   // Compute live quality score for instant health badge display
   const { score: radarScore } = React.useMemo(() => {
@@ -164,80 +175,159 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       </div>
 
-      {/* Middle: Compact Episode Pills + Stats + Health Score Badge */}
+      {/* Middle: Compact Episode Dropdown + Integrated Status Group */}
       <div className="hidden lg:flex items-center gap-2.5 flex-1 justify-center min-w-0 max-w-xl px-2">
         {onToggleLeftPanel && (
           <button
             onClick={onToggleLeftPanel}
             className={cn(
-              "inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-colors shrink-0",
+              "inline-flex items-center gap-1 p-1.5 rounded-lg text-xs font-medium border transition-colors shrink-0 cursor-pointer",
               isLeftPanelCollapsed
                 ? "bg-secondary text-muted-foreground border-border hover:text-foreground"
-                : "bg-secondary text-foreground border-border"
+                : "bg-secondary text-foreground border-border hover:bg-muted"
             )}
-            title={isLeftPanelCollapsed ? "展开剧本面板" : "折叠剧本，沉浸预览分镜"}
+            title={isLeftPanelCollapsed ? "展开左侧剧本面板" : "折叠左侧剧本，沉浸全宽预览分镜"}
           >
             {isLeftPanelCollapsed ? <Columns2 className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
           </button>
         )}
 
-        <div className="min-w-0 overflow-hidden flex-1">
-          <EpisodePillTrack project={project} compact={true} onOpenCharacterHub={() => onOpenBible?.("bible")} />
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground bg-secondary/30 px-2 py-0.5 rounded-md border border-border/50">
-            <span>{shots.length}镜</span>
-            <span>·</span>
-            <span className={cn(isOverDuration ? "text-amber-400 font-bold" : "text-foreground")}>
-              {totalDuration.toFixed(1)}s
-            </span>
-          </div>
-
-          {/* Quality Health Radar Diagnostic Score Pill Badge */}
-          {onOpenRadar && (
+        {/* 1. Compact Episode Dropdown (Replaces overflowing PillTrack) */}
+        {sequences.length > 0 && (
+          <div className="relative shrink-0" ref={episodeDropdownRef}>
             <button
               type="button"
-              onClick={onOpenRadar}
-              className={cn(
-                "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold border transition-all cursor-pointer shadow-2xs hover:scale-105",
-                radarScore >= 85
-                  ? "bg-emerald-500/15 border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/25"
-                  : radarScore >= 70
-                  ? "bg-amber-500/15 border-amber-500/35 text-amber-300 hover:bg-amber-500/25"
-                  : "bg-red-500/15 border-red-500/35 text-red-300 hover:bg-red-500/25"
-              )}
-              title="点击打开 AI 影视短剧工程体检雷达（查看大纲门控、角色DNA、单句≤35字、首帧显影诊断报告）"
+              onClick={() => setIsEpisodeDropdownOpen(!isEpisodeDropdownOpen)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-secondary/70 hover:bg-secondary border border-border/80 text-foreground transition-all cursor-pointer shadow-2xs group max-w-[220px]"
+              title={`当前剧集: EP ${currentSeq?.episode_number || activeEpisodeIndex + 1} · ${currentSeq?.title || currentSeq?.name || `第 ${activeEpisodeIndex + 1} 集`} (共 ${sequences.length} 集)`}
             >
-              <ShieldCheck className={cn(
-                "w-3.5 h-3.5",
-                radarScore >= 85 ? "text-emerald-400" : radarScore >= 70 ? "text-amber-400" : "text-red-400"
-              )} />
-              <span>{radarScore}分</span>
+              <Film className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="font-mono text-[9px] font-bold text-amber-400 bg-amber-500/15 px-1 py-0.2 rounded border border-amber-500/30 shrink-0">
+                EP {currentSeq?.episode_number || activeEpisodeIndex + 1}
+              </span>
+              <span className="truncate max-w-[120px] text-xs font-semibold">
+                {currentSeq?.title || currentSeq?.name || `第 ${activeEpisodeIndex + 1} 集`}
+              </span>
+              <ChevronDown className={cn("w-3 h-3 text-muted-foreground shrink-0 transition-transform", isEpisodeDropdownOpen && "rotate-180")} />
             </button>
+
+            {isEpisodeDropdownOpen && (
+              <div className="absolute left-0 mt-1.5 w-64 bg-card border border-border rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs space-y-1">
+                <div className="px-2.5 py-1 text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between border-b border-border/60 pb-1.5">
+                  <span>短剧分集目录 ({sequences.length} 集)</span>
+                  {onOpenBible && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEpisodeDropdownOpen(false);
+                        onOpenBible("bible");
+                      }}
+                      className="text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+                    >
+                      视觉设定集
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-56 overflow-y-auto space-y-0.5 py-0.5">
+                  {sequences.map((seq, idx) => {
+                    const isCur = idx === activeEpisodeIndex;
+                    const epN = seq.episode_number || idx + 1;
+                    const sCount = seq.shots?.length || 0;
+                    return (
+                      <button
+                        key={seq.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveEpisodeIndex(idx);
+                          setIsEpisodeDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors cursor-pointer",
+                          isCur
+                            ? "bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30"
+                            : "text-foreground hover:bg-muted"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-secondary text-muted-foreground shrink-0">
+                            EP {epN}
+                          </span>
+                          <span className="truncate">{seq.title || seq.name || `第 ${epN} 集`}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground shrink-0 ml-2">
+                          <span>{sCount} 镜</span>
+                          {seq.cliffhanger_summary && <span title={seq.cliffhanger_summary}>🎣</span>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 2. Integrated Micro Status Capsule Group */}
+        <div className="flex items-center rounded-lg bg-secondary/50 border border-border/80 p-0.5 text-[11px] font-mono shadow-2xs shrink-0">
+          {/* Duration Pill */}
+          <span
+            className={cn(
+              "px-2 py-0.5 font-semibold",
+              isOverDuration ? "text-amber-400 font-bold" : "text-muted-foreground"
+            )}
+            title={`当前集时长: ${totalDuration.toFixed(1)}s (目标: ${project?.target_duration || 30}s)`}
+          >
+            {totalDuration.toFixed(1)}s
+          </span>
+
+          {/* Quality Health Radar Diagnostic Pill */}
+          {onOpenRadar && (
+            <>
+              <div className="w-[1px] h-3 bg-border/70 shrink-0" />
+              <button
+                type="button"
+                onClick={onOpenRadar}
+                className={cn(
+                  "inline-flex items-center gap-1 px-2 py-0.5 rounded transition-all cursor-pointer font-bold",
+                  radarScore >= 85
+                    ? "text-emerald-400 hover:bg-emerald-500/10"
+                    : radarScore >= 70
+                    ? "text-amber-400 hover:bg-amber-500/10"
+                    : "text-red-400 hover:bg-red-500/10"
+                )}
+                title="点击打开 AI 影视工程体检雷达（大纲、角色DNA、单句≤35字诊断）"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>{radarScore}分</span>
+              </button>
+            </>
           )}
 
           {/* Render Status Pill: Unrendered Count or All-Ready Glow */}
           {shots.length > 0 && (
-            unrenderedCount > 0 ? (
-              <button
-                type="button"
-                onClick={() => onBatchRender?.()}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/35 transition-all cursor-pointer shadow-2xs hover:scale-105"
-                title={`当前尚有 ${unrenderedCount} 镜待冲印或待重绘，点击启动保活冲印`}
-              >
-                <Palette className="w-3 h-3 text-amber-400" />
-                <span>待冲印 {unrenderedCount}</span>
-              </button>
-            ) : (
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 shadow-2xs"
-                title="全片镜头画面已 100% 冲印显影就绪"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>全显影</span>
-              </span>
-            )
+            <>
+              <div className="w-[1px] h-3 bg-border/70 shrink-0" />
+              {unrenderedCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => onBatchRender?.()}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-amber-300 hover:bg-amber-500/15 transition-all cursor-pointer font-semibold"
+                  title={`当前尚有 ${unrenderedCount} 镜待冲印，点击启动批量显影`}
+                >
+                  <Palette className="w-3 h-3 text-amber-400" />
+                  <span>待冲印 {unrenderedCount}</span>
+                </button>
+              ) : (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 text-emerald-400 font-semibold"
+                  title="全片镜头画面已 100% 冲印显影就绪"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span>全显影</span>
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>
