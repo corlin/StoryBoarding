@@ -415,6 +415,19 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           {isMoreToolsOpen && (
             <div className="absolute right-0 mt-1.5 w-52 bg-card border border-border rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
+              {onOpenTradeoff && (
+                <button
+                  onClick={() => {
+                    setIsMoreToolsOpen(false);
+                    onOpenTradeoff();
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
+                >
+                  <Scale className="w-3.5 h-3.5 text-purple-400" />
+                  <span>大纲改编与爽点雷达 (STAGE 01)</span>
+                </button>
+              )}
+
               {onOpenBible && (
                 <button
                   onClick={() => {
