@@ -25,13 +25,27 @@ export function getApiBaseUrl(): string {
 
 export function normalizeAssetUrl(url: string | null | undefined): string {
   if (!url) return "";
-  if (url.startsWith("/api/assets/")) {
-    return `https://storyboarding-api.caifu.social${url}`;
+  const trimmed = url.trim();
+  // 1. Data URL
+  if (trimmed.startsWith("data:")) return trimmed;
+  // 2. Raw Base64 string from upstream models
+  if (trimmed.startsWith("/9j/")) {
+    return `data:image/jpeg;base64,${trimmed}`;
   }
-  if (url.startsWith("https://storyboarding.caifu.social/api/assets/")) {
-    return url.replace("https://storyboarding.caifu.social/api/assets/", "https://storyboarding-api.caifu.social/api/assets/");
+  if (trimmed.startsWith("iVBOR")) {
+    return `data:image/png;base64,${trimmed}`;
   }
-  return url;
+  if (trimmed.startsWith("UklGR")) {
+    return `data:image/webp;base64,${trimmed}`;
+  }
+  // 3. Cloudflare R2 assets path
+  if (trimmed.startsWith("/api/assets/")) {
+    return `https://storyboarding-api.caifu.social${trimmed}`;
+  }
+  if (trimmed.startsWith("https://storyboarding.caifu.social/api/assets/")) {
+    return trimmed.replace("https://storyboarding.caifu.social/api/assets/", "https://storyboarding-api.caifu.social/api/assets/");
+  }
+  return trimmed;
 }
 
 export function setApiBaseUrl(url: string) {

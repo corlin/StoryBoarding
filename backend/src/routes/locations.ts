@@ -82,7 +82,11 @@ router.post("/:id/generate-concept", async (c) => {
     // Persist to Cloudflare R2 via unified storage utility
     const r2Key = `locations/${id}/concept_${Date.now()}.jpg`;
     const r2Url = await saveImageToR2(rawImageUrl, r2Key, c.env.STORAGE);
-    const finalUrl = r2Url || rawImageUrl;
+    const finalUrl = r2Url || (rawImageUrl.startsWith("http") ? rawImageUrl : null);
+    if (!finalUrl) {
+      console.error(`[Location Concept] Failed to persist image to R2 for location ${id}`);
+      return c.json({ detail: "场景基准图存储至云端失败，请稍后重试" }, 500);
+    }
 
     const [updated] = await db
       .update(locations)

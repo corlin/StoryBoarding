@@ -200,7 +200,7 @@ export async function generateCinematicStoryboardImage(
     }
   }
 
-  return rawImageUrl || "";
+  return rawImageUrl.startsWith("http") ? rawImageUrl : "";
 }
 
 // 3-Worker Safe Concurrency Task Pool Helper

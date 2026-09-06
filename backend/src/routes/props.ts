@@ -196,7 +196,11 @@ router.post("/:id/generate-concept", async (c) => {
     // Persist to Cloudflare R2
     const r2Key = `props/${id}/concept_${Date.now()}.jpg`;
     const r2Url = await saveImageToR2(rawImageUrl, r2Key, c.env.STORAGE);
-    const finalUrl = r2Url || rawImageUrl;
+    const finalUrl = r2Url || (rawImageUrl.startsWith("http") ? rawImageUrl : null);
+    if (!finalUrl) {
+      console.error(`[Prop Concept] Failed to persist image to R2 for prop ${id}`);
+      return c.json({ detail: "道具概念图存储至云端失败，请稍后重试" }, 500);
+    }
 
     const [updated] = await db
       .update(props)

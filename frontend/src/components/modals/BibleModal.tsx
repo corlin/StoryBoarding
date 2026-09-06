@@ -26,7 +26,7 @@ import {
   Key,
 } from "lucide-react";
 import { ProjectModel, CharacterModel, LocationModel, PropModel } from "@/types/shot";
-import { api } from "@/lib/api";
+import { api, normalizeAssetUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useAuthStore } from "@/stores/authStore";
@@ -171,6 +171,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
   const [generatingCharId, setGeneratingCharId] = useState<string | null>(null);
   const [generatingLocId, setGeneratingLocId] = useState<string | null>(null);
   const [generatingPropId, setGeneratingPropId] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
 
   // Style Prompt State
   const [sceneAnchor, setSceneAnchor] = useState("");
@@ -632,19 +633,22 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       <div className="flex items-center gap-3">
                         <div
                           onClick={() => {
-                            if (char.avatar_url) window.open(char.avatar_url, "_blank");
+                            const norm = normalizeAssetUrl(char.avatar_url);
+                            if (norm) {
+                              setLightboxImage({ url: norm, title: `${char.name} · 16:9 黄金定妆卡 / Model Sheet` });
+                            }
                           }}
                           className={cn(
                             "w-24 h-14 rounded-xl bg-secondary/80 border border-border flex items-center justify-center overflow-hidden shrink-0 relative group/avatar transition-all",
                             char.avatar_url && "cursor-zoom-in hover:border-primary/80 hover:shadow-sm"
                           )}
-                          title={char.avatar_url ? "点击新标签页查看 16:9 黄金定妆卡大图" : "暂未生成定妆照"}
+                          title={char.avatar_url ? "点击全屏查看 16:9 黄金定妆卡大图" : "暂未生成定妆照"}
                         >
                           {char.avatar_url ? (
                             <>
-                              <img src={char.avatar_url} alt={char.name} className="w-full h-full object-cover" />
+                              <img src={normalizeAssetUrl(char.avatar_url)} alt={char.name} className="w-full h-full object-cover" />
                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-[10px] text-white font-mono">
-                                🔍 预览大图
+                                🔍 查看大图
                               </div>
                             </>
                           ) : (
@@ -919,9 +923,21 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                   <div key={loc.id || idx} className="p-4 bg-background border border-border/70 rounded-xl space-y-3 relative group">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-20 h-12 rounded-lg bg-secondary/80 border border-border flex items-center justify-center overflow-hidden shrink-0 relative">
+                        <div
+                          onClick={() => {
+                            const norm = normalizeAssetUrl(loc.reference_image_url);
+                            if (norm) {
+                              setLightboxImage({ url: norm, title: `${loc.name} · 场景空间概念图` });
+                            }
+                          }}
+                          className={cn(
+                            "w-20 h-12 rounded-lg bg-secondary/80 border border-border flex items-center justify-center overflow-hidden shrink-0 relative transition-all",
+                            loc.reference_image_url && "cursor-zoom-in hover:border-primary/80 hover:shadow-sm"
+                          )}
+                          title={loc.reference_image_url ? "点击全屏查看场景空间图" : "暂未生成概念图"}
+                        >
                           {loc.reference_image_url ? (
-                            <img src={loc.reference_image_url} alt={loc.name} className="w-full h-full object-cover" />
+                            <img src={normalizeAssetUrl(loc.reference_image_url)} alt={loc.name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="flex flex-col items-center justify-center text-muted-foreground gap-0.5">
                               <MapPin className="w-3.5 h-3.5 opacity-50" />
@@ -1251,9 +1267,21 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                   <div key={p.id || idx} className="p-4 bg-background border border-border/70 rounded-xl space-y-3 relative group">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 rounded-xl bg-secondary/80 border border-border flex items-center justify-center overflow-hidden shrink-0 relative">
+                        <div
+                          onClick={() => {
+                            const norm = normalizeAssetUrl(p.reference_image_url);
+                            if (norm) {
+                              setLightboxImage({ url: norm, title: `${p.name} · 道具形制概念图` });
+                            }
+                          }}
+                          className={cn(
+                            "w-14 h-14 rounded-xl bg-secondary/80 border border-border flex items-center justify-center overflow-hidden shrink-0 relative transition-all",
+                            p.reference_image_url && "cursor-zoom-in hover:border-primary/80 hover:shadow-sm"
+                          )}
+                          title={p.reference_image_url ? "点击全屏查看道具概念图" : "暂未生成基准图"}
+                        >
                           {p.reference_image_url ? (
-                            <img src={p.reference_image_url} alt={p.name} className="w-full h-full object-cover" />
+                            <img src={normalizeAssetUrl(p.reference_image_url)} alt={p.name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="flex flex-col items-center justify-center text-muted-foreground gap-0.5">
                               <Package className="w-4 h-4 opacity-50" />
@@ -1546,6 +1574,40 @@ export const BibleModal: React.FC<BibleModalProps> = ({
           setProfileDrawerChar(null);
         }}
       />
+
+      {/* Fullscreen HD Lightbox Preview Modal */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div
+            className="relative max-w-5xl max-h-[90vh] w-full bg-background/95 border border-border rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-card/60">
+              <span className="font-semibold text-sm text-foreground flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-primary" />
+                {lightboxImage.title}
+              </span>
+              <button
+                onClick={() => setLightboxImage(null)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                title="关闭"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto flex items-center justify-center p-4 sm:p-8 bg-black/40 min-h-[300px]">
+              <img
+                src={lightboxImage.url}
+                alt={lightboxImage.title}
+                className="max-h-[75vh] w-auto max-w-full object-contain rounded-lg shadow-md border border-white/10"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -159,7 +159,13 @@ router.post("/:id/generate-avatar", async (c) => {
     // 2. Persist to R2
     const r2Key = `characters/${charId}/avatar_${Date.now()}.jpg`;
     const r2Url = await saveImageToR2(rawImageUrl, r2Key, c.env.STORAGE);
-    const finalUrl = r2Url || rawImageUrl;
+    
+    // Only accept R2 URL or a valid external HTTP(S) URL; never save raw Base64 into SQLite DB
+    const finalUrl = r2Url || (rawImageUrl.startsWith("http") ? rawImageUrl : null);
+    if (!finalUrl) {
+      console.error(`[Avatar Generate] Failed to persist avatar to R2 for character ${charId}`);
+      return c.json({ detail: "定妆照存储至云端失败，请稍后重试" }, 500);
+    }
 
     // 3. Update character in DB
     const [updated] = await db

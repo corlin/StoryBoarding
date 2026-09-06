@@ -1,13 +1,22 @@
 // Shared Cloudflare R2 image persistence & Base64 decoding utilities
 
 export function base64ToUint8Array(base64: string): Uint8Array {
-  const cleanBase64 = base64.replace(/^data:image\/[a-z]+;base64,/, "");
+  const cleanBase64 = base64.replace(/^data:[^;]+;base64,/, "").trim();
   const binaryString = atob(cleanBase64);
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
   return bytes;
+}
+
+export function detectBase64MimeType(base64: string): string {
+  const clean = base64.replace(/^data:[^;]+;base64,/, "").trim();
+  if (clean.startsWith("/9j/")) return "image/jpeg";
+  if (clean.startsWith("iVBOR")) return "image/png";
+  if (clean.startsWith("R0lGOD")) return "image/gif";
+  if (clean.startsWith("UklGR")) return "image/webp";
+  return "image/jpeg";
 }
 
 export async function saveImageToR2(
@@ -21,16 +30,30 @@ export async function saveImageToR2(
   }
 
   try {
-    if (imageSource.startsWith("data:image/")) {
+    const isHttp = imageSource.startsWith("http://") || imageSource.startsWith("https://");
+    const isDataUrl = imageSource.startsWith("data:image/");
+    const isRawBase64 = !isHttp && !isDataUrl && imageSource.length > 50;
+
+    // 1. Handle Data URL or Raw Base64
+    if (isDataUrl || isRawBase64) {
+      let contentType = "image/jpeg";
+      if (isDataUrl) {
+        const match = imageSource.match(/^data:([^;]+);base64,/);
+        if (match?.[1]) contentType = match[1];
+      } else {
+        contentType = detectBase64MimeType(imageSource);
+      }
+
       const bytes = base64ToUint8Array(imageSource);
       await storage.put(r2Key, bytes, {
-        httpMetadata: { contentType: "image/jpeg" },
+        httpMetadata: { contentType },
       });
-      console.log(`[R2 Storage] Successfully stored base64 image to R2: ${r2Key} (${bytes.length} bytes)`);
+      console.log(`[R2 Storage] Successfully stored base64 image to R2: ${r2Key} (${bytes.length} bytes, type=${contentType})`);
       return `/api/assets/${r2Key}`;
     }
 
-    if (imageSource.startsWith("http://") || imageSource.startsWith("https://")) {
+    // 2. Handle HTTP/HTTPS URLs
+    if (isHttp) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
       try {
