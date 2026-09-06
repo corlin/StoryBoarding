@@ -395,20 +395,15 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
           <span className="font-mono text-muted-foreground ml-1">
             {totalDuration}s / {targetDuration}s
           </span>
-          <span
-            className={cn(
-              "px-2 py-0.5 rounded-full font-mono text-[10px] font-bold border flex items-center gap-1 cursor-help",
-              Math.abs(diffPercent) <= 15
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                : "bg-red-500/10 text-red-400 border-red-500/30 animate-pulse"
-            )}
-            title={Math.abs(diffPercent) <= 15 ? "【黄金节奏】时长落在目标 ±15% 安全容差内（短剧黄金语速按 4.5字/秒 测算）" : "【节奏失衡】超出 ±15% 容差警戒线，建议增删台词或动作节拍，防止观众出戏"}
-          >
-            <span>{diffPercent > 0 ? `+${diffPercent}%` : `${diffPercent}%`}</span>
-            <span className="text-[9px] opacity-70">
-              {Math.abs(diffPercent) <= 15 ? "(±15%安全)" : "(超容差)"}
+          {Math.abs(diffPercent) > 15 && (
+            <span
+              className="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold border flex items-center gap-1 bg-red-500/10 text-red-400 border-red-500/30 animate-pulse cursor-help"
+              title="【节奏失衡】超出 ±15% 容差警戒线，建议增删台词或动作节拍，防止观众出戏"
+            >
+              <span>{diffPercent > 0 ? `+${diffPercent}%` : `${diffPercent}%`}</span>
+              <span className="text-[9px] opacity-80">(超容差)</span>
             </span>
-          </span>
+          )}
           {/* 当存在有效镜头时，提供从分镜一键无损同步节拍按钮 */}
           {sequence.shots && sequence.shots.length > 0 && (
             <button
@@ -417,27 +412,15 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
                 setBeats(synced);
                 notify.success(`已从本集 ${sequence.shots.length} 个镜头快速对齐 ${synced.length} 个剧本节拍！`);
               }}
-              title="从当前分镜镜头智能反向派生节拍流与台词，消除时长容差偏差"
+              title="从当前分镜镜头智能反向派生节拍流与台词"
               className="px-2 py-0.5 rounded-md text-[10px] font-medium border border-border bg-secondary/40 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all flex items-center gap-1 cursor-pointer"
             >
               <RefreshCw className="w-2.5 h-2.5" />
-              <span>同步分镜节拍</span>
+              <span>同步分镜</span>
             </button>
           )}
-          <span className="text-muted-foreground text-[11px] hidden sm:inline" title="行业标准短剧台词按 4.5字/秒 计算预估时长">
-            · {sceneGroups.length} 场 · {beats.length} 节拍 · {dialogueCount} 台词 (4.5字/s)
-          </span>
-          {/* Cold-open 3-beat hook gate */}
-          <span
-            className={cn(
-              "px-1.5 py-0.5 rounded text-[10px] font-mono border hidden md:inline-flex items-center gap-1 cursor-help",
-              beats.length > 0 && hook.trim().length > 0
-                ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
-                : "bg-muted text-muted-foreground border-border"
-            )}
-            title="【黄金3秒冷开场】前3拍内必须兑现核心冲突设问，抓住短剧完播率黄金窗口"
-          >
-            <span>冷开场闸门: 前3拍</span>
+          <span className="text-muted-foreground text-[11px] hidden sm:inline">
+            · {sceneGroups.length} 场 · {beats.length} 节拍
           </span>
         </div>
 
@@ -592,19 +575,11 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
                           : "bg-blue-500/[0.03] border-border/60 hover:border-blue-500/40"
                       )}
                     >
-                      {/* Beat Index & Hook Gate Indicator */}
-                      <div className="flex flex-col items-center gap-0.5 shrink-0 pt-0.5">
-                        <span className="w-5 text-center font-mono text-[11px] text-muted-foreground/80">
+                      {/* Beat Index */}
+                      <div className="flex flex-col items-center shrink-0 pt-0.5">
+                        <span className="w-5 text-center font-mono text-[11px] text-muted-foreground/60">
                           {idx + 1}
                         </span>
-                        {sceneNum === 1 && idx < 3 && (
-                          <span
-                            className="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30"
-                            title="冷开场窗口期 (第 1-3 拍)"
-                          >
-                            H{idx + 1}
-                          </span>
-                        )}
                       </div>
 
                       {/* Main Beat Slot (.slot .view) */}
