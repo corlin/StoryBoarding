@@ -376,39 +376,42 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                     <span className="font-mono text-[10px]">H3</span>
                   </button>
 
-                  {/* 一键冲印本批次 (Batch Render within Call Sheet) */}
+                  {/* 一键冲印本批次待绘镜头 (Batch Render within Call Sheet) */}
                   {!isComplete && onRegenerateShotImage && (
                     <button
                       type="button"
                       disabled={renderingGroupId === group.groupKey}
                       onClick={async () => {
-                        const unrendered = group.shots.filter((s) => !s.storyboard_image_url || s.is_dirty);
-                        if (unrendered.length === 0) return;
+                        const unrendered = group.shots.filter((s) => !s.is_locked && (!s.storyboard_image_url || s.is_dirty));
+                        if (unrendered.length === 0) {
+                          notify.info("本批次所有镜头已显影或处于锁定保护状态");
+                          return;
+                        }
                         try {
                           setRenderingGroupId(group.groupKey);
-                          notify.info(`🎨 正在冲印批次 B${gIdx + 1} (${group.locationName}) 的 ${unrendered.length} 个镜头画面...`);
+                          notify.info(`🎨 正在冲印批次 B${gIdx + 1} (${group.locationName}) 的 ${unrendered.length} 个待绘镜头...`);
                           for (const s of unrendered) {
                             await onRegenerateShotImage(s.id);
                           }
-                          notify.success(`✨ 批次 B${gIdx + 1} 全部镜头画面冲印显影完毕！`);
+                          notify.success(`✨ 批次 B${gIdx + 1} 全部待绘镜头画面冲印显影完毕！`);
                         } catch (err: any) {
                           notify.error(err?.message || "冲印批次镜头失败");
                         } finally {
                           setRenderingGroupId(null);
                         }
                       }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black shadow-xs transition-all cursor-pointer disabled:opacity-50"
-                      title="一键并发或顺序冲印本批次下所有待显影镜头画面"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                      title="一键仅对本批次下未生成或台本已改动的待显影镜头进行冲印"
                     >
                       {renderingGroupId === group.groupKey ? (
                         <>
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           <span>冲印中...</span>
                         </>
                       ) : (
                         <>
-                          <RefreshCw className="w-3 h-3" />
-                          <span>冲印 ({group.shots.length - completedCount})</span>
+                          <Sparkles className="w-3.5 h-3.5 fill-current" />
+                          <span>🎨 冲印本批待绘 ({group.shots.length - completedCount})</span>
                         </>
                       )}
                     </button>
@@ -420,8 +423,8 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                       全显影
                     </span>
                   ) : (
-                    <span className="text-[11px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                      待冲印 {group.shots.length - completedCount} 镜
+                    <span className="inline-flex items-center gap-1 text-[11px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      <span>⚡ 待冲印 {group.shots.length - completedCount} 镜</span>
                     </span>
                   )}
                 </div>
@@ -562,12 +565,21 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                                 ✓
                               </span>
                             ) : isDirty ? (
-                              <span className="text-amber-400 font-mono text-[10px]" title="台本已改待重绘">
-                                ⚡改
+                              <span
+                                onClick={handleRenderSingle}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono animate-pulse hover:bg-amber-500/30 transition-colors"
+                                title="台本动作/对白已改动，与现有分镜图脱节，点击立即原位重绘此格"
+                              >
+                                <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                                <span>待重绘</span>
                               </span>
                             ) : (
-                              <span className="text-muted-foreground/60" title="未冲印">
-                                ○
+                              <span
+                                onClick={handleRenderSingle}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-secondary text-muted-foreground/80 hover:text-foreground text-[10px] font-mono hover:bg-muted transition-colors"
+                                title="未冲印，点击开始显影生成"
+                              >
+                                ○ 未冲印
                               </span>
                             )}
                           </td>
