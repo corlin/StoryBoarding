@@ -34,6 +34,7 @@ import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { EpisodePillTrack } from "@/components/workspace/EpisodePillTrack";
 import { computeProjectQualityDiagnostics } from "@/components/modals/ProjectQualityRadarModal";
 import { COLOR } from "@/lib/colorTokens";
+import { notify } from "@/components/ui/ToastNotification";
 import { cn } from "@/lib/utils";
 
 interface TopBarProps {
@@ -339,13 +340,30 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             onClick={() => {
               if (!isAuthenticated) {
+                notify.info("🎬 请先注册或登录专属导演账号");
                 openAuthModal("login");
+                return;
+              }
+              const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+              if (isDemoUser) {
+                notify.info("🎬 当前为公共体验账号！如需使用 AI 导演重新拆解剧本与镜头，请注册专属导演账号并在设置中填入 Key");
+                openAuthModal("register");
+                return;
+              }
+              const hasKey = !!user?.custom_settings?.llmApiKey;
+              if (!hasKey) {
+                notify.info("🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI 智能拆镜服务");
+                openSettingsModal();
                 return;
               }
               onOpenAIGenerate();
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs cursor-pointer"
-            title="利用 AI 导演引擎规划镜头结构与运镜"
+            title={
+              (!user || user.id === "demo" || user.email === "demo@caifu.social")
+                ? "AI 导演智能拆镜（公共体验账号下已展示完整样板分镜，如需重新规划请注册专属账号）"
+                : "利用 AI 导演引擎规划镜头结构与运镜"
+            }
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>AI 智能拆镜</span>

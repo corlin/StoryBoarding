@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { Sparkles, X, Key } from "lucide-react";
 import { NarrativeStyleSelector } from "@/components/director/NarrativeStyleSelector";
 import { NarrativeMode, NarrativeCenter } from "@/types/narrative";
 
@@ -125,8 +125,11 @@ export const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>预计耗时: ~3-5 秒 (调用当前配置模型)</span>
+        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/60">
+          <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+            <Key className="w-3 h-3" />
+            <span>专属 API Key 已就绪 · ~3-5s 拆解</span>
+          </div>
           <div className="flex gap-2">
             <button
               type="button"
@@ -140,7 +143,7 @@ export const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
               type="button"
               disabled={isSubmitting || !storyText.trim()}
               onClick={handleSubmit}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 cursor-pointer shadow-xs"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>{isSubmitting ? "正在拆镜中..." : "开始规划分镜"}</span>
