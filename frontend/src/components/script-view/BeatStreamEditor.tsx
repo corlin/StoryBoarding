@@ -171,7 +171,65 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
   const [payoff, setPayoff] = useState("");
   const [targetDuration, setTargetDuration] = useState(60.0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncingToShots, setIsSyncingToShots] = useState(false);
   const [editingBeatId, setEditingBeatId] = useState<string | null>(null);
+
+  // Convert current atomic beats into clean screenplay format with shot blocks for 100% stable parsing
+  const convertBeatsToScreenplayText = (seq: SequenceModel, beatList: BeatModel[]): string => {
+    const epNum = seq.episode_number || seq.order || 1;
+    const lines: string[] = [
+      `第 ${epNum} 场 · ${seq.title || `第 ${epNum} 集`} · 空间内景`,
+      "",
+    ];
+
+    beatList.forEach((b, idx) => {
+      if (b.type === "action") {
+        lines.push(`【镜头 #${idx + 1}】${b.content || "角色展开关键行动调度。"}`);
+      } else {
+        lines.push(`【镜头 #${idx + 1}】${b.speaker || "角色"}入画`);
+        lines.push(`  ${b.speaker || "角色"}：“${b.content || ""}”`);
+      }
+      lines.push("");
+    });
+
+    return lines.join("\n");
+  };
+
+  const handleSyncToShots = async () => {
+    if (!project?.id || !sequence?.id) return;
+    try {
+      setIsSyncingToShots(true);
+      // 1. First persist beats and anchors
+      await api.updateSequenceScreenplay(project.id, sequence.id, {
+        hook_summary: hook.trim(),
+        cliffhanger_summary: cliffhanger.trim(),
+        payoff_summary: payoff.trim(),
+        target_duration: targetDuration,
+        beats_data: beats,
+      });
+
+      // 2. Generate structured screenplay text and trigger differential reconciliation
+      const screenplayStr = convertBeatsToScreenplayText(sequence, beats);
+      const res = await api.syncSequenceScreenplayToShots(project.id, sequence.id, screenplayStr);
+
+      const updatedCount = res.diff?.updated || 0;
+      const createdCount = res.diff?.created || 0;
+      const lockedCount = res.diff?.locked_preserved || 0;
+
+      notify.success(`✨ 已成功同步分镜！更新 ${updatedCount} 镜，新建 ${createdCount} 镜，锁定保护 ${lockedCount} 镜`);
+      if (onRefreshProject) {
+        await onRefreshProject();
+      }
+      if (onSwitchToStoryboard) {
+        onSwitchToStoryboard();
+      }
+    } catch (err: any) {
+      console.error("Sync beats to shots error:", err);
+      notify.error(err?.response?.data?.detail || err?.message || "同步分镜失败");
+    } finally {
+      setIsSyncingToShots(false);
+    }
+  };
 
   // 从分镜派生完整节拍流的通用函数
   const deriveBeatsFromShots = (seq: SequenceModel): BeatModel[] => {
@@ -425,10 +483,23 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Sync Screenplay to Storyboard Shots Button (Differential Update) */}
+          <button
+            type="button"
+            onClick={handleSyncToShots}
+            disabled={isSyncingToShots || isSaving || beats.length === 0}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="将当前修改后的节拍流与台词，差量同步更新至右侧分镜画板（已锁定镜头将被安全保护）"
+          >
+            {isSyncingToShots ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            <span>同步更新分镜</span>
+          </button>
+
           <button
             onClick={handleSaveAll}
-            disabled={isSaving}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            disabled={isSaving || isSyncingToShots}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-secondary hover:bg-muted text-foreground border border-border transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="仅保存剧本节拍与三幕短剧卡点数据"
           >
             {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             <span>保存剧本</span>
