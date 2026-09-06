@@ -207,244 +207,219 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
             </span>
           </div>
 
-          {/* Group 1: 剧组摄制现场与排期 (Production & Field Execution) */}
+          {/* Group 1: 核心视觉与制片交付物 (Primary Visual Deliverables) */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 pt-1 pb-0.5">
               <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
-                <span>🎬 剧组现场与排期交付物</span>
+                <span>🎬 核心视觉与制片母带 (Primary Deliverables)</span>
               </span>
               <div className="h-px bg-border/60 flex-1" />
             </div>
 
-            {/* 1. 16:9 / 9:16 Storyboard Sheet PNG */}
-            <button
-              type="button"
-              onClick={handleExportStoryboardSheetPNG}
-              disabled={isExportingPng || currentShots.length === 0}
-              className="w-full flex items-center justify-between p-3.5 rounded-xl border border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 transition-all group text-left disabled:opacity-50 cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-sky-500/20 text-sky-400">
-                  {isExportingPng ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* 1. Storyboard Sheet PNG */}
+              <button
+                type="button"
+                onClick={handleExportStoryboardSheetPNG}
+                disabled={isExportingPng || currentShots.length === 0}
+                className="flex flex-col justify-between p-3 rounded-xl border border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 transition-all text-left disabled:opacity-50 cursor-pointer group"
+              >
                 <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="p-1.5 rounded-lg bg-sky-500/20 text-sky-400">
+                      {isExportingPng ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                    </div>
+                    <Download className="w-3.5 h-3.5 text-sky-400 group-hover:scale-110 transition-transform" />
+                  </div>
                   <h4 className="text-xs font-bold text-sky-300">
-                    1. 🖼️ {isVertical ? "9:16 竖屏" : "16:9"} 故事板打样单 (PNG Draft)
+                    高清长图 (PNG)
                   </h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    纯客户端 Canvas 极速合成轻量打样单（{isVertical ? "9:16 手机全屏比例" : "16:9 电影画幅"}，小体积秒下载，零等待）
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug">
+                    {isVertical ? "9:16 竖屏" : "16:9"} 故事板打样单，秒级即时合成
                   </p>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-sky-400 font-medium">
-                {isExportingPng ? (
-                  <span className="text-sky-300 text-[11px]">合成中...</span>
-                ) : (
-                  <Download className="w-4 h-4 text-sky-400 group-hover:scale-110 transition-transform" />
-                )}
-              </div>
-            </button>
-
-            {/* 2. Call Sheet CSV Table */}
-            <button
-              type="button"
-              onClick={() => {
-                try {
-                  exportCallSheetToCsv(
-                    project,
-                    currentShots,
-                    project.locations || [],
-                    project.characters || []
-                  );
-                  notify.success("📊 剧组制片顺场表 (CSV / Excel) 已成功导出并下载！");
-                } catch (e: any) {
-                  notify.error(e?.message || "导出顺场表失败");
-                }
-              }}
-              disabled={currentShots.length === 0}
-              className="w-full flex items-center justify-between p-3.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all group text-left cursor-pointer disabled:opacity-50"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
-                  <FileSpreadsheet className="w-4 h-4" />
+                <div className="mt-2 text-[10px] font-mono text-sky-400 font-medium">
+                  {isExportingPng ? "正在合成..." : "一键下载 →"}
                 </div>
+              </button>
+
+              {/* 2. Storyboard Images Pack (ZIP) */}
+              <a
+                href={api.getExportImagesZipUrl(project.id)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-col justify-between p-3 rounded-xl border border-border bg-secondary/60 hover:bg-muted transition-all text-left group"
+              >
                 <div>
-                  <h4 className="text-xs font-bold text-emerald-300">
-                    2. 📊 影视剧组制片顺场排期表 (Call Sheet CSV / Excel)
-                  </h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    按拍摄场景与光效归类批次，包含镜号、机位调度、角色、动作台词与时长，带 UTF-8 BOM，Excel 打开 100% 不乱码
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
-                <Download className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-              </div>
-            </button>
-          </div>
-
-          {/* Group 2: AI 视频与工业模型批量投产 (AI Generation & Model Manifests) */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 pt-2 pb-0.5">
-              <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                <span>🤖 AI 视频与模型投产交付物</span>
-              </span>
-              <div className="h-px bg-border/60 flex-1" />
-            </div>
-
-            {/* 3. Generation Package ZIP */}
-            <a
-              href={api.getExportPackageUrl(project.id)}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-secondary/50 hover:bg-muted transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-secondary text-foreground">
-                  <Archive className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-foreground">3. 📦 全套工业交付包 (Generation Package ZIP)</h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    包含 Shot Spec JSON、AI 视频批量生成 Manifest、设定集 Bible、Markdown 剧本与资产清单
-                  </p>
-                </div>
-              </div>
-              <Download className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-            </a>
-
-            {/* 4. MiniMax H3 Production Manifest JSON */}
-            <button
-              type="button"
-              onClick={handleExportH3Json}
-              disabled={currentShots.length === 0}
-              className="w-full flex items-center justify-between p-3.5 rounded-xl border border-border bg-secondary/50 hover:bg-muted transition-all group text-left cursor-pointer disabled:opacity-50"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-secondary text-foreground">
-                  <Terminal className="w-4 h-4" />
-                </div>
-                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="p-1.5 rounded-lg bg-secondary text-foreground">
+                      <Images className="w-4 h-4" />
+                    </div>
+                    <Download className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground group-hover:scale-110 transition-transform" />
+                  </div>
                   <h4 className="text-xs font-bold text-foreground">
-                    4. 🎬 MiniMax H3 工业分镜投产 JSON 清单 (Manifest JSON)
+                    分镜图包 (ZIP)
                   </h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    严格对齐首行对齐指令、切点时刻推进与 &lt;d&gt;[Chinese] 台词原子块的标准分镜清单
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug">
+                    每镜 {isVertical ? "9:16" : "16:9"} 独立高清大图打包
                   </p>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                <Download className="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:scale-110 transition-transform" />
-              </div>
-            </button>
+                <div className="mt-2 text-[10px] font-mono text-muted-foreground group-hover:text-foreground font-medium">
+                  打包下载 →
+                </div>
+              </a>
 
-            {/* 5. Storyboard Images Pack (ZIP) */}
-            <a
-              href={api.getExportImagesZipUrl(project.id)}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-secondary/50 hover:bg-muted transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-secondary text-foreground">
-                  <Images className="w-4 h-4" />
-                </div>
+              {/* 3. Call Sheet CSV Table */}
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    exportCallSheetToCsv(
+                      project,
+                      currentShots,
+                      project.locations || [],
+                      project.characters || []
+                    );
+                    notify.success("📊 剧组制片顺场表 (CSV / Excel) 已成功导出并下载！");
+                  } catch (e: any) {
+                    notify.error(e?.message || "导出顺场表失败");
+                  }
+                }}
+                disabled={currentShots.length === 0}
+                className="flex flex-col justify-between p-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all text-left cursor-pointer disabled:opacity-50 group"
+              >
                 <div>
-                  <h4 className="text-xs font-bold text-foreground">5. 🖼️ 高清分镜图包 (Storyboard Images ZIP)</h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    每个镜头的 {isVertical ? "9:16 竖屏" : "16:9"} 高清原图（按 SHOT_01_WS_... 规范命名打包）
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                      <FileSpreadsheet className="w-4 h-4" />
+                    </div>
+                    <Download className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <h4 className="text-xs font-bold text-emerald-300">
+                    制片顺场表 (CSV)
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug">
+                    同场光影分组对账，Excel 导入 100% 不乱码
                   </p>
                 </div>
-              </div>
-              <Download className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-            </a>
+                <div className="mt-2 text-[10px] font-mono text-emerald-400 font-medium">
+                  导出表格 →
+                </div>
+              </button>
+            </div>
           </div>
 
-          {/* Group 3: 编剧企划与设定资产 (Creative & Script Assets) */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 pt-2 pb-0.5">
-              <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
-                <span>📄 编剧企划与设定资产</span>
+          {/* Group 2: 工业工程与脚本文档 (Engineering & Script Manifests) */}
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center gap-2 pt-1 pb-0.5">
+              <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span>🤖 工业工程与台本数据 (Data & Manifests)</span>
               </span>
               <div className="h-px bg-border/60 flex-1" />
             </div>
 
-            {/* 6. Character & Location Bible Markdown */}
-            <a
-              href={api.getExportBibleUrl(project.id)}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between p-3.5 rounded-xl border border-purple-500/40 bg-purple-500/5 hover:bg-purple-500/10 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400">
-                  <BookOpen className="w-4 h-4" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              {/* MiniMax H3 Production Manifest JSON */}
+              <button
+                type="button"
+                onClick={handleExportH3Json}
+                disabled={currentShots.length === 0}
+                className="flex items-center justify-between p-2.5 rounded-xl border border-border/80 bg-secondary/40 hover:bg-secondary transition-all text-left cursor-pointer disabled:opacity-50 group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-1.5 rounded-lg bg-secondary text-foreground shrink-0">
+                    <Terminal className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h5 className="text-xs font-semibold text-foreground truncate">MiniMax H3 投产清单 (JSON)</h5>
+                    <p className="text-[10px] text-muted-foreground truncate">时间轴对齐指令与台词原子块</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-purple-300 group-hover:text-purple-200 transition-colors">
-                    6. 📖 角色与场景设定集 (Character & Location Bible)
-                  </h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    角色视觉 DNA 档案、三视图定妆提示词、场景空间灯光设定及资产直链
-                  </p>
-                </div>
-              </div>
-              <Download className="w-4 h-4 text-muted-foreground group-hover:text-purple-400" />
-            </a>
+                <Download className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground shrink-0 ml-2" />
+              </button>
 
-            {/* 7. Shot Script Markdown */}
-            <a
-              href={api.getExportScriptUrl(project.id)}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-secondary/50 hover:bg-muted transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-secondary text-foreground">
-                  <FileText className="w-4 h-4" />
+              {/* Generation Package ZIP */}
+              <a
+                href={api.getExportPackageUrl(project.id)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between p-2.5 rounded-xl border border-border/80 bg-secondary/40 hover:bg-secondary transition-all text-left group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-1.5 rounded-lg bg-secondary text-foreground shrink-0">
+                    <Archive className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h5 className="text-xs font-semibold text-foreground truncate">全套交付包 (Package ZIP)</h5>
+                    <p className="text-[10px] text-muted-foreground truncate">含 Spec JSON、设定集与资产清单</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-foreground transition-colors">
-                    7. 🎬 导演分镜头脚本文档 (Shot Script Markdown)
-                  </h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    标准分镜头台本（绑定角色、场景、视听语言、机位运动与对白列表）
-                  </p>
-                </div>
-              </div>
-              <Download className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-            </a>
+                <Download className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground shrink-0 ml-2" />
+              </a>
 
-            {/* 8. Director Global Prompt */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl border border-sky-500/40 bg-sky-500/5 hover:bg-sky-500/10 transition-all group">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-sky-500/20 text-sky-400">
-                  <Terminal className="w-4 h-4" />
+              {/* Character & Location Bible Markdown */}
+              <a
+                href={api.getExportBibleUrl(project.id)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between p-2.5 rounded-xl border border-border/80 bg-secondary/40 hover:bg-secondary transition-all text-left group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-1.5 rounded-lg bg-purple-500/15 text-purple-400 shrink-0">
+                    <BookOpen className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h5 className="text-xs font-semibold text-foreground truncate">设定集 (Bible MD)</h5>
+                    <p className="text-[10px] text-muted-foreground truncate">角色DNA档案与场景空间定妆</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-sky-300">8. 🌐 导演全局总控提示词 (Global Prompt)</h4>
-                  <p className="text-[11px] text-muted-foreground">多格连环打样总控 Prompt（支持 Midjourney 单图整版排版）</p>
+                <Download className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground shrink-0 ml-2" />
+              </a>
+
+              {/* Shot Script Markdown */}
+              <a
+                href={api.getExportScriptUrl(project.id)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between p-2.5 rounded-xl border border-border/80 bg-secondary/40 hover:bg-secondary transition-all text-left group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-1.5 rounded-lg bg-secondary text-foreground shrink-0">
+                    <FileText className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h5 className="text-xs font-semibold text-foreground truncate">分镜头脚本文档 (Script MD)</h5>
+                    <p className="text-[10px] text-muted-foreground truncate">标准分镜对白与机位动作台本</p>
+                  </div>
                 </div>
+                <Download className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground shrink-0 ml-2" />
+              </a>
+            </div>
+
+            {/* Global Prompt Footer Strip */}
+            <div className="flex items-center justify-between p-2.5 rounded-xl border border-sky-500/30 bg-sky-500/5 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <Terminal className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                <span className="font-semibold text-sky-300 truncate">导演全局总控提示词 (Global Prompt)</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 shrink-0 ml-2">
                 <button
                   type="button"
                   onClick={handleCopyGlobalPrompt}
                   disabled={isCopyingPrompt}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-medium border border-sky-500/40 transition-colors cursor-pointer"
-                  title="一键复制完整 Prompt 到剪贴板"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-[11px] font-medium border border-sky-500/40 transition-colors cursor-pointer"
                 >
-                  {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {isCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                   <span>{isCopied ? "已复制" : "复制"}</span>
                 </button>
                 <a
                   href={api.getExportDirectorGlobalPromptUrl(project.id)}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-1.5 text-muted-foreground hover:text-primary"
-                  title="下载 Markdown 文件"
+                  className="p-1 text-muted-foreground hover:text-sky-300"
+                  title="下载 MD"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
                 </a>
               </div>
             </div>
