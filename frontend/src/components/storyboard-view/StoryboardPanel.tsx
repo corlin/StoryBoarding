@@ -4,7 +4,7 @@ import { StoryboardCell } from "./StoryboardCell";
 import { RhythmBarcode } from "./RhythmBarcode";
 import { CallSheetView } from "./CallSheetView";
 import { VoiceAlignmentDrawer } from "@/components/drawers/VoiceAlignmentDrawer";
-import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video, SlidersHorizontal, Settings2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/components/ui/ToastNotification";
 
@@ -58,7 +58,20 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   });
   const [viewMode, setViewMode] = useState<"timeline" | "callsheet">("timeline");
   const [isVoiceDrawerOpen, setIsVoiceDrawerOpen] = useState(false);
+  const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const displaySettingsRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close display settings dropdown
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (displaySettingsRef.current && !displaySettingsRef.current.contains(e.target as Node)) {
+        setIsDisplaySettingsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleToggleRhythmBarcode = () => {
     setShowRhythmBarcode((prev) => {
@@ -139,67 +152,101 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
           </div>
         </div>
 
-        {/* Right Controls: Rhythm Toggle / Grid switch */}
+        {/* Right Controls: Grid density switch + Display Settings Dropdown + Theater */}
         <div className="flex items-center gap-2">
-          {/* Rhythm Barcode Strip Toggle */}
-          <button
-            onClick={handleToggleRhythmBarcode}
-            className={cn(
-              "p-1.5 rounded-md text-xs transition-colors border cursor-pointer",
-              showRhythmBarcode
-                ? "bg-primary/10 border-primary/30 text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-            )}
-            title={showRhythmBarcode ? "收起视听节奏彩条" : "展开视听节奏彩条 (Rhythm Barcode)"}
-          >
-            <span className="text-[11px] font-mono">📊 节奏</span>
-          </button>
-
-          {/* Previz HUD Guide Overlay Toggle Button */}
-          <button
-            onClick={() => setShowHudGuide(!showHudGuide)}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono transition-all border",
-              showHudGuide
-                ? "bg-sky-500/15 border-sky-500/40 text-sky-300 font-semibold shadow-xs"
-                : "bg-secondary/40 border-border/60 text-muted-foreground hover:text-foreground"
-            )}
-            title="一键开关专业导演视听执行辅助线（运镜矢量箭头、焦点靶心与九宫格安全框）"
-          >
-            <Crosshair className="w-3.5 h-3.5 text-sky-400" />
-            <span className="hidden sm:inline">视听辅助线 (HUD)</span>
-            <span className={cn("w-1.5 h-1.5 rounded-full", showHudGuide ? "bg-sky-400 animate-pulse" : "bg-muted-foreground/40")} />
-          </button>
-
-          {/* Grid Layout Switcher */}
+          {/* Grid Layout Density Switcher */}
           <div className="flex items-center bg-secondary/50 p-0.5 rounded-lg border border-border/60 text-xs text-muted-foreground">
             <button
               onClick={() => setGridCols(2)}
               className={cn(
-                "px-2 py-0.5 rounded transition-colors",
+                "px-2 py-0.5 rounded transition-colors cursor-pointer",
                 gridCols === 2 ? "bg-background text-foreground font-semibold shadow-xs" : "hover:text-foreground"
               )}
+              title="2列大图预览"
             >
               2列
             </button>
             <button
               onClick={() => setGridCols(3)}
               className={cn(
-                "px-2 py-0.5 rounded transition-colors",
+                "px-2 py-0.5 rounded transition-colors cursor-pointer",
                 gridCols === 3 ? "bg-background text-foreground font-semibold shadow-xs" : "hover:text-foreground"
               )}
+              title="3列标准预览"
             >
               3列
             </button>
             <button
               onClick={() => setGridCols(4)}
               className={cn(
-                "px-2 py-0.5 rounded transition-colors hidden xl:block",
+                "px-2 py-0.5 rounded transition-colors hidden xl:block cursor-pointer",
                 gridCols === 4 ? "bg-background text-foreground font-semibold shadow-xs" : "hover:text-foreground"
               )}
+              title="4列高密预览"
             >
               4列
             </button>
+          </div>
+
+          {/* Consolidated Display Settings Dropdown (HUD & Rhythm Barcode) */}
+          <div className="relative shrink-0" ref={displaySettingsRef}>
+            <button
+              type="button"
+              onClick={() => setIsDisplaySettingsOpen(!isDisplaySettingsOpen)}
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-all border cursor-pointer",
+                (showHudGuide || showRhythmBarcode)
+                  ? "bg-secondary/70 border-border text-foreground hover:bg-secondary"
+                  : "border-border/50 text-muted-foreground hover:text-foreground"
+              )}
+              title="分镜显示与导演辅助设置"
+            >
+              <Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="hidden sm:inline">显示</span>
+              {(showHudGuide || showRhythmBarcode) && (
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              )}
+            </button>
+
+            {isDisplaySettingsOpen && (
+              <div className="absolute right-0 mt-1.5 w-52 bg-card border border-border rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs space-y-1">
+                <div className="px-2 py-1 text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-wider border-b border-border/60">
+                  导演辅助视图设置
+                </div>
+
+                {/* Previz HUD Guide Overlay Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowHudGuide(!showHudGuide)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors cursor-pointer",
+                    showHudGuide ? "bg-sky-500/15 text-sky-300 font-semibold" : "text-foreground hover:bg-muted"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Crosshair className="w-3.5 h-3.5 text-sky-400" />
+                    <span>视听辅助线 (HUD)</span>
+                  </div>
+                  {showHudGuide && <Check className="w-3.5 h-3.5 text-sky-400" />}
+                </button>
+
+                {/* Rhythm Barcode Strip Toggle */}
+                <button
+                  type="button"
+                  onClick={handleToggleRhythmBarcode}
+                  className={cn(
+                    "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors cursor-pointer",
+                    showRhythmBarcode ? "bg-primary/15 text-primary font-semibold" : "text-foreground hover:bg-muted"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">📊</span>
+                    <span>视听节奏条 (Barcode)</span>
+                  </div>
+                  {showRhythmBarcode && <Check className="w-3.5 h-3.5 text-primary" />}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Theater Mode Button */}
@@ -207,7 +254,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
             <button
               onClick={() => onOpenTheater(selectedShotId || shots[0]?.id)}
               disabled={shots.length === 0}
-              className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+              className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 cursor-pointer"
               title="打开影院全屏动态播映模式 (Animatic Theater)"
             >
               <Maximize2 className="w-4 h-4" />
