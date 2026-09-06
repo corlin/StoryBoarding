@@ -4,7 +4,7 @@ import { StoryboardCell } from "./StoryboardCell";
 import { RhythmBarcode } from "./RhythmBarcode";
 import { CallSheetView } from "./CallSheetView";
 import { VoiceAlignmentDrawer } from "@/components/drawers/VoiceAlignmentDrawer";
-import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, RefreshCw, XCircle, Crosshair, Layers, Mic, Download, Video } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/components/ui/ToastNotification";
 
@@ -139,20 +139,8 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
           </div>
         </div>
 
-        {/* Right Controls: Batch Render / Rhythm Toggle / Grid switch */}
+        {/* Right Controls: Rhythm Toggle / Grid switch */}
         <div className="flex items-center gap-2">
-          {/* Unified Batch Render Action */}
-          {!isBatchRendering && missingImageCount > 0 && onRegenerateDirty && (
-            <button
-              onClick={onRegenerateDirty}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black shadow-xs transition-all cursor-pointer"
-              title="一键冲印渲染尚未生成画面的镜头"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span>冲印画面 ({missingImageCount})</span>
-            </button>
-          )}
-
           {/* Rhythm Barcode Strip Toggle */}
           <button
             onClick={handleToggleRhythmBarcode}
