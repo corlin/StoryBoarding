@@ -89,6 +89,14 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isAdvancedVisualOpen, setIsAdvancedVisualOpen] = useState(false);
 
+  // Detect whether script has unsynced changes compared to rendered image
+  const isScriptModifiedLocally =
+    (formData.action !== undefined && formData.action !== shot?.action) ||
+    (formData.dialogue !== undefined && formData.dialogue !== shot?.dialogue) ||
+    (formData.shot_size !== undefined && formData.shot_size !== shot?.shot_size) ||
+    (formData.camera_angle !== undefined && formData.camera_angle !== shot?.camera_angle);
+  const isDirty = Boolean(shot?.is_dirty || isScriptModifiedLocally);
+
   const currentIdx = allShots.findIndex((s) => s.id === shot?.id);
   const totalCount = allShots.length;
   const prevShot = currentIdx > 0 ? allShots[currentIdx - 1] : null;
@@ -173,6 +181,50 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
     }
   };
 
+  // Compile new H3 and image prompt according to latest action/dialogue/camera and trigger single shot render
+  const handleRecompileAndRegenerate = async () => {
+    if (!onRegenerateImage || isRegenerating) return;
+    setIsRegenerating(true);
+    try {
+      const mergedShot: ShotModel = {
+        ...shot,
+        ...formData,
+        order: formData.order || shot.order || 1,
+        duration: formData.duration || shot.duration || 2.5,
+        shot_size: formData.shot_size || shot.shot_size,
+        camera_angle: formData.camera_angle || shot.camera_angle,
+        camera_movement: formData.camera_movement || shot.camera_movement || { type: "static" },
+        action: formData.action || shot.action || "",
+        dialogue: formData.dialogue || shot.dialogue || "",
+        dialogue_emotion: formData.dialogue_emotion || shot.dialogue_emotion,
+        subject: formData.subject || shot.subject,
+      } as ShotModel;
+
+      const compiledH3 = generateH3Prompt([buildH3CutItem(mergedShot, 1)], { lang: promptLang });
+
+      // Save updated prompt and fields
+      await onUpdateShot(shot.id, {
+        ...formData,
+        h3_prompt: compiledH3,
+        // Passing image_prompt as undefined or clearing it will cause backend to recompute pure visual prompt if action changed
+        is_dirty: false,
+      });
+
+      setFormData((prev) => ({
+        ...prev,
+        h3_prompt: compiledH3,
+        is_dirty: false,
+      }));
+
+      await onRegenerateImage(shot.id);
+      notify.success("✨ 已根据最新台本动作重新编译提示词并完成画面重绘！");
+    } catch (e: any) {
+      notify.error(e?.message || "重绘失败");
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const movType = (formData.camera_movement as any)?.type || "static";
 
   return (
@@ -187,9 +239,17 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
               {String(shot.order).padStart(2, "0")}
             </div>
             <div className="min-w-0">
-              <h3 className="text-base font-semibold text-foreground truncate">
-                分镜头深度编辑与视听参数
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-semibold text-foreground truncate">
+                  分镜头深度编辑与视听参数
+                </h3>
+                {isDirty && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/40 animate-pulse shrink-0">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>台本待冲印</span>
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground truncate">
                 Shot #{shot.order} {totalCount > 0 && `(${currentIdx + 1}/${totalCount})`} · {shot.shot_size.toUpperCase()} · {shot.duration}s
               </p>
@@ -331,29 +391,79 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
             </div>
 
             <div className="flex-1 space-y-2 w-full">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">当前分镜图状态</span>
-                <button
-                  onClick={handleRegenerate}
-                  disabled={isRegenerating}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
-                >
-                  {isRegenerating ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>正在调用模型重绘...</span>
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>以此 Prompt 重绘此格</span>
-                    </>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground">当前分镜图状态</span>
+                  {isDirty && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/40 animate-pulse">
+                      <span>⚡ 台本已变更</span>
+                    </span>
                   )}
-                </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* Primary Action when Dirty: One-click Recompile Prompt & Regenerate */}
+                  {isDirty && (
+                    <button
+                      onClick={handleRecompileAndRegenerate}
+                      disabled={isRegenerating}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-amber-500 text-neutral-950 hover:bg-amber-400 transition-all shadow-sm disabled:opacity-50 cursor-pointer animate-in fade-in"
+                      title="根据最新修改的动作与台词重新生成生图提示词，并调用模型重绘画面"
+                    >
+                      {isRegenerating ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>正在更新提示词并重绘...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5 fill-current" />
+                          <span>✨ 更新提示词并重绘</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Secondary/Direct Action: Regenerate with current prompt */}
+                  <button
+                    onClick={handleRegenerate}
+                    disabled={isRegenerating}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all shadow-sm disabled:opacity-50 cursor-pointer",
+                      isDirty
+                        ? "bg-secondary text-foreground hover:bg-muted border border-border"
+                        : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    )}
+                    title="以当前底层的英文 Prompt 原样重绘此格"
+                  >
+                    {isRegenerating && !isDirty ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>正在重绘...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>以此 Prompt 重绘</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                可随时在下方修改 Midjourney / Grok 英文提示词，点击重绘将自动将新生成画面存入历史图库，杜绝旧图丢失。
-              </p>
+
+              {isDirty ? (
+                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200/90 leading-relaxed flex items-start gap-2">
+                  <span className="text-amber-400 mt-0.5">💡</span>
+                  <div>
+                    <span className="font-semibold text-amber-300">台本与画面可能存在脱节：</span>
+                    您对动作或机位的修改尚未反映到生图提示词中。推荐直接点击上方「✨ 更新提示词并重绘」快速冲印新版画面。
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  可随时在下方修改 Midjourney / Grok 英文提示词，点击重绘将自动将新生成画面存入历史图库，杜绝旧图丢失。
+                </p>
+              )}
 
               {/* Reelbench History Asset Pool (改坏了随时找回) */}
               {shot.image_history && shot.image_history.length > 0 && (
@@ -593,6 +703,34 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                 )}
               </div>
             </div>
+
+            {/* In-place Action Dirty Bar: Fast Recompile & Regenerate button right below Action/Dialogue */}
+            {isDirty && (
+              <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-between flex-wrap gap-2.5 bg-amber-500/5 -mx-5 -mb-5 p-4 rounded-b-xl border-t-amber-500/20">
+                <div className="flex items-center gap-2 text-xs text-amber-300">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>您修改了动作/对白，当前画面与设定存在偏差</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRecompileAndRegenerate}
+                  disabled={isRegenerating}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 text-neutral-950 hover:bg-amber-400 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  {isRegenerating ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>正在更新提示词并冲印...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5 fill-current" />
+                      <span>更新提示词并重绘此镜</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}
