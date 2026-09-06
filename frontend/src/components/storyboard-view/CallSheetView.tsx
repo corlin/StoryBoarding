@@ -42,6 +42,7 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
   selectedShotId,
   onSelectShot,
   onOpenDrawer,
+  onOpenTheater,
   onRegenerateShotImage,
   onToggleLock,
 }) => {
@@ -444,9 +445,21 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                             {String(sIdx + 1).padStart(2, "0")}
                           </td>
 
-                          {/* 48px Miniature Thumbnail */}
+                          {/* 48px Miniature Thumbnail with Direct Cinema Theater Launch */}
                           <td className="py-2 px-3 text-center">
-                            <div className="w-12 h-7 rounded overflow-hidden bg-muted border border-border/60 mx-auto flex items-center justify-center">
+                            <div
+                              onClick={(e) => {
+                                if (hasImage && onOpenTheater) {
+                                  e.stopPropagation();
+                                  onOpenTheater(shot.id);
+                                }
+                              }}
+                              className={cn(
+                                "w-12 h-7 rounded overflow-hidden bg-muted border border-border/60 mx-auto flex items-center justify-center transition-transform hover:scale-110",
+                                hasImage && onOpenTheater ? "cursor-zoom-in" : ""
+                              )}
+                              title={hasImage ? "点击进入全屏影院动态播放" : "未生成画面"}
+                            >
                               {hasImage ? (
                                 <img
                                   src={normalizeAssetUrl(shot.storyboard_image_url)}
