@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { ShotModel, LocationModel, CharacterModel, PropModel, ProjectModel } from "@/types/shot";
-import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, FileSpreadsheet, Download, RefreshCw, Loader2, Sparkles, Copy, Filter, ArrowUpDown, Search, X } from "lucide-react";
+import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, Unlock, FileSpreadsheet, Download, RefreshCw, Loader2, Sparkles, Copy, Filter, ArrowUpDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildBatchH3, buildH3CutItem } from "@/hooks/useH3Prompt";
 import { generateH3Prompt } from "@/lib/h3Prompt";
@@ -43,6 +43,7 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
   onSelectShot,
   onOpenDrawer,
   onRegenerateShotImage,
+  onToggleLock,
 }) => {
   const [renderingGroupId, setRenderingGroupId] = React.useState<string | null>(null);
   const [renderingShotId, setRenderingShotId] = React.useState<string | null>(null);
@@ -532,7 +533,11 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
 
                           {/* Status */}
                           <td className="py-2 px-3 text-center">
-                            {hasImage && !isDirty ? (
+                            {shot.is_locked ? (
+                              <span className="inline-flex items-center gap-0.5 text-amber-400 font-mono text-[10px]" title="已锁定（批量重绘与冲印时保护跳过）">
+                                <Lock className="w-3 h-3 text-amber-400" />
+                              </span>
+                            ) : hasImage && !isDirty ? (
                               <span className="inline-flex items-center text-emerald-400 font-bold" title="已显影就绪">
                                 ✓
                               </span>
@@ -547,9 +552,39 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                             )}
                           </td>
 
-                          {/* Action Column: In-situ Render & H3 Copy */}
+                          {/* Action Column: In-situ Render & H3 Copy & Lock */}
                           <td className="py-2 px-3 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              {/* Toggle Lock Button */}
+                              {onToggleLock && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const nextLocked = !shot.is_locked;
+                                    onToggleLock(shot.id, nextLocked);
+                                    notify.success(
+                                      nextLocked
+                                        ? `🔒 已锁定镜头 #${sIdx + 1}，避免全片重绘误刷！`
+                                        : `🔓 已解锁镜头 #${sIdx + 1}`
+                                    );
+                                  }}
+                                  className={cn(
+                                    "p-1 rounded transition-colors cursor-pointer",
+                                    shot.is_locked
+                                      ? "text-amber-400 hover:bg-amber-500/20 bg-amber-500/10"
+                                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                                  )}
+                                  title={shot.is_locked ? "点击解锁（解除重绘保护）" : "点击锁定（保护镜头不被全片重绘覆盖）"}
+                                >
+                                  {shot.is_locked ? (
+                                    <Lock className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <Unlock className="w-3.5 h-3.5 opacity-60 hover:opacity-100" />
+                                  )}
+                                </button>
+                              )}
+
                               {/* Copy Single H3 Button */}
                               <button
                                 type="button"
@@ -565,7 +600,7 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                               </button>
 
                               {/* Single Shot Render Button */}
-                              {onRegenerateShotImage && (!hasImage || isDirty) && (
+                              {onRegenerateShotImage && (!hasImage || isDirty) && !shot.is_locked && (
                                 <button
                                   type="button"
                                   disabled={isRenderingThisShot}
