@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { notify } from "@/components/ui/ToastNotification";
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, authModalTab, closeAuthModal, openAuthModal, login, register } = useAuthStore();
+  const { isAuthModalOpen, authModalTab, closeAuthModal, openAuthModal, openSettingsModal, login, register } = useAuthStore();
 
   const [account, setAccount] = useState("");
   const [email, setEmail] = useState("");
@@ -64,7 +64,11 @@ export const AuthModal: React.FC = () => {
       try {
         setIsSubmitting(true);
         await register(email.trim(), username.trim(), password);
-        notify.success("🎉 账号创建成功！已自动登录。");
+        notify.success("🎉 导演账号注册成功！正在为您打开设置，请配置专属 Key 开启 AI 创作。");
+        closeAuthModal();
+        setTimeout(() => {
+          openSettingsModal();
+        }, 300);
       } catch (err: any) {
         console.error("Register failed:", err);
         const detail = err?.response?.data?.detail || err?.response?.data?.error || err?.message;
