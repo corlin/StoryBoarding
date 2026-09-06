@@ -24,6 +24,7 @@ import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryM
 import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibraryModal";
 import { QuickStartWizardModal } from "@/components/modals/QuickStartWizardModal";
 import { OnboardingTourModal } from "@/components/modals/OnboardingTourModal";
+import { WorkspaceLoadingScreen } from "@/components/workspace/WorkspaceLoadingScreen";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
@@ -147,6 +148,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const {
     currentProject,
     selectedShotId,
+    isLoading: isProjectLoading,
+    error: projectError,
     fetchProject,
     selectShot,
     saveShotRemote,
@@ -638,6 +641,17 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   };
 
   const activeDrawerShot = shots.find((s) => s.id === drawerShotId) || shots.find((s) => s.id === selectedShotId) || null;
+
+  // Cinematic Noir Loading Screen while fetching project from D1 database
+  if (isProjectLoading || !currentProject) {
+    return (
+      <WorkspaceLoadingScreen
+        message={projectError ? "工程加载失败" : "好莱坞 AI 导演工作台"}
+        subMessage={projectError || undefined}
+        onRetry={() => fetchProject(effectiveProjectId)}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">

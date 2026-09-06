@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
 import { WorkspaceClient } from "./WorkspaceClient";
+import { WorkspaceLoadingScreen } from "@/components/workspace/WorkspaceLoadingScreen";
 
 interface WorkspacePageProps {
   params: {
@@ -13,13 +14,7 @@ export function generateStaticParams() {
 
 export default function WorkspacePage({ params }: WorkspacePageProps) {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center bg-background">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      }
-    >
+    <Suspense fallback={<WorkspaceLoadingScreen />}>
       <WorkspaceClient projectId={params.projectId} />
     </Suspense>
   );
