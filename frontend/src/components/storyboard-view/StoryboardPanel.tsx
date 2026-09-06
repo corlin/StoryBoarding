@@ -7,6 +7,7 @@ import { VoiceAlignmentDrawer } from "@/components/drawers/VoiceAlignmentDrawer"
 import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video, SlidersHorizontal, Settings2, Check, FileText, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
 
 interface StoryboardPanelProps {
   project?: ProjectModel | null;
@@ -352,7 +353,27 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
               {onOpenGenerateModal && (
                 <button
                   type="button"
-                  onClick={onOpenGenerateModal}
+                  onClick={() => {
+                    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
+                    if (!isAuthenticated) {
+                      notify.info("🎬 请先注册或登录专属导演账号");
+                      openAuthModal("login");
+                      return;
+                    }
+                    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+                    if (isDemoUser) {
+                      notify.info("🎬 当前为公共体验账号！如需新建与规划专属剧本，请注册专属导演账号并在设置中填入 Key");
+                      openAuthModal("register");
+                      return;
+                    }
+                    const hasKey = !!user?.custom_settings?.llmApiKey;
+                    if (!hasKey) {
+                      notify.info("🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI 导演服务");
+                      openSettingsModal();
+                      return;
+                    }
+                    onOpenGenerateModal();
+                  }}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -362,7 +383,27 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
               {onOpenImportScript && (
                 <button
                   type="button"
-                  onClick={onOpenImportScript}
+                  onClick={() => {
+                    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
+                    if (!isAuthenticated) {
+                      notify.info("🎬 请先注册或登录专属导演账号");
+                      openAuthModal("login");
+                      return;
+                    }
+                    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+                    if (isDemoUser) {
+                      notify.info("🎬 当前为公共体验账号！如需导入私有剧本进行解析，请注册专属导演账号并在设置中填入 Key");
+                      openAuthModal("register");
+                      return;
+                    }
+                    const hasKey = !!user?.custom_settings?.llmApiKey;
+                    if (!hasKey) {
+                      notify.info("🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启剧本解析服务");
+                      openSettingsModal();
+                      return;
+                    }
+                    onOpenImportScript();
+                  }}
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors cursor-pointer"
                 >
                   <FileText className="w-3.5 h-3.5 text-sky-400" />
