@@ -14,6 +14,8 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { ShotModel, CharacterModel, LocationModel, PropModel } from "@/types/shot";
 import { normalizeAssetUrl } from "@/lib/api";
@@ -85,6 +87,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [isAdvancedVisualOpen, setIsAdvancedVisualOpen] = useState(false);
 
   const currentIdx = allShots.findIndex((s) => s.id === shot?.id);
   const totalCount = allShots.length;
@@ -417,14 +420,19 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                    台词 / 旁白 (Dialogue)
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium text-muted-foreground block">
+                      台词 / 旁白 (Dialogue)
+                    </label>
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      {(formData.dialogue || "").length} 字
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={formData.dialogue || ""}
                     onChange={(e) => handleChange("dialogue", e.target.value)}
-                    placeholder="可选，角色台词或画外音..."
+                    placeholder="角色台词或画外音..."
                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                   />
                 </div>
@@ -443,121 +451,146 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Reelbench Screen Text & Motion Overlays (花字/屏幕题眼) */}
-              <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
-                    <span>🔤</span>
-                    <span>屏幕文字 / 核心花字 (Screen Text Overlay)</span>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">独立于对白的视觉卡点与题眼层</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="md:col-span-2">
-                    <label className="text-xs text-muted-foreground block mb-1">花字文案内容</label>
-                    <input
-                      type="text"
-                      value={formData.screen_text || ""}
-                      onChange={(e) => handleChange("screen_text", e.target.value)}
-                      placeholder="例如: 🚨 高能反转 / ⚡️ 核心真相揭晓 / 关键定理..."
-                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-muted-foreground block mb-1">花字排版风格</label>
-                    <select
-                      value={formData.screen_text_style || "bold_impact"}
-                      onChange={(e) => handleChange("screen_text_style", e.target.value)}
-                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-primary"
-                    >
-                      <option value="bold_impact">💥 醒目冲击 (黄黑重字)</option>
-                      <option value="warning_banner">🚨 警示红条 (危机Banner)</option>
-                      <option value="key_point">💡 核心提要 (金色光晕)</option>
-                      <option value="minimal_lower_third">🏷️ 电影角标 (极简白条)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {formData.screen_text && (
-                  <div className="p-2.5 rounded-lg bg-black/50 border border-border/60 flex items-center justify-center min-h-[48px]">
-                    {formData.screen_text_style === "warning_banner" ? (
-                      <div className="w-full bg-red-600 text-white font-black text-xs py-1 px-3 text-center tracking-widest uppercase border-y-2 border-yellow-400">
-                        🚨 {formData.screen_text} 🚨
-                      </div>
-                    ) : formData.screen_text_style === "key_point" ? (
-                      <div className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-neutral-950 font-extrabold text-xs px-3 py-0.5 rounded-full shadow">
-                        <span>💡</span>
-                        <span>{formData.screen_text}</span>
-                      </div>
-                    ) : formData.screen_text_style === "minimal_lower_third" ? (
-                      <div className="w-full bg-black/80 text-zinc-100 font-mono text-xs px-2.5 py-1 rounded border-l-2 border-sky-400">
-                        🏷️ {formData.screen_text}
-                      </div>
-                    ) : (
-                      <div className="text-center font-black text-sm text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,1)] tracking-wider">
-                        {formData.screen_text}
-                      </div>
+              {/* Collapsible Advanced Visual Details: Screen Text & Location/Props */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsAdvancedVisualOpen(!isAdvancedVisualOpen)}
+                  className="flex items-center justify-between w-full py-2 px-3 rounded-lg bg-secondary/50 hover:bg-secondary border border-border/70 text-xs font-medium text-foreground transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">🎛️</span>
+                    <span>更多视听细节 (屏幕花字、场景与关联道具)</span>
+                    {(formData.screen_text || formData.location_id || (formData.prop_ids && formData.prop_ids.length > 0)) && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                     )}
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <span>{isAdvancedVisualOpen ? "收起" : "展开"}</span>
+                    {isAdvancedVisualOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </div>
+                </button>
+
+                {isAdvancedVisualOpen && (
+                  <div className="mt-2.5 space-y-3 p-3.5 rounded-xl border border-border/80 bg-background/40 animate-in fade-in zoom-in-98 duration-150">
+                    {/* Screen Text & Motion Overlays */}
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-amber-400 flex items-center gap-1">
+                          <span>🔤</span>
+                          <span>屏幕文字 / 核心花字 (Screen Text)</span>
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">独立于对白的视觉卡点与题眼层</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="md:col-span-2">
+                          <input
+                            type="text"
+                            value={formData.screen_text || ""}
+                            onChange={(e) => handleChange("screen_text", e.target.value)}
+                            placeholder="例如: 🚨 高能反转 / ⚡️ 核心真相揭晓..."
+                            className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs font-medium focus:outline-none focus:border-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <select
+                            value={formData.screen_text_style || "bold_impact"}
+                            onChange={(e) => handleChange("screen_text_style", e.target.value)}
+                            className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs font-medium focus:outline-none focus:border-primary cursor-pointer"
+                          >
+                            <option value="bold_impact">💥 醒目冲击 (黄黑重字)</option>
+                            <option value="warning_banner">🚨 警示红条 (危机Banner)</option>
+                            <option value="key_point">💡 核心提要 (金色光晕)</option>
+                            <option value="minimal_lower_third">🏷️ 电影角标 (极简白条)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {formData.screen_text && (
+                        <div className="p-2 rounded-lg bg-black/50 border border-border/60 flex items-center justify-center min-h-[40px]">
+                          {formData.screen_text_style === "warning_banner" ? (
+                            <div className="w-full bg-red-600 text-white font-black text-xs py-1 px-3 text-center tracking-widest uppercase border-y-2 border-yellow-400">
+                              🚨 {formData.screen_text} 🚨
+                            </div>
+                          ) : formData.screen_text_style === "key_point" ? (
+                            <div className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-neutral-950 font-extrabold text-xs px-3 py-0.5 rounded-full shadow">
+                              <span>💡</span>
+                              <span>{formData.screen_text}</span>
+                            </div>
+                          ) : formData.screen_text_style === "minimal_lower_third" ? (
+                            <div className="w-full bg-black/80 text-zinc-100 font-mono text-xs px-2.5 py-1 rounded border-l-2 border-sky-400">
+                              🏷️ {formData.screen_text}
+                            </div>
+                          ) : (
+                            <div className="text-center font-black text-sm text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,1)] tracking-wider">
+                              {formData.screen_text}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="h-[1px] bg-border/60" />
+
+                    {/* Location and Props Selection */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+                          绑定场景空间 (Location)
+                        </label>
+                        <select
+                          value={formData.location_id || ""}
+                          onChange={(e) => handleChange("location_id", e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-primary cursor-pointer"
+                        >
+                          <option value="">未指定 (根据动作自动推导)</option>
+                          {locations.map((loc) => (
+                            <option key={loc.id} value={loc.id}>
+                              {loc.name} ({loc.environment_type === "interior" ? "室内" : "室外"})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+                          关联关键叙事道具 (Props)
+                        </label>
+                        <div className="flex flex-wrap gap-1.5 p-1 bg-background border border-border rounded-lg min-h-[34px] items-center">
+                          {propsList.length === 0 ? (
+                            <span className="text-[10px] text-muted-foreground px-1">暂无道具（请在全剧设定中登记）</span>
+                          ) : (
+                            propsList.map((p) => {
+                              const isSelected = (formData.prop_ids || []).includes(p.id);
+                              return (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => {
+                                    const currentProps = formData.prop_ids || [];
+                                    const next = isSelected
+                                      ? currentProps.filter((id) => id !== p.id)
+                                      : [...currentProps, p.id];
+                                    handleChange("prop_ids", next);
+                                  }}
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors cursor-pointer ${
+                                    isSelected
+                                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                      : "bg-secondary text-muted-foreground hover:text-foreground border border-border/60"
+                                  }`}
+                                >
+                                  {p.name}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
-
-              {/* Location and Props Selection (Reelbench Standard) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                    绑定场景空间 (Location)
-                  </label>
-                  <select
-                    value={formData.location_id || ""}
-                    onChange={(e) => handleChange("location_id", e.target.value)}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-primary"
-                  >
-                    <option value="">未指定 (根据动作自动推导)</option>
-                    {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name} ({loc.environment_type === "interior" ? "室内" : "室外"})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                    关联关键叙事道具 (Props)
-                  </label>
-                  <div className="flex flex-wrap gap-1.5 p-1.5 bg-background border border-border rounded-lg min-h-[38px] items-center">
-                    {propsList.length === 0 ? (
-                      <span className="text-[11px] text-muted-foreground px-1.5">暂无道具（请在全剧设定中登记）</span>
-                    ) : (
-                      propsList.map((p) => {
-                        const isSelected = (formData.prop_ids || []).includes(p.id);
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => {
-                              const currentProps = formData.prop_ids || [];
-                              const next = isSelected
-                                ? currentProps.filter((id) => id !== p.id)
-                                : [...currentProps, p.id];
-                              handleChange("prop_ids", next);
-                            }}
-                            className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors cursor-pointer ${
-                              isSelected
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                                : "bg-secondary text-muted-foreground hover:text-foreground border border-border/60"
-                            }`}
-                          >
-                            {p.name}
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
