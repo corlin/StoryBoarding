@@ -4,7 +4,7 @@ import { StoryboardCell } from "./StoryboardCell";
 import { RhythmBarcode } from "./RhythmBarcode";
 import { CallSheetView } from "./CallSheetView";
 import { VoiceAlignmentDrawer } from "@/components/drawers/VoiceAlignmentDrawer";
-import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video, SlidersHorizontal, Settings2, Check, FileText } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video, SlidersHorizontal, Settings2, Check, FileText, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/components/ui/ToastNotification";
 
@@ -253,15 +253,17 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
             )}
           </div>
 
-          {/* Theater Mode Button */}
+          {/* Theater Mode Button Capsule */}
           {onOpenTheater && (
             <button
               onClick={() => onOpenTheater(selectedShotId || shots[0]?.id)}
               disabled={shots.length === 0}
-              className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 cursor-pointer"
-              title="打开影院全屏动态播映模式 (Animatic Theater)"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 hover:text-amber-300 border border-amber-500/30 text-xs font-semibold shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+              title="打开影院全屏动态连播试映 (快捷键: 点击大图或按此按钮)"
             >
-              <Maximize2 className="w-4 h-4" />
+              <Play className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              <span className="hidden sm:inline">影院试映</span>
+              <Maximize2 className="w-3 h-3 opacity-60 hidden md:inline" />
             </button>
           )}
         </div>
