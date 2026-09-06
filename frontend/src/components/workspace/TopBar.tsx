@@ -26,6 +26,7 @@ import {
   HelpCircle,
   Palette,
   RefreshCw,
+  Wand2,
 } from "lucide-react";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
@@ -158,16 +159,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               <span>{activeVersionTag}</span>
-            </button>
-          )}
-
-          {onOpenWizard && (
-            <button
-              onClick={onOpenWizard}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 transition-all cursor-pointer"
-              title="拉起 3 步极速向导"
-            >
-              <span>⚡ 向导</span>
             </button>
           )}
         </div>
@@ -352,6 +343,19 @@ export const TopBar: React.FC<TopBarProps> = ({
                 >
                   <FileCode2 className="w-3.5 h-3.5 text-muted-foreground" />
                   <span>导入并拆解剧本</span>
+                </button>
+              )}
+
+              {onOpenWizard && (
+                <button
+                  onClick={() => {
+                    setIsMoreToolsOpen(false);
+                    onOpenWizard();
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
+                >
+                  <Wand2 className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>⚡ 3步AI起步向导 (重置起草)</span>
                 </button>
               )}
 
