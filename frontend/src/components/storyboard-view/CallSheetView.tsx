@@ -2,13 +2,14 @@
 
 import React, { useMemo } from "react";
 import { ShotModel, LocationModel, CharacterModel, PropModel, ProjectModel } from "@/types/shot";
-import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, Unlock, FileSpreadsheet, Download, RefreshCw, Loader2, Sparkles, Copy, Filter, ArrowUpDown, Search, X, ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
+import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, Unlock, FileSpreadsheet, Download, RefreshCw, Loader2, Sparkles, Copy, Filter, ArrowUpDown, Search, X, ChevronDown, ChevronUp, ChevronsUpDown, Key } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildBatchH3, buildH3CutItem } from "@/hooks/useH3Prompt";
 import { generateH3Prompt } from "@/lib/h3Prompt";
 import { normalizeAssetUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { exportCallSheetToCsv } from "@/lib/callSheetExporter";
+import { useAuthStore } from "@/stores/authStore";
 
 interface CallSheetViewProps {
   project?: ProjectModel | null;
@@ -52,8 +53,35 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
   const [filterStatus, setFilterStatus] = React.useState<"all" | "pending" | "completed">("all");
   const [sortBy, setSortBy] = React.useState<"default" | "duration_desc" | "shots_desc">("default");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
-  // Track collapsed state per groupKey (defaults to collapsing fully completed batches)
   const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({});
+
+  // Auth & Key state perception
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号，样板画面已就绪！如需自主${actionName}，请注册专属导演账号并绑定专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter / 生图 API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
 
   const toggleGroupCollapse = (groupKey: string) => {
     setCollapsedGroups((prev) => ({
@@ -382,6 +410,7 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                       type="button"
                       disabled={renderingGroupId === group.groupKey}
                       onClick={async () => {
+                        if (!checkAuthAndKey("批量冲印镜头视觉画面")) return;
                         const unrendered = group.shots.filter((s) => !s.is_locked && (!s.storyboard_image_url || s.is_dirty));
                         if (unrendered.length === 0) {
                           notify.info("本批次所有镜头已显影或处于锁定保护状态");
@@ -400,18 +429,28 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                           setRenderingGroupId(null);
                         }
                       }}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black shadow-xs transition-all cursor-pointer disabled:opacity-50"
-                      title="一键仅对本批次下未生成或台本已改动的待显影镜头进行冲印"
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50",
+                        hasCustomKey
+                          ? "bg-amber-500 hover:bg-amber-400 text-black"
+                          : "bg-secondary hover:bg-muted text-amber-300 border border-amber-400/30"
+                      )}
+                      title={hasCustomKey ? "一键仅对本批次下未生成或台本已改动的待显影镜头进行冲印" : "当前为体验模式，点击注册专属账号并绑定 Key 开启批量显影"}
                     >
                       {renderingGroupId === group.groupKey ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           <span>冲印中...</span>
                         </>
-                      ) : (
+                      ) : hasCustomKey ? (
                         <>
                           <Sparkles className="w-3.5 h-3.5 fill-current" />
                           <span>🎨 冲印本批待绘 ({group.shots.length - completedCount})</span>
+                        </>
+                      ) : (
+                        <>
+                          <Key className="w-3.5 h-3.5 text-amber-400" />
+                          <span>🔑 注册账号冲印本批 ({group.shots.length - completedCount})</span>
                         </>
                       )}
                     </button>
@@ -470,6 +509,7 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
 
                       const handleRenderSingle = async (e: React.MouseEvent) => {
                         e.stopPropagation();
+                        if (!checkAuthAndKey("冲印镜头视觉画面")) return;
                         if (!onRegenerateShotImage || isRenderingThisShot) return;
                         try {
                           setRenderingShotId(shot.id);
