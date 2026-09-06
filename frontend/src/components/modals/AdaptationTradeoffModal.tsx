@@ -27,6 +27,9 @@ import {
   Activity,
   Layers,
   HelpCircle,
+  Copy,
+  Download,
+  FileDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -324,6 +327,119 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
     }
   };
 
+  /**
+   * 生成工业级剧本围读会审 Markdown 通告
+   */
+  const generateMarkdownSummary = (): string => {
+    const projectName = project?.title || "短剧影视项目";
+    const dateStr = new Date().toISOString().split("T")[0];
+
+    let md = `# 🎬 《${projectName}》剧作大纲取舍与爽点雷达会审通告\n\n`;
+    md += `> **生成时间**：${dateStr}  \n`;
+    md += `> **工业基准**：Reelbench 电影级短剧标准 · Gate 2 爽点节拍门控  \n`;
+    md += `> **剧集体量**：${scaleDesc}（全剧共 ${totalEpisodes} 集）\n\n`;
+
+    md += `## 🎯 一、全剧戏剧核心与商业钩子 (Dramatic Core)\n\n`;
+    md += `${dramaticCore.trim() || "（暂未填写核心戏剧矛盾）"}\n\n`;
+
+    md += `## ⚖️ 二、改编四象限取舍矩阵 (Adaptation Tradeoffs)\n\n`;
+
+    md += `### 1. 保留 (Keep) - 核心高光与标志性视觉\n`;
+    if (!tradeoffs.keep || tradeoffs.keep.length === 0) {
+      md += `*（无保留项）*\n\n`;
+    } else {
+      tradeoffs.keep.forEach((item, idx) => {
+        md += `- **${idx + 1}. ${item.title}**\n  ${item.desc || ""}\n`;
+      });
+      md += `\n`;
+    }
+
+    md += `### 2. 砍掉 (Cut) - 冗长支线与低效过渡\n`;
+    if (!tradeoffs.cut || tradeoffs.cut.length === 0) {
+      md += `*（无砍掉项）*\n\n`;
+    } else {
+      tradeoffs.cut.forEach((item, idx) => {
+        md += `- **${idx + 1}. ${item.title}**\n  ${item.desc || ""}\n`;
+      });
+      md += `\n`;
+    }
+
+    md += `### 3. 合并 (Merge) - 角色合并与场景聚合\n`;
+    if (!tradeoffs.merge || tradeoffs.merge.length === 0) {
+      md += `*（无合并项）*\n\n`;
+    } else {
+      tradeoffs.merge.forEach((item, idx) => {
+        md += `- **${idx + 1}. ${item.title}**\n  ${item.desc || ""}\n`;
+      });
+      md += `\n`;
+    }
+
+    md += `### 4. 风险 (Risk) - 逻辑漏洞与拍摄预算陷阱\n`;
+    if (!tradeoffs.risk || tradeoffs.risk.length === 0) {
+      md += `*（无风险项）*\n\n`;
+    } else {
+      tradeoffs.risk.forEach((item, idx) => {
+        md += `- **${idx + 1}. ${item.title}**\n  ${item.desc || ""}\n`;
+      });
+      md += `\n`;
+    }
+
+    md += `## ⚡ 三、全剧爽点雷达与节拍轴 (Payoff Matrix)\n\n`;
+    md += `> **Gate 2 节奏门控状态**：${
+      beatGapAnalysis.passed
+        ? `✅ 达标 (全剧最大爽点真空间隔 ${beatGapAnalysis.maxGap} 集 <= 3 集)`
+        : `⚠️ 存在真空期 (最大爽点间隔 ${beatGapAnalysis.maxGap} 集 > 3 集，需补齐)`
+    }\n\n`;
+
+    md += `| 编号 | 集数 | 爽点类型 | 权重 | 伏笔/因果铺垫 (Setup) | 爆发兑现高光 (Payoff) |\n`;
+    md += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
+
+    const sortedBeats = [...payoffBeats].sort((a, b) => a.episode - b.episode);
+    if (sortedBeats.length === 0) {
+      md += `| - | - | 暂无爽点数据 | - | - | - |\n\n`;
+    } else {
+      sortedBeats.forEach((b) => {
+        const weightTag = b.weight === "major" ? "🔥 重大爆点" : "⚡ 次级推进";
+        md += `| ${b.id} | 第 ${b.episode} 集 | ${b.type} | ${weightTag} | ${b.setup.replace(/\|/g, "/")} | ${b.payoff.replace(/\|/g, "/")} |\n`;
+      });
+      md += `\n`;
+    }
+
+    md += `---\n*本通告由 AI 电影短剧导演台（StoryBoarding Reelbench）自动导出生成*`;
+    return md;
+  };
+
+  const handleCopyMarkdown = async () => {
+    try {
+      const md = generateMarkdownSummary();
+      await navigator.clipboard.writeText(md);
+      notify.success("📋 已将大纲取舍与爽点会审通告复制到剪贴板！");
+    } catch (err) {
+      console.error(err);
+      notify.error("复制到剪贴板失败，请手动选择复制");
+    }
+  };
+
+  const handleDownloadMarkdown = () => {
+    try {
+      const md = generateMarkdownSummary();
+      const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const safeProjectName = (project?.title || "project").replace(/[/\\?%*:|"<>]/g, "_");
+      link.href = url;
+      link.download = `${safeProjectName}_大纲改编与爽点会审通告.md`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      notify.success("💾 大纲与爽点 Markdown 文件已成功下载！");
+    } catch (err) {
+      console.error(err);
+      notify.error("下载 Markdown 文件失败");
+    }
+  };
+
   const columns = [
     {
       key: "keep" as const,
@@ -390,6 +506,26 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopyMarkdown}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-secondary hover:bg-muted text-foreground transition-colors cursor-pointer"
+              title="复制结构化 Markdown 剧作通告至剪贴板，用于剧本围读或团队汇报"
+            >
+              <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="hidden sm:inline">复制 Markdown 通告</span>
+              <span className="sm:hidden">复制</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadMarkdown}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-secondary hover:bg-muted text-foreground transition-colors cursor-pointer"
+              title="下载为 Markdown 文件 (.md)"
+            >
+              <Download className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="hidden sm:inline">导出文件</span>
+              <span className="sm:hidden">导出</span>
+            </button>
             <button
               type="button"
               disabled={isSaving}
