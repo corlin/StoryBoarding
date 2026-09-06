@@ -268,6 +268,20 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     }
   }, [currentProject, previewVersion]);
 
+  // Handle episode switching: auto-close drawers, reset drawer selection, and select first shot of new episode
+  const prevEpisodeIndexRef = useRef<number>(activeEpisodeIndex);
+  useEffect(() => {
+    if (prevEpisodeIndexRef.current !== activeEpisodeIndex) {
+      prevEpisodeIndexRef.current = activeEpisodeIndex;
+      setIsDrawerOpen(false);
+      setDrawerShotId(null);
+      const targetSeq = displayProject?.sequences?.[activeEpisodeIndex];
+      const firstShotId = targetSeq?.shots?.[0]?.id || null;
+      selectShot(firstShotId);
+      notify.info(`🎬 已切换至第 ${activeEpisodeIndex + 1} 集台本与分镜`);
+    }
+  }, [activeEpisodeIndex, displayProject, selectShot]);
+
   // Handlers for Version Time Machine
   const handleCreateSnapshot = async (name: string, tag?: string) => {
     try {
