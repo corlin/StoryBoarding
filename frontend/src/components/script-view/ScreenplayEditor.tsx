@@ -11,10 +11,12 @@ import {
   Check,
   BookOpen,
   Zap,
+  Key,
 } from "lucide-react";
 import { SequenceModel, ProjectModel } from "@/types/shot";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
 import { HookDoctorModal } from "@/components/modals/HookDoctorModal";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +46,33 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
     };
   } | null>(null);
 
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号，样板剧本已就绪！如需自主${actionName}，请注册专属导演账号并绑定专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在右上角「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
+
   // Sync initial screenplay text when sequence changes
   useEffect(() => {
     if (sequence) {
@@ -59,6 +88,7 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
 
   const handleSyncToShots = async () => {
     if (!project?.id || !sequence?.id) return;
+    if (!checkAuthAndKey("同步文学剧本至分镜")) return;
     try {
       setIsSyncing(true);
       const res = await api.syncSequenceScreenplayToShots(project.id, sequence.id, screenplayText);
@@ -180,22 +210,80 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setIsHookModalOpen(true)}
-            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-[11px] font-bold bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-all shadow-xs cursor-pointer"
-            title="短剧爆点重构台：前置评估前3s抓人钩子、中段加压与集尾生死卡点"
+            onClick={() => {
+              if (!checkAuthAndKey("使用短剧爆点重构")) return;
+              setIsHookModalOpen(true);
+            }}
+            className={cn(
+              "flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-[11px] font-bold transition-all shadow-xs cursor-pointer",
+              isDemoUser || !hasCustomKey
+                ? "bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)]"
+                : "bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30"
+            )}
+            title={
+              isDemoUser
+                ? "当前为公共体验账号：点击注册专属账号以使用短剧爆点重构台"
+                : !hasCustomKey
+                ? "未配置API Key：点击前往设置配置后使用"
+                : "短剧爆点重构台：前置评估前3s抓人钩子、中段加压与集尾生死卡点"
+            }
           >
-            <Zap className="w-3.5 h-3.5 text-rose-400" />
-            <span>短剧爆点重构</span>
+            {isDemoUser ? (
+              <>
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-semibold text-amber-300">🔑 注册体验重构</span>
+              </>
+            ) : !hasCustomKey ? (
+              <>
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-semibold text-amber-300">🔑 填Key重构</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-3.5 h-3.5 text-rose-400" />
+                <span>短剧爆点重构</span>
+              </>
+            )}
           </button>
           <button
             type="button"
             disabled={isSyncing || isSaving}
             onClick={handleSyncToShots}
-            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-[11px] font-bold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-sm shadow-amber-500/20 active:scale-95 disabled:opacity-50"
-            title="从当前最新文学剧本中精准比对差异，反推更新分镜头（自动保护已锁定的镜头）"
+            className={cn(
+              "flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-[11px] font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer",
+              isDemoUser || !hasCustomKey
+                ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)]"
+                : "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20"
+            )}
+            title={
+              isDemoUser
+                ? "当前为公共体验账号：点击注册专属账号以使用AI自动反推同步分镜"
+                : !hasCustomKey
+                ? "未配置API Key：点击前往设置配置后同步"
+                : "从当前最新文学剧本中精准比对差异，反推更新分镜头（自动保护已锁定的镜头）"
+            }
           >
-            {isSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            <span>同步分镜</span>
+            {isSyncing ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>同步中...</span>
+              </>
+            ) : isDemoUser ? (
+              <>
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-semibold text-amber-300">🔑 注册同步分镜</span>
+              </>
+            ) : !hasCustomKey ? (
+              <>
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-semibold text-amber-300">🔑 填Key同步</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>同步分镜</span>
+              </>
+            )}
           </button>
         </div>
       </div>

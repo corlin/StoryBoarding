@@ -13,10 +13,12 @@ import {
   ShieldAlert,
   Zap,
   Check,
+  Key,
 } from "lucide-react";
 import { ProjectModel, SequenceModel } from "@/types/shot";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
 
 interface HookDoctorModalProps {
@@ -40,17 +42,46 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
   const [isApplying, setIsApplying] = useState(false);
   const [diagnosis, setDiagnosis] = useState<any | null>(null);
 
-  // Auto trigger diagnosis when opened if not already loaded
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号，样板剧本已就绪！如需自主${actionName}，请注册专属导演账号并绑定专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在右上角「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
+
+  // Auto trigger diagnosis when opened if not already loaded and authorized
   useEffect(() => {
     if (isOpen && project?.id && sequence?.id && !diagnosis) {
+      if (isDemoUser || !hasCustomKey) return;
       handleRunDiagnosis();
     }
-  }, [isOpen, project?.id, sequence?.id]);
+  }, [isOpen, project?.id, sequence?.id, isDemoUser, hasCustomKey]);
 
   if (!isOpen) return null;
 
   const handleRunDiagnosis = async () => {
     if (!project?.id || !sequence?.id) return;
+    if (!checkAuthAndKey("短剧爆点重构诊断")) return;
     try {
       setIsLoading(true);
       const res = await api.diagnoseHook(project.id, sequence.id, currentScreenplay);
@@ -282,13 +313,42 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
               )}
             </div>
           </div>
+        ) : isDemoUser || !hasCustomKey ? (
+          <div className="flex-1 flex flex-col items-center justify-center py-12 text-center space-y-4 max-w-md mx-auto">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+              <Key className="w-6 h-6" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-sm font-bold text-foreground">🎬 导演就位：爆点诊断需调用 AI 深度推演</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {isDemoUser
+                  ? "当前为公共体验账号。如需让 AI 编剧总监对本集剧本进行 30s 黄金钩子、中段加压与生死卡点深度重构，请注册专属导演账号并绑定专属 Key。"
+                  : "尚未在个人设置中配置 OpenRouter API Key。配置后即可一键开启爆点重构与差量反推分镜。"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const { openAuthModal, openSettingsModal } = useAuthStore.getState();
+                if (isDemoUser) {
+                  openAuthModal("register");
+                } else {
+                  openSettingsModal();
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-md active:scale-95 cursor-pointer"
+            >
+              <Key className="w-3.5 h-3.5" />
+              <span>{isDemoUser ? "🔑 注册专属导演账号开启诊断" : "🔑 前往设置配置 API Key"}</span>
+            </button>
+          </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center py-12 text-center space-y-3">
             <p className="text-sm text-muted-foreground">尚未开始诊断</p>
             <button
               type="button"
               onClick={handleRunDiagnosis}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold cursor-pointer"
             >
               开始爆点诊断
             </button>
@@ -303,8 +363,8 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
             onClick={handleRunDiagnosis}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>重新诊断</span>
+            {isDemoUser || !hasCustomKey ? <Key className="w-3.5 h-3.5 text-amber-400" /> : <Sparkles className="w-3.5 h-3.5" />}
+            <span>{isDemoUser ? "🔑 注册开启诊断" : !hasCustomKey ? "🔑 填Key开启诊断" : "重新诊断"}</span>
           </button>
 
           <div className="flex items-center gap-2">
