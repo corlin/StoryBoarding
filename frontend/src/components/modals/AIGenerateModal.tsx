@@ -77,7 +77,44 @@ export const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
           />
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">输入故事梗概或场次文本</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-muted-foreground">输入故事梗概或场次文本</label>
+              <div className="flex items-center gap-1.5 text-[11px]">
+                <span className="text-muted-foreground/70">快速范例:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStoryText("赛博雨夜，青瓦飞檐的古典茶楼中，黑客武术大师墨客与特工银狐展开近身对决，经历了拔枪、子弹时间下腰闪避、凌空飞踢，最终击退特工，墨客收势伫立在雨中，望向全息广告牌。");
+                    setNarrativeMode("hollywood");
+                  }}
+                  className="px-1.5 py-0.5 rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors cursor-pointer"
+                >
+                  赛博武斗
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStoryText("昏暗密室，仅有一盏摇晃吊灯。刑警老周将一份绝密录音磁带拍在审讯桌上，嫌疑人年轻冷笑，直到录音机里传来他妹妹的声音，冷笑瞬间凝固，情绪崩溃坦白真相。");
+                    setNarrativeMode("drama_5min");
+                    setStructuralArchetype("single_space_standoff");
+                    setNarrativeCenter("character");
+                  }}
+                  className="px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition-colors cursor-pointer"
+                >
+                  密室审讯
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStoryText("江南竹林月夜，落叶萧萧。白衣剑客独行山道，林中突现黑衣刺客阵法围剿，剑鸣出鞘，落叶化为暗器，数息之间刺客尽退，剑客拂袖收剑，踏月而去。");
+                    setNarrativeMode("hollywood");
+                  }}
+                  className="px-1.5 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-colors cursor-pointer"
+                >
+                  古风对决
+                </button>
+              </div>
+            </div>
             <textarea
               value={storyText}
               onChange={(e) => setStoryText(e.target.value)}
