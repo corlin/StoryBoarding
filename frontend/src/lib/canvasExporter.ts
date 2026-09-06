@@ -380,13 +380,32 @@ export async function exportStoryboardSheetToPng(
     );
   }
 
-  // 4. Footer
-  const footerY = canvasHeight - padding + 8;
-  ctx.fillStyle = "#475569";
+  // 4. Footer with Studio Credits & Delivery Timestamp
+  const footerY = canvasHeight - padding + 16;
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.15)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding, footerY - 14);
+  ctx.lineTo(canvasWidth - padding, footerY - 14);
+  ctx.stroke();
+
+  // Left Footer: Project & Spec summary
+  ctx.fillStyle = "#64748b";
   ctx.font = "11px system-ui, -apple-system, sans-serif";
   ctx.fillText(
-    "StoryBoarding AI · 好莱坞故事板工作草图 (Previz Storyboard Sheet with Dialogue & Audio Design)",
+    `StoryBoarding AI · 工业级故事板打样单 (Previz Sheet) · ${count} 镜全套分镜 · 声音与台词对齐版`,
     padding,
+    footerY
+  );
+
+  // Right Footer: Studio Stamp & Time
+  const rightFooterText = `Generated with StoryBoarding AI Studio · ${new Date().toISOString().slice(0, 10)}`;
+  const rightTextWidth = ctx.measureText(rightFooterText).width;
+  ctx.fillStyle = "#475569";
+  ctx.font = "10px monospace";
+  ctx.fillText(
+    rightFooterText,
+    canvasWidth - padding - rightTextWidth,
     footerY
   );
 
@@ -400,7 +419,7 @@ export async function exportStoryboardSheetToPng(
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Storyboard_Draft_${sanitizeFilename(project.title || "project")}.png`;
+      link.download = `Storyboard_Sheet_${sanitizeFilename(project.title || "project")}_${count}shots.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
