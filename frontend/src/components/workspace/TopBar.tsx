@@ -291,19 +291,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
 
-        {/* 3. 视觉设定集 (Bible - Character & Scene Assets Hub) */}
-        {onOpenBible && (
-          <button
-            onClick={() => onOpenBible("bible")}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-secondary text-foreground hover:bg-muted border border-border transition-colors cursor-pointer"
-            title="管理视觉设定集（角色定妆卡、场景空间与叙事道具）"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-sky-400" />
-            <span className="hidden sm:inline">设定集</span>
-          </button>
-        )}
-
-        {/* 4. 导出交付包 (Export) */}
+        {/* 3. 导出交付包 (Export) */}
         {onOpenExport && (
           <button
             onClick={onOpenExport}
