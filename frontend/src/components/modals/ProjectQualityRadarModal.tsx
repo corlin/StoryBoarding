@@ -17,6 +17,7 @@ import {
   Info,
   X,
   Target,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -553,9 +554,16 @@ export const ProjectQualityRadarModal: React.FC<ProjectQualityRadarModalProps> =
                       onClose();
                       onNavigateToSection(item.jumpTarget);
                     }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary hover:bg-secondary/80 text-foreground border border-border shrink-0 transition-colors cursor-pointer"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all shadow-2xs cursor-pointer",
+                      !isPass
+                        ? "bg-amber-500 hover:bg-amber-400 text-black shadow-xs font-bold"
+                        : "bg-secondary hover:bg-muted text-foreground border border-border"
+                    )}
+                    title={`前往${item.stageLabel}进行修复或查看`}
                   >
-                    <span>去处理</span>
+                    {!isPass && <Wrench className="w-3 h-3 text-black fill-current" />}
+                    <span>{!isPass ? "立即修复" : "查看设定"}</span>
                     <ChevronRight className="w-3 h-3" />
                   </button>
                 )}
