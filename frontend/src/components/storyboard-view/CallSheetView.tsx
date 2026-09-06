@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { ShotModel, LocationModel, CharacterModel, PropModel, ProjectModel } from "@/types/shot";
-import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, Unlock, FileSpreadsheet, Download, RefreshCw, Loader2, Sparkles, Copy, Filter, ArrowUpDown, Search, X } from "lucide-react";
+import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, Unlock, FileSpreadsheet, Download, RefreshCw, Loader2, Sparkles, Copy, Filter, ArrowUpDown, Search, X, ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildBatchH3, buildH3CutItem } from "@/hooks/useH3Prompt";
 import { generateH3Prompt } from "@/lib/h3Prompt";
@@ -52,6 +52,23 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
   const [filterStatus, setFilterStatus] = React.useState<"all" | "pending" | "completed">("all");
   const [sortBy, setSortBy] = React.useState<"default" | "duration_desc" | "shots_desc">("default");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
+  // Track collapsed state per groupKey (defaults to collapsing fully completed batches)
+  const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({});
+
+  const toggleGroupCollapse = (groupKey: string) => {
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [groupKey]: !prev[groupKey],
+    }));
+  };
+
+  const toggleAllCollapse = (collapse: boolean) => {
+    const next: Record<string, boolean> = {};
+    groups.forEach((g) => {
+      next[g.groupKey] = collapse;
+    });
+    setCollapsedGroups(next);
+  };
 
   // Group shots by (Location + Lighting State) to avoid visual drift
   const groups: CallSheetGroup[] = useMemo(() => {
@@ -233,6 +250,24 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
             <option value="duration_desc">时长降序</option>
           </select>
 
+          {/* Toggle All Batches Collapse Button */}
+          {processedGroups.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const anyOpen = processedGroups.some((g) => !collapsedGroups[g.groupKey]);
+                toggleAllCollapse(anyOpen);
+              }}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-secondary/80 hover:bg-secondary text-foreground border border-border/60 text-xs font-medium transition-all cursor-pointer shrink-0"
+              title="一键展开或收起所有生产批次"
+            >
+              <ChevronsUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="hidden sm:inline">
+                {processedGroups.some((g) => !collapsedGroups[g.groupKey]) ? "全部收起" : "全部展开"}
+              </span>
+            </button>
+          )}
+
           {/* Export CSV Button */}
           <button
             type="button"
@@ -273,15 +308,31 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
             const completedCount = group.shots.filter((s) => s.storyboard_image_url && !s.is_dirty).length;
             const isComplete = completedCount === group.shots.length;
 
+            const isCollapsed = Boolean(collapsedGroups[group.groupKey]);
+
             return (
               <div
                 key={group.groupKey}
-                className="bg-card/70 border border-border rounded-xl shadow-xs overflow-hidden"
+                className="bg-card/70 border border-border rounded-xl shadow-xs overflow-hidden transition-all"
               >
-              {/* Group Header */}
-              <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/20 border-b border-border">
+              {/* Group Header (Click to expand/collapse) */}
+              <div
+                onClick={() => toggleGroupCollapse(group.groupKey)}
+                className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/20 hover:bg-muted/30 border-b border-border transition-colors cursor-pointer select-none"
+              >
                 <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-md bg-secondary text-foreground flex items-center justify-center font-mono font-bold text-xs border border-border">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleGroupCollapse(group.groupKey);
+                    }}
+                    className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                  </button>
+
+                  <div className="w-6 h-6 rounded-md bg-secondary text-foreground flex items-center justify-center font-mono font-bold text-xs border border-border shrink-0">
                     B{gIdx + 1}
                   </div>
                   <div>
@@ -298,7 +349,7 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <span className="text-[11px] text-muted-foreground font-mono">
                     {group.shots.length} 镜 · {group.totalDuration.toFixed(1)}s
                   </span>
@@ -377,7 +428,8 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
               </div>
 
               {/* High-Density Compact Table */}
-              <div className="overflow-x-auto">
+              {!isCollapsed && (
+                <div className="overflow-x-auto animate-in fade-in duration-100">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-border/80 bg-muted/10 text-muted-foreground font-mono text-[11px]">
@@ -591,7 +643,8 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
                   </tbody>
                 </table>
               </div>
-            </div>
+            )}
+          </div>
           );
         })
       )}
