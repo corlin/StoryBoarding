@@ -493,14 +493,6 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
             )}
           </div>
         )}
-
-        {/* Persisted to R2 Status Indicator (Bottom-right overlay) */}
-        {imgSrc && !isRegenerating && (
-          <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/75 backdrop-blur-xs px-1.5 py-0.5 rounded text-[9px] font-mono text-emerald-400 border border-emerald-500/20 z-10 opacity-70 group-hover:opacity-100 transition-opacity">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>R2</span>
-          </div>
-        )}
       </div>
 
       {/* Card Body: Clean subtitle and action statement */}
@@ -527,11 +519,6 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           >
             <Camera className="w-3 h-3 shrink-0 text-muted-foreground" />
             <span className="truncate font-mono text-[10px] text-foreground/80">{shot.camera_movement?.type || "static"}</span>
-            {shot.duration && (
-              <span className="text-[9px] font-mono text-muted-foreground bg-secondary/80 px-1 rounded">
-                {shot.duration}s
-              </span>
-            )}
           </div>
 
           {onOpenDetail && (
