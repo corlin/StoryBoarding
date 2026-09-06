@@ -1,7 +1,10 @@
 import React, { useState } from "react";
-import { Sparkles, X, Key } from "lucide-react";
+import { Sparkles, X, Key, CheckCircle2 } from "lucide-react";
 import { NarrativeStyleSelector } from "@/components/director/NarrativeStyleSelector";
 import { NarrativeMode, NarrativeCenter } from "@/types/narrative";
+import { useAuthStore } from "@/stores/authStore";
+import { notify } from "@/components/ui/ToastNotification";
+import { cn } from "@/lib/utils";
 
 interface AIGenerateModalProps {
   isOpen: boolean;
@@ -27,9 +30,37 @@ export const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
   const [narrativeCenter, setNarrativeCenter] = useState<NarrativeCenter>("plot");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号，即可使用 ${actionName}`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号！如需${actionName}，请注册专属导演账号并在个人设置中填入专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
+    if (!checkAuthAndKey("使用 AI 导演智能拆镜规划")) return;
     if (!storyText.trim()) return;
     try {
       setIsSubmitting(true);
@@ -126,10 +157,30 @@ export const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
         </div>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/60">
-          <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-            <Key className="w-3 h-3" />
-            <span>专属 API Key 已就绪 · ~3-5s 拆解</span>
-          </div>
+          {isDemoUser ? (
+            <div
+              onClick={() => useAuthStore.getState().openAuthModal("register")}
+              className="flex items-center gap-1.5 text-[11px] font-mono text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30 cursor-pointer transition-colors"
+              title="点击注册专属账号"
+            >
+              <Key className="w-3 h-3 text-amber-400" />
+              <span>公共体验模式 · 拆镜受限</span>
+            </div>
+          ) : !hasCustomKey ? (
+            <div
+              onClick={() => useAuthStore.getState().openSettingsModal()}
+              className="flex items-center gap-1.5 text-[11px] font-mono text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30 cursor-pointer transition-colors"
+              title="点击前往设置配置 Key"
+            >
+              <Key className="w-3 h-3 text-amber-400" />
+              <span>未配置 OpenRouter Key</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+              <span>专属 API Key 已就绪 · ~3-5s 拆解</span>
+            </div>
+          )}
           <div className="flex gap-2">
             <button
               type="button"
@@ -141,12 +192,36 @@ export const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
             </button>
             <button
               type="button"
-              disabled={isSubmitting || !storyText.trim()}
+              disabled={isSubmitting || (!isDemoUser && !storyText.trim())}
               onClick={handleSubmit}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 cursor-pointer shadow-xs"
+              className={cn(
+                "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer",
+                isDemoUser || !hasCustomKey
+                  ? "bg-amber-500 hover:bg-amber-400 text-black border border-amber-400 shadow-amber-500/20"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{isSubmitting ? "正在拆镜中..." : "开始规划分镜"}</span>
+              {isSubmitting ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                  <span>正在拆镜中...</span>
+                </>
+              ) : isDemoUser ? (
+                <>
+                  <Key className="w-3.5 h-3.5 text-black" />
+                  <span>🔑 注册专属账号规划分镜</span>
+                </>
+              ) : !hasCustomKey ? (
+                <>
+                  <Key className="w-3.5 h-3.5 text-black" />
+                  <span>🔑 填Key规划分镜</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>开始规划分镜</span>
+                </>
+              )}
             </button>
           </div>
         </div>

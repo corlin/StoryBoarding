@@ -15,9 +15,12 @@ import {
   FileText,
   Palette,
   Loader2,
+  Key,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
 
 interface StylePreset {
   id: string;
@@ -112,6 +115,33 @@ export const QuickStartWizardModal: React.FC<QuickStartWizardModalProps> = ({
   const [selectedStyleId, setSelectedStyleId] = useState<string>("modern_cinema");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号，即可使用 ${actionName}`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号！如需${actionName}，请注册专属导演账号并在个人设置中填入专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
+
   if (!isOpen) return null;
 
   const selectedStyle = STYLE_PRESETS.find((s) => s.id === selectedStyleId) || STYLE_PRESETS[0];
@@ -129,6 +159,9 @@ export const QuickStartWizardModal: React.FC<QuickStartWizardModalProps> = ({
   };
 
   const handleFinish = async () => {
+    if (!checkAuthAndKey("开启向导出片预演")) {
+      return;
+    }
     try {
       setIsSubmitting(true);
       await onComplete(storyText.trim(), {
@@ -409,7 +442,32 @@ export const QuickStartWizardModal: React.FC<QuickStartWizardModalProps> = ({
             <div />
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {currentStep === 3 && (
+              <div
+                className={cn(
+                  "hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border select-none transition-colors",
+                  isDemoUser
+                    ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                    : hasCustomKey
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                    : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                )}
+              >
+                {hasCustomKey ? (
+                  <>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <span>专属 API Key 已就绪 · ~3-5s 拆解</span>
+                  </>
+                ) : (
+                  <>
+                    <Key className="w-3 h-3 text-amber-400" />
+                    <span>{isDemoUser ? "体验账号无 Key · 请注册并配置专属 Key" : "未配置专属 Key · 需配置后拆解"}</span>
+                  </>
+                )}
+              </div>
+            )}
+
             {currentStep < 3 ? (
               <button
                 type="button"
@@ -424,12 +482,27 @@ export const QuickStartWizardModal: React.FC<QuickStartWizardModalProps> = ({
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleFinish}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all shadow-md cursor-pointer"
+                className={cn(
+                  "inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold disabled:opacity-50 transition-all shadow-md cursor-pointer",
+                  isDemoUser || !hasCustomKey
+                    ? "bg-amber-500 hover:bg-amber-400 text-black border border-amber-400 shadow-amber-500/20"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>正在规划分镜与冲印...</span>
+                  </>
+                ) : isDemoUser ? (
+                  <>
+                    <Key className="w-4 h-4 text-black" />
+                    <span>🔑 注册专属账号出片预演</span>
+                  </>
+                ) : !hasCustomKey ? (
+                  <>
+                    <Key className="w-4 h-4 text-black" />
+                    <span>🔑 填Key出片预演</span>
                   </>
                 ) : (
                   <>
