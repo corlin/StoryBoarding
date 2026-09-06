@@ -25,12 +25,14 @@ import {
   RefreshCw,
   MessageSquare,
   MessageSquareOff,
+  Key,
 } from "lucide-react";
 import { normalizeAssetUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { buildH3CutItem } from "@/hooks/useH3Prompt";
 import { generateH3Prompt } from "@/lib/h3Prompt";
 import { notify } from "@/components/ui/ToastNotification";
+import { useAuthStore } from "@/stores/authStore";
 
 interface CinemaTheaterModalProps {
   isOpen: boolean;
@@ -109,6 +111,34 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
       };
     });
   }, [activeShots, totalDuration]);
+
+  // Auth & Key state perception
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号，样板画面已就绪！如需自主${actionName}，请注册专属导演账号并绑定专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter / 生图 API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
 
   // Auto-hide controls when playing and idle for 2.5 seconds
   const handleUserActivity = useCallback(() => {
@@ -463,6 +493,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
                   type="button"
                   disabled={isGeneratingCurrentShot}
                   onClick={async () => {
+                    if (!checkAuthAndKey("冲印镜头视觉画面")) return;
                     try {
                       setIsGeneratingCurrentShot(true);
                       notify.info(`🎨 正在原位冲印 #${currentIndex + 1} 镜画面，稍候...`);
@@ -474,17 +505,28 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
                       setIsGeneratingCurrentShot(false);
                     }
                   }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-lg transition-all cursor-pointer disabled:opacity-50 hover:scale-105"
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs shadow-lg transition-all cursor-pointer disabled:opacity-50 hover:scale-105",
+                    hasCustomKey
+                      ? "bg-amber-500 hover:bg-amber-400 text-black"
+                      : "bg-white/10 hover:bg-white/20 text-amber-300 border border-amber-400/30"
+                  )}
+                  title={hasCustomKey ? "原位冲印当前镜头的画面" : "当前为体验模式，点击注册专属账号并绑定 Key 开启显影"}
                 >
                   {isGeneratingCurrentShot ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       <span>正在显影中...</span>
                     </>
-                  ) : (
+                  ) : hasCustomKey ? (
                     <>
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>🎨 即时显影此镜</span>
+                    </>
+                  ) : (
+                    <>
+                      <Key className="w-3.5 h-3.5 text-amber-400" />
+                      <span>🔑 注册专属账号显影此镜</span>
                     </>
                   )}
                 </button>
@@ -649,6 +691,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
                 type="button"
                 disabled={isGeneratingCurrentShot}
                 onClick={async () => {
+                  if (!checkAuthAndKey("冲印镜头视觉画面")) return;
                   try {
                     setIsGeneratingCurrentShot(true);
                     notify.info(`🎨 正在原位冲印 #${currentIndex + 1} 镜画面，稍候...`);
@@ -660,18 +703,28 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
                     setIsGeneratingCurrentShot(false);
                   }
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-50"
-                title="原位冲印当前镜头的画面"
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-50",
+                  hasCustomKey
+                    ? "bg-amber-500 hover:bg-amber-400 text-black"
+                    : "bg-white/10 hover:bg-white/20 text-amber-300 border border-amber-400/30"
+                )}
+                title={hasCustomKey ? "原位冲印当前镜头的画面" : "当前为体验模式，点击注册专属账号并绑定 Key 开启显影"}
               >
                 {isGeneratingCurrentShot ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>显影中...</span>
                   </>
-                ) : (
+                ) : hasCustomKey ? (
                   <>
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>显影此镜</span>
+                  </>
+                ) : (
+                  <>
+                    <Key className="w-3.5 h-3.5 text-amber-400" />
+                    <span>填Key显影</span>
                   </>
                 )}
               </button>
