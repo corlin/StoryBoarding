@@ -19,7 +19,6 @@ import {
   Save,
   Loader2,
   Flame,
-  ArrowRight,
   BookOpen,
   MapPin,
   Users,
@@ -443,16 +442,6 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {onSwitchToStoryboard && (
-            <button
-              onClick={onSwitchToStoryboard}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-            >
-              <span>看分镜</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          )}
-
           <button
             onClick={handleSaveAll}
             disabled={isSaving}
