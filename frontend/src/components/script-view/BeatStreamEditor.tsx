@@ -27,6 +27,7 @@ import {
   Check,
   RefreshCw,
   Scissors,
+  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -172,6 +173,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
   const [targetDuration, setTargetDuration] = useState(60.0);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncingToShots, setIsSyncingToShots] = useState(false);
+  const [isCopiedScript, setIsCopiedScript] = useState(false);
   const [editingBeatId, setEditingBeatId] = useState<string | null>(null);
 
   // Convert current atomic beats into clean screenplay format with shot blocks for 100% stable parsing
@@ -193,6 +195,18 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
     });
 
     return lines.join("\n");
+  };
+
+  const handleCopyFullScript = () => {
+    if (!sequence || beats.length === 0) {
+      notify.error("暂无可复制的剧本节拍内容");
+      return;
+    }
+    const scriptText = convertBeatsToScreenplayText(sequence, beats);
+    navigator.clipboard.writeText(scriptText);
+    setIsCopiedScript(true);
+    notify.success(`📋 已复制第 ${sequence.episode_number || sequence.order || 1} 集标准剧本台本文本！`);
+    setTimeout(() => setIsCopiedScript(false), 2000);
   };
 
   const handleSyncToShots = async () => {
@@ -484,6 +498,27 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Copy Full Screenplay Script Button */}
+          <button
+            type="button"
+            onClick={handleCopyFullScript}
+            disabled={beats.length === 0}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-secondary hover:bg-muted text-foreground border border-border transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="一键复制本集标准剧组台本文本 (含场次、角色对白与括号动作)"
+          >
+            {isCopiedScript ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-emerald-400 font-semibold">已复制</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>复制剧本</span>
+              </>
+            )}
+          </button>
+
           {/* Sync Screenplay to Storyboard Shots Button (Differential Update) */}
           <button
             type="button"
