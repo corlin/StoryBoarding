@@ -24,6 +24,8 @@ import {
   Keyboard,
   X,
   HelpCircle,
+  Palette,
+  RefreshCw,
 } from "lucide-react";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
@@ -53,6 +55,7 @@ interface TopBarProps {
   onOpenMediaLibrary?: () => void;
   onOpenDelete?: () => void;
   onOpenWizard?: () => void;
+  onBatchRender?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -75,6 +78,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenMediaLibrary,
   onOpenDelete,
   onOpenWizard,
+  onBatchRender,
 }) => {
   const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
   const [isMoreToolsOpen, setIsMoreToolsOpen] = useState(false);
@@ -115,7 +119,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   }, []);
 
   const isOverDuration = totalDuration > (project?.target_duration || 30);
-  const allRendered = shots.length > 0 && shots.every((s) => Boolean(s.storyboard_image_url));
+  const unrenderedCount = shots.filter((s) => !s.storyboard_image_url || s.is_dirty).length;
+  const allRendered = shots.length > 0 && unrenderedCount === 0;
 
   // Compute live quality score for instant health badge display
   const { score: radarScore } = React.useMemo(() => {
@@ -217,6 +222,29 @@ export const TopBar: React.FC<TopBarProps> = ({
               )} />
               <span>{radarScore}分</span>
             </button>
+          )}
+
+          {/* Render Status Pill: Unrendered Count or All-Ready Glow */}
+          {shots.length > 0 && (
+            unrenderedCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => onBatchRender?.()}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/35 transition-all cursor-pointer shadow-2xs hover:scale-105"
+                title={`当前尚有 ${unrenderedCount} 镜待冲印或待重绘，点击启动保活冲印`}
+              >
+                <Palette className="w-3 h-3 text-amber-400" />
+                <span>待冲印 {unrenderedCount}</span>
+              </button>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 shadow-2xs"
+                title="全片镜头画面已 100% 冲印显影就绪"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>全显影</span>
+              </span>
+            )
           )}
         </div>
       </div>

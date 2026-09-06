@@ -605,6 +605,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onOpenMediaLibrary={() => setIsMediaLibraryOpen(true)}
         onOpenDelete={() => setIsOpenDeleteModal(true)}
         onOpenWizard={() => setIsWizardOpen(true)}
+        onBatchRender={handleRegenerateDirty}
       />
 
       {/* Time Travel Read-Only Banner */}
