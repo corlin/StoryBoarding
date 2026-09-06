@@ -16,6 +16,7 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
+  Key,
 } from "lucide-react";
 import { ShotModel, CharacterModel, LocationModel, PropModel } from "@/types/shot";
 import { normalizeAssetUrl } from "@/lib/api";
@@ -23,6 +24,7 @@ import { notify } from "@/components/ui/ToastNotification";
 import { cn } from "@/lib/utils";
 import { generateH3Prompt } from "@/lib/h3Prompt";
 import { buildH3CutItem } from "@/hooks/useH3Prompt";
+import { useAuthStore } from "@/stores/authStore";
 
 interface ShotDetailDrawerProps {
   isOpen: boolean;
@@ -88,6 +90,34 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isAdvancedVisualOpen, setIsAdvancedVisualOpen] = useState(false);
+
+  // Auth & Key state perception
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+  const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
+
+  const checkAuthAndKey = (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号`);
+      openAuthModal("register");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号，样板画面已就绪！如需自主${actionName}，请注册专属导演账号并绑定专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter / 生图 API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  };
 
   // Detect whether script has unsynced changes compared to rendered image
   const isScriptModifiedLocally =
@@ -170,6 +200,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   };
 
   const handleRegenerate = async () => {
+    if (!checkAuthAndKey("冲印分镜画面")) return;
     if (!onRegenerateImage || isRegenerating) return;
     setIsRegenerating(true);
     try {
@@ -183,6 +214,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
 
   // Compile new H3 and image prompt according to latest action/dialogue/camera and trigger single shot render
   const handleRecompileAndRegenerate = async () => {
+    if (!checkAuthAndKey("重新编译提示词并冲印画面")) return;
     if (!onRegenerateImage || isRegenerating) return;
     setIsRegenerating(true);
     try {
@@ -407,18 +439,32 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                     <button
                       onClick={handleRecompileAndRegenerate}
                       disabled={isRegenerating}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-amber-500 text-neutral-950 hover:bg-amber-400 transition-all shadow-sm disabled:opacity-50 cursor-pointer animate-in fade-in"
-                      title="根据最新修改的动作与台词重新生成生图提示词，并调用模型重绘画面"
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer animate-in fade-in",
+                        hasCustomKey
+                          ? "bg-amber-500 text-neutral-950 hover:bg-amber-400"
+                          : "bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
+                      )}
+                      title={
+                        hasCustomKey
+                          ? "根据最新修改的动作与台词重新生成生图提示词，并调用模型重绘画面"
+                          : "当前为 Demo 体验模式，点击注册专属账号并绑定 Key 开启重绘"
+                      }
                     >
                       {isRegenerating ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           <span>正在更新提示词并重绘...</span>
                         </>
-                      ) : (
+                      ) : hasCustomKey ? (
                         <>
                           <Sparkles className="w-3.5 h-3.5 fill-current" />
                           <span>✨ 更新提示词并重绘</span>
+                        </>
+                      ) : (
+                        <>
+                          <Key className="w-3.5 h-3.5 text-amber-400" />
+                          <span>🔑 注册账号更新并重绘</span>
                         </>
                       )}
                     </button>
@@ -430,21 +476,32 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                     disabled={isRegenerating}
                     className={cn(
                       "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all shadow-sm disabled:opacity-50 cursor-pointer",
-                      isDirty
+                      !hasCustomKey
+                        ? "bg-secondary text-amber-300 border border-amber-500/30 hover:bg-muted"
+                        : isDirty
                         ? "bg-secondary text-foreground hover:bg-muted border border-border"
                         : "bg-primary text-primary-foreground hover:bg-primary/90"
                     )}
-                    title="以当前底层的英文 Prompt 原样重绘此格"
+                    title={
+                      hasCustomKey
+                        ? "以当前底层的英文 Prompt 原样重绘此格"
+                        : "当前为 Demo 体验模式，点击注册专属账号并绑定 Key 开启重绘"
+                    }
                   >
                     {isRegenerating && !isDirty ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         <span>正在重绘...</span>
                       </>
-                    ) : (
+                    ) : hasCustomKey ? (
                       <>
                         <RefreshCw className="w-3.5 h-3.5" />
                         <span>以此 Prompt 重绘</span>
+                      </>
+                    ) : (
+                      <>
+                        <Key className="w-3.5 h-3.5 text-amber-400" />
+                        <span>填Key重绘</span>
                       </>
                     )}
                   </button>
