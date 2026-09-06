@@ -376,14 +376,15 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
   };
 
   const handleSplitBeat = (targetBeat: BeatModel) => {
+    const isAction = targetBeat.type === "action";
     const [part1, part2] = splitLongDialogue(targetBeat.content);
     if (!part2) {
-      notify.error("未找到合适断句标点，无法拆分");
+      notify.error("内容过短或未找到合适断句标点，无法拆分");
       return;
     }
 
-    const duration1 = calculateDialogueDuration(part1);
-    const duration2 = calculateDialogueDuration(part2);
+    const duration1 = isAction ? Math.max(1.5, Math.round((targetBeat.duration || 2.5) / 2 * 10) / 10) : calculateDialogueDuration(part1);
+    const duration2 = isAction ? Math.max(1.5, Math.round((targetBeat.duration || 2.5) / 2 * 10) / 10) : calculateDialogueDuration(part2);
 
     const beat1: BeatModel = {
       ...targetBeat,
@@ -393,7 +394,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
 
     const beat2: BeatModel = {
       id: crypto.randomUUID(),
-      type: "dialogue",
+      type: targetBeat.type,
       scene_number: targetBeat.scene_number,
       scene_title: targetBeat.scene_title,
       speaker: targetBeat.speaker,
@@ -411,7 +412,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
     const newBeats = [...beats];
     newBeats.splice(targetIndex, 1, beat1, beat2);
     setBeats(newBeats);
-    notify.success("已智能拆分为双拍，已符合单句 ≤ 35 字规范！");
+    notify.success(isAction ? "已将动作描写拆分为双镜节拍！" : "已智能拆分为双句台词节拍，符合节奏规范！");
   };
 
   const handleSaveAll = async () => {
@@ -757,6 +758,21 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
                       <span className="font-mono text-muted-foreground text-[11px] shrink-0 pt-0.5 w-10 text-right">
                         {beat.duration}s
                       </span>
+
+                      {/* Quick Split Beat Button (Hover Action) */}
+                      {!isEditing && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSplitBeat(beat);
+                          }}
+                          className="p-1 rounded text-muted-foreground/40 hover:text-amber-300 hover:bg-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 cursor-pointer"
+                          title="✂️ 将该节拍按标点一分为二（快速拆为双镜）"
+                        >
+                          <Scissors className="w-3 h-3" />
+                        </button>
+                      )}
 
                       {/* Delete Beat Button */}
                       <button
