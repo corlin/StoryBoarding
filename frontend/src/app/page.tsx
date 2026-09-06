@@ -399,92 +399,101 @@ export default function HomePage() {
           />
 
           {/* Bottom Action Ribbon */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-border/50">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2.5 border-t border-border/50">
             {/* Left Quick Config Chips */}
-            <div className="flex flex-wrap items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
               {/* Duration Chip */}
               <button
                 type="button"
                 onClick={() => setTargetDuration(targetDuration === 30 ? 60 : 30)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary border border-border/80 text-foreground/90 font-mono transition-colors shadow-2xs"
-                title="点击切换目标片长"
+                className="inline-flex items-center gap-1.5 px-3 h-9 rounded-xl bg-secondary/70 hover:bg-secondary border border-border/80 text-foreground/90 font-mono text-xs transition-colors shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
+                title="点击切换目标片长 (30s 12镜 / 60s 24镜)"
               >
-                <Clock className="w-3.5 h-3.5 text-sky-400" />
-                <span>{targetDuration}s ({targetDuration === 30 ? "12 镜" : "24 镜"})</span>
+                <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                <span>{targetDuration}s · {targetDuration === 30 ? "12镜" : "24镜"}</span>
               </button>
 
               {/* Style Chip */}
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 border border-border/80 text-foreground/90 transition-colors shadow-2xs">
-                <Palette className="w-3.5 h-3.5 text-amber-400" />
-                <span>画风: {selectedStyle}</span>
-              </div>
-
-              {/* Mode Chip */}
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 border border-border/80 text-muted-foreground hidden sm:inline-flex shadow-2xs">
-                <FileText className="w-3.5 h-3.5 text-emerald-400" />
-                <span>6 阶段戏剧拆镜</span>
+              <div className="inline-flex items-center gap-1.5 px-3 h-9 rounded-xl bg-secondary/70 border border-border/80 text-foreground/90 text-xs transition-colors shadow-2xs whitespace-nowrap shrink-0">
+                <Palette className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>{selectedStyle}</span>
               </div>
 
               {/* Novel / Long-form Series Button */}
               <button
                 type="button"
                 onClick={() => setIsSeriesModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-medium transition-colors shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-3 h-9 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-medium transition-colors shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
                 title="导入万字长篇小说，一键切分 3~5 集短剧与全局角色库"
               >
-                <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                <span>长篇/小说一键成剧</span>
+                <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>小说成剧</span>
               </button>
             </div>
 
-            {/* Right Submit Circle Button & Key Status */}
-            <div className="flex items-center justify-end gap-2.5">
-              {/* Real-time Key Status Pill */}
-              <div
+            {/* Right Submit Button & Key Status */}
+            <div className="flex items-center justify-end gap-2 shrink-0">
+              {/* Real-time Key Status Pill (Clickable) */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isAuthenticated || isDemoUser) openAuthModal("register");
+                  else if (!hasCustomKey) openSettingsModal();
+                }}
                 className={cn(
-                  "hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono select-none transition-colors border shadow-2xs",
+                  "hidden sm:inline-flex items-center gap-1.5 px-2.5 h-9 rounded-xl text-xs font-mono select-none transition-all border shadow-2xs whitespace-nowrap shrink-0 cursor-pointer",
                   !isAuthenticated || isDemoUser
-                    ? "bg-amber-500/10 text-amber-300 border-amber-500/25"
+                    ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
                     : !hasCustomKey
-                    ? "bg-amber-500/10 text-amber-300 border-amber-500/25"
-                    : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                    ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+                    : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 pointer-events-none"
                 )}
+                title={
+                  !isAuthenticated
+                    ? "未登录：点击注册专属账号"
+                    : isDemoUser
+                    ? "当前为体验账号：点击注册专属账号并配置 Key"
+                    : !hasCustomKey
+                    ? "未配置 Key：点击进入设置页面配置 OpenRouter Key"
+                    : "专属 OpenRouter Key 已就绪"
+                }
               >
                 {!isAuthenticated ? (
                   <>
-                    <Key className="w-3 h-3 text-amber-400" />
+                    <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     <span>未登录</span>
                   </>
                 ) : isDemoUser ? (
                   <>
-                    <Key className="w-3 h-3 text-amber-400" />
-                    <span>体验账号无专属 Key</span>
+                    <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>体验账号</span>
                   </>
                 ) : !hasCustomKey ? (
                   <>
-                    <Key className="w-3 h-3 text-amber-400" />
-                    <span>未配置专属 Key</span>
+                    <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>未配 Key</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                    <span>专属 Key 已就绪</span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Key 已就绪</span>
                   </>
                 )}
-              </div>
+              </button>
 
-              <span className="text-[11px] text-muted-foreground hidden sm:inline font-mono">
-                Enter ↵ 发送
+              <span className="text-[11px] text-muted-foreground hidden lg:inline font-mono whitespace-nowrap select-none px-0.5">
+                Enter ↵
               </span>
+
               <button
                 type="button"
                 onClick={handleStartCreation}
                 disabled={isCreating}
                 className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer",
+                  "h-9 px-4 rounded-xl flex items-center gap-1.5 text-xs font-semibold transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer whitespace-nowrap shrink-0",
                   !isAuthenticated || isDemoUser || !hasCustomKey
-                    ? "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20"
-                    : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                    ? "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20 font-bold"
+                    : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20"
                 )}
                 title={
                   !isAuthenticated
@@ -497,11 +506,30 @@ export default function HomePage() {
                 }
               >
                 {isCreating ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : !isAuthenticated || isDemoUser || !hasCustomKey ? (
-                  <Key className="w-4 h-4 text-black stroke-[2.5]" />
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                    <span>规划中...</span>
+                  </>
+                ) : !isAuthenticated ? (
+                  <>
+                    <Key className="w-3.5 h-3.5 text-black stroke-[2.5] shrink-0" />
+                    <span>注册开工</span>
+                  </>
+                ) : isDemoUser ? (
+                  <>
+                    <Key className="w-3.5 h-3.5 text-black stroke-[2.5] shrink-0" />
+                    <span>注册专属账号</span>
+                  </>
+                ) : !hasCustomKey ? (
+                  <>
+                    <Key className="w-3.5 h-3.5 text-black stroke-[2.5] shrink-0" />
+                    <span>配置 Key</span>
+                  </>
                 ) : (
-                  <ArrowUp className="w-5 h-5 stroke-[2.5]" />
+                  <>
+                    <span>发送</span>
+                    <ArrowUp className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
+                  </>
                 )}
               </button>
             </div>
