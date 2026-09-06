@@ -23,6 +23,7 @@ import { ProjectQualityRadarModal } from "@/components/modals/ProjectQualityRada
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
 import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibraryModal";
 import { QuickStartWizardModal } from "@/components/modals/QuickStartWizardModal";
+import { OnboardingTourModal } from "@/components/modals/OnboardingTourModal";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
@@ -67,8 +68,25 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const hasAutoOpenedWizardRef = useRef(false);
   const abortBatchRenderRef = useRef(false);
+
+  // Auto-trigger onboarding tour for first-time visitors once project is mounted
+  useEffect(() => {
+    if (!effectiveProjectId) return;
+    try {
+      const isCompleted = localStorage.getItem("storyboarding_tour_completed");
+      if (!isCompleted) {
+        const timer = setTimeout(() => {
+          setIsOnboardingTourOpen(true);
+        }, 700);
+        return () => clearTimeout(timer);
+      }
+    } catch {
+      // ignore
+    }
+  }, [effectiveProjectId]);
 
   const { activeEpisodeIndex, setActiveEpisodeIndex } = useWorkspaceStore();
 
@@ -606,6 +624,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onOpenDelete={() => setIsOpenDeleteModal(true)}
         onOpenWizard={() => setIsWizardOpen(true)}
         onBatchRender={handleRegenerateDirty}
+        onOpenTour={() => setIsOnboardingTourOpen(true)}
       />
 
       {/* Time Travel Read-Only Banner */}
@@ -691,6 +710,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       <div className="flex-1 flex overflow-hidden relative">
         {/* Left Column: Script & Beat-Stream Workspace */}
         <div
+          id="tour-script-panel"
           style={{ width: isLeftPanelCollapsed ? "0px" : `${leftPanelPercent}%` }}
           className={cn(
             "h-full border-r border-border flex flex-col bg-background/50 backdrop-blur-xs relative overflow-hidden",
@@ -755,6 +775,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
         {/* Right Column: Storyboard View (Grid & CallSheet) */}
         <div
+          id="tour-storyboard-panel"
           className={cn(
             "flex-1 h-full overflow-hidden bg-background min-w-0",
             mobileActiveTab === "storyboard" ? "w-full block" : "hidden md:block"
@@ -782,7 +803,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       </div>
 
       {/* Bottom Column: Collapsible TimelineBar (Recovers 56px) */}
-      <div className="border-t border-border bg-card/60 shrink-0">
+      <div id="tour-timeline-bar" className="border-t border-border bg-card/60 shrink-0">
         <div className="flex items-center justify-between px-4 py-1 text-[11px] text-muted-foreground bg-secondary/30">
           <button
             type="button"
@@ -967,6 +988,11 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             narrative_center: "character",
           });
         }}
+      />
+
+      <OnboardingTourModal
+        isOpen={isOnboardingTourOpen}
+        onClose={() => setIsOnboardingTourOpen(false)}
       />
     </div>
   );

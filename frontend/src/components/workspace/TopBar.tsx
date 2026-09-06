@@ -56,6 +56,7 @@ interface TopBarProps {
   onOpenDelete?: () => void;
   onOpenWizard?: () => void;
   onBatchRender?: () => void;
+  onOpenTour?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -79,6 +80,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenDelete,
   onOpenWizard,
   onBatchRender,
+  onOpenTour,
 }) => {
   const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
   const [isMoreToolsOpen, setIsMoreToolsOpen] = useState(false);
@@ -250,7 +252,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* Right Action Tools: Golden 3-Key Streamlined Operations */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div id="tour-topbar-actions" className="flex items-center gap-2 shrink-0">
         {/* 1. AI 智能拆镜 (Primary Highlight) */}
         {onOpenAIGenerate && (
           <button
@@ -427,6 +429,23 @@ export const TopBar: React.FC<TopBarProps> = ({
                 >
                   <Layers className="w-3.5 h-3.5 text-muted-foreground" />
                   <span>多模态工程素材池</span>
+                </button>
+              )}
+
+              {/* 新手漫游导览 */}
+              {onOpenTour && (
+                <button
+                  onClick={() => {
+                    setIsMoreToolsOpen(false);
+                    onOpenTour();
+                  }}
+                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-amber-400 hover:bg-amber-500/10 transition-colors text-left font-medium"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>新手漫游向导</span>
+                  </div>
+                  <span className="text-[10px] text-amber-400/80 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30">导览</span>
                 </button>
               )}
 
@@ -707,7 +726,20 @@ export const TopBar: React.FC<TopBarProps> = ({
               </div>
             </div>
 
-            <div className="pt-1 flex justify-end">
+            <div className="pt-1 flex items-center justify-between">
+              {onOpenTour ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsShortcutsModalOpen(false);
+                    onOpenTour();
+                  }}
+                  className="text-xs text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1 cursor-pointer font-medium"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>💡 重新体验新手向导</span>
+                </button>
+              ) : <div />}
               <button
                 type="button"
                 onClick={() => setIsShortcutsModalOpen(false)}
