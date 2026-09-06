@@ -73,10 +73,12 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isCopiedH3, setIsCopiedH3] = useState(false);
   const [isGeneratingCurrentShot, setIsGeneratingCurrentShot] = useState(false);
+  const [showControls, setShowControls] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
+  const hideControlsTimerRef = useRef<any>(null);
 
   // When binge mode is enabled, flatten all sequences' shots
   const activeShots = isBingeMode && sequences.length > 1
@@ -84,6 +86,37 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
     : shots;
 
   const totalDuration = activeShots.reduce((acc, s) => acc + (s.duration || 2.5), 0) || targetDuration;
+
+  // Auto-hide controls when playing and idle for 2.5 seconds
+  const handleUserActivity = useCallback(() => {
+    setShowControls(true);
+    if (hideControlsTimerRef.current) {
+      clearTimeout(hideControlsTimerRef.current);
+    }
+    if (isPlaying) {
+      hideControlsTimerRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 2500);
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (!isPlaying) {
+      setShowControls(true);
+      if (hideControlsTimerRef.current) {
+        clearTimeout(hideControlsTimerRef.current);
+      }
+    } else {
+      hideControlsTimerRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 2500);
+    }
+    return () => {
+      if (hideControlsTimerRef.current) {
+        clearTimeout(hideControlsTimerRef.current);
+      }
+    };
+  }, [isPlaying]);
 
   // Initialize selected shot
   useEffect(() => {
@@ -141,6 +174,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
           const nextTime = prevTime + deltaSeconds;
           if (nextTime >= totalDuration) {
             setIsPlaying(false);
+            setCurrentIndex(Math.max(0, activeShots.length - 1));
             return totalDuration;
           }
           return nextTime;
@@ -157,7 +191,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, playbackRate, totalDuration]);
+  }, [isPlaying, playbackRate, totalDuration, activeShots.length]);
 
   const handleClose = () => {
     if (activeShots[currentIndex] && onSelectShot) {
@@ -268,12 +302,21 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
 
   return (
     <div
+      onMouseMove={handleUserActivity}
+      onClick={handleUserActivity}
       className={cn(
-        "fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col justify-between select-none animate-in fade-in duration-200",
-        isFullscreen ? "p-0" : ""
+        "fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col justify-between select-none animate-in fade-in duration-200 overflow-hidden",
+        isFullscreen ? "p-0" : "",
+        !showControls && isPlaying && "cursor-none"
       )}
     >
-      <div className="h-16 px-6 border-b border-white/10 flex items-center justify-between bg-black/40 backdrop-blur-md z-20">
+      {/* Top Header Bar */}
+      <div
+        className={cn(
+          "h-16 px-6 border-b border-white/10 flex items-center justify-between bg-black/40 backdrop-blur-md z-20 transition-all duration-300",
+          !showControls && isPlaying ? "opacity-0 -translate-y-full pointer-events-none" : "opacity-100 translate-y-0"
+        )}
+      >
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-amber-400 font-mono text-sm tracking-wider uppercase font-bold">
             <Film className="w-4 h-4 animate-pulse" />
@@ -324,7 +367,10 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
         <button
           onClick={handlePrevShot}
           disabled={currentIndex === 0}
-          className="absolute left-4 md:left-8 z-20 p-3 rounded-full bg-black/60 hover:bg-white/20 text-white/70 hover:text-white border border-white/10 backdrop-blur disabled:opacity-20 disabled:pointer-events-none transition-all shadow-xl"
+          className={cn(
+            "absolute left-4 md:left-8 z-20 p-3 rounded-full bg-black/60 hover:bg-white/20 text-white/70 hover:text-white border border-white/10 backdrop-blur disabled:opacity-20 disabled:pointer-events-none transition-all duration-300 shadow-xl",
+            !showControls && isPlaying ? "opacity-0 pointer-events-none" : "opacity-100"
+          )}
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
@@ -429,13 +475,22 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
         <button
           onClick={handleNextShot}
           disabled={currentIndex === activeShots.length - 1}
-          className="absolute right-4 md:right-8 z-20 p-3 rounded-full bg-black/60 hover:bg-white/20 text-white/70 hover:text-white border border-white/10 backdrop-blur disabled:opacity-20 disabled:pointer-events-none transition-all shadow-xl"
+          className={cn(
+            "absolute right-4 md:right-8 z-20 p-3 rounded-full bg-black/60 hover:bg-white/20 text-white/70 hover:text-white border border-white/10 backdrop-blur disabled:opacity-20 disabled:pointer-events-none transition-all duration-300 shadow-xl",
+            !showControls && isPlaying ? "opacity-0 pointer-events-none" : "opacity-100"
+          )}
         >
           <ChevronRight className="w-6 h-6" />
         </button>
       </div>
 
-      <div className="h-22 px-6 border-t border-white/10 bg-black/70 backdrop-blur-md flex flex-col justify-center gap-2 z-20">
+      {/* Bottom Playback & Scrubbing Controller Bar */}
+      <div
+        className={cn(
+          "h-22 px-6 border-t border-white/10 bg-black/75 backdrop-blur-md flex flex-col justify-center gap-2 z-20 transition-all duration-300",
+          !showControls && isPlaying ? "opacity-0 translate-y-full pointer-events-none" : "opacity-100 translate-y-0"
+        )}
+      >
         <div
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
@@ -446,8 +501,8 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
           className="h-2 w-full bg-white/10 rounded-full cursor-pointer relative overflow-hidden group"
         >
           <div
-            style={{ width: `${(currentTime / totalDuration) * 100}%` }}
-            className="h-full bg-gradient-to-r from-primary to-amber-400 rounded-full relative"
+            style={{ width: `${Math.min(100, (currentTime / Math.max(totalDuration, 0.1)) * 100)}%` }}
+            className="h-full bg-gradient-to-r from-primary to-amber-400 rounded-full relative transition-[width] duration-75"
           />
         </div>
 
