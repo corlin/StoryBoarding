@@ -23,6 +23,8 @@ import {
   Check,
   Loader2,
   RefreshCw,
+  MessageSquare,
+  MessageSquareOff,
 } from "lucide-react";
 import { normalizeAssetUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -74,6 +76,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   const [isCopiedH3, setIsCopiedH3] = useState(false);
   const [isGeneratingCurrentShot, setIsGeneratingCurrentShot] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [showSubtitles, setShowSubtitles] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -212,6 +215,9 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
       if (e.code === "Space") {
         e.preventDefault();
         setIsPlaying((prev) => !prev);
+      } else if (e.code === "KeyC") {
+        e.preventDefault();
+        setShowSubtitles((prev) => !prev);
       } else if (e.code === "ArrowLeft") {
         e.preventDefault();
         handlePrevShot();
@@ -460,16 +466,18 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
             </div>
           )}
 
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/85 to-transparent p-6 pt-12 text-center flex flex-col items-center justify-end max-h-[45%] overflow-y-auto">
-            <p className="text-base md:text-xl font-medium text-white/95 tracking-wide drop-shadow-md max-w-4xl leading-relaxed">
-              {currentShot?.action || "（无动作描述）"}
-            </p>
-            {currentShot?.dialogue && (
-              <p className="text-sm md:text-base font-serif italic text-amber-300/90 mt-2">
-                “{currentShot.dialogue}”
+          {showSubtitles && (
+            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/85 to-transparent p-6 pt-12 text-center flex flex-col items-center justify-end max-h-[45%] overflow-y-auto animate-fade-in">
+              <p className="text-base md:text-xl font-medium text-white/95 tracking-wide drop-shadow-md max-w-4xl leading-relaxed">
+                {currentShot?.action || "（无动作描述）"}
               </p>
-            )}
-          </div>
+              {currentShot?.dialogue && (
+                <p className="text-sm md:text-base font-serif italic text-amber-300/90 mt-2">
+                  “{currentShot.dialogue}”
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <button
@@ -579,6 +587,20 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
                 )}
               </button>
             )}
+
+            {/* Subtitles Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setShowSubtitles((prev) => !prev)}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer",
+                showSubtitles ? "bg-white/15 text-white border-white/30" : "bg-white/5 text-white/40 border-white/10 hover:text-white/70"
+              )}
+              title="显示/隐藏对白与动作描述字幕 (快捷键: C)"
+            >
+              {showSubtitles ? <MessageSquare className="w-3.5 h-3.5 text-amber-400" /> : <MessageSquareOff className="w-3.5 h-3.5" />}
+              <span>字幕 {showSubtitles ? "开" : "关"}</span>
+            </button>
 
             <button
               onClick={handleCopyCurrentH3}
