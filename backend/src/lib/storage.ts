@@ -49,7 +49,7 @@ export async function saveImageToR2(
         httpMetadata: { contentType },
       });
       console.log(`[R2 Storage] Successfully stored base64 image to R2: ${r2Key} (${bytes.length} bytes, type=${contentType})`);
-      return `/api/assets/${r2Key}`;
+      return `https://storyboarding-api.caifu.social/api/assets/${r2Key}`;
     }
 
     // 2. Handle HTTP/HTTPS URLs
@@ -74,7 +74,7 @@ export async function saveImageToR2(
             httpMetadata: { contentType },
           });
           console.log(`[R2 Storage] Successfully stored external image to R2: ${r2Key} (${buffer.byteLength} bytes)`);
-          return `/api/assets/${r2Key}`;
+          return `https://storyboarding-api.caifu.social/api/assets/${r2Key}`;
         } else {
           console.warn(`[R2 Storage] Upstream fetch image failed: HTTP ${res.status} for ${imageSource.slice(0, 80)}`);
         }
