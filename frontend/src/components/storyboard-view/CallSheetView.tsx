@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { ShotModel, LocationModel, CharacterModel, PropModel, ProjectModel } from "@/types/shot";
-import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, FileSpreadsheet, Download, RefreshCw, Loader2, Sparkles, Copy, Filter, ArrowUpDown } from "lucide-react";
+import { Layers, MapPin, Sun, Clock, CheckCircle2, Video, Check, Film, Lock, FileSpreadsheet, Download, RefreshCw, Loader2, Sparkles, Copy, Filter, ArrowUpDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildBatchH3, buildH3CutItem } from "@/hooks/useH3Prompt";
 import { generateH3Prompt } from "@/lib/h3Prompt";
@@ -49,6 +49,7 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
   const [copiedShotId, setCopiedShotId] = React.useState<string | null>(null);
   const [filterStatus, setFilterStatus] = React.useState<"all" | "pending" | "completed">("all");
   const [sortBy, setSortBy] = React.useState<"default" | "duration_desc" | "shots_desc">("default");
+  const [searchQuery, setSearchQuery] = React.useState<string>("");
 
   // Group shots by (Location + Lighting State) to avoid visual drift
   const groups: CallSheetGroup[] = useMemo(() => {
@@ -81,13 +82,49 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
 
   // Filter & Sort Groups for production focus
   const processedGroups = useMemo(() => {
-    let result = groups.filter((g) => {
-      const completedCount = g.shots.filter((s) => s.storyboard_image_url && !s.is_dirty).length;
-      const isComplete = completedCount === g.shots.length;
-      if (filterStatus === "pending") return !isComplete;
-      if (filterStatus === "completed") return isComplete;
-      return true;
-    });
+    const query = searchQuery.trim().toLowerCase();
+
+    let result = groups
+      .map((g) => {
+        if (!query) return g;
+        // 如果批次名或光影匹配，保留所有镜头
+        const groupMatch =
+          g.locationName.toLowerCase().includes(query) ||
+          g.lightingState.toLowerCase().includes(query);
+
+        if (groupMatch) return g;
+
+        // 否则过滤批次内符合搜索词的镜头（匹配动作、对白、景别、运镜或镜号）
+        const matchedShots = g.shots.filter((s, sIdx) => {
+          const orderStr = String(sIdx + 1);
+          const actionStr = (s.action || "").toLowerCase();
+          const dialogueStr = (s.dialogue || "").toLowerCase();
+          const shotSizeStr = (s.shot_size || "").toLowerCase();
+          const subjectStr = (s.subject || "").toLowerCase();
+          return (
+            orderStr.includes(query) ||
+            actionStr.includes(query) ||
+            dialogueStr.includes(query) ||
+            shotSizeStr.includes(query) ||
+            subjectStr.includes(query)
+          );
+        });
+
+        if (matchedShots.length === 0) return null;
+        return {
+          ...g,
+          shots: matchedShots,
+          totalDuration: matchedShots.reduce((acc, s) => acc + (Number(s.duration) || 2.5), 0),
+        };
+      })
+      .filter((g): g is CallSheetGroup => g !== null)
+      .filter((g) => {
+        const completedCount = g.shots.filter((s) => s.storyboard_image_url && !s.is_dirty).length;
+        const isComplete = completedCount === g.shots.length;
+        if (filterStatus === "pending") return !isComplete;
+        if (filterStatus === "completed") return isComplete;
+        return true;
+      });
 
     if (sortBy === "duration_desc") {
       result = [...result].sort((a, b) => b.totalDuration - a.totalDuration);
@@ -96,7 +133,7 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
     }
 
     return result;
-  }, [groups, filterStatus, sortBy]);
+  }, [groups, filterStatus, sortBy, searchQuery]);
 
   if (shots.length === 0) {
     return (
@@ -196,6 +233,27 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
               </span>
             </button>
           </div>
+        </div>
+
+        {/* 即时搜索框 */}
+        <div className="relative flex items-center min-w-[160px] sm:min-w-[220px]">
+          <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜索场景/对白/镜号..."
+            className="w-full pl-8 pr-7 py-1 rounded-lg bg-secondary/80 border border-border/60 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary transition-all font-sans"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
