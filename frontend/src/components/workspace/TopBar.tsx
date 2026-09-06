@@ -632,8 +632,16 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Visible 6: 设置 */}
         <button
-          onClick={openSettingsModal}
-          className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          onClick={() => {
+            const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+            if (isDemoUser) {
+              notify.info("🎬 当前为公共体验账号，API Key 配置仅对专属导演账号生效！请先注册专属账号");
+              openAuthModal("register");
+              return;
+            }
+            openSettingsModal();
+          }}
+          className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
           title="API 与模型设置"
         >
           <Settings className="w-4 h-4" />

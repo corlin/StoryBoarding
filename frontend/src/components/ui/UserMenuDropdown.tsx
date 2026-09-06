@@ -138,6 +138,11 @@ export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ align = "rig
               type="button"
               onClick={() => {
                 setIsOpen(false);
+                if (isDemo) {
+                  notify.info("🎬 当前为公共体验账号，API Key 配置仅对专属导演账号生效！请先注册专属账号");
+                  openAuthModal("register");
+                  return;
+                }
                 openSettingsModal();
               }}
               className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-secondary/80 transition-colors text-left cursor-pointer"
@@ -146,7 +151,7 @@ export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ align = "rig
               <div className="flex-1">
                 <span className="block font-semibold">AI 模型与 API 设置</span>
                 <span className="text-[10px] text-muted-foreground block">
-                  配置专属 OpenRouter Key & 模型
+                  {isDemo ? "注册专属账号后配置专属 Key" : "配置专属 OpenRouter Key & 模型"}
                 </span>
               </div>
             </button>
