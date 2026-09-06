@@ -804,21 +804,20 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         </div>
       </div>
 
-      {/* Bottom Column: Collapsible TimelineBar (Recovers 56px) */}
-      <div id="tour-timeline-bar" className="border-t border-border bg-card/60 shrink-0">
-        <div className="flex items-center justify-between px-4 py-1 text-[11px] text-muted-foreground bg-secondary/30">
+      {/* Bottom Column: Collapsible TimelineBar */}
+      <div id="tour-timeline-bar" className="border-t border-border/80 bg-card/80 backdrop-blur shrink-0">
+        <div className="flex items-center justify-between px-3 py-1 text-[11px] text-muted-foreground border-b border-border/40">
           <button
             type="button"
             onClick={() => setIsTimelineCollapsed((prev) => !prev)}
             className="flex items-center gap-1.5 hover:text-foreground font-medium transition-colors cursor-pointer"
-            title={isTimelineCollapsed ? "展开双轨时间轴与情绪电压波动条带" : "收起时间轴以最大化主创作区空间"}
+            title={isTimelineCollapsed ? "展开时间轴" : "收起时间轴"}
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
-            <span>{isTimelineCollapsed ? "展开时间轴与情绪电压波形" : "收起时间轴"}</span>
+            <SlidersHorizontal className="w-3 h-3 text-muted-foreground" />
+            <span>{isTimelineCollapsed ? "展开时间轴与节奏切片" : "收起底栏"}</span>
           </button>
-          <div className="flex items-center gap-3 font-mono text-[10px]">
-            <span>{shots.length} 镜</span>
-            <span>{totalDuration.toFixed(1)}s / {displayProject?.target_duration || 30}s</span>
+          <div className="flex items-center gap-2 font-mono text-[10px] text-muted-foreground">
+            <span>{shots.length} 镜 · {totalDuration.toFixed(1)}s</span>
           </div>
         </div>
 
