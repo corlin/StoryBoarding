@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FileCode2, Sparkles, Loader2 } from "lucide-react";
+import { FileCode2, Sparkles, Loader2, Key } from "lucide-react";
 
 interface ImportScriptModalProps {
   isOpen: boolean;
@@ -71,32 +71,38 @@ export const ImportScriptModal: React.FC<ImportScriptModalProps> = ({
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
-            <button
-              type="button"
-              disabled={isImporting}
-              onClick={onClose}
-              className="px-4 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              disabled={isImporting || !scriptText.trim()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow disabled:opacity-50"
-            >
-              {isImporting ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>正在解析剧本...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>智能解析并生成故事板</span>
-                </>
-              )}
-            </button>
+          <div className="flex items-center justify-between pt-3 border-t border-border">
+            <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+              <Key className="w-3 h-3" />
+              <span>专属 API Key 已就绪</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isImporting}
+                onClick={onClose}
+                className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                disabled={isImporting || !scriptText.trim()}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow disabled:opacity-50 transition-all"
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>正在解析剧本...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>智能解析并生成故事板</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>

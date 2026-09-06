@@ -445,6 +445,23 @@ export const TopBar: React.FC<TopBarProps> = ({
                 <button
                   onClick={() => {
                     setIsMoreToolsOpen(false);
+                    if (!isAuthenticated) {
+                      notify.info("🎬 请先注册或登录专属导演账号");
+                      openAuthModal("login");
+                      return;
+                    }
+                    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+                    if (isDemoUser) {
+                      notify.info("🎬 当前为公共体验账号！如需导入私有剧本进行解析，请注册专属导演账号并在设置中填入 Key");
+                      openAuthModal("register");
+                      return;
+                    }
+                    const hasKey = !!user?.custom_settings?.llmApiKey;
+                    if (!hasKey) {
+                      notify.info("🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启剧本解析服务");
+                      openSettingsModal();
+                      return;
+                    }
                     onOpenImportScript();
                   }}
                   className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
@@ -458,6 +475,23 @@ export const TopBar: React.FC<TopBarProps> = ({
                 <button
                   onClick={() => {
                     setIsMoreToolsOpen(false);
+                    if (!isAuthenticated) {
+                      notify.info("🎬 请先注册或登录专属导演账号");
+                      openAuthModal("login");
+                      return;
+                    }
+                    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+                    if (isDemoUser) {
+                      notify.info("🎬 当前为公共体验账号！如需使用 AI 起步向导创建新故事，请注册专属导演账号并在设置中填入 Key");
+                      openAuthModal("register");
+                      return;
+                    }
+                    const hasKey = !!user?.custom_settings?.llmApiKey;
+                    if (!hasKey) {
+                      notify.info("🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI 起步向导服务");
+                      openSettingsModal();
+                      return;
+                    }
                     onOpenWizard();
                   }}
                   className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-foreground hover:bg-muted transition-colors text-left"
