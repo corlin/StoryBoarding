@@ -76,6 +76,36 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
     };
   }, [isPlaying, playbackRate, totalDuration, shots, selectedShotId, onSelectShot]);
 
+  // Industry Standard NLE Keyboard Shortcuts: Space (Play/Pause), ArrowLeft (Prev Shot), ArrowRight (Next Shot)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 正在输入文本（input/textarea/contenteditable）时忽略全局快捷键
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        handleTogglePlay();
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        handleStepPrevShot();
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        handleStepNextShot();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  });
+
   const handleTogglePlay = () => {
     if (currentTime >= totalDuration) {
       setCurrentTime(0);
@@ -153,7 +183,7 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
           onClick={handleStepPrevShot}
           disabled={shots.length === 0}
           className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 cursor-pointer"
-          title="微步切到上一镜 (吸附对齐起始点)"
+          title="微步切到上一镜 (快捷键: ← 左方向键)"
         >
           <SkipBack className="w-3.5 h-3.5" />
         </button>
@@ -166,7 +196,7 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
               ? "bg-amber-500 text-black hover:bg-amber-400"
               : "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
-          title={isPlaying ? "暂停预演" : "播放分镜预演 (Previz)"}
+          title={isPlaying ? "暂停预演 (快捷键: Space 空格键)" : "播放分镜预演 (快捷键: Space 空格键)"}
         >
           {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
         </button>
@@ -176,7 +206,7 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
           onClick={handleStepNextShot}
           disabled={shots.length === 0}
           className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 cursor-pointer"
-          title="微步切到下一镜 (吸附对齐起始点)"
+          title="微步切到下一镜 (快捷键: → 右方向键)"
         >
           <SkipForward className="w-3.5 h-3.5" />
         </button>
