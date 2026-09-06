@@ -103,9 +103,12 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     setIsDragging(true);
   };
 
-  // Drag listener for resizable split pane (percentage-based)
+  // Drag listener for resizable split pane (percentage-based with native desktop feel)
   useEffect(() => {
     if (!isDragging) return;
+
+    // Lock global cursor and prevent accidental text selection during fast dragging
+    document.body.classList.add("select-none", "cursor-col-resize");
 
     const handleMouseMove = (e: MouseEvent) => {
       const containerWidth = window.innerWidth;
@@ -122,6 +125,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
+      document.body.classList.remove("select-none", "cursor-col-resize");
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
@@ -736,7 +740,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       </div>
 
       {/* Main Dual-View Workspace Area */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className={cn("flex-1 flex overflow-hidden relative", isDragging && "select-none cursor-col-resize")}>
         {/* Left Column: Script & Beat-Stream Workspace */}
         <div
           id="tour-script-panel"
