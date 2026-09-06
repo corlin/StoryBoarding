@@ -55,6 +55,13 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({});
 
+  // Reset local search and collapse states when switching episode/sequence
+  const currentSequenceId = shots[0]?.sequence_id;
+  React.useEffect(() => {
+    setSearchQuery("");
+    setCollapsedGroups({});
+  }, [currentSequenceId]);
+
   // Auth & Key state perception
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -320,16 +327,33 @@ export const CallSheetView: React.FC<CallSheetViewProps> = ({
       {/* Batch Groups Table List */}
       <div className="space-y-4">
         {processedGroups.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground bg-card/30 border border-dashed border-border rounded-xl text-xs space-y-1">
+          <div className="p-8 text-center text-muted-foreground bg-card/30 border border-dashed border-border rounded-xl text-xs space-y-2">
             <Layers className="w-6 h-6 mx-auto opacity-40 mb-1" />
-            <p>没有符合当前筛选条件的生产批次</p>
-            <button
-              type="button"
-              onClick={() => setFilterStatus("all")}
-              className="text-primary hover:underline text-[11px] cursor-pointer"
-            >
-              重置筛选条件
-            </button>
+            <p>
+              {searchQuery
+                ? `未找到与 “${searchQuery}” 匹配的顺场拍摄批次`
+                : "没有符合当前筛选条件的生产批次"}
+            </p>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="px-3 py-1 rounded-lg bg-secondary hover:bg-muted text-foreground border border-border text-[11px] font-medium cursor-pointer transition-colors"
+                >
+                  清空搜索关键词
+                </button>
+              )}
+              {filterStatus !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => setFilterStatus("all")}
+                  className="px-3 py-1 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 text-[11px] font-semibold cursor-pointer transition-colors"
+                >
+                  查看全部批次
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           processedGroups.map((group, gIdx) => {
