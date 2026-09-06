@@ -357,6 +357,29 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
           )}
         </div>
 
+        {/* Keyboard shortcut hints in center */}
+        <div className="hidden lg:flex items-center gap-3 text-xs text-white/50 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 select-none">
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/80 font-mono text-[10px] border border-white/10">Space</kbd>
+            <span>播放/暂停</span>
+          </span>
+          <span className="text-white/20">·</span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/80 font-mono text-[10px] border border-white/10">← / →</kbd>
+            <span>切换镜头</span>
+          </span>
+          <span className="text-white/20">·</span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/80 font-mono text-[10px] border border-white/10">C</kbd>
+            <span>字幕</span>
+          </span>
+          <span className="text-white/20">·</span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/80 font-mono text-[10px] border border-white/10">Esc</kbd>
+            <span>退出</span>
+          </span>
+        </div>
+
         <div className="flex items-center gap-2">
           <button
             onClick={toggleFullscreen}
