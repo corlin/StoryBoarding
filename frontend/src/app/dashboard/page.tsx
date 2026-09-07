@@ -440,176 +440,186 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => {
-              if (!isAuthenticated) {
-                notify.info("请先登录查看全局资产库");
-                openAuthModal("login");
-                return;
-              }
-              setIsGlobalAssetModalOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 border border-purple-500/30 transition-all cursor-pointer shadow-2xs"
-            title="用户级全局资产库：跨项目沉淀复用角色、场景与道具"
-          >
-            <span>◇ 全局资产库</span>
-          </button>
-
-          <button
-            onClick={() => {
-              const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
-              if (isDemoUser) {
-                notify.info("🎬 当前为公共体验账号，API Key 配置仅对专属导演账号生效！请先注册专属账号");
-                openAuthModal("register");
-                return;
-              }
-              openSettingsModal();
-            }}
-            className="p-2 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-            title="后端连接与 AI 大模型设置"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-
-          {/* User Profile / Auth Button */}
-          {isAuthenticated && user ? (
-            <UserMenuDropdown />
-          ) : (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await login("demo@caifu.social", "demo123");
-                    notify.success("🎬 已一键登入官方演示 Demo 账号！");
-                  } catch (err) {
-                    openAuthModal("login");
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 transition-all shadow-2xs"
-                title="免注册免输密码，一键以官方演示 Demo 账号体验"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>体验 Demo 账号</span>
-              </button>
-              <button
-                onClick={() => openAuthModal("login")}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 border border-sky-500/30 transition-colors shadow-2xs"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>登录 / 注册</span>
-              </button>
-            </div>
-          )}
-
-          {/* Global Feature Architecture Map */}
-          <button
-            type="button"
-            onClick={() => setIsArchitectureMapOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all cursor-pointer shadow-xs"
-            title="全局功能引导地图 · 商业短剧制片工作流全景"
-          >
-            <Workflow className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">系统全景导图</span>
-            <span className="sm:hidden">导图</span>
-          </button>
-
-          {/* Advanced Creation Tools Dropdown */}
-          <div className="relative" ref={toolsMenuRef}>
+        <div className="flex items-center gap-3">
+          {/* 1. Global Resources & Architecture */}
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setIsToolsMenuOpen((prev) => !prev)}
-              className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-xs",
-                isToolsMenuOpen
-                  ? "bg-secondary text-foreground border-border"
-                  : "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border-border/70"
-              )}
-              title="更多智能剧本与长篇小说衍生工具"
+              onClick={() => {
+                if (!isAuthenticated) {
+                  notify.info("请先登录查看全局资产库");
+                  openAuthModal("login");
+                  return;
+                }
+                setIsGlobalAssetModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
+              title="用户级全局资产库：跨项目沉淀复用角色、场景与道具"
             >
-              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-              <span>创作工具</span>
-              <ChevronDown className={cn("w-3 h-3 text-muted-foreground transition-transform", isToolsMenuOpen && "rotate-180")} />
+              <span>◇ 全局资产库</span>
             </button>
 
-            {isToolsMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-60 bg-popover/95 backdrop-blur-md border border-border rounded-xl shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <button
+              type="button"
+              onClick={() => setIsArchitectureMapOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
+              title="全局功能引导地图 · 商业短剧制片工作流全景"
+            >
+              <Workflow className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">系统全景导图</span>
+            </button>
+          </div>
+
+          <div className="h-4 w-px bg-border/60" />
+
+          {/* 2. Core Creative Production Actions */}
+          <div className="flex items-center gap-2">
+            {/* Advanced Creation Tools Dropdown */}
+            <div className="relative" ref={toolsMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsToolsMenuOpen((prev) => !prev)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-xs",
+                  isToolsMenuOpen
+                    ? "bg-secondary text-foreground border-border"
+                    : "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border-border/70"
+                )}
+                title="更多智能剧本与长篇小说衍生工具"
+              >
+                <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                <span>创作工具</span>
+                <ChevronDown className={cn("w-3 h-3 text-muted-foreground transition-transform", isToolsMenuOpen && "rotate-180")} />
+              </button>
+
+              {isToolsMenuOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-60 bg-popover/95 backdrop-blur-md border border-border rounded-xl shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <button
+                    type="button"
+                    onClick={handleOpenPitchModal}
+                    className="w-full flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/80 text-left transition-colors cursor-pointer group"
+                  >
+                    <div className={cn(
+                      "p-1.5 rounded-md transition-colors mt-0.5",
+                      isDemoUser || !hasCustomKey ? "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500/25" : "bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20"
+                    )}>
+                      {isDemoUser || !hasCustomKey ? <Key className="w-4 h-4" /> : <Lightbulb className="w-4 h-4" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                        <span>一句话点子成剧</span>
+                        <span className={cn(
+                          "text-[10px] px-1 py-0.2 rounded font-normal",
+                          isDemoUser
+                            ? "bg-amber-500/20 text-amber-300 font-semibold"
+                            : !hasCustomKey
+                            ? "bg-amber-500/20 text-amber-300 font-semibold"
+                            : "bg-amber-500/20 text-amber-300"
+                        )}>
+                          {isDemoUser ? "🔑 注册体验" : !hasCustomKey ? "🔑 填Key体验" : "AI孵化"}
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+                        输入一句话脑洞，AI 自动生成 3 款短剧提案
+                      </p>
+                    </div>
+                  </button>
+
+                  <div className="my-1 border-t border-border/40" />
+
+                  <button
+                    type="button"
+                    onClick={handleOpenSeriesModal}
+                    className="w-full flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/80 text-left transition-colors cursor-pointer group"
+                  >
+                    <div className={cn(
+                      "p-1.5 rounded-md transition-colors mt-0.5",
+                      isDemoUser || !hasCustomKey ? "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500/25" : "bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20"
+                    )}>
+                      {isDemoUser || !hasCustomKey ? <Key className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                        <span>长篇小说成剧</span>
+                        <span className={cn(
+                          "text-[10px] px-1 py-0.2 rounded font-normal",
+                          isDemoUser
+                            ? "bg-amber-500/20 text-amber-300 font-semibold"
+                            : !hasCustomKey
+                            ? "bg-amber-500/20 text-amber-300 font-semibold"
+                            : "bg-sky-500/20 text-sky-300"
+                        )}>
+                          {isDemoUser ? "🔑 注册体验" : !hasCustomKey ? "🔑 填Key体验" : "多集切分"}
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+                        批量提炼核心角色设定与切分多集剧本
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleOpenCreateModal}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>新建分镜工程</span>
+            </button>
+          </div>
+
+          <div className="h-4 w-px bg-border/60" />
+
+          {/* 3. Account, Auth & System Settings Guardrail */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
+                if (isDemoUser) {
+                  notify.info("🎬 当前为公共体验账号，API Key 配置仅对专属导演账号生效！请先注册专属账号");
+                  openAuthModal("register");
+                  return;
+                }
+                openSettingsModal();
+              }}
+              className="p-2 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+              title="后端连接与 AI 大模型设置"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+
+            {isAuthenticated && user ? (
+              <UserMenuDropdown />
+            ) : (
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleOpenPitchModal}
-                  className="w-full flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/80 text-left transition-colors cursor-pointer group"
+                  onClick={async () => {
+                    try {
+                      await login("demo@caifu.social", "demo123");
+                      notify.success("🎬 已一键登入官方演示 Demo 账号！");
+                    } catch (err) {
+                      openAuthModal("login");
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 transition-all shadow-2xs cursor-pointer"
+                  title="免注册免输密码，一键以官方演示 Demo 账号体验"
                 >
-                  <div className={cn(
-                    "p-1.5 rounded-md transition-colors mt-0.5",
-                    isDemoUser || !hasCustomKey ? "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500/25" : "bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20"
-                  )}>
-                    {isDemoUser || !hasCustomKey ? <Key className="w-4 h-4" /> : <Lightbulb className="w-4 h-4" />}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground flex items-center gap-1">
-                      <span>一句话点子成剧</span>
-                      <span className={cn(
-                        "text-[10px] px-1 py-0.2 rounded font-normal",
-                        isDemoUser
-                          ? "bg-amber-500/20 text-amber-300 font-semibold"
-                          : !hasCustomKey
-                          ? "bg-amber-500/20 text-amber-300 font-semibold"
-                          : "bg-amber-500/20 text-amber-300"
-                      )}>
-                        {isDemoUser ? "🔑 注册体验" : !hasCustomKey ? "🔑 填Key体验" : "AI孵化"}
-                      </span>
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
-                      输入一句话脑洞，AI 自动生成 3 款短剧提案
-                    </p>
-                  </div>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>体验 Demo 账号</span>
                 </button>
-
-                <div className="my-1 border-t border-border/40" />
-
                 <button
-                  type="button"
-                  onClick={handleOpenSeriesModal}
-                  className="w-full flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/80 text-left transition-colors cursor-pointer group"
+                  onClick={() => openAuthModal("login")}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 border border-sky-500/30 transition-colors shadow-2xs cursor-pointer"
                 >
-                  <div className={cn(
-                    "p-1.5 rounded-md transition-colors mt-0.5",
-                    isDemoUser || !hasCustomKey ? "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500/25" : "bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20"
-                  )}>
-                    {isDemoUser || !hasCustomKey ? <Key className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground flex items-center gap-1">
-                      <span>长篇小说成剧</span>
-                      <span className={cn(
-                        "text-[10px] px-1 py-0.2 rounded font-normal",
-                        isDemoUser
-                          ? "bg-amber-500/20 text-amber-300 font-semibold"
-                          : !hasCustomKey
-                          ? "bg-amber-500/20 text-amber-300 font-semibold"
-                          : "bg-sky-500/20 text-sky-300"
-                      )}>
-                        {isDemoUser ? "🔑 注册体验" : !hasCustomKey ? "🔑 填Key体验" : "多集切分"}
-                      </span>
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
-                      批量提炼核心角色设定与切分多集剧本
-                    </p>
-                  </div>
+                  <User className="w-3.5 h-3.5" />
+                  <span>登录 / 注册</span>
                 </button>
               </div>
             )}
           </div>
-
-          <button
-            onClick={handleOpenCreateModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>新建分镜工程</span>
-          </button>
         </div>
       </header>
 

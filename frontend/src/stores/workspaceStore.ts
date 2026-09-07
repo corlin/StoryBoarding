@@ -2,10 +2,13 @@ import { create } from "zustand";
 import { ProjectModel, ShotModel, SequenceModel } from "@/types/shot";
 import { api } from "@/lib/api";
 
+export type StudioStage = "prep" | "storyboard" | "review" | "deliver";
+
 interface WorkspaceState {
   currentProject: ProjectModel | null;
   selectedShotId: string | null;
   activeEpisodeIndex: number;
+  activeStudioStage: StudioStage;
   isLoading: boolean;
   error: string | null;
 
@@ -13,6 +16,8 @@ interface WorkspaceState {
   setProject: (project: ProjectModel) => void;
   selectShot: (shotId: string | null) => void;
   setActiveEpisodeIndex: (index: number) => void;
+  setActiveStudioStage: (stage: StudioStage) => void;
+  toggleShotLock: (shotId: string) => void;
   fetchProject: (projectId: string) => Promise<void>;
   updateShotLocal: (shotId: string, updates: Partial<ShotModel>) => void;
   saveShotRemote: (shotId: string, updates: Partial<ShotModel>) => Promise<void>;
@@ -25,12 +30,27 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   currentProject: null,
   selectedShotId: null,
   activeEpisodeIndex: 0,
+  activeStudioStage: "storyboard",
   isLoading: false,
   error: null,
 
   setProject: (project) => set({ currentProject: project }),
 
   selectShot: (shotId) => set({ selectedShotId: shotId }),
+
+  setActiveStudioStage: (stage) => set({ activeStudioStage: stage }),
+
+  toggleShotLock: (shotId) => {
+    const { currentProject, activeEpisodeIndex } = get();
+    if (!currentProject) return;
+    const targetSeq = currentProject.sequences[activeEpisodeIndex];
+    if (!targetSeq) return;
+    const shot = targetSeq.shots.find((s) => s.id === shotId);
+    if (!shot) return;
+    const nextLocked = !shot.is_locked;
+    get().updateShotLocal(shotId, { is_locked: nextLocked });
+    get().saveShotRemote(shotId, { is_locked: nextLocked });
+  },
 
   setActiveEpisodeIndex: (index) => {
     const { currentProject } = get();

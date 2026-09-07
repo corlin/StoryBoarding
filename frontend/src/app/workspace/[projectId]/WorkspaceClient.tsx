@@ -32,6 +32,9 @@ import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { ProjectVersion, ProjectModel } from "@/types/shot";
 import { History, Clock, RotateCcw, GitBranch, X, Lock, ChevronLeft, ChevronRight, FileText, Film, SlidersHorizontal } from "lucide-react";
+import { PrepBibleStudioView } from "@/components/workspace/views/PrepBibleStudioView";
+import { TheaterReviewStudioView } from "@/components/workspace/views/TheaterReviewStudioView";
+import { DeliverStudioView } from "@/components/workspace/views/DeliverStudioView";
 
 interface WorkspaceClientProps {
   projectId?: string;
@@ -91,7 +94,12 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     }
   }, [effectiveProjectId]);
 
-  const { activeEpisodeIndex, setActiveEpisodeIndex } = useWorkspaceStore();
+  const {
+    activeEpisodeIndex,
+    setActiveEpisodeIndex,
+    activeStudioStage,
+    setActiveStudioStage,
+  } = useWorkspaceStore();
 
   // Mobile View Switcher Tab ("storyboard" | "script")
   const [mobileActiveTab, setMobileActiveTab] = useState<"storyboard" | "script">("storyboard");
@@ -788,161 +796,197 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         </div>
       )}
 
-      {/* Mobile Dual-View Tab Bar */}
-      <div className="flex md:hidden border-b border-border bg-card">
-        <button
-          onClick={() => setMobileActiveTab("storyboard")}
-          className={cn(
-            "flex-1 py-2 text-xs font-medium flex items-center justify-center gap-2 border-b-2 transition-colors",
-            mobileActiveTab === "storyboard"
-              ? "border-primary text-primary bg-primary/5"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Film className="w-4 h-4" />
-          <span>分镜画板 ({shots.length})</span>
-        </button>
-        <button
-          onClick={() => setMobileActiveTab("script")}
-          className={cn(
-            "flex-1 py-2 text-xs font-medium flex items-center justify-center gap-2 border-b-2 transition-colors",
-            mobileActiveTab === "script"
-              ? "border-primary text-primary bg-primary/5"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <FileText className="w-4 h-4" />
-          <span>剧本节拍流</span>
-        </button>
-      </div>
+      {/* 2. DaVinci Resolve Studio Stages In-Canvas Render Engine */}
+      {activeStudioStage === "prep" && (
+        <PrepBibleStudioView
+          project={displayProject}
+          onRefreshProject={async () => {
+            if (effectiveProjectId) await fetchProject(effectiveProjectId);
+          }}
+          onOpenImportScript={() => setIsOpenScriptModal(true)}
+          onOpenWizard={() => setIsWizardOpen(true)}
+          onOpenCharacterProfile={(char) => {
+            setBibleMode("characters");
+            setIsOpenBibleModal(true);
+          }}
+        />
+      )}
 
-      {/* Main Dual-View Workspace Area */}
-      <div className={cn("flex-1 flex overflow-hidden relative", isDragging && "select-none cursor-col-resize")}>
-        {/* Left Column: Script & Beat-Stream Workspace */}
-        <div
-          id="tour-script-panel"
-          style={{ width: isLeftPanelCollapsed ? "0px" : `${leftPanelPercent}%` }}
-          className={cn(
-            "h-full border-r border-border flex flex-col bg-background/50 backdrop-blur-xs relative overflow-hidden",
-            isDragging ? "transition-none" : "transition-[width] duration-200 ease-in-out",
-            mobileActiveTab === "script" ? "!w-full flex-1 block md:flex-none" : "hidden md:block"
-          )}
-        >
-          <div className="h-full flex flex-col min-w-[320px] w-full">
-            <ScriptPanel
-              shots={shots}
-              sequenceId={activeSequence?.id || ""}
-              selectedShotId={selectedShotId}
-              characters={displayProject?.characters || []}
-              project={displayProject}
-              sequence={activeSequence}
-              onRefreshProject={async () => {
-                await fetchProject(effectiveProjectId);
-              }}
-              onSelectShot={selectShot}
-              onUpdateShot={saveShotRemote}
-              onAddShot={() => activeSequence && addShot(activeSequence.id)}
-              onDeleteShot={deleteShot}
-              onOpenDrawer={handleOpenDrawer}
-            />
+      {activeStudioStage === "storyboard" && (
+        <>
+          {/* Mobile Tab Switcher (Storyboard vs Script) */}
+          <div className="flex md:hidden border-b border-border bg-card">
+            <button
+              onClick={() => setMobileActiveTab("storyboard")}
+              className={cn(
+                "flex-1 py-2 text-xs font-medium flex items-center justify-center gap-2 border-b-2 transition-colors",
+                mobileActiveTab === "storyboard"
+                  ? "border-primary text-primary bg-primary/5"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Film className="w-4 h-4" />
+              <span>分镜画板 ({shots.length})</span>
+            </button>
+            <button
+              onClick={() => setMobileActiveTab("script")}
+              className={cn(
+                "flex-1 py-2 text-xs font-medium flex items-center justify-center gap-2 border-b-2 transition-colors",
+                mobileActiveTab === "script"
+                  ? "border-primary text-primary bg-primary/5"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <FileText className="w-4 h-4" />
+              <span>剧本节拍流</span>
+            </button>
           </div>
-        </div>
 
-        {/* Resizable Divider Handle (Desktop Only) */}
-        <div
-          onMouseDown={handleMouseDown}
-          onDoubleClick={handleResetDivider}
-          title="按住鼠标左键左右拖拽调整分栏比例；双击恢复 50:50 均等分栏"
-          className={cn(
-            "w-2 hover:w-2.5 -mr-1 -ml-1 z-30 cursor-col-resize group flex items-center justify-center transition-all select-none relative",
-            "hidden md:flex",
-            isDragging ? "bg-primary/40 w-2.5" : "hover:bg-primary/20"
-          )}
-        >
-          <div
-            className={cn(
-              "w-0.5 h-12 rounded-full transition-colors",
-              isDragging ? "bg-primary" : "bg-border group-hover:bg-primary/70"
-            )}
-          />
+          {/* Main Dual-View Workspace Area */}
+          <div className={cn("flex-1 flex overflow-hidden relative", isDragging && "select-none cursor-col-resize")}>
+            {/* Left Column: Script & Beat-Stream Workspace */}
+            <div
+              id="tour-script-panel"
+              style={{ width: isLeftPanelCollapsed ? "0px" : `${leftPanelPercent}%` }}
+              className={cn(
+                "h-full border-r border-border flex flex-col bg-background/50 backdrop-blur-xs relative overflow-hidden",
+                isDragging ? "transition-none" : "transition-[width] duration-200 ease-in-out",
+                mobileActiveTab === "script" ? "!w-full flex-1 block md:flex-none" : "hidden md:block"
+              )}
+            >
+              <div className="h-full flex flex-col min-w-[320px] w-full">
+                <ScriptPanel
+                  shots={shots}
+                  sequenceId={activeSequence?.id || ""}
+                  selectedShotId={selectedShotId}
+                  characters={displayProject?.characters || []}
+                  project={displayProject}
+                  sequence={activeSequence}
+                  onRefreshProject={async () => {
+                    await fetchProject(effectiveProjectId);
+                  }}
+                  onSelectShot={selectShot}
+                  onUpdateShot={saveShotRemote}
+                  onAddShot={() => activeSequence && addShot(activeSequence.id)}
+                  onDeleteShot={deleteShot}
+                  onOpenDrawer={handleOpenDrawer}
+                />
+              </div>
+            </div>
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsLeftPanelCollapsed((prev) => !prev);
-            }}
-            title={isLeftPanelCollapsed ? "展开左侧剧本流" : "收起左侧剧本流（纯净画板全屏）"}
-            className="absolute top-1/2 -translate-y-1/2 w-4 h-8 bg-card border border-border rounded-r-md shadow-xs flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-          >
-            {isLeftPanelCollapsed ? (
-              <ChevronRight className="w-3 h-3" />
-            ) : (
-              <ChevronLeft className="w-3 h-3" />
-            )}
-          </button>
-        </div>
+            {/* Resizable Divider Handle (Desktop Only) */}
+            <div
+              onMouseDown={handleMouseDown}
+              onDoubleClick={handleResetDivider}
+              title="按住鼠标左键左右拖拽调整分栏比例；双击恢复 50:50 均等分栏"
+              className={cn(
+                "w-2 hover:w-2.5 -mr-1 -ml-1 z-30 cursor-col-resize group flex items-center justify-center transition-all select-none relative",
+                "hidden md:flex",
+                isDragging ? "bg-primary/40 w-2.5" : "hover:bg-primary/20"
+              )}
+            >
+              <div
+                className={cn(
+                  "w-0.5 h-12 rounded-full transition-colors",
+                  isDragging ? "bg-primary" : "bg-border group-hover:bg-primary/70"
+                )}
+              />
 
-        {/* Right Column: Storyboard View (Grid & CallSheet) */}
-        <div
-          id="tour-storyboard-panel"
-          className={cn(
-            "flex-1 h-full overflow-hidden bg-background min-w-0",
-            mobileActiveTab === "storyboard" ? "w-full block" : "hidden md:block"
-          )}
-        >
-          <StoryboardPanel
-            project={displayProject}
-            shots={shots}
-            selectedShotId={selectedShotId}
-            aspectRatio={displayProject?.aspect_ratio === "9:16" ? "9:16" : "16:9"}
-            characters={displayProject?.characters || []}
-            locations={displayProject?.locations || []}
-            propsList={displayProject?.props || []}
-            onSelectShot={selectShot}
-            onOpenDrawer={handleOpenDrawer}
-            onOpenTheater={handleOpenTheater}
-            onRegenerateDirty={handleRegenerateDirty}
-            onRegenerateShotImage={handleRegenerateSingleShot}
-            onToggleLock={handleToggleLockShot}
-            onOpenGenerateModal={() => setIsOpenAIGenerateModal(true)}
-            onOpenImportScript={() => setIsOpenScriptModal(true)}
-            isBatchRendering={isBatchRendering}
-            batchProgress={batchProgress}
-            onAbortBatchRendering={handleAbortBatchRendering}
-          />
-        </div>
-      </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsLeftPanelCollapsed((prev) => !prev);
+                }}
+                title={isLeftPanelCollapsed ? "展开左侧剧本流" : "收起左侧剧本流（纯净画板全屏）"}
+                className="absolute top-1/2 -translate-y-1/2 w-4 h-8 bg-card border border-border rounded-r-md shadow-xs flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+              >
+                {isLeftPanelCollapsed ? (
+                  <ChevronRight className="w-3 h-3" />
+                ) : (
+                  <ChevronLeft className="w-3 h-3" />
+                )}
+              </button>
+            </div>
 
-      {/* Bottom Column: Collapsible TimelineBar */}
-      <div id="tour-timeline-bar" className="border-t border-border/80 bg-card/80 backdrop-blur shrink-0">
-        <div className="flex items-center justify-between px-3 py-1 text-[11px] text-muted-foreground border-b border-border/40">
-          <button
-            type="button"
-            onClick={() => setIsTimelineCollapsed((prev) => !prev)}
-            className="flex items-center gap-1.5 hover:text-foreground font-medium transition-colors cursor-pointer"
-            title={isTimelineCollapsed ? "展开时间轴" : "收起时间轴"}
-          >
-            <SlidersHorizontal className="w-3 h-3 text-muted-foreground" />
-            <span>{isTimelineCollapsed ? "展开时间轴与节奏切片" : "收起底栏"}</span>
-          </button>
-          <div className="flex items-center gap-2 font-mono text-[10px] text-muted-foreground">
-            <span>{shots.length} 镜 · {totalDuration.toFixed(1)}s</span>
+            {/* Right Column: Storyboard View (Grid & CallSheet) */}
+            <div
+              id="tour-storyboard-panel"
+              className={cn(
+                "flex-1 h-full overflow-hidden bg-background min-w-0",
+                mobileActiveTab === "storyboard" ? "w-full block" : "hidden md:block"
+              )}
+            >
+              <StoryboardPanel
+                project={displayProject}
+                shots={shots}
+                selectedShotId={selectedShotId}
+                aspectRatio={displayProject?.aspect_ratio === "9:16" ? "9:16" : "16:9"}
+                characters={displayProject?.characters || []}
+                locations={displayProject?.locations || []}
+                propsList={displayProject?.props || []}
+                onSelectShot={selectShot}
+                onOpenDrawer={handleOpenDrawer}
+                onOpenTheater={handleOpenTheater}
+                onRegenerateDirty={handleRegenerateDirty}
+                onRegenerateShotImage={handleRegenerateSingleShot}
+                onToggleLock={handleToggleLockShot}
+                onOpenGenerateModal={() => setIsOpenAIGenerateModal(true)}
+                onOpenImportScript={() => setIsOpenScriptModal(true)}
+                isBatchRendering={isBatchRendering}
+                batchProgress={batchProgress}
+                onAbortBatchRendering={handleAbortBatchRendering}
+              />
+            </div>
           </div>
-        </div>
 
-        {!isTimelineCollapsed && (
-          <TimelineBar
-            shots={shots}
-            targetDuration={displayProject?.target_duration || 30.0}
-            selectedShotId={selectedShotId}
-            sequences={displayProject?.sequences || []}
-            activeEpisodeIndex={activeEpisodeIndex}
-            onSelectEpisode={(idx) => setActiveEpisodeIndex(idx)}
-            onSelectShot={(id) => selectShot(id)}
-          />
-        )}
-      </div>
+          {/* Bottom Column: Collapsible TimelineBar */}
+          <div id="tour-timeline-bar" className="border-t border-border/80 bg-card/80 backdrop-blur shrink-0">
+            <div className="flex items-center justify-between px-3 py-1 text-[11px] text-muted-foreground border-b border-border/40">
+              <button
+                type="button"
+                onClick={() => setIsTimelineCollapsed((prev) => !prev)}
+                className="flex items-center gap-1.5 hover:text-foreground font-medium transition-colors cursor-pointer"
+                title={isTimelineCollapsed ? "展开时间轴" : "收起时间轴"}
+              >
+                <SlidersHorizontal className="w-3 h-3 text-muted-foreground" />
+                <span>{isTimelineCollapsed ? "展开时间轴与节奏切片" : "收起底栏"}</span>
+              </button>
+              <div className="flex items-center gap-2 font-mono text-[10px] text-muted-foreground">
+                <span>{shots.length} 镜 · {totalDuration.toFixed(1)}s</span>
+              </div>
+            </div>
+
+            {!isTimelineCollapsed && (
+              <TimelineBar
+                shots={shots}
+                targetDuration={displayProject?.target_duration || 30.0}
+                selectedShotId={selectedShotId}
+                sequences={displayProject?.sequences || []}
+                activeEpisodeIndex={activeEpisodeIndex}
+                onSelectEpisode={(idx) => setActiveEpisodeIndex(idx)}
+                onSelectShot={(id) => selectShot(id)}
+              />
+            )}
+          </div>
+        </>
+      )}
+
+      {activeStudioStage === "review" && (
+        <TheaterReviewStudioView
+          project={displayProject}
+          shots={shots}
+          onOpenDetail={(shot) => handleOpenDrawer(shot.id)}
+          onRegenerateShotImage={handleRegenerateSingleShot}
+        />
+      )}
+
+      {activeStudioStage === "deliver" && (
+        <DeliverStudioView
+          project={displayProject}
+          shots={shots}
+        />
+      )}
 
       {/* Centralized Modals & Drawers */}
       <DirectorPipelineProgress
