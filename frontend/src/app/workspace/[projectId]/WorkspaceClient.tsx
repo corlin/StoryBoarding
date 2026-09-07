@@ -166,6 +166,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     selectShot,
     saveShotRemote,
     addShot,
+    insertShot,
     deleteShot,
     regenerateShotImage,
     updateShotLocal,
@@ -951,6 +952,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
                 onToggleLock={handleToggleLockShot}
                 onOpenGenerateModal={() => setIsOpenAIGenerateModal(true)}
                 onOpenImportScript={() => setIsOpenScriptModal(true)}
+                onInsertShot={(afterIndex) => activeSequence && insertShot(activeSequence.id, afterIndex)}
                 isBatchRendering={isBatchRendering}
                 batchProgress={batchProgress}
                 onAbortBatchRendering={handleAbortBatchRendering}

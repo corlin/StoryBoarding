@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ShotModel, CharacterModel } from "@/types/shot";
-import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock, CheckCircle, Compass, Palette, CloudUpload, User, Key } from "lucide-react";
+import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock, CheckCircle, Compass, Palette, CloudUpload, User, Key, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeAssetUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
@@ -18,6 +18,7 @@ interface StoryboardCellProps {
   onToggleLock?: (shotId: string, locked: boolean) => void;
   onOpenDetail?: () => void;
   onOpenTheater?: () => void;
+  onInsertAfter?: () => void;
 }
 
 const SHOT_SIZE_ABBR: Record<string, string> = {
@@ -187,6 +188,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
   onToggleLock,
   onOpenDetail,
   onOpenTheater,
+  onInsertAfter,
 }) => {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -316,7 +318,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
     <div
       onClick={handleCardBodyClick}
       className={cn(
-        "group relative isolate flex flex-col rounded-xl overflow-hidden border bg-card/60 transition-all duration-200 cursor-pointer shadow-sm",
+        "group relative isolate flex flex-col rounded-xl border bg-card/60 transition-all duration-200 cursor-pointer shadow-sm",
         isSelected
           ? isLocked
             ? "border-amber-400 ring-2 ring-amber-400/50 shadow-md bg-card/95"
@@ -335,7 +337,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           }
         }}
         className={cn(
-          "relative w-full bg-neutral-950 flex items-center justify-center overflow-hidden",
+          "relative w-full bg-neutral-950 flex items-center justify-center overflow-hidden rounded-t-xl",
           aspectRatio === "9:16" ? "aspect-[9/16]" : "aspect-video",
           imgSrc ? "cursor-zoom-in" : "cursor-default"
         )}
@@ -599,6 +601,25 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           )}
         </div>
       </div>
+
+      {/* Hover Quick Insert Button (Pro Feature: insert next shot seamlessly) */}
+      {onInsertAfter && (
+        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 pointer-events-auto">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInsertAfter();
+              notify.info(`🎬 已在镜 ${index + 1} 后成功插入新分镜！`);
+            }}
+            className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow-md hover:scale-105 active:scale-95 transition-transform border border-primary-foreground/20 cursor-pointer"
+            title={`在镜 ${index + 1} 与镜 ${index + 2} 之间快捷插入空白新镜头`}
+          >
+            <Plus className="w-3 h-3" />
+            <span>插镜</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

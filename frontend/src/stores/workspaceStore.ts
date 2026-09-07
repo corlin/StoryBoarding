@@ -22,6 +22,7 @@ interface WorkspaceState {
   updateShotLocal: (shotId: string, updates: Partial<ShotModel>) => void;
   saveShotRemote: (shotId: string, updates: Partial<ShotModel>) => Promise<void>;
   addShot: (sequenceId: string) => Promise<void>;
+  insertShot: (sequenceId: string, afterIndex: number) => Promise<void>;
   deleteShot: (shotId: string) => Promise<void>;
   regenerateShotImage: (shotId: string) => Promise<void>;
 }
@@ -272,6 +273,76 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       subject: "新角色",
       action: "输入镜头具体动作描述...",
     });
+
+    await get().fetchProject(currentProject.id);
+    set({ selectedShotId: created.id });
+  },
+
+  insertShot: async (sequenceId, afterIndex) => {
+    const { currentProject } = get();
+    if (!currentProject) return;
+
+    const seq = currentProject.sequences.find((s) => s.id === sequenceId) || currentProject.sequences[0];
+    if (!seq) return;
+
+    const currentShots = [...seq.shots];
+    const insertPosition = afterIndex + 1; // 0-based insert index
+
+    if (currentProject.id === "demo" || currentProject.id === "demo-matrix-cyber-master") {
+      const newLocalShot: ShotModel = {
+        id: `shot-local-${Date.now()}`,
+        sequence_id: sequenceId,
+        order: insertPosition + 1,
+        duration: 3.0,
+        shot_size: "medium_shot",
+        camera_angle: "eye_level",
+        camera_movement: { type: "static" },
+        subject: "新主体",
+        action: "新插入镜头动作描述...",
+        composition: {},
+        character_direction: "facing_camera",
+        audio: {},
+        transition: "cut",
+        storyboard_image_url: "",
+        continuity_data: {},
+        is_dirty: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      currentShots.splice(insertPosition, 0, newLocalShot);
+      const reordered = currentShots.map((s, idx) => ({ ...s, order: idx + 1 }));
+
+      const updatedSequences = currentProject.sequences.map((s) =>
+        s.id === sequenceId ? { ...s, shots: reordered } : s
+      );
+
+      set({
+        currentProject: { ...currentProject, sequences: updatedSequences },
+        selectedShotId: newLocalShot.id,
+      });
+      return;
+    }
+
+    // Server-backed project
+    const created = await api.createShot({
+      sequence_id: sequenceId,
+      order: insertPosition + 1,
+      duration: 3.0,
+      shot_size: "medium_shot",
+      camera_angle: "eye_level",
+      camera_movement: { type: "static" },
+      subject: "新角色",
+      action: "新插入镜头具体动作描述...",
+    });
+
+    currentShots.splice(insertPosition, 0, created);
+    const shotIds = currentShots.map((s) => s.id);
+    try {
+      await api.reorderShots(sequenceId, shotIds);
+    } catch (e) {
+      console.warn("Reorder after insert shot fallback:", e);
+    }
 
     await get().fetchProject(currentProject.id);
     set({ selectedShotId: created.id });

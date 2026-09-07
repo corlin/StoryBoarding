@@ -25,6 +25,7 @@ interface StoryboardPanelProps {
   onOpenDrawer?: (shotId: string) => void;
   onOpenGenerateModal?: () => void;
   onOpenImportScript?: () => void;
+  onInsertShot?: (afterIndex: number) => void;
   isBatchRendering?: boolean;
   batchProgress?: { current: number; total: number };
   onAbortBatchRendering?: () => void;
@@ -46,6 +47,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   onOpenDrawer,
   onOpenGenerateModal,
   onOpenImportScript,
+  onInsertShot,
   isBatchRendering = false,
   batchProgress,
   onAbortBatchRendering,
@@ -503,6 +505,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                   onToggleLock={onToggleLock}
                   onOpenDetail={() => onOpenDrawer && onOpenDrawer(shot.id)}
                   onOpenTheater={() => onOpenTheater && onOpenTheater(shot.id)}
+                  onInsertAfter={onInsertShot ? () => onInsertShot(idx) : undefined}
                 />
               </div>
             ))}
