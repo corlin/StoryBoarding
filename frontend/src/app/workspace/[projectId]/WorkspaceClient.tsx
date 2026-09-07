@@ -235,6 +235,52 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   const activeVersionTag = versions[0]?.version_tag || "v1.0";
 
+  // Auto-open target feature when navigated with ?open=<action>
+  useEffect(() => {
+    const openAction = searchParams?.get("open");
+    if (!openAction || !displayProject) return;
+
+    const timer = setTimeout(() => {
+      switch (openAction) {
+        case "export":
+          setIsOpenExportModal(true);
+          break;
+        case "theater":
+          setTheaterShotId(selectedShotId || shots[0]?.id || null);
+          setIsTheaterOpen(true);
+          break;
+        case "bible":
+          setBibleMode("bible");
+          setIsOpenBibleModal(true);
+          break;
+        case "radar":
+          setIsOpenRadarModal(true);
+          break;
+        case "tradeoff":
+          setIsOpenTradeoffModal(true);
+          break;
+        case "generate":
+          setIsOpenAIGenerateModal(true);
+          break;
+        case "import":
+          setIsOpenScriptModal(true);
+          break;
+        case "tour":
+          setIsOnboardingTourOpen(true);
+          break;
+      }
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("open");
+        window.history.replaceState({}, "", url.toString());
+      } catch {
+        // ignore
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [searchParams, displayProject, selectedShotId, shots]);
+
   // Active asynchronous batch rendering poll-synchronizer
   useEffect(() => {
     if (!currentProject || previewVersion || !isBatchRendering) return;

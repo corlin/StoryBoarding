@@ -233,6 +233,13 @@ export default function DashboardPage() {
     setIsSeriesModalOpen(true);
   };
 
+  const navigateToWorkspaceWithAction = (action: string) => {
+    setIsArchitectureMapOpen(false);
+    const targetId = projects[0]?.id || "6f01c422-48ea-4796-afc7-09cc6447f764";
+    notify.info("🎬 正在进入工程工作台并自动为您呼出对应模块...");
+    router.push(`/workspace?id=${targetId}&open=${action}`);
+  };
+
   const handleApplyTemplate = async (tmpl: typeof STARTER_TEMPLATES[0]) => {
     // 零 Token 成本样板房策略：未登录用户点击直接以官方 Demo 账号免密进入体验现成工程，无需调用 LLM 与生图接口
     if (!isAuthenticated) {
@@ -1125,6 +1132,15 @@ export default function DashboardPage() {
       <SystemArchitectureMapModal
         isOpen={isArchitectureMapOpen}
         onClose={() => setIsArchitectureMapOpen(false)}
+        onOpenRadar={() => navigateToWorkspaceWithAction("radar")}
+        onOpenBible={() => navigateToWorkspaceWithAction("bible")}
+        onOpenTradeoff={() => navigateToWorkspaceWithAction("tradeoff")}
+        onOpenImportScript={() => navigateToWorkspaceWithAction("import")}
+        onOpenAIGenerate={() => navigateToWorkspaceWithAction("generate")}
+        onOpenTheater={() => navigateToWorkspaceWithAction("theater")}
+        onOpenExport={() => navigateToWorkspaceWithAction("export")}
+        onSelectViewMode={(mode) => navigateToWorkspaceWithAction(mode)}
+        onOpenTour={() => navigateToWorkspaceWithAction("tour")}
       />
     </div>
   );
