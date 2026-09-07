@@ -65,7 +65,7 @@ export const CAMERA_MOVEMENT_GLOSSARY: Record<string, string> = {
   orbital: "环绕运镜 · 360度环顾人物，高光时刻",
 };
 
-function PrevizHudOverlay({ shot }: { shot: ShotModel }) {
+function PrevizHudOverlay({ shot, index }: { shot: ShotModel; index: number }) {
   const movType =
     typeof shot.camera_movement === "object"
       ? (shot.camera_movement as any)?.type || "static"
@@ -76,92 +76,95 @@ function PrevizHudOverlay({ shot }: { shot: ShotModel }) {
       case "push_in":
         return {
           label: "PUSH IN ➔ (推进)",
-          color: "text-amber-300 border-amber-400/60 bg-amber-950/70",
+          color: "text-amber-300 border-amber-400/60 bg-amber-950/80",
         };
       case "pull_out":
         return {
           label: "PULL OUT ⤺ (拉远)",
-          color: "text-sky-300 border-sky-400/60 bg-sky-950/70",
+          color: "text-sky-300 border-sky-400/60 bg-sky-950/80",
         };
       case "tracking_right":
       case "pan_right":
         return {
           label: "TRACK RIGHT ━━━━► (右移)",
-          color: "text-emerald-300 border-emerald-400/60 bg-emerald-950/70",
+          color: "text-emerald-300 border-emerald-400/60 bg-emerald-950/80",
         };
       case "tracking_left":
       case "pan_left":
         return {
           label: "◄━━━━ TRACK LEFT (左移)",
-          color: "text-emerald-300 border-emerald-400/60 bg-emerald-950/70",
+          color: "text-emerald-300 border-emerald-400/60 bg-emerald-950/80",
         };
       case "crane":
       case "tilt_up":
         return {
           label: "▲ CRANE / TILT UP (升机位)",
-          color: "text-purple-300 border-purple-400/60 bg-purple-950/70",
+          color: "text-purple-300 border-purple-400/60 bg-purple-950/80",
         };
       case "tilt_down":
         return {
           label: "▼ TILT DOWN (俯视降机位)",
-          color: "text-purple-300 border-purple-400/60 bg-purple-950/70",
+          color: "text-purple-300 border-purple-400/60 bg-purple-950/80",
         };
       case "arc_rotate":
         return {
           label: "⟳ 360° ARC (环绕旋转)",
-          color: "text-rose-300 border-rose-400/60 bg-rose-950/70",
+          color: "text-rose-300 border-rose-400/60 bg-rose-950/80",
         };
       default:
         return {
           label: "⊡ LOCKED STATIC (固定机位)",
-          color: "text-slate-300 border-slate-400/60 bg-slate-950/70",
+          color: "text-slate-300 border-slate-400/60 bg-slate-950/80",
         };
     }
   };
 
   const badge = renderMovementBadge();
   const screenDir = shot.character_direction || (shot as any).continuity?.screen_direction || "L➔R";
+  const sizeAbbr = SHOT_SIZE_GLOSSARY[shot.shot_size]?.split(" · ")[0] || (shot.shot_size || "MS").toUpperCase();
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-15 select-none overflow-hidden">
-      {/* 1. Rule-of-Thirds Grid (Ultra subtle 6% opacity) */}
-      <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
-        <div className="border-r border-b border-white/[0.06]" />
-        <div className="border-r border-b border-white/[0.06]" />
-        <div className="border-b border-white/[0.06]" />
-        <div className="border-r border-b border-white/[0.06]" />
-        <div className="border-r border-b border-white/[0.06]" />
-        <div className="border-b border-white/[0.06]" />
-        <div className="border-r border-white/[0.06]" />
-        <div className="border-r border-white/[0.06]" />
+    <div className="absolute inset-0 pointer-events-none z-15 select-none overflow-hidden flex flex-col justify-between p-2">
+      {/* 1. Rule-of-Thirds Grid (Semi-transparent for focal alignment) */}
+      <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
+        <div className="border-r border-b border-white/[0.08]" />
+        <div className="border-r border-b border-white/[0.08]" />
+        <div className="border-b border-white/[0.08]" />
+        <div className="border-r border-b border-white/[0.08]" />
+        <div className="border-r border-b border-white/[0.08]" />
+        <div className="border-b border-white/[0.08]" />
+        <div className="border-r border-white/[0.08]" />
+        <div className="border-r border-white/[0.08]" />
         <div />
       </div>
 
-      {/* 2. Rule-of-Thirds 4 Golden Power Points (+) */}
-      <div className="absolute top-[33.33%] left-[33.33%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/40 select-none">
+      {/* 2. Golden Power Points (+) */}
+      <div className="absolute top-[33.33%] left-[33.33%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/50 select-none">
         ┼
       </div>
-      <div className="absolute top-[33.33%] left-[66.67%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/40 select-none">
+      <div className="absolute top-[33.33%] left-[66.67%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/50 select-none">
         ┼
       </div>
-      <div className="absolute top-[66.67%] left-[33.33%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/40 select-none">
+      <div className="absolute top-[66.67%] left-[33.33%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/50 select-none">
         ┼
       </div>
-      <div className="absolute top-[66.67%] left-[66.67%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/40 select-none">
+      <div className="absolute top-[66.67%] left-[66.67%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/50 select-none">
         ┼
       </div>
 
-      {/* 3. 90% Cinema Action Safe Corner Crop Marks */}
-      <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-sky-400/50" />
-      <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-sky-400/50" />
-      <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-sky-400/50" />
-      <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-sky-400/50" />
+      {/* 3. Top AI Control Rig Bar: Shot, Size, Duration & Camera Vector */}
+      <div className="relative z-10 flex items-center justify-between gap-1">
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-black/80 border border-sky-400/30 text-[10px] font-mono backdrop-blur-xs">
+          <span className="text-sky-300 font-bold">SHOT {String(index + 1).padStart(2, "0")}</span>
+          <span className="text-white/40">·</span>
+          <span className="text-slate-200">{sizeAbbr}</span>
+          <span className="text-white/40">·</span>
+          <span className="text-emerald-300">{(shot.duration || 2.5).toFixed(1)}s</span>
+        </div>
 
-      {/* 4. Bottom Center: Dynamic Camera Movement Trajectory Vector */}
-      <div className="absolute bottom-2.5 inset-x-0 flex items-center justify-center">
         <div
           className={cn(
-            "flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-semibold shadow-md backdrop-blur-md",
+            "flex items-center gap-1 px-2 py-0.5 rounded border text-[9px] font-mono font-semibold shadow-xs backdrop-blur-xs",
             badge.color
           )}
         >
@@ -169,9 +172,27 @@ function PrevizHudOverlay({ shot }: { shot: ShotModel }) {
         </div>
       </div>
 
-      {/* 5. Bottom Right: 180° Action Axis & Screen Direction */}
-      <div className="absolute bottom-2.5 right-2.5 hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/80 border border-white/20 text-[9px] font-mono text-slate-300">
-        <span>AXIS 180° · {screenDir}</span>
+      {/* 4. Bottom AI Semantic Prompt Strip: Action & Dialogue Context */}
+      <div className="relative z-10 space-y-1">
+        <div className="px-2 py-1 rounded bg-black/85 border border-white/15 backdrop-blur-xs text-[9.5px] leading-tight text-slate-200 space-y-0.5 max-w-full">
+          {shot.action && (
+            <p className="line-clamp-1 text-slate-200">
+              <span className="text-amber-300 font-mono font-medium">[动作] </span>
+              {shot.action}
+            </p>
+          )}
+          {shot.dialogue && (
+            <p className="line-clamp-1 text-sky-300 italic">
+              <span className="text-sky-400 font-mono font-medium not-italic">[台词] </span>
+              “{shot.dialogue}”
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between text-[8.5px] font-mono text-slate-400 px-0.5">
+          <span>AI REF CONTROL RIG</span>
+          <span>AXIS 180° · {screenDir}</span>
+        </div>
       </div>
     </div>
   );
@@ -354,7 +375,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
               className="w-full h-full object-cover transition-all duration-500 animate-in fade-in zoom-in-95 group-hover:scale-[1.02]"
             />
             {/* Director Previz HUD Visual Auxiliary Guide Overlay */}
-            {showHudGuide && <PrevizHudOverlay shot={shot} />}
+            {showHudGuide && <PrevizHudOverlay shot={shot} index={index} />}
           </>
         ) : isActivelyDeveloping ? (
           /* Active Developing Chamber with Stopwatch (Max 45s) */

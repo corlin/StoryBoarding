@@ -55,7 +55,15 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   onAbortBatchRendering,
 }) => {
   const [gridCols, setGridCols] = useState<2 | 3 | 4>(3);
-  const [showHudGuide, setShowHudGuide] = useState(false);
+  const [showHudGuide, setShowHudGuide] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("storyboard_show_ai_hud");
+      if (saved !== null) {
+        return saved === "true";
+      }
+    }
+    return true; // Default true so AI reference lines are immediately visible and controllable
+  });
   const [showRhythmBarcode, setShowRhythmBarcode] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("storyboard_show_rhythm_barcode");
@@ -81,6 +89,16 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleToggleHudGuide = () => {
+    setShowHudGuide((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("storyboard_show_ai_hud", String(next));
+      }
+      return next;
+    });
+  };
 
   const handleToggleRhythmBarcode = () => {
     setShowRhythmBarcode((prev) => {
@@ -233,6 +251,23 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
             </button>
           </div>
 
+          {/* Quick 1-Click Toggle: AI Vision & Prev HUD Rig */}
+          <button
+            type="button"
+            onClick={handleToggleHudGuide}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border shadow-2xs cursor-pointer",
+              showHudGuide
+                ? "bg-sky-500/15 border-sky-500/40 text-sky-300 font-semibold shadow-sky-950/20"
+                : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+            )}
+            title={showHudGuide ? "点击关闭 AI 构图九宫线与机位运镜 HUD" : "点击开启 AI 视频生成视听对齐 HUD 辅助层"}
+          >
+            <Crosshair className={cn("w-3.5 h-3.5", showHudGuide ? "text-sky-400" : "text-muted-foreground")} />
+            <span>AI 对齐 HUD</span>
+            {showHudGuide && <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />}
+          </button>
+
           {/* Consolidated Display Settings Dropdown (HUD & Rhythm Barcode) */}
           <div className="relative shrink-0" ref={displaySettingsRef}>
             <button
@@ -262,7 +297,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                 {/* Previz HUD Guide Overlay Toggle */}
                 <button
                   type="button"
-                  onClick={() => setShowHudGuide(!showHudGuide)}
+                  onClick={handleToggleHudGuide}
                   className={cn(
                     "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors cursor-pointer",
                     showHudGuide ? "bg-sky-500/15 text-sky-300 font-semibold" : "text-foreground hover:bg-muted"
