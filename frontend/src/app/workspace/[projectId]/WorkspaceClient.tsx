@@ -13,6 +13,7 @@ import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelinePr
 import { VersionHistoryDrawer } from "@/components/drawers/VersionHistoryDrawer";
 import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
 import { EpisodePillTrack } from "@/components/workspace/EpisodePillTrack";
+import { CharacterProfileDrawer } from "@/components/drawers/CharacterProfileDrawer";
 import { BibleModal } from "@/components/modals/BibleModal";
 import { AIGenerateModal } from "@/components/modals/AIGenerateModal";
 import { ExportDeliverablesModal } from "@/components/modals/ExportDeliverablesModal";
@@ -58,6 +59,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [theaterShotId, setTheaterShotId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerShotId, setDrawerShotId] = useState<string | null>(null);
+  const [selectedProfileChar, setSelectedProfileChar] = useState<any | null>(null);
 
   // Delegated Modal States (Centralized from TopBar)
   const [isOpenAIGenerateModal, setIsOpenAIGenerateModal] = useState(false);
@@ -806,8 +808,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           onOpenImportScript={() => setIsOpenScriptModal(true)}
           onOpenWizard={() => setIsWizardOpen(true)}
           onOpenCharacterProfile={(char) => {
-            setBibleMode("characters");
-            setIsOpenBibleModal(true);
+            setSelectedProfileChar(char);
           }}
         />
       )}
@@ -1021,6 +1022,29 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           onClose={() => setIsDrawerOpen(false)}
           onUpdateShot={saveShotRemote}
           onRegenerateImage={handleRegenerateSingleShot}
+        />
+      )}
+
+      {selectedProfileChar && (
+        <CharacterProfileDrawer
+          isOpen={Boolean(selectedProfileChar)}
+          character={selectedProfileChar}
+          allCharacters={displayProject?.characters || []}
+          onClose={() => setSelectedProfileChar(null)}
+          onSave={async (updatedChar) => {
+            if (!effectiveProjectId) return;
+            const currentChars = displayProject?.characters || [];
+            const nextChars = currentChars.map((c) => (c.id === updatedChar.id ? updatedChar : c));
+            try {
+              await api.updateProject(effectiveProjectId, {
+                characters: nextChars,
+              });
+              await fetchProject(effectiveProjectId);
+              notify.success(`✨ ${updatedChar.name} 人物小传与视听基准已保存！`);
+            } catch (e: any) {
+              notify.error(`保存失败: ${e.message || "请稍后重试"}`);
+            }
+          }}
         />
       )}
 
