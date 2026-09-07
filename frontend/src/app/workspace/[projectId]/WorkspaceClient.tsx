@@ -24,6 +24,7 @@ import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryM
 import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibraryModal";
 import { QuickStartWizardModal } from "@/components/modals/QuickStartWizardModal";
 import { OnboardingTourModal } from "@/components/modals/OnboardingTourModal";
+import { SystemArchitectureMapModal } from "@/components/modals/SystemArchitectureMapModal";
 import { WorkspaceLoadingScreen } from "@/components/workspace/WorkspaceLoadingScreen";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -70,6 +71,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
+  const [isArchitectureMapOpen, setIsArchitectureMapOpen] = useState(false);
   const hasAutoOpenedWizardRef = useRef(false);
   const abortBatchRenderRef = useRef(false);
 
@@ -684,6 +686,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onOpenWizard={() => setIsWizardOpen(true)}
         onBatchRender={handleRegenerateDirty}
         onOpenTour={() => setIsOnboardingTourOpen(true)}
+        onOpenArchitectureMap={() => setIsArchitectureMapOpen(true)}
       />
 
       {/* Time Travel Read-Only Banner */}
@@ -1055,6 +1058,25 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       <OnboardingTourModal
         isOpen={isOnboardingTourOpen}
         onClose={() => setIsOnboardingTourOpen(false)}
+      />
+
+      <SystemArchitectureMapModal
+        isOpen={isArchitectureMapOpen}
+        onClose={() => setIsArchitectureMapOpen(false)}
+        onOpenRadar={() => setIsOpenRadarModal(true)}
+        onOpenBible={(mode) => {
+          setBibleMode(mode || "bible");
+          setIsOpenBibleModal(true);
+        }}
+        onOpenTradeoff={() => setIsOpenTradeoffModal(true)}
+        onOpenImportScript={() => setIsOpenScriptModal(true)}
+        onOpenAIGenerate={() => setIsOpenAIGenerateModal(true)}
+        onOpenTheater={() => {
+          setTheaterShotId(selectedShotId || shots[0]?.id || null);
+          setIsTheaterOpen(true);
+        }}
+        onOpenExport={() => setIsOpenExportModal(true)}
+        onOpenTour={() => setIsOnboardingTourOpen(true)}
       />
     </div>
   );

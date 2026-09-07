@@ -1,0 +1,502 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 1350" width="2400" height="1350" style="background:#090a10; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090a12" />
+      <stop offset="50%" stop-color="#0e101a" />
+      <stop offset="100%" stop-color="#090a12" />
+    </linearGradient>
+
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#fbbf24" />
+    </linearGradient>
+
+    <linearGradient id="cardGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#141824" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#0c0e17" stop-opacity="0.98" />
+    </linearGradient>
+
+    <linearGradient id="phaseGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.05" />
+    </linearGradient>
+
+    <linearGradient id="phaseGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.05" />
+    </linearGradient>
+
+    <linearGradient id="phaseGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#fb7185" stop-opacity="0.05" />
+    </linearGradient>
+
+    <linearGradient id="aiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.25" />
+      <stop offset="50%" stop-color="#d97706" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.25" />
+    </linearGradient>
+
+    <!-- Glow Filters -->
+    <filter id="glowGold" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Grid Pattern -->
+    <pattern id="techGrid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#171b29" stroke-width="1" stroke-opacity="0.6" />
+      <circle cx="0" cy="0" r="1.5" fill="#2d3748" opacity="0.8" />
+    </pattern>
+
+    <!-- Marker Arrow -->
+    <marker id="arrowGold" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#f59e0b" />
+    </marker>
+    <marker id="arrowEmerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#10b981" />
+    </marker>
+    <marker id="arrowIndigo" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#818cf8" />
+    </marker>
+    <marker id="arrowRose" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e" />
+    </marker>
+  </defs>
+
+  <!-- Background Layer -->
+  <rect width="2400" height="1350" fill="url(#bgGrad)" />
+  <rect width="2400" height="1350" fill="url(#techGrid)" opacity="0.9" />
+
+  <!-- Outer HUD Frame -->
+  <rect x="30" y="30" width="2340" height="1290" rx="16" fill="none" stroke="#1f2638" stroke-width="2" />
+  <path d="M 30 70 L 30 30 L 70 30" fill="none" stroke="#f59e0b" stroke-width="3" />
+  <path d="M 2370 70 L 2370 30 L 2330 30" fill="none" stroke="#f59e0b" stroke-width="3" />
+  <path d="M 30 1280 L 30 1320 L 70 1320" fill="none" stroke="#f59e0b" stroke-width="3" />
+  <path d="M 2370 1280 L 2370 1320 L 2330 1320" fill="none" stroke="#f59e0b" stroke-width="3" />
+
+  <!-- ==================== HEADER SECTION ==================== -->
+  <g transform="translate(80, 70)">
+    <!-- Top System Badges -->
+    <rect x="0" y="0" width="220" height="28" rx="6" fill="#f59e0b" fill-opacity="0.15" stroke="#f59e0b" stroke-width="1" stroke-opacity="0.4" />
+    <text x="110" y="19" fill="#fbbf24" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="1.5">🎬 AI DIRECTOR &amp; NARRATIVE OS</text>
+
+    <rect x="235" y="0" width="180" height="28" rx="6" fill="#10b981" fill-opacity="0.12" stroke="#10b981" stroke-width="1" stroke-opacity="0.4" />
+    <text x="325" y="19" fill="#34d399" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="1">7大工业制片工序闭环</text>
+
+    <rect x="430" y="0" width="200" height="28" rx="6" fill="#6366f1" fill-opacity="0.12" stroke="#6366f1" stroke-width="1" stroke-opacity="0.4" />
+    <text x="530" y="19" fill="#a5b4fc" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="1">双向自愈 · 剧本即代码</text>
+
+    <!-- Main Title -->
+    <text x="0" y="78" fill="#ffffff" font-size="38" font-weight="800" letter-spacing="1">全局功能引导地图 · 商业短剧全流程制片架构</text>
+    <text x="0" y="112" fill="#94a3b8" font-size="16" font-weight="400" letter-spacing="0.5">从文学抽核、爽点雷达、剧组视觉设定集到双栏分镜协同、顺场表排期、影院试映与5大资产分卷交付</text>
+
+    <!-- Right Side Status Chips -->
+    <g transform="translate(1780, 10)">
+      <rect x="0" y="0" width="460" height="85" rx="10" fill="#131724" stroke="#252e44" stroke-width="1.5" />
+      <circle cx="28" cy="28" r="6" fill="#10b981" filter="url(#glowCyan)" />
+      <text x="44" y="32" fill="#e2e8f0" font-size="13" font-weight="700">工业短剧工业体系标准</text>
+      <text x="44" y="52" fill="#94a3b8" font-size="12">Single Source of Truth 设定集 · 杜绝跨镜换脸</text>
+      <text x="44" y="70" fill="#64748b" font-size="11">Gate 2 爽点真空间隔强制 ≤ 3集 · 35字呼吸感预警</text>
+    </g>
+  </g>
+
+  <!-- Flow Line connecting Phases -->
+  <path d="M 120 225 L 2280 225" stroke="#1e2638" stroke-width="2" stroke-dasharray="6 6" />
+
+  <!-- ==================== PHASE 1: PRE-PRODUCTION ==================== -->
+  <g transform="translate(80, 240)">
+    <!-- Phase Background Card -->
+    <rect x="0" y="0" width="670" height="740" rx="14" fill="url(#cardGrad1)" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.4" />
+    <rect x="0" y="0" width="670" height="54" rx="14" fill="url(#phaseGrad1)" />
+    
+    <!-- Phase Header -->
+    <rect x="20" y="14" width="26" height="26" rx="6" fill="#10b981" fill-opacity="0.2" />
+    <text x="33" y="32" fill="#34d399" font-size="14" font-weight="800" text-anchor="middle">P1</text>
+    <text x="56" y="33" fill="#34d399" font-size="18" font-weight="800" letter-spacing="1">阶段一 · 前期筹备与视听基准</text>
+    <text x="360" y="33" fill="#6ee7b7" font-size="13" font-weight="500">PRE-PRODUCTION &amp; VISUAL BIBLE</text>
+
+    <!-- Stage 01 Card -->
+    <g transform="translate(24, 75)">
+      <rect x="0" y="0" width="622" height="305" rx="10" fill="#0d111c" stroke="#1f283d" stroke-width="1.5" />
+      <path d="M 0 0 L 120 0 L 105 32 L 0 32 Z" fill="#10b981" fill-opacity="0.18" />
+      <text x="16" y="21" fill="#34d399" font-size="12" font-weight="800" letter-spacing="1">STAGE 01</text>
+      
+      <text x="135" y="22" fill="#f8fafc" font-size="17" font-weight="700">大纲改编与爽点雷达工作室</text>
+      <rect x="520" y="10" width="88" height="22" rx="4" fill="#10b981" fill-opacity="0.15" />
+      <text x="564" y="25" fill="#34d399" font-size="11" font-weight="700" text-anchor="middle">雷达诊断</text>
+
+      <!-- Content Grid -->
+      <g transform="translate(20, 50)">
+        <rect x="0" y="0" width="582" height="42" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+        <text x="14" y="25" fill="#94a3b8" font-size="12" font-weight="600">📥 前置输入：</text>
+        <text x="96" y="25" fill="#cbd5e1" font-size="12">网文大纲 / 剧本长篇 / 故事创意梗概 (万字级自动抽核)</text>
+
+        <!-- Submodules -->
+        <g transform="translate(0, 56)">
+          <rect x="0" y="0" width="280" height="110" rx="8" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="14" y="24" fill="#38bdf8" font-size="13" font-weight="700">四象限结构取舍 (Tradeoffs)</text>
+          <text x="14" y="48" fill="#94a3b8" font-size="11">• <tspan fill="#34d399" font-weight="600">保留 (Keep)</tspan>：核心矛盾与商业爆点</text>
+          <text x="14" y="68" fill="#94a3b8" font-size="11">• <tspan fill="#f43f5e" font-weight="600">砍掉 (Cut)</tspan>：冗余支线与无效说教</text>
+          <text x="14" y="88" fill="#94a3b8" font-size="11">• <tspan fill="#fbbf24" font-weight="600">合并 (Merge)</tspan> 与 <tspan fill="#f97316" font-weight="600">风险 (Risk)</tspan> 预警</text>
+        </g>
+
+        <g transform="translate(295, 56)">
+          <rect x="0" y="0" width="287" height="110" rx="8" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="14" y="24" fill="#fbbf24" font-size="13" font-weight="700">Gate 2 爽点节拍门控</text>
+          <text x="14" y="48" fill="#94a3b8" font-size="11">• 算法严控 <tspan fill="#fbbf24" font-weight="600">maxBeatGap ≤ 3</tspan> 集</text>
+          <text x="14" y="68" fill="#94a3b8" font-size="11">• 杜绝剧情拖沓断崖与冷场</text>
+          <text x="14" y="88" fill="#94a3b8" font-size="11">• 智能推演补齐真空期高潮爽点</text>
+        </g>
+
+        <!-- Output -->
+        <rect x="0" y="180" width="582" height="52" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+        <text x="14" y="24" fill="#34d399" font-size="12" font-weight="600">📤 阶段产出：</text>
+        <text x="96" y="24" fill="#e2e8f0" font-size="12" font-weight="600">剧本会审 Markdown 通告 · 结构化多集剧情节拍树</text>
+        <text x="96" y="42" fill="#64748b" font-size="11">包含单集钩子、人物出场序与爽点电压指数评分</text>
+      </g>
+    </g>
+
+    <!-- Stage 02 Card -->
+    <g transform="translate(24, 405)">
+      <rect x="0" y="0" width="622" height="310" rx="10" fill="#0d111c" stroke="#1f283d" stroke-width="1.5" />
+      <path d="M 0 0 L 120 0 L 105 32 L 0 32 Z" fill="#0ea5e9" fill-opacity="0.18" />
+      <text x="16" y="21" fill="#38bdf8" font-size="12" font-weight="800" letter-spacing="1">STAGE 02</text>
+      
+      <text x="135" y="22" fill="#f8fafc" font-size="17" font-weight="700">剧组前期视觉设定集 (Visual Bible)</text>
+      <rect x="520" y="10" width="88" height="22" rx="4" fill="#0ea5e9" fill-opacity="0.15" />
+      <text x="564" y="25" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">视觉基准</text>
+
+      <g transform="translate(20, 50)">
+        <rect x="0" y="0" width="582" height="42" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+        <text x="14" y="25" fill="#94a3b8" font-size="12" font-weight="600">🔒 核心原则：</text>
+        <text x="96" y="25" fill="#38bdf8" font-size="12" font-weight="600">单一真实数据源 (Single Source of Truth) · 杜绝换脸与跳戏</text>
+
+        <!-- 3 Pillars -->
+        <g transform="translate(0, 56)">
+          <rect x="0" y="0" width="186" height="116" rx="8" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="12" y="24" fill="#38bdf8" font-size="12" font-weight="700">👤 角色定妆 DNA</text>
+          <text x="12" y="46" fill="#94a3b8" font-size="11">16:9 三区定妆标准图</text>
+          <text x="12" y="66" fill="#64748b" font-size="10">特写 / 全身 / 动态姿势</text>
+          <text x="12" y="86" fill="#64748b" font-size="10">纯英文 Visual DNA 基准</text>
+          <text x="12" y="104" fill="#a5b4fc" font-size="10">声音共鸣与 TTS 提示词</text>
+        </g>
+
+        <g transform="translate(198, 56)">
+          <rect x="0" y="0" width="186" height="116" rx="8" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="12" y="24" fill="#a78bfa" font-size="12" font-weight="700">🏛️ 场景空间锚点</text>
+          <text x="12" y="46" fill="#94a3b8" font-size="11">关键地理建筑光影</text>
+          <text x="12" y="66" fill="#64748b" font-size="10">日景 / 顶光 / 夜戏变体</text>
+          <text x="12" y="86" fill="#64748b" font-size="10">3-5 处实物对齐锚点</text>
+          <text x="12" y="104" fill="#a5b4fc" font-size="10">固定透视灭点不飘移</text>
+        </g>
+
+        <g transform="translate(396, 56)">
+          <rect x="0" y="0" width="186" height="116" rx="8" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="12" y="24" fill="#fbbf24" font-size="12" font-weight="700">🗡️ 道具与风格</text>
+          <text x="12" y="46" fill="#94a3b8" font-size="11">手持/桌面/家具三级尺度</text>
+          <text x="12" y="66" fill="#64748b" font-size="10">道具开/合/破损状态变体</text>
+          <text x="12" y="86" fill="#64748b" font-size="10">4套导演视觉风格预设</text>
+          <text x="12" y="104" fill="#a5b4fc" font-size="10">王家卫/国风/暗黑赛博</text>
+        </g>
+
+        <!-- Output -->
+        <rect x="0" y="185" width="582" height="52" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+        <text x="14" y="24" fill="#0ea5e9" font-size="12" font-weight="600">📤 阶段产出：</text>
+        <text x="96" y="24" fill="#e2e8f0" font-size="12" font-weight="600">剧组视听设定集 Bible (跨镜头绘图参考与一致性锁定源)</text>
+        <text x="96" y="42" fill="#64748b" font-size="11">所有分镜出图自动引用 Character DNA，杜绝换脸与环境漂移</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Flow Arrow P1 -> P2 -->
+  <g transform="translate(765, 580)">
+    <circle cx="20" cy="20" r="18" fill="#131826" stroke="#6366f1" stroke-width="2" />
+    <path d="M 14 20 L 26 20 M 21 15 L 26 20 L 21 25" stroke="#a5b4fc" stroke-width="2.5" fill="none" stroke-linecap="round" />
+  </g>
+
+  <!-- ==================== PHASE 2: PRODUCTION & SCHEDULING ==================== -->
+  <g transform="translate(820, 240)">
+    <rect x="0" y="0" width="760" height="740" rx="14" fill="url(#cardGrad1)" stroke="#6366f1" stroke-width="1.5" stroke-opacity="0.4" />
+    <rect x="0" y="0" width="760" height="54" rx="14" fill="url(#phaseGrad2)" />
+
+    <!-- Phase Header -->
+    <rect x="20" y="14" width="26" height="26" rx="6" fill="#6366f1" fill-opacity="0.2" />
+    <text x="33" y="32" fill="#a5b4fc" font-size="14" font-weight="800" text-anchor="middle">P2</text>
+    <text x="56" y="33" fill="#a5b4fc" font-size="18" font-weight="800" letter-spacing="1">阶段二 · 中期创作与制片排期</text>
+    <text x="375" y="33" fill="#c7d2fe" font-size="13" font-weight="500">PRODUCTION &amp; SCHEDULING</text>
+
+    <!-- Stage 03 Card -->
+    <g transform="translate(24, 75)">
+      <rect x="0" y="0" width="712" height="200" rx="10" fill="#0d111c" stroke="#1f283d" stroke-width="1.5" />
+      <path d="M 0 0 L 120 0 L 105 32 L 0 32 Z" fill="#6366f1" fill-opacity="0.18" />
+      <text x="16" y="21" fill="#a5b4fc" font-size="12" font-weight="800" letter-spacing="1">STAGE 03</text>
+      
+      <text x="135" y="22" fill="#f8fafc" font-size="17" font-weight="700">文学母本与分镜双向自愈工作台</text>
+      <rect x="610" y="10" width="88" height="22" rx="4" fill="#6366f1" fill-opacity="0.15" />
+      <text x="654" y="25" fill="#a5b4fc" font-size="11" font-weight="700" text-anchor="middle">双向联动</text>
+
+      <g transform="translate(20, 50)">
+        <g transform="translate(0, 0)">
+          <rect x="0" y="0" width="215" height="85" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="12" y="22" fill="#e2e8f0" font-size="12" font-weight="700">⚡ 双栏响应式协同</text>
+          <text x="12" y="44" fill="#94a3b8" font-size="11">左侧文学流 ➔ 右侧分镜板</text>
+          <text x="12" y="64" fill="#64748b" font-size="10">毫秒级增量同步与聚焦联动</text>
+        </g>
+        <g transform="translate(228, 0)">
+          <rect x="0" y="0" width="215" height="85" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="12" y="22" fill="#fbbf24" font-size="12" font-weight="700">⚠️ 呼吸感防说教</text>
+          <text x="12" y="44" fill="#94a3b8" font-size="11">单句超 35 字符自动亮黄</text>
+          <text x="12" y="64" fill="#64748b" font-size="10">杜绝长篇大论，保持短剧快节奏</text>
+        </g>
+        <g transform="translate(456, 0)">
+          <rect x="0" y="0" width="216" height="85" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="12" y="22" fill="#34d399" font-size="12" font-weight="700">🔄 脏状态增量重绘</text>
+          <text x="12" y="44" fill="#94a3b8" font-size="11">仅重绘台词变动之镜头</text>
+          <text x="12" y="64" fill="#64748b" font-size="10">原位自愈，杜绝全剧推倒重跑</text>
+        </g>
+
+        <rect x="0" y="98" width="672" height="38" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+        <text x="12" y="24" fill="#a5b4fc" font-size="12" font-weight="600">📤 交付形态：</text>
+        <text x="90" y="24" fill="#e2e8f0" font-size="12">动态分镜状态树 (State Tree) · 支持一键拆镜 (一节拍拆为互补双镜头组合)</text>
+      </g>
+    </g>
+
+    <!-- Stage 04 & Stage 05 Dual Grid -->
+    <g transform="translate(24, 290)">
+      <!-- Stage 04 -->
+      <g transform="translate(0, 0)">
+        <rect x="0" y="0" width="345" height="425" rx="10" fill="#0d111c" stroke="#1f283d" stroke-width="1.5" />
+        <path d="M 0 0 L 120 0 L 105 32 L 0 32 Z" fill="#f59e0b" fill-opacity="0.18" />
+        <text x="16" y="21" fill="#fbbf24" font-size="12" font-weight="800" letter-spacing="1">STAGE 04</text>
+        <text x="135" y="22" fill="#f8fafc" font-size="15" font-weight="700">故事板网格与镜头HUD</text>
+
+        <g transform="translate(16, 50)">
+          <rect x="0" y="0" width="313" height="70" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+          <text x="12" y="22" fill="#fbbf24" font-size="12" font-weight="700">📱 三大多模态画幅自由切换</text>
+          <text x="12" y="42" fill="#94a3b8" font-size="11">9:16 短剧竖屏 / 16:9 电影横屏 / 4:3</text>
+          <text x="12" y="58" fill="#64748b" font-size="10">客户端原生自适应视口排版</text>
+
+          <rect x="0" y="82" width="313" height="70" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+          <text x="12" y="22" fill="#38bdf8" font-size="12" font-weight="700">🎥 导演级 HUD 视听参数矩阵</text>
+          <text x="12" y="42" fill="#94a3b8" font-size="11">景别标签 (特写/中景/全景/大特写)</text>
+          <text x="12" y="58" fill="#64748b" font-size="10">机位运镜 (推/拉/摇/移/甩/升降/环绕)</text>
+
+          <rect x="0" y="164" width="313" height="70" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+          <text x="12" y="22" fill="#f43f5e" font-size="12" font-weight="700">🔒 单镜锁定保护 (Lock Guard)</text>
+          <text x="12" y="42" fill="#94a3b8" font-size="11">一键锁定优质镜头画面与台词</text>
+          <text x="12" y="58" fill="#64748b" font-size="10">全局重排或批量渲染时绝对保护</text>
+
+          <rect x="0" y="246" width="313" height="110" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="12" y="22" fill="#a5b4fc" font-size="12" font-weight="700">🎛️ 抽屉式深度调镜工坊</text>
+          <text x="12" y="44" fill="#94a3b8" font-size="11">• 角色视线对齐与动作状态重置</text>
+          <text x="12" y="64" fill="#94a3b8" font-size="11">• 情绪氛围色温调校 (冷色/暖调/逆光)</text>
+          <text x="12" y="84" fill="#94a3b8" font-size="11">• 单镜独立追加提示词与重冲印</text>
+        </g>
+      </g>
+
+      <!-- Stage 05 -->
+      <g transform="translate(367, 0)">
+        <rect x="0" y="0" width="345" height="425" rx="10" fill="#0d111c" stroke="#1f283d" stroke-width="1.5" />
+        <path d="M 0 0 L 120 0 L 105 32 L 0 32 Z" fill="#10b981" fill-opacity="0.18" />
+        <text x="16" y="21" fill="#34d399" font-size="12" font-weight="800" letter-spacing="1">STAGE 05</text>
+        <text x="135" y="22" fill="#f8fafc" font-size="15" font-weight="700">顺场表制片管理 (Call Sheet)</text>
+
+        <g transform="translate(16, 50)">
+          <rect x="0" y="0" width="313" height="70" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+          <text x="12" y="22" fill="#34d399" font-size="12" font-weight="700">📊 地点 + 光影批次智能聚类</text>
+          <text x="12" y="42" fill="#94a3b8" font-size="11">自动划归生产批次 (B1, B2...)</text>
+          <text x="12" y="58" fill="#64748b" font-size="10">统计每批拍摄时长与镜数，降本增效</text>
+
+          <rect x="0" y="82" width="313" height="70" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+          <text x="12" y="22" fill="#fbbf24" font-size="12" font-weight="700">🤖 MiniMax Hailuo H3 指令</text>
+          <text x="12" y="42" fill="#94a3b8" font-size="11">一键生成并复制多模态视频提示词</text>
+          <text x="12" y="58" fill="#64748b" font-size="10">首尾帧连贯指令，保证镜头运动顺滑</text>
+
+          <rect x="0" y="164" width="313" height="70" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+          <text x="12" y="22" fill="#38bdf8" font-size="12" font-weight="700">📑 CSV 制片排期表一键导出</text>
+          <text x="12" y="42" fill="#94a3b8" font-size="11">无缝对齐现场统筹制片需求</text>
+          <text x="12" y="58" fill="#64748b" font-size="10">支持 Excel 导入现场打板与排期</text>
+
+          <rect x="0" y="246" width="313" height="110" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="12" y="22" fill="#a5b4fc" font-size="12" font-weight="700">🗂️ 批次折叠与统筹卡片</text>
+          <text x="12" y="44" fill="#94a3b8" font-size="11">• 批次卡片支持独立展开/全部收起</text>
+          <text x="12" y="64" fill="#94a3b8" font-size="11">• 场景演员通告需求自动统计</text>
+          <text x="12" y="84" fill="#94a3b8" font-size="11">• 道具与特殊视效提前预警标记</text>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- Flow Arrow P2 -> P3 -->
+  <g transform="translate(1600, 580)">
+    <circle cx="20" cy="20" r="18" fill="#131826" stroke="#f43f5e" stroke-width="2" />
+    <path d="M 14 20 L 26 20 M 21 15 L 26 20 L 21 25" stroke="#fb7185" stroke-width="2.5" fill="none" stroke-linecap="round" />
+  </g>
+
+  <!-- ==================== PHASE 3: POST-PRODUCTION & DELIVERY ==================== -->
+  <g transform="translate(1655, 240)">
+    <rect x="0" y="0" width="665" height="740" rx="14" fill="url(#cardGrad1)" stroke="#f43f5e" stroke-width="1.5" stroke-opacity="0.4" />
+    <rect x="0" y="0" width="665" height="54" rx="14" fill="url(#phaseGrad3)" />
+
+    <!-- Phase Header -->
+    <rect x="20" y="14" width="26" height="26" rx="6" fill="#f43f5e" fill-opacity="0.2" />
+    <text x="33" y="32" fill="#fb7185" font-size="14" font-weight="800" text-anchor="middle">P3</text>
+    <text x="56" y="33" fill="#fb7185" font-size="18" font-weight="800" letter-spacing="1">阶段三 · 预演审片与工业交付</text>
+    <text x="360" y="33" fill="#fca5a5" font-size="13" font-weight="500">POST-PRODUCTION &amp; ASSETS</text>
+
+    <!-- Stage 06 Card -->
+    <g transform="translate(24, 75)">
+      <rect x="0" y="0" width="617" height="305" rx="10" fill="#0d111c" stroke="#1f283d" stroke-width="1.5" />
+      <path d="M 0 0 L 120 0 L 105 32 L 0 32 Z" fill="#f43f5e" fill-opacity="0.18" />
+      <text x="16" y="21" fill="#fb7185" font-size="12" font-weight="800" letter-spacing="1">STAGE 06</text>
+      
+      <text x="135" y="22" fill="#f8fafc" font-size="17" font-weight="700">好莱坞级放映影院 (Cinema Theater)</text>
+      <rect x="515" y="10" width="88" height="22" rx="4" fill="#f43f5e" fill-opacity="0.15" />
+      <text x="559" y="25" fill="#fb7185" font-size="11" font-weight="700" text-anchor="middle">动态试映</text>
+
+      <g transform="translate(20, 50)">
+        <rect x="0" y="0" width="577" height="42" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+        <text x="14" y="25" fill="#94a3b8" font-size="12" font-weight="600">🎬 核心体验：</text>
+        <text x="96" y="25" fill="#fb7185" font-size="12" font-weight="600">纯黑场无干扰试映 · 沉浸式动态视差与台词对齐</text>
+
+        <!-- Previz Specs -->
+        <g transform="translate(0, 56)">
+          <rect x="0" y="0" width="280" height="110" rx="8" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="14" y="24" fill="#fb7185" font-size="13" font-weight="700">🎥 Ken Burns 运镜动态渲染</text>
+          <text x="14" y="48" fill="#94a3b8" font-size="11">• 模拟真实摄影机缓慢推拉摇移</text>
+          <text x="14" y="68" fill="#94a3b8" font-size="11">• 台词打字机字幕毫米级声画同步</text>
+          <text x="14" y="88" fill="#94a3b8" font-size="11">• 好莱坞胶囊分段进度条 (Scrubber)</text>
+        </g>
+
+        <g transform="translate(295, 56)">
+          <rect x="0" y="0" width="282" height="110" rx="8" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="14" y="24" fill="#fbbf24" font-size="13" font-weight="700">⌨️ 导演全套键盘指挥键</text>
+          <text x="14" y="48" fill="#94a3b8" font-size="11">• <tspan fill="#f59e0b" font-weight="600">Space</tspan>：随时播放/暂停预演</text>
+          <text x="14" y="68" fill="#94a3b8" font-size="11">• <tspan fill="#f59e0b" font-weight="600">← / →</tspan>：吸附切镜跳转</text>
+          <text x="14" y="88" fill="#94a3b8" font-size="11">• <tspan fill="#f59e0b" font-weight="600">C</tspan>：字幕开关 / <tspan fill="#f59e0b" font-weight="600">B</tspan>：全剧连播</text>
+        </g>
+
+        <!-- Output -->
+        <rect x="0" y="180" width="577" height="52" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+        <text x="14" y="24" fill="#fb7185" font-size="12" font-weight="600">📤 审片效果：</text>
+        <text x="96" y="24" fill="#e2e8f0" font-size="12" font-weight="600">0拍摄成本验证剧情呼吸感与视听节奏</text>
+        <text x="96" y="42" fill="#64748b" font-size="11">退出放映时精准反向高亮工作台对应分镜卡片，无缝衔接精修</text>
+      </g>
+    </g>
+
+    <!-- Stage 07 Card -->
+    <g transform="translate(24, 405)">
+      <rect x="0" y="0" width="617" height="310" rx="10" fill="#0d111c" stroke="#1f283d" stroke-width="1.5" />
+      <path d="M 0 0 L 120 0 L 105 32 L 0 32 Z" fill="#8b5cf6" fill-opacity="0.18" />
+      <text x="16" y="21" fill="#c084fc" font-size="12" font-weight="800" letter-spacing="1">STAGE 07</text>
+      
+      <text x="135" y="22" fill="#f8fafc" font-size="17" font-weight="700">工业级制片交付物分卷打包</text>
+      <rect x="515" y="10" width="88" height="22" rx="4" fill="#8b5cf6" fill-opacity="0.15" />
+      <text x="559" y="25" fill="#c084fc" font-size="11" font-weight="700" text-anchor="middle">全套交付</text>
+
+      <g transform="translate(20, 50)">
+        <rect x="0" y="0" width="577" height="40" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+        <text x="14" y="25" fill="#c084fc" font-size="12" font-weight="700">📦 标准化 5 大工业级交付物 (Deliverables)</text>
+
+        <!-- 5 Deliverables list -->
+        <g transform="translate(0, 50)">
+          <rect x="0" y="0" width="577" height="34" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="14" y="22" fill="#38bdf8" font-size="12" font-weight="600">1. 🖼️ 16:9 故事板工作草图打样单 (PNG)</text>
+          <text x="320" y="22" fill="#94a3b8" font-size="11">Canvas 秒级离线极速渲染合成</text>
+
+          <rect x="0" y="38" width="577" height="34" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="14" y="22" fill="#34d399" font-size="12" font-weight="600">2. 📝 导演多集分卷工业分镜台本 (Markdown)</text>
+          <text x="320" y="22" fill="#94a3b8" font-size="11">## 🎬 EPISODE 分卷排版与集尾卡点</text>
+
+          <rect x="0" y="76" width="577" height="34" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="14" y="22" fill="#fbbf24" font-size="12" font-weight="600">3. 🎯 Midjourney / DALL-E 3 导演全局提示词</text>
+          <text x="320" y="22" fill="#94a3b8" font-size="11">视觉 DNA 强化控制指令集</text>
+
+          <rect x="0" y="114" width="577" height="34" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="14" y="22" fill="#f43f5e" font-size="12" font-weight="600">4. 🤖 可灵 Kling / Runway Gen-3 视频 Manifest</text>
+          <text x="320" y="22" fill="#94a3b8" font-size="11">逐镜头运动矢量与首尾帧描述</text>
+
+          <rect x="0" y="152" width="577" height="34" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
+          <text x="14" y="22" fill="#a855f7" font-size="12" font-weight="600">5. 📦 制片工程全量资产归档 (ZIP Archive)</text>
+          <text x="320" y="22" fill="#94a3b8" font-size="11">按集数独立子目录打包全部分辨率素材</text>
+        </g>
+
+        <!-- Output bottom note -->
+        <rect x="0" y="246" width="577" height="42" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
+        <text x="14" y="25" fill="#a5b4fc" font-size="12" font-weight="600">🎯 落地应用：</text>
+        <text x="96" y="25" fill="#e2e8f0" font-size="12">直接对接影视出品人过审、剧组摄影师出通告、AI生视频团队批量投产</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ==================== BOTTOM CO-PILOT ENGINE ==================== -->
+  <g transform="translate(80, 1010)">
+    <rect x="0" y="0" width="2240" height="270" rx="14" fill="#0c0e17" stroke="#f59e0b" stroke-width="1.5" stroke-opacity="0.5" />
+    <rect x="0" y="0" width="2240" height="45" rx="14" fill="url(#aiGrad)" />
+
+    <!-- Co-pilot Header -->
+    <text x="24" y="29" fill="#fbbf24" font-size="16" font-weight="800" letter-spacing="1">🧠 AI 导演协同中枢 (AI Director Co-pilot &amp; Production Engine)</text>
+    <text x="440" y="29" fill="#e2e8f0" font-size="13" font-weight="500">贯穿商业短剧全生产周期的四大智能协同核心 · 替代繁复手工制片</text>
+
+    <g transform="translate(24, 65)">
+      <!-- Core 1 -->
+      <g transform="translate(0, 0)">
+        <rect x="0" y="0" width="530" height="180" rx="10" fill="#101422" stroke="#1e273c" stroke-width="1" />
+        <rect x="16" y="16" width="32" height="32" rx="8" fill="#10b981" fill-opacity="0.15" />
+        <text x="32" y="38" fill="#34d399" font-size="16" font-weight="800" text-anchor="middle">01</text>
+        <text x="58" y="38" fill="#f8fafc" font-size="15" font-weight="700">剧本抽核与商业卡点推演</text>
+        <text x="16" y="74" fill="#94a3b8" font-size="12">从海量文学文本中精准提取商业钩子与核心对抗关系；</text>
+        <text x="16" y="96" fill="#94a3b8" font-size="12">四象限取舍算法过滤水分，自动计算每集结尾的高能卡点；</text>
+        <text x="16" y="118" fill="#94a3b8" font-size="12">爽点节拍雷达实时监测全剧电压波动，杜绝剧情拖沓断流。</text>
+        <rect x="16" y="138" width="160" height="24" rx="4" fill="#10b981" fill-opacity="0.12" />
+        <text x="96" y="154" fill="#34d399" font-size="11" font-weight="600" text-anchor="middle">Gate 2 爽点算法门控</text>
+      </g>
+
+      <!-- Core 2 -->
+      <g transform="translate(554, 0)">
+        <rect x="0" y="0" width="530" height="180" rx="10" fill="#101422" stroke="#1e273c" stroke-width="1" />
+        <rect x="16" y="16" width="32" height="32" rx="8" fill="#0ea5e9" fill-opacity="0.15" />
+        <text x="32" y="38" fill="#38bdf8" font-size="16" font-weight="800" text-anchor="middle">02</text>
+        <text x="58" y="38" fill="#f8fafc" font-size="15" font-weight="700">视觉 DNA 与空间光影锁定</text>
+        <text x="16" y="74" fill="#94a3b8" font-size="12">沉淀全剧角色统一 Visual DNA 提示词，建立 Single Source of Truth；</text>
+        <text x="16" y="96" fill="#94a3b8" font-size="12">跨镜头绘图自动注入定妆参考与空间坐标，消除换脸与场景漂移；</text>
+        <text x="16" y="118" fill="#94a3b8" font-size="12">支持王家卫、古典国风、暗黑赛博等4大导演视觉风格矩阵切换。</text>
+        <rect x="16" y="138" width="160" height="24" rx="4" fill="#0ea5e9" fill-opacity="0.12" />
+        <text x="96" y="154" fill="#38bdf8" font-size="11" font-weight="600" text-anchor="middle">Character DNA 锁脸</text>
+      </g>
+
+      <!-- Core 3 -->
+      <g transform="translate(1108, 0)">
+        <rect x="0" y="0" width="530" height="180" rx="10" fill="#101422" stroke="#1e273c" stroke-width="1" />
+        <rect x="16" y="16" width="32" height="32" rx="8" fill="#6366f1" fill-opacity="0.15" />
+        <text x="32" y="38" fill="#a5b4fc" font-size="16" font-weight="800" text-anchor="middle">03</text>
+        <text x="58" y="38" fill="#f8fafc" font-size="15" font-weight="700">可执行分镜编译与呼吸感自愈</text>
+        <text x="16" y="74" fill="#94a3b8" font-size="12">实现“剧本即代码 (Executable Script)”分镜状态树双向毫秒级联动；</text>
+        <text x="16" y="96" fill="#94a3b8" font-size="12">文学改动触发脏状态标记，智能判定受影响镜头，支持原位增量重冲印；</text>
+        <text x="16" y="118" fill="#94a3b8" font-size="12">35字呼吸感监控系统强制防说教，并支持单戏剧节拍一键拆分互补双镜头。</text>
+        <rect x="16" y="138" width="160" height="24" rx="4" fill="#6366f1" fill-opacity="0.12" />
+        <text x="96" y="154" fill="#a5b4fc" font-size="11" font-weight="600" text-anchor="middle">毫秒级双向脏状态自愈</text>
+      </g>
+
+      <!-- Core 4 -->
+      <g transform="translate(1662, 0)">
+        <rect x="0" y="0" width="530" height="180" rx="10" fill="#101422" stroke="#1e273c" stroke-width="1" />
+        <rect x="16" y="16" width="32" height="32" rx="8" fill="#f43f5e" fill-opacity="0.15" />
+        <text x="32" y="38" fill="#fb7185" font-size="16" font-weight="800" text-anchor="middle">04</text>
+        <text x="58" y="38" fill="#f8fafc" font-size="15" font-weight="700">制片排期与多模态视频指令编译</text>
+        <text x="16" y="74" fill="#94a3b8" font-size="12">基于分镜地点与光影维度自动聚类拍摄批次，输出标准制片顺场排期表；</text>
+        <text x="16" y="96" fill="#94a3b8" font-size="12">无缝编译 MiniMax Hailuo H3、可灵 Kling、Runway 连贯镜头视频生成指令；</text>
+        <text x="16" y="118" fill="#94a3b8" font-size="12">端到端贯通纯黑场放映影院试映与全量工业级工程资产分卷打包。</text>
+        <rect x="16" y="138" width="160" height="24" rx="4" fill="#f43f5e" fill-opacity="0.12" />
+        <text x="96" y="154" fill="#fb7185" font-size="11" font-weight="600" text-anchor="middle">Hailuo H3 / Kling 编译器</text>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -23,6 +23,7 @@ import {
   Smartphone,
   ChevronDown,
   Key,
+  Workflow,
 } from "lucide-react";
 import { api, ProjectListItem, normalizeAssetUrl } from "@/lib/api";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
@@ -30,6 +31,7 @@ import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelinePr
 import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
 import { PitchIdeaGeneratorModal } from "@/components/modals/PitchIdeaGeneratorModal";
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
+import { SystemArchitectureMapModal } from "@/components/modals/SystemArchitectureMapModal";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
@@ -136,6 +138,7 @@ export default function DashboardPage() {
   const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
   const [isGlobalAssetModalOpen, setIsGlobalAssetModalOpen] = useState(false);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+  const [isArchitectureMapOpen, setIsArchitectureMapOpen] = useState(false);
   const toolsMenuRef = useRef<HTMLDivElement>(null);
 
   // Close tools menu on outside click
@@ -493,6 +496,18 @@ export default function DashboardPage() {
               </button>
             </div>
           )}
+
+          {/* Global Feature Architecture Map */}
+          <button
+            type="button"
+            onClick={() => setIsArchitectureMapOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all cursor-pointer shadow-xs"
+            title="全局功能引导地图 · 商业短剧制片工作流全景"
+          >
+            <Workflow className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">系统全景导图</span>
+            <span className="sm:hidden">导图</span>
+          </button>
 
           {/* Advanced Creation Tools Dropdown */}
           <div className="relative" ref={toolsMenuRef}>
@@ -1104,6 +1119,12 @@ export default function DashboardPage() {
       <GlobalAssetLibraryModal
         isOpen={isGlobalAssetModalOpen}
         onClose={() => setIsGlobalAssetModalOpen(false)}
+      />
+
+      {/* Global Feature & System Architecture Map Modal */}
+      <SystemArchitectureMapModal
+        isOpen={isArchitectureMapOpen}
+        onClose={() => setIsArchitectureMapOpen(false)}
       />
     </div>
   );

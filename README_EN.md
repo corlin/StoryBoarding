@@ -9,11 +9,18 @@ English | [简体中文](./README.md)
 
 ---
 
-## 🏗️ System Architecture Logic
-
-The system is built on the philosophy of **"Script as Code (Executable Script)"**, treating screenplays as structured, verifiable Storyboard State Trees. The complete pipeline is organized into **7 Core Production Stages**, seamlessly linking pre-production, directing, and asset delivery:
-
-![StoryBoarding Architecture](./docs/assets/architecture.png)
+## 🏗️ System Architecture & Production Workflow Map
+ 
+The system is built on the philosophy of **"Script as Code (Executable Script)"**, establishing **3 Production Phases · 7 Industry Stages · AI Director Co-pilot** across commercial micro-drama lifecycles. Users can press <kbd>M</kbd> or click "🗺️ Feature Map" in the TopBar at any time to open the interactive command map:
+ 
+![StoryBoarding Global Production Architecture Map](./docs/assets/architecture.png)
+ 
+> 💡 **High-Resolution Vector Asset**: Downloadable directly in the workspace, or view [docs/assets/system_architecture_map.svg](./docs/assets/system_architecture_map.svg).
+>
+> - **Phase 1 · Pre-Production & Visual Bible**: `STAGE 01 Adaptation Tradeoffs & Payoff Radar` ➔ `STAGE 02 Unified Visual Bible (Character DNA & Spatial Anchors)`;
+> - **Phase 2 · Production & Scheduling**: `STAGE 03 Dual-Pane Self-Healing Studio` ➔ `STAGE 04 Storyboard Canvas & Camera HUD` ➔ `STAGE 05 Call Sheet Production & H3 Prompts`;
+> - **Phase 3 · Post-Production & Delivery**: `STAGE 06 Cinema Theater Previz (Full-Screen Darkroom)` ➔ `STAGE 07 5-Tier Industrial Production Deliverables Package`;
+> - **Cross-Cutting · 🧠 AI Director Co-pilot**: Conflict distillation, face-locking Visual DNA, dirty-state incremental healing, and multi-modal video prompts compiler.
 
 ---
 

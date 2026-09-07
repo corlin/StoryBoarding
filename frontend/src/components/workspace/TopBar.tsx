@@ -27,6 +27,7 @@ import {
   Palette,
   RefreshCw,
   Wand2,
+  Workflow,
 } from "lucide-react";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
@@ -60,6 +61,7 @@ interface TopBarProps {
   onOpenWizard?: () => void;
   onBatchRender?: () => void;
   onOpenTour?: () => void;
+  onOpenArchitectureMap?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -84,6 +86,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenWizard,
   onBatchRender,
   onOpenTour,
+  onOpenArchitectureMap,
 }) => {
   const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
   const { activeEpisodeIndex, setActiveEpisodeIndex } = useWorkspaceStore();
@@ -125,10 +128,16 @@ export const TopBar: React.FC<TopBarProps> = ({
         e.preventDefault();
         setIsShortcutsModalOpen((prev) => !prev);
       }
+      if ((e.key === "m" || e.key === "M") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (onOpenArchitectureMap) {
+          e.preventDefault();
+          onOpenArchitectureMap();
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [onOpenArchitectureMap]);
 
   const isOverDuration = totalDuration > (project?.target_duration || 30);
   const unrenderedCount = shots.filter((s) => !s.storyboard_image_url || s.is_dirty).length;
@@ -402,6 +411,19 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
 
+        {/* 4. 全局功能引导地图 */}
+        {onOpenArchitectureMap && (
+          <button
+            onClick={onOpenArchitectureMap}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all cursor-pointer shadow-xs"
+            title="全局功能引导地图 · 商业短剧全流程制片架构 (快捷键 M)"
+          >
+            <Workflow className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">功能全景</span>
+            <kbd className="hidden md:inline font-mono text-[10px] text-amber-400/90 bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/30">M</kbd>
+          </button>
+        )}
+
         {/* 5. 收敛的「更多」下拉菜单 (More Tools Dropdown) */}
         <div className="relative" ref={moreToolsRef}>
           <button
@@ -415,6 +437,22 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           {isMoreToolsOpen && (
             <div className="absolute right-0 mt-1.5 w-52 bg-card border border-border rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
+              {onOpenArchitectureMap && (
+                <button
+                  onClick={() => {
+                    setIsMoreToolsOpen(false);
+                    onOpenArchitectureMap();
+                  }}
+                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-amber-300 hover:bg-amber-500/10 transition-colors text-left font-medium"
+                >
+                  <div className="flex items-center gap-2">
+                    <Workflow className="w-3.5 h-3.5 text-amber-400" />
+                    <span>全局功能引导地图</span>
+                  </div>
+                  <kbd className="font-mono text-[10px] text-amber-400/80 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30">M</kbd>
+                </button>
+              )}
+
               {onOpenTradeoff && (
                 <button
                   onClick={() => {
@@ -893,6 +931,10 @@ export const TopBar: React.FC<TopBarProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-foreground">随时打开此快捷键指南</span>
                     <kbd className="px-2 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs">?</kbd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground">全局功能引导地图 (架构全景)</span>
+                    <kbd className="px-2 py-0.5 rounded bg-background border border-border font-mono text-[11px] font-bold shadow-2xs text-amber-400">M</kbd>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-foreground">双击分栏中线</span>

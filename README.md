@@ -9,11 +9,18 @@
 
 ---
 
-## 🏗️ 系统架构逻辑 (System Architecture)
+## 🏗️ 系统全景架构与工作流程导图 (System Architecture & Production Workflow)
 
-系统采用**“剧本即代码 (Executable Script)”**的工程设计思想，将文学文本抽象为结构化的分镜状态树（State Tree）。整个生产流水线划分为 **7 大核心工序（Stages）**，打通前期筹备、导演规划到后期交付的全部数据链路：
+系统采用**“剧本即代码 (Executable Script)”**的工程设计思想，面向商业短剧建立**三大制片阶段 (Phases) · 7 大工业工序 (Stages) · 全链路 AI 导演协同中枢**。用户可在工作台随时按下键盘快捷键 <kbd>M</kbd> 或点击顶栏「🗺️ 功能全景」呼出交互式总控导图：
 
-![StoryBoarding Architecture](./docs/assets/architecture.png)
+![StoryBoarding Global Production Architecture Map](./docs/assets/architecture.png)
+
+> 💡 **高清矢量资产**：支持在工作台直接一键下载，或查阅 [docs/assets/system_architecture_map.svg](./docs/assets/system_architecture_map.svg)。
+>
+> - **阶段一 · 前期筹备与视听基准 (Pre-Production)**：`STAGE 01 大纲改编与爽点雷达` ➔ `STAGE 02 剧组视觉设定集 (Character DNA & Visual Bible)`；
+> - **阶段二 · 中期创作与制片排期 (Production & Scheduling)**：`STAGE 03 文学/分镜双向自愈工作台` ➔ `STAGE 04 故事板网格与镜头HUD` ➔ `STAGE 05 顺场表制片管理 (Call Sheet & H3 提示词)`；
+> - **阶段三 · 预演审片与工业交付 (Post-Production & Delivery)**：`STAGE 06 好莱坞级放映影院 (Cinema Theater Previz)` ➔ `STAGE 07 工业级制片交付物分卷打包 (5大交付物)`；
+> - **全程贯穿 · 🧠 AI 导演协同中枢**：剧本商业矛盾抽核、跨镜角色视觉一致性锁脸、双向脏状态自愈、多模态连贯视频指令编译。
 
 ---
 
