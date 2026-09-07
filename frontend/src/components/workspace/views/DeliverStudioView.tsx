@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ProjectModel, ShotModel } from "@/types/shot";
 import { exportStoryboardSheetToPng, renderStoryboardToBlob, renderSingleShotAiFrameBlob } from "@/lib/canvasExporter";
 import { exportCallSheetToCsv, generateCallSheetCsvContent } from "@/lib/callSheetExporter";
+import { generateAiVideoControlRigJson, generateAiVideoControlRigCsv } from "@/lib/aiVideoControlRig";
 import { notify } from "@/components/ui/ToastNotification";
 import { VIDEO_PROMPT_ENGINES, VideoEngineType } from "@/lib/videoPromptEngines";
 import JSZip from "jszip";
@@ -140,6 +141,13 @@ export const DeliverStudioView: React.FC<DeliverStudioViewProps> = ({
         }
       }
 
+      // 0b. AI Video Generation Structured Control Rig (JSON + CSV) for Batch API Pipeline
+      setZipProgressText("正在编译 AI 视频生成结构化控制指令清单 (JSON + CSV)...");
+      const controlRigJson = generateAiVideoControlRigJson(activeShots, project);
+      aiFramesFolder?.file("ai_video_generation_prompts.json", controlRigJson);
+      const controlRigCsv = generateAiVideoControlRigCsv(activeShots, project);
+      aiFramesFolder?.file("ai_video_control_rig.csv", controlRigCsv);
+
       // 1. Production Storyboard Sheet PNG
       setZipProgressText("正在渲染全案商业分镜长图...");
       try {
@@ -187,7 +195,10 @@ export const DeliverStudioView: React.FC<DeliverStudioViewProps> = ({
 导出时间: ${new Date().toLocaleString()}
 总镜头数: ${activeShots.length} 镜
 包含内容:
-0. 00_AI视频生成全景参考图集_含机位运镜标识/ - 每个镜头的独立超清关键帧图（已烧录九宫格、机位序号、景别、运镜矢量与台词语义），直接喂入 MiniMax / SeaDance / Wan 2.1 等大模型作为首帧与对齐基准
+0. 00_AI视频生成全景参考图集_含机位运镜标识/
+   - Shot_XXX_*.png: 每个镜头的独立超清关键帧图（已烧录九宫格、机位序号、景别、运镜矢量与台词语义），直接喂入 MiniMax / SeaDance / Wan 2.1 等大模型作为首帧与对齐基准
+   - ai_video_generation_prompts.json: 结构化 AI 视频生成 Prompt 清单（含中英双语提示词、运镜矢量、景别、时长、负向提示词），可被自动化管线直接读取批量调用 API
+   - ai_video_control_rig.csv: 扁平表格版控制指令（兼容 Excel / pandas / Google Sheets），每行一镜，包含全部 API 所需参数
 1. 01_商业分镜打样表.png - 高清景别/运镜/对白排版长图 (Previz Sheet)
 2. 02_剧组制片通告顺场表.csv - 影视制片排期、空间灯光与出场演员统计表
 3. 03_AI视频提示词工程包/ - 适配 MiniMax 海螺 H3、剪映 SeaDance 2.5、Wan 2.1、Runway/可灵 的机位提示词
