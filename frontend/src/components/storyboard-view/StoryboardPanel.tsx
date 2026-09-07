@@ -4,7 +4,7 @@ import { StoryboardCell } from "./StoryboardCell";
 import { RhythmBarcode } from "./RhythmBarcode";
 import { CallSheetView } from "./CallSheetView";
 import { VoiceAlignmentDrawer } from "@/components/drawers/VoiceAlignmentDrawer";
-import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video, SlidersHorizontal, Settings2, Check, FileText, Play, Lock, Unlock } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Maximize2, Loader2, Film, XCircle, Crosshair, Layers, Mic, Download, Video, SlidersHorizontal, Settings2, Check, FileText, Play, Lock, Unlock, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -155,6 +155,42 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
               <span>顺场表</span>
             </button>
           </div>
+
+          {/* Batch Render Action Button with Lock Awareness */}
+          {missingImageCount > 0 && onRegenerateDirty && (
+            <button
+              type="button"
+              onClick={onRegenerateDirty}
+              disabled={isBatchRendering}
+              className={cn(
+                "hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border shadow-2xs cursor-pointer",
+                isBatchRendering
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-300 opacity-60 cursor-not-allowed"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90 border-primary shadow-xs"
+              )}
+              title={
+                shots.some((s) => s.is_locked)
+                  ? `批量补齐 ${missingImageCount} 镜待冲印画面（已自动保护跳过定稿锁定镜头）`
+                  : `一键冲印本集未生成及已改写的 ${missingImageCount} 镜画面`
+              }
+            >
+              {isBatchRendering ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Palette className="w-3.5 h-3.5" />
+              )}
+              <span>
+                {isBatchRendering
+                  ? "后台冲印中..."
+                  : `冲印待办 (${missingImageCount})`}
+              </span>
+              {shots.some((s) => s.is_locked) && (
+                <span className="text-[10px] bg-black/25 px-1 py-0.2 rounded font-mono text-amber-200" title="已保护锁定的镜头">
+                  🔒
+                </span>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Right Controls: Grid density switch + Display Settings Dropdown + Theater */}

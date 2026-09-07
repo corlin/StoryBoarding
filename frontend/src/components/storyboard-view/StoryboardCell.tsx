@@ -316,9 +316,13 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
     <div
       onClick={handleCardBodyClick}
       className={cn(
-        "group relative isolate flex flex-col rounded-xl overflow-hidden border bg-card/60 transition-all duration-150 cursor-pointer shadow-sm",
+        "group relative isolate flex flex-col rounded-xl overflow-hidden border bg-card/60 transition-all duration-200 cursor-pointer shadow-sm",
         isSelected
-          ? "border-primary ring-2 ring-primary/40 shadow-md bg-card/95"
+          ? isLocked
+            ? "border-amber-400 ring-2 ring-amber-400/50 shadow-md bg-card/95"
+            : "border-primary ring-2 ring-primary/40 shadow-md bg-card/95"
+          : isLocked
+          ? "border-amber-500/50 hover:border-amber-400/80 bg-amber-500/[0.02] shadow-[0_0_12px_rgba(245,158,11,0.06)]"
           : "border-border/70 hover:border-border hover:bg-card/90"
       )}
     >
@@ -417,8 +421,12 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           {isLocked && (
             <>
               <span className="text-muted-foreground">·</span>
-              <span title="已锁定保护，AI重构时保持不变">
-                <Lock className="w-3.5 h-3.5 text-amber-400" />
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.2 rounded shadow-2xs"
+                title="🔒 该镜头已定稿锁定：受工业级只读保护，全片批量生图或AI重构时自动跳过"
+              >
+                <Lock className="w-3 h-3 text-amber-400" />
+                <span>定稿</span>
               </span>
             </>
           )}

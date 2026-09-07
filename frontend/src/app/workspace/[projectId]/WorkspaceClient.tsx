@@ -414,13 +414,22 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       const proj = await api.getProject(targetProjectId);
       const currentSeq = proj?.sequences?.[activeEpisodeIndex] || proj?.sequences?.[0];
       const targetShots = currentSeq?.shots || [];
+      const lockedCount = targetShots.filter((s: any) => s.is_locked).length;
       const unrendered = targetShots.filter(
-        (s: any) => !s.storyboard_image_url || s.is_dirty
+        (s: any) => (!s.storyboard_image_url || s.is_dirty) && !s.is_locked
       );
       if (unrendered.length === 0) {
         setIsBatchRendering(false);
-        notify.info("当前集数所有镜头画面均已冲印就绪");
+        if (lockedCount > 0) {
+          notify.info(`🛡️ 本集待生图镜头均处于「定稿锁定」保护状态，已全数安全跳过！`);
+        } else {
+          notify.info("当前集数所有镜头画面均已冲印就绪");
+        }
         return;
+      }
+
+      if (lockedCount > 0) {
+        notify.info(`🛡️ 批量冲印已启动：已自动保护跳过 ${lockedCount} 个「定稿锁定」镜头，仅冲印余下 ${unrendered.length} 镜`);
       }
 
       setBatchProgress({ current: 0, total: unrendered.length });
