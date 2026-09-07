@@ -37,7 +37,7 @@ interface BibleModalProps {
   isOpen: boolean;
   onClose: () => void;
   project: ProjectModel | null;
-  mode?: "bible" | "style" | "characters" | "locations";
+  mode?: "bible" | "style" | "characters" | "locations" | "props";
 }
 
 const TURNAROUND_PRESETS = [
@@ -234,6 +234,13 @@ export const BibleModal: React.FC<BibleModalProps> = ({
     }
     return true;
   };
+
+  useEffect(() => {
+    if (mode === "style") setActiveTab("style");
+    else if (mode === "locations") setActiveTab("locations");
+    else if (mode === "props") setActiveTab("props");
+    else if (mode === "characters") setActiveTab("characters");
+  }, [mode, isOpen]);
 
   useEffect(() => {
     if (project) {

@@ -43,6 +43,8 @@ interface PrepBibleStudioViewProps {
   onOpenImportScript?: () => void;
   onOpenWizard?: () => void;
   onOpenCharacterProfile?: (character: CharacterModel) => void;
+  onOpenLocationBible?: () => void;
+  onOpenPropBible?: () => void;
 }
 
 export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
@@ -51,6 +53,8 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
   onOpenImportScript,
   onOpenWizard,
   onOpenCharacterProfile,
+  onOpenLocationBible,
+  onOpenPropBible,
 }) => {
   const [rightActiveTab, setRightActiveTab] = useState<"characters" | "locations" | "props">("characters");
   const [isSaving, setIsSaving] = useState(false);
@@ -365,10 +369,36 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
               </button>
             </div>
 
-            <div className="text-[11px] text-muted-foreground font-mono hidden sm:block">
-              {rightActiveTab === "characters" && "统一演员面部、服化道定妆卡"}
-              {rightActiveTab === "locations" && "核心场景光影与空间基准"}
-              {rightActiveTab === "props" && "关键叙事与道具锚点"}
+            <div className="flex items-center gap-2">
+              <div className="text-[11px] text-muted-foreground font-mono hidden sm:block">
+                {rightActiveTab === "characters" && "统一演员面部、服化道定妆卡"}
+                {rightActiveTab === "locations" && "核心场景光影与空间基准"}
+                {rightActiveTab === "props" && "关键叙事与道具锚点"}
+              </div>
+
+              {rightActiveTab === "locations" && (
+                <button
+                  type="button"
+                  onClick={onOpenLocationBible}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 transition-all cursor-pointer shadow-xs"
+                  title="添加新场景或调整场景光影锚点"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>管理/新建场景</span>
+                </button>
+              )}
+
+              {rightActiveTab === "props" && (
+                <button
+                  type="button"
+                  onClick={onOpenPropBible}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 transition-all cursor-pointer shadow-xs"
+                  title="添加剧情信物或调整道具特征"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>管理/新建道具</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -434,24 +464,38 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
                 {locations.length === 0 ? (
                   <div className="col-span-full p-8 rounded-xl border border-dashed border-border/80 text-center space-y-2 text-muted-foreground">
                     <MapPin className="w-6 h-6 mx-auto text-muted-foreground/60" />
-                    <p className="text-xs">暂无场景设定，可通过解析剧本自动提炼</p>
+                    <p className="text-xs">暂无场景设定，可点击上方「管理/新建场景」或解析剧本自动提炼</p>
                   </div>
                 ) : (
                   locations.map((loc) => (
                     <div
                       key={loc.id}
-                      className="p-3 rounded-xl bg-card border border-border/70 hover:border-border transition-all shadow-2xs space-y-1.5"
+                      onClick={onOpenLocationBible}
+                      className="p-3 rounded-xl bg-card border border-border/70 hover:border-amber-500/50 transition-all cursor-pointer group shadow-2xs space-y-2 flex flex-col justify-between"
                     >
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-foreground truncate flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-amber-400" />
-                          <span>{loc.name}</span>
-                        </h4>
-                        <span className="text-[10px] font-mono text-muted-foreground">{loc.environment_type === "interior" ? "内景" : loc.environment_type === "exterior" ? "外景" : "抽象"}</span>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold text-foreground truncate flex items-center gap-1.5 group-hover:text-amber-300 transition-colors">
+                            <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                            <span>{loc.name}</span>
+                          </h4>
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                            {loc.environment_type === "interior" ? "内景" : loc.environment_type === "exterior" ? "外景" : "抽象"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2">
+                          {loc.design_summary || loc.visual_anchor || loc.lighting_style || "暂无场景细节描述"}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-muted-foreground line-clamp-2">
-                        {loc.design_summary || loc.visual_anchor || loc.lighting_style || "暂无场景细节描述"}
-                      </p>
+
+                      <div className="flex items-center justify-between pt-1.5 border-t border-border/50 text-[10px] text-muted-foreground font-mono">
+                        <span className="truncate max-w-[150px]">
+                          {loc.lighting_style ? `☀️ ${loc.lighting_style}` : "自然光基准"}
+                        </span>
+                        <span className="text-amber-400 group-hover:underline flex items-center gap-0.5">
+                          编辑光影/基准 <ChevronRight className="w-3 h-3" />
+                        </span>
+                      </div>
                     </div>
                   ))
                 )}
@@ -464,23 +508,36 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
                 {propsList.length === 0 ? (
                   <div className="col-span-full p-8 rounded-xl border border-dashed border-border/80 text-center space-y-2 text-muted-foreground">
                     <Package className="w-6 h-6 mx-auto text-muted-foreground/60" />
-                    <p className="text-xs">暂无道具设定，支持添加关键剧情道具与信物</p>
+                    <p className="text-xs">暂无道具设定，可点击上方「管理/新建道具」添加关键信物</p>
                   </div>
                 ) : (
                   propsList.map((prop) => (
                     <div
                       key={prop.id}
-                      className="p-3 rounded-xl bg-card border border-border/70 hover:border-border transition-all shadow-2xs space-y-1.5"
+                      onClick={onOpenPropBible}
+                      className="p-3 rounded-xl bg-card border border-border/70 hover:border-purple-500/50 transition-all cursor-pointer group shadow-2xs space-y-2 flex flex-col justify-between"
                     >
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-foreground truncate flex items-center gap-1.5">
-                          <Package className="w-3.5 h-3.5 text-purple-400" />
-                          <span>{prop.name}</span>
-                        </h4>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold text-foreground truncate flex items-center gap-1.5 group-hover:text-purple-300 transition-colors">
+                            <Package className="w-3.5 h-3.5 text-purple-400" />
+                            <span>{prop.name}</span>
+                          </h4>
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                            {prop.category === "weapon" ? "武器" : prop.category === "token" ? "信物" : prop.category === "document" ? "文书" : "道具"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2">
+                          {prop.description || prop.visual_anchor || "关键剧情道具"}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-muted-foreground line-clamp-2">
-                        {prop.description || prop.visual_anchor || "关键剧情道具"}
-                      </p>
+
+                      <div className="flex items-center justify-between pt-1.5 border-t border-border/50 text-[10px] text-muted-foreground font-mono">
+                        <span>{prop.scale === "furniture" ? "家具级" : prop.scale === "tabletop" ? "桌面级" : "手持级"}</span>
+                        <span className="text-purple-400 group-hover:underline flex items-center gap-0.5">
+                          编辑物料 <ChevronRight className="w-3 h-3" />
+                        </span>
+                      </div>
                     </div>
                   ))
                 )}

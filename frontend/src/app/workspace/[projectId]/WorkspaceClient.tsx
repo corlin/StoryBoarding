@@ -66,7 +66,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [isOpenExportModal, setIsOpenExportModal] = useState(false);
   const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
   const [isOpenBibleModal, setIsOpenBibleModal] = useState(false);
-  const [bibleMode, setBibleMode] = useState<"bible" | "style" | "characters" | "locations">("bible");
+  const [bibleMode, setBibleMode] = useState<"bible" | "style" | "characters" | "locations" | "props">("bible");
   const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
   const [isOpenTradeoffModal, setIsOpenTradeoffModal] = useState(false);
   const [isOpenRadarModal, setIsOpenRadarModal] = useState(false);
@@ -818,6 +818,14 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           onOpenWizard={() => setIsWizardOpen(true)}
           onOpenCharacterProfile={(char) => {
             setSelectedProfileChar(char);
+          }}
+          onOpenLocationBible={() => {
+            setBibleMode("locations");
+            setIsOpenBibleModal(true);
+          }}
+          onOpenPropBible={() => {
+            setBibleMode("props");
+            setIsOpenBibleModal(true);
           }}
         />
       )}
