@@ -46,7 +46,9 @@ export const TheaterReviewStudioView: React.FC<TheaterReviewStudioViewProps> = (
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const playTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const screeningRoomRef = useRef<HTMLDivElement>(null);
 
   const activeShot = shots[currentShotIndex] || shots[0];
 
@@ -75,9 +77,58 @@ export const TheaterReviewStudioView: React.FC<TheaterReviewStudioViewProps> = (
     };
   }, [isPlaying, currentShotIndex, shots.length, activeShot, playbackSpeed]);
 
-  const handleTogglePlay = () => setIsPlaying(!isPlaying);
+  const handleTogglePlay = () => setIsPlaying((prev) => !prev);
   const handlePrev = () => setCurrentShotIndex((prev) => (prev > 0 ? prev - 1 : shots.length - 1));
   const handleNext = () => setCurrentShotIndex((prev) => (prev + 1) % shots.length);
+
+  const handleToggleFullscreen = () => {
+    if (!screeningRoomRef.current) return;
+    if (!document.fullscreenElement) {
+      screeningRoomRef.current.requestFullscreen?.().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  // Studio Professional Keyboard Shortcuts (Space: Play/Pause, Left/Right: Step, F: Fullscreen)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Do not trigger if typing in text inputs or textareas
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || (e.target as HTMLElement)?.isContentEditable) {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        handleTogglePlay();
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        setIsPlaying(false);
+        handlePrev();
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        setIsPlaying(false);
+        handleNext();
+      } else if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        handleToggleFullscreen();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [shots.length]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden">
@@ -124,7 +175,7 @@ export const TheaterReviewStudioView: React.FC<TheaterReviewStudioViewProps> = (
       {/* Main Studio Body: Player + Companion QA Inspector */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left Column: Screening Room (75%) */}
-        <div className="flex-1 lg:w-3/4 flex flex-col bg-black/95 relative overflow-hidden">
+        <div ref={screeningRoomRef} className="flex-1 lg:w-3/4 flex flex-col bg-black/95 relative overflow-hidden">
           {/* Main Visual Display Area */}
           <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
             {shots.length === 0 ? (
@@ -240,40 +291,63 @@ export const TheaterReviewStudioView: React.FC<TheaterReviewStudioViewProps> = (
                 <button
                   type="button"
                   onClick={handlePrev}
-                  className="p-1 hover:text-white transition-colors"
+                  className="p-1 hover:text-white transition-colors cursor-pointer"
+                  title="上一镜 (快捷键: ← 方向键)"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={handleTogglePlay}
-                  className="w-8 h-8 rounded-full bg-white text-black hover:bg-white/90 flex items-center justify-center transition-transform hover:scale-105"
+                  className="w-8 h-8 rounded-full bg-white text-black hover:bg-white/90 flex items-center justify-center transition-transform hover:scale-105 cursor-pointer shadow-md"
+                  title={isPlaying ? "暂停放映 (快捷键: Space 空格)" : "连播放映 (快捷键: Space 空格)"}
                 >
                   {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
                 </button>
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="p-1 hover:text-white transition-colors"
+                  className="p-1 hover:text-white transition-colors cursor-pointer"
+                  title="下一镜 (快捷键: → 方向键)"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
 
+              {/* Right Transport Status & Shortcuts Badge */}
               <div className="flex items-center gap-2 font-mono text-[11px]">
+                {/* Micro Keyboard Hints Badge */}
+                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-white/50 bg-white/5 px-2 py-0.5 rounded border border-white/10 mr-1">
+                  <span>Space 播放</span>
+                  <span>·</span>
+                  <span>← → 步进</span>
+                  <span>·</span>
+                  <span>F 全屏</span>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => setIsMuted(!isMuted)}
-                  className="p-1 hover:text-white transition-colors"
+                  className="p-1 hover:text-white transition-colors cursor-pointer"
+                  title={isMuted ? "开启音效" : "静音"}
                 >
                   {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPlaybackSpeed(playbackSpeed === 1 ? 1.5 : playbackSpeed === 1.5 ? 2 : 1)}
-                  className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[10px]"
+                  className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[10px] cursor-pointer"
+                  title="调整连播倍速"
                 >
                   {playbackSpeed}x
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleFullscreen}
+                  className="p-1 hover:text-white transition-colors cursor-pointer ml-1"
+                  title={isFullscreen ? "退出全屏 (F)" : "全屏大屏监看 (F)"}
+                >
+                  <Maximize2 className={cn("w-4 h-4", isFullscreen && "text-amber-400")} />
                 </button>
               </div>
             </div>
