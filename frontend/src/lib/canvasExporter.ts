@@ -100,12 +100,11 @@ export interface ExportOptions {
   includeHud?: boolean;
 }
 
-// Lightweight, instant, 1K-standard Previz draft sheet with complete Dialogue and Audio sound design
-export async function exportStoryboardSheetToPng(
+export async function renderStoryboardToBlob(
   project: ProjectModel,
   shots: ShotModel[],
   options: ExportOptions = { includeHud: true }
-): Promise<void> {
+): Promise<Blob> {
   if (!shots || shots.length === 0) {
     throw new Error("项目中暂无分镜头数据");
   }
@@ -409,22 +408,30 @@ export async function exportStoryboardSheetToPng(
     footerY
   );
 
-  // 5. Convert to lightweight PNG Blob and trigger instant download (< 300KB)
+  // 5. Convert to lightweight PNG Blob (< 300KB)
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {
         reject(new Error("Canvas 导出图片数据为空"));
         return;
       }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `Storyboard_Sheet_${sanitizeFilename(project.title || "project")}_${count}shots.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      resolve();
+      resolve(blob);
     }, "image/png");
   });
+}
+
+export async function exportStoryboardSheetToPng(
+  project: ProjectModel,
+  shots: ShotModel[],
+  options: ExportOptions = { includeHud: true }
+): Promise<void> {
+  const blob = await renderStoryboardToBlob(project, shots, options);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `Storyboard_Sheet_${sanitizeFilename(project.title || "project")}_${shots.length}shots.png`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import { ProjectModel, ShotModel } from "@/types/shot";
-import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
-import { exportCallSheetToCsv } from "@/lib/callSheetExporter";
+import { exportStoryboardSheetToPng, renderStoryboardToBlob } from "@/lib/canvasExporter";
+import { exportCallSheetToCsv, generateCallSheetCsvContent } from "@/lib/callSheetExporter";
 import { notify } from "@/components/ui/ToastNotification";
-import { generateH3Prompt } from "@/lib/h3Prompt";
-import { buildH3CutItem } from "@/hooks/useH3Prompt";
+import { VIDEO_PROMPT_ENGINES, VideoEngineType } from "@/lib/videoPromptEngines";
+import JSZip from "jszip";
 import {
   Download,
   FileText,
@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ShieldCheck,
   CheckCircle2,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,9 +37,10 @@ export const DeliverStudioView: React.FC<DeliverStudioViewProps> = ({
   const [exportScope, setExportScope] = useState<"current" | "all">("current");
   const [exportWithHud, setExportWithHud] = useState(true);
   const [isExportingPng, setIsExportingPng] = useState(false);
-  const [isCopyingH3, setIsCopyingH3] = useState(false);
-  const [isH3Copied, setIsH3Copied] = useState(false);
+  const [selectedEngine, setSelectedEngine] = useState<VideoEngineType>("minimax_h3");
+  const [isPromptCopied, setIsPromptCopied] = useState(false);
   const [isExportingZip, setIsExportingZip] = useState(false);
+  const [zipProgressText, setZipProgressText] = useState("");
 
   if (!project) {
     return (
@@ -89,65 +91,118 @@ export const DeliverStudioView: React.FC<DeliverStudioViewProps> = ({
     }
   };
 
-  // 3. Export H3 JSON / Copy
-  const handleCopyH3Prompt = () => {
+  // 3. Multi-Engine Video Prompt Copy
+  const handleCopyPrompt = () => {
     if (activeShots.length === 0) {
       notify.error("暂无可导出的分镜数据");
       return;
     }
-    setIsCopyingH3(true);
+    const engine = VIDEO_PROMPT_ENGINES.find((e) => e.id === selectedEngine) || VIDEO_PROMPT_ENGINES[0];
     try {
-      const data = {
-        project_title: project.title,
-        timestamp: new Date().toISOString(),
-        shots_count: activeShots.length,
-        shots: activeShots.map((s, idx) => ({
-          order: idx + 1,
-          seconds: Number(s.duration) || 2.5,
-          shot_size: s.shot_size,
-          camera_movement: s.camera_movement?.type,
-          h3_prompt: s.h3_prompt || generateH3Prompt([buildH3CutItem(s, idx + 1)], { lang: "en" }),
-          dialogue: s.dialogue,
-        })),
-      };
-      navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-      setIsH3Copied(true);
-      notify.success("✅ 海螺 H3 批量提示词清单已复制到剪贴板！");
-      setTimeout(() => setIsH3Copied(false), 2000);
+      const text = engine.generateText(activeShots, project);
+      navigator.clipboard.writeText(text);
+      setIsPromptCopied(true);
+      notify.success(`✅ ${engine.name} 工业提示词包已复制到剪贴板！`);
+      setTimeout(() => setIsPromptCopied(false), 2000);
     } catch (err: any) {
-      notify.error("复制失败");
-    } finally {
-      setIsCopyingH3(false);
+      notify.error("复制失败，请重试");
     }
   };
 
-  // 4. Export Lossless Master Package JSON
+  // 4. Export All-in-One Lossless Master Package (Full ZIP Archive)
   const handleExportZip = async () => {
     if (activeShots.length === 0) {
       notify.error("暂无可导出的分镜数据");
       return;
     }
     setIsExportingZip(true);
+    setZipProgressText("正在初始化工业母盘数据包...");
+
     try {
-      const exportData = {
+      const zip = new JSZip();
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const safeTitle = (project.title || "storyboard").replace(/[\\/*?:"<>| \n\t\r,，。！!？"'“”]/g, "_");
+      const rootFolder = zip.folder(`${safeTitle}_交付母盘包_${dateStr}`);
+
+      // 1. Storyboard Sheet PNG
+      setZipProgressText("正在压制 1K 标准商业分镜长图...");
+      try {
+        const pngBlob = await renderStoryboardToBlob(project, activeShots, {
+          includeHud: exportWithHud,
+        });
+        rootFolder?.file(`01_商业分镜打样表_${activeShots.length}镜.png`, pngBlob);
+      } catch (pngErr) {
+        console.warn("Skip PNG generation in zip:", pngErr);
+      }
+
+      // 2. Production Call Sheet CSV
+      setZipProgressText("正在排版制片场记顺场表 CSV...");
+      const csvContent = generateCallSheetCsvContent(
         project,
+        activeShots,
+        project.locations || [],
+        project.characters || []
+      );
+      rootFolder?.file(`02_剧组制片通告顺场表_${activeShots.length}镜.csv`, csvContent);
+
+      // 3. Multi-Engine AI Video Prompts Folder
+      setZipProgressText("正在编译各平台 AI 视频提示词工程包 (MiniMax/SeaDance/Wan/Runway)...");
+      const promptsFolder = rootFolder?.folder("03_AI视频提示词工程包");
+      VIDEO_PROMPT_ENGINES.forEach((eng) => {
+        const promptText = eng.generateText(activeShots, project);
+        promptsFolder?.file(`${eng.name.replace(/[^\w\u4e00-\u9fa5]/g, "_")}_提示词清单.txt`, promptText);
+      });
+
+      // 4. Lossless Master Project JSON
+      setZipProgressText("正在写入全案拓扑母盘数据与资产索引...");
+      const masterMetadata = {
+        project_title: project.title,
         exported_at: new Date().toISOString(),
+        studio_engine: "StoryBoarding AI Director Studio v2.1",
+        scope: exportScope,
+        shots_count: activeShots.length,
+        project,
         shots: activeShots,
       };
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
+      rootFolder?.file("04_全案工程母盘拓扑元数据.json", JSON.stringify(masterMetadata, null, 2));
+
+      // 5. Readme / Delivery Manifest
+      const manifest = `# ${project.title} · 工业级交付母盘说明文档 (Delivery Manifest)
+导出时间: ${new Date().toLocaleString()}
+总镜头数: ${activeShots.length} 镜
+包含内容:
+1. 01_商业分镜打样表.png - 高清景别/运镜/对白排版长图 (Previz Sheet)
+2. 02_剧组制片通告顺场表.csv - 影视制片排期、空间灯光与出场演员统计表
+3. 03_AI视频提示词工程包/ - 适配 MiniMax 海螺 H3、剪映 SeaDance 2.5、Wan 2.1、Runway/可灵 的机位提示词
+4. 04_全案工程母盘拓扑元数据.json - 包含剧本、人物设定卡、场景光影与分镜时码的无损归档数据
+
+Generated by StoryBoarding AI Studio.`;
+      rootFolder?.file("README_交付说明.txt", manifest);
+
+      // Generate ZIP and trigger instant download
+      setZipProgressText("正在封包生成 ZIP 归档文件...");
+      const zipContent = await zip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 },
+      });
+
+      const url = URL.createObjectURL(zipContent);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${project.title}_全案母盘数据包_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `${safeTitle}_全案工业母盘包_${dateStr}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      notify.success("✅ 全案母盘数据包已导出！");
+
+      notify.success("🎉 全要素工业交付母盘 ZIP 已一键封包并启动下载！");
     } catch (err: any) {
-      notify.error(`导出母盘失败: ${err.message || "请稍后重试"}`);
+      console.error(err);
+      notify.error(`母盘打包失败: ${err.message || "请稍后重试"}`);
     } finally {
       setIsExportingZip(false);
+      setZipProgressText("");
     }
   };
 
@@ -269,7 +324,7 @@ export const DeliverStudioView: React.FC<DeliverStudioViewProps> = ({
               </button>
             </div>
 
-            {/* Card 3: AI Video Generation Prompt Package (H3) */}
+            {/* Card 3: AI Video Generation Prompt Package (Multi-Engine) */}
             <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-primary/50 transition-all shadow-xs space-y-3 flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -277,28 +332,53 @@ export const DeliverStudioView: React.FC<DeliverStudioViewProps> = ({
                     <Film className="w-5 h-5" />
                   </div>
                   <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 font-bold">
-                    MiniMax H3 / Runway
+                    多模型兼容
                   </span>
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-foreground">AI 视频引擎提示词包 (Prompt Package)</h4>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    结构化输出符合海螺 H3、可灵、Runway 语法的机位动效、主体与场景连续性提示词。
+                    结构化输出符合海螺 H3、剪映 SeaDance 2.5、阿里 Wan 2.1、Runway/可灵语法的机位提示词。
                   </p>
+                </div>
+
+                {/* Model Engine Selector */}
+                <div className="pt-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
+                    选择适配的生成模型语法规范:
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {VIDEO_PROMPT_ENGINES.map((eng) => (
+                      <button
+                        key={eng.id}
+                        type="button"
+                        onClick={() => setSelectedEngine(eng.id)}
+                        className={cn(
+                          "px-2 py-1 rounded text-left text-[11px] font-medium border transition-all truncate flex items-center justify-between",
+                          selectedEngine === eng.id
+                            ? "bg-purple-500/20 border-purple-500/50 text-purple-200 shadow-2xs font-bold"
+                            : "bg-secondary/40 border-border/60 text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <span className="truncate">{eng.name}</span>
+                        <span className="text-[9px] font-mono opacity-70 ml-1">{eng.tag}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={handleCopyH3Prompt}
+                onClick={handleCopyPrompt}
                 className="w-full py-2 px-3 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
               >
-                {isH3Copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
-                <span>{isH3Copied ? "已复制提示词清单" : "复制海螺 H3 提示词清单"}</span>
+                {isPromptCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
+                <span>{isPromptCopied ? "已复制提示词清单" : `复制 ${VIDEO_PROMPT_ENGINES.find((e) => e.id === selectedEngine)?.name} 提示词`}</span>
               </button>
             </div>
 
-            {/* Card 4: Lossless Master Archive */}
+            {/* Card 4: Lossless Master Archive (ZIP Package) */}
             <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-primary/50 transition-all shadow-xs space-y-3 flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -306,25 +386,31 @@ export const DeliverStudioView: React.FC<DeliverStudioViewProps> = ({
                     <Archive className="w-5 h-5" />
                   </div>
                   <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold">
-                    JSON
+                    ZIP 全包归档
                   </span>
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-foreground">全案工程母盘包 (Master Archive)</h4>
+                  <h4 className="text-sm font-bold text-foreground">全案工业交付母盘 (Master Archive)</h4>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    打包全案剧本、分镜拓扑元数据与全部高清资产引用，确保项目资产完整归档。
+                    一键打包分镜长图 (PNG)、顺场表 (CSV)、四大模型提示词工程包 (TXT) 与全案母盘元数据 (JSON)。
                   </p>
                 </div>
+                {zipProgressText && (
+                  <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 flex items-center gap-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                    <span className="truncate">{zipProgressText}</span>
+                  </div>
+                )}
               </div>
 
               <button
                 type="button"
                 onClick={handleExportZip}
                 disabled={isExportingZip}
-                className="w-full py-2 px-3 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                className="w-full py-2 px-3 rounded-lg text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
               >
-                {isExportingZip ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5 text-muted-foreground" />}
-                <span>归档导出全案工程母盘</span>
+                {isExportingZip ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5 text-amber-400" />}
+                <span>{isExportingZip ? "母盘封包压制中..." : "一键打包下载全要素母盘 ZIP"}</span>
               </button>
             </div>
           </div>
