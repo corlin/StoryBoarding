@@ -118,7 +118,7 @@ export const VOICE_DNA_PRESETS = [
   },
 ];
 
-const STYLE_PRESETS = [
+export const STYLE_PRESETS = [
   {
     id: "graphite_previz",
     name: "🏆 1. 经典石墨分镜铅笔素描 (Graphite Previz · 推荐)",

@@ -34,8 +34,11 @@ import {
   AlertTriangle,
   Loader2,
   Copy,
+  Palette,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { STYLE_PRESETS } from "@/components/modals/BibleModal";
 
 interface PrepBibleStudioViewProps {
   project: ProjectModel | null;
@@ -56,10 +59,11 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
   onOpenLocationBible,
   onOpenPropBible,
 }) => {
+  const [leftActiveTab, setLeftActiveTab] = useState<"outline" | "style">("outline");
   const [rightActiveTab, setRightActiveTab] = useState<"characters" | "locations" | "props">("characters");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Left Section: Adaptation Tradeoffs & Payoff Beats
+  // Left Section: Adaptation Tradeoffs, Payoff Beats & Visual Style
   const [dramaticCore, setDramaticCore] = useState("");
   const [tradeoffs, setTradeoffs] = useState<AdaptationTradeoffs>({
     keep: [],
@@ -69,6 +73,8 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
     payoff_beats: [],
   });
   const [payoffBeats, setPayoffBeats] = useState<PayoffBeatItem[]>([]);
+  const [stylePrompt, setStylePrompt] = useState(STYLE_PRESETS[0].prompt);
+  const [selectedPresetId, setSelectedPresetId] = useState("graphite_previz");
 
   useEffect(() => {
     if (!project) return;
@@ -88,6 +94,13 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
     });
     setDramaticCore(tf.dramatic_core || project.story || "");
     setPayoffBeats(tf.payoff_beats && tf.payoff_beats.length > 0 ? tf.payoff_beats : []);
+
+    const styleConfig = typeof project.style_config === "string" ? JSON.parse(project.style_config) : project.style_config || {};
+    if (styleConfig.director_style_prompt) {
+      setStylePrompt(styleConfig.director_style_prompt);
+      const matched = STYLE_PRESETS.find((p) => p.prompt === styleConfig.director_style_prompt);
+      if (matched) setSelectedPresetId(matched.id);
+    }
   }, [project]);
 
   // Characters, Locations, Props from project
@@ -104,10 +117,18 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
         dramatic_core: dramaticCore,
         payoff_beats: payoffBeats,
       };
+
+      const existingStyle = typeof project.style_config === "string" ? JSON.parse(project.style_config) : project.style_config || {};
+      const updatedStyle = {
+        ...existingStyle,
+        director_style_prompt: stylePrompt.trim(),
+      };
+
       await api.updateProject(project.id, {
         adaptation_tradeoffs: payload,
+        style_config: updatedStyle,
       });
-      notify.success("✅ 大纲改编设定与爽点节拍已保存！");
+      notify.success("✅ 大纲设定、爽点节拍与导演画风基准已成功保存！");
       await onRefreshProject?.();
     } catch (err: any) {
       notify.error(`保存失败: ${err.message || "网络异常"}`);
@@ -194,131 +215,239 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
 
       {/* Main Studio Body: Side-by-Side Split Canvas */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Left Column: Script Outline & Pacing Radar Studio */}
+        {/* Left Column: Script Outline & Pacing Radar & Director Style Studio */}
         <div className="flex-1 lg:w-1/2 flex flex-col border-b lg:border-b-0 lg:border-r border-border/70 overflow-hidden bg-card/20">
           <div className="p-3 border-b border-border/60 bg-muted/20 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-              <Target className="w-4 h-4 text-purple-400" />
-              <span>剧本改编大纲与爽点节拍雷达</span>
+            {/* Sub-tabs for Left Column */}
+            <div className="flex items-center gap-1 bg-secondary/60 p-0.5 rounded-lg border border-border/70">
+              <button
+                type="button"
+                onClick={() => setLeftActiveTab("outline")}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer",
+                  leftActiveTab === "outline"
+                    ? "bg-purple-600 text-white shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Target className="w-3.5 h-3.5" />
+                <span>大纲与爽点 ({payoffBeats.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLeftActiveTab("style")}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer",
+                  leftActiveTab === "style"
+                    ? "bg-purple-600 text-white shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Palette className="w-3.5 h-3.5" />
+                <span>导演画风基准</span>
+              </button>
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono">
-              <span className="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 font-bold">
-                {payoffBeats.length} 个节拍点
-              </span>
+
+            <div className="text-[11px] text-muted-foreground font-mono hidden sm:block">
+              {leftActiveTab === "outline" ? "戏剧内核与各集兑现节点" : "全剧统一光影底色与控制词"}
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-5">
-            {/* Dramatic Core Logline */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <Flame className="w-3.5 h-3.5 text-rose-400" />
-                <span>核心戏剧冲突与故事梗概 (Dramatic Core)</span>
-              </label>
-              <textarea
-                value={dramaticCore}
-                onChange={(e) => setDramaticCore(e.target.value)}
-                rows={3}
-                placeholder="简述故事核心欲望、主角阻力与反转爆发点..."
-                className="w-full text-xs p-2.5 rounded-lg bg-secondary/40 border border-border/80 focus:outline-none focus:border-primary focus:bg-background transition-all resize-none leading-relaxed"
-              />
-            </div>
-
-            {/* Payoff Beats Track */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                  <Activity className="w-3.5 h-3.5 text-amber-400" />
-                  <span>分集爽点与戏剧兑现雷达 (Payoff Beats)</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAddBeat}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>增加爽点节拍</span>
-                </button>
+          {leftActiveTab === "outline" ? (
+            <div className="flex-1 overflow-y-auto p-4 space-y-5">
+              {/* Dramatic Core Logline */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5 text-rose-400" />
+                  <span>核心戏剧冲突与故事梗概 (Dramatic Core)</span>
+                </label>
+                <textarea
+                  value={dramaticCore}
+                  onChange={(e) => setDramaticCore(e.target.value)}
+                  rows={3}
+                  placeholder="简述故事核心欲望、主角阻力与反转爆发点..."
+                  className="w-full text-xs p-2.5 rounded-lg bg-secondary/40 border border-border/80 focus:outline-none focus:border-primary focus:bg-background transition-all resize-none leading-relaxed"
+                />
               </div>
 
-              {payoffBeats.length === 0 ? (
-                <div className="p-6 rounded-xl border border-dashed border-border/80 text-center space-y-2 bg-secondary/20">
-                  <p className="text-xs text-muted-foreground">暂未配置爽点节拍，点击上方按钮添加</p>
+              {/* Payoff Beats Track */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                    <Activity className="w-3.5 h-3.5 text-amber-400" />
+                    <span>分集爽点与戏剧兑现雷达 (Payoff Beats)</span>
+                  </div>
                   <button
                     type="button"
                     onClick={handleAddBeat}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary text-foreground hover:bg-muted border border-border"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5 text-primary" />
-                    <span>快速添加首个爆点节拍</span>
+                    <Plus className="w-3 h-3" />
+                    <span>增加爽点节拍</span>
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {payoffBeats.map((beat, idx) => (
-                    <div
-                      key={beat.id || idx}
-                      className="p-3 rounded-xl bg-card border border-border/70 hover:border-amber-500/40 transition-all shadow-xs space-y-2"
+
+                {payoffBeats.length === 0 ? (
+                  <div className="p-6 rounded-xl border border-dashed border-border/80 text-center space-y-2 bg-secondary/20">
+                    <p className="text-xs text-muted-foreground">暂未配置爽点节拍，点击上方按钮添加</p>
+                    <button
+                      type="button"
+                      onClick={handleAddBeat}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary text-foreground hover:bg-muted border border-border"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                            BEAT {idx + 1}
-                          </span>
-                          <span className="text-xs font-bold text-foreground">第 {beat.episode || 1} 集</span>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-300 font-medium">
-                            {beat.type || "悬念钩"}
-                          </span>
+                      <Plus className="w-3.5 h-3.5 text-primary" />
+                      <span>快速添加首个爆点节拍</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {payoffBeats.map((beat, idx) => (
+                      <div
+                        key={beat.id || idx}
+                        className="p-3 rounded-xl bg-card border border-border/70 hover:border-border transition-all shadow-2xs space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                              {beat.id}
+                            </span>
+                            <span className="text-xs font-medium text-foreground">第 {beat.episode || 1} 集</span>
+                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-secondary text-muted-foreground">
+                              {beat.type}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-[10px] font-mono px-1.5 py-0.2 rounded",
+                                beat.weight === "major"
+                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold"
+                                  : "bg-secondary text-muted-foreground"
+                              )}
+                            >
+                              {beat.weight === "major" ? "重点主线" : "支线推进"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveBeat(idx)}
+                              className="p-1 text-muted-foreground hover:text-red-400 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.2 rounded border border-rose-500/20">
-                            {beat.weight === "major" ? "核心主线" : "支线爆点"}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveBeat(idx)}
-                            className="p-1 text-muted-foreground hover:text-red-400 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-[10px] text-muted-foreground font-mono">因果铺垫 (Setup):</span>
+                            <input
+                              type="text"
+                              value={beat.setup || ""}
+                              onChange={(e) => {
+                                const updated = [...payoffBeats];
+                                updated[idx].setup = e.target.value;
+                                setPayoffBeats(updated);
+                              }}
+                              placeholder="因果铺垫..."
+                              className="w-full text-xs px-2 py-1 rounded bg-secondary/40 border border-border/70 focus:outline-none focus:border-primary mt-0.5"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground font-mono">戏剧兑现 (Payoff):</span>
+                            <input
+                              type="text"
+                              value={beat.payoff || ""}
+                              onChange={(e) => {
+                                const updated = [...payoffBeats];
+                                updated[idx].payoff = e.target.value;
+                                setPayoffBeats(updated);
+                              }}
+                              placeholder="戏剧兑现与爽点..."
+                              className="w-full text-xs px-2 py-1 rounded bg-secondary/40 border border-border/70 focus:outline-none focus:border-primary mt-0.5"
+                            />
+                          </div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-[10px] text-muted-foreground font-mono">因果铺垫 (Setup):</span>
-                          <input
-                            type="text"
-                            value={beat.setup || ""}
-                            onChange={(e) => {
-                              const updated = [...payoffBeats];
-                              updated[idx].setup = e.target.value;
-                              setPayoffBeats(updated);
-                            }}
-                            placeholder="因果铺垫..."
-                            className="w-full text-xs px-2 py-1 rounded bg-secondary/40 border border-border/70 focus:outline-none focus:border-primary mt-0.5"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-muted-foreground font-mono">戏剧兑现 (Payoff):</span>
-                          <input
-                            type="text"
-                            value={beat.payoff || ""}
-                            onChange={(e) => {
-                              const updated = [...payoffBeats];
-                              updated[idx].payoff = e.target.value;
-                              setPayoffBeats(updated);
-                            }}
-                            placeholder="戏剧兑现与爽点..."
-                            className="w-full text-xs px-2 py-1 rounded bg-secondary/40 border border-border/70 focus:outline-none focus:border-primary mt-0.5"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-start gap-2.5 text-xs text-purple-300">
+                <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-purple-400" />
+                <p className="leading-relaxed text-[11px]">
+                  <strong>全剧画风统一基准 (Global Visual Style Bible)：</strong>
+                  此处选定的流派将作为全剧所有分镜头冲印显影时的底层光影与构图基调，点击右上角「保存设定」即可全项目生效。
+                </p>
+              </div>
+
+              {/* Presets Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {STYLE_PRESETS.map((preset) => {
+                  const isSelected = selectedPresetId === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPresetId(preset.id);
+                        setStylePrompt(preset.prompt);
+                      }}
+                      className={cn(
+                        "p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer group",
+                        isSelected
+                          ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary/40"
+                          : "border-border/70 bg-secondary/30 hover:bg-secondary/60 hover:border-border"
+                      )}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+                            {preset.name}
+                          </h4>
+                          {preset.badge && (
+                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-secondary border border-border/80 text-muted-foreground shrink-0">
+                              {preset.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          {preset.desc}
+                        </p>
+                      </div>
+
+                      {isSelected && (
+                        <div className="inline-flex items-center gap-1 text-[11px] text-primary font-bold mt-2 pt-1.5 border-t border-primary/20">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>当前选定画风</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Raw Prompt Inspector */}
+              <div className="space-y-1.5 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Palette className="w-3.5 h-3.5 text-purple-400" />
+                    <span>导演画风底层注入 Prompt (Global Style Suffix):</span>
+                  </label>
+                  <span className="text-[10px] font-mono text-muted-foreground">已自动挂载至全剧管道</span>
+                </div>
+                <textarea
+                  rows={4}
+                  value={stylePrompt}
+                  onChange={(e) => setStylePrompt(e.target.value)}
+                  className="w-full bg-secondary/40 border border-border/80 rounded-xl p-3 text-xs font-mono leading-relaxed focus:outline-none focus:border-primary focus:bg-background text-foreground/90 transition-all"
+                  placeholder="可在此自定义微调画风底词..."
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Visual Bible Studio (Characters, Locations, Props) */}
