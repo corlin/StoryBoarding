@@ -420,6 +420,161 @@ export async function renderStoryboardToBlob(
   });
 }
 
+export async function renderSingleShotAiFrameBlob(
+  shot: ShotModel,
+  index: number,
+  aspectRatio: "16:9" | "9:16" = "16:9"
+): Promise<Blob> {
+  const isVertical = aspectRatio === "9:16";
+  const width = isVertical ? 1080 : 1920;
+  const height = isVertical ? 1920 : 1080;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("无法初始化 Canvas 绘图上下文");
+
+  // 1. Draw base image or cinematic dark slate
+  const imgUrl = shot.storyboard_image_url ? normalizeAssetUrl(shot.storyboard_image_url) : null;
+  const img = imgUrl ? await loadImage(imgUrl) : null;
+
+  if (img) {
+    ctx.drawImage(img, 0, 0, width, height);
+  } else {
+    ctx.fillStyle = "#0c0f17";
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.2)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(width / 2 - 40, height / 2);
+    ctx.lineTo(width / 2 + 40, height / 2);
+    ctx.moveTo(width / 2, height / 2 - 40);
+    ctx.lineTo(width / 2, height / 2 + 40);
+    ctx.stroke();
+  }
+
+  // 2. Optical Safe Margins & Rule of Thirds Grid for Video Model Focal Alignment
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  // Vertical thirds
+  ctx.moveTo(width / 3, 0);
+  ctx.lineTo(width / 3, height);
+  ctx.moveTo((width * 2) / 3, 0);
+  ctx.lineTo((width * 2) / 3, height);
+  // Horizontal thirds
+  ctx.moveTo(0, height / 3);
+  ctx.lineTo(width, height / 3);
+  ctx.moveTo(0, (height * 2) / 3);
+  ctx.lineTo(width, (height * 2) / 3);
+  ctx.stroke();
+
+  // 3. Top Control Slate Bar for Multimodal Video AI (Time, Shot Index, Size, Duration)
+  const pad = 36;
+  const barH = 56;
+  ctx.fillStyle = "rgba(10, 14, 23, 0.88)";
+  ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === "function") {
+    (ctx as any).roundRect(pad, pad, 440, barH, 8);
+  } else {
+    ctx.rect(pad, pad, 440, barH);
+  }
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#38bdf8";
+  ctx.font = "bold 24px monospace";
+  ctx.fillText(`SHOT ${String(index + 1).padStart(2, "0")}`, pad + 18, pad + 37);
+
+  ctx.fillStyle = "#94a3b8";
+  ctx.font = "18px monospace";
+  ctx.fillText("·", pad + 150, pad + 35);
+
+  ctx.fillStyle = "#f8fafc";
+  const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || (shot.shot_size || "MS").toUpperCase().slice(0, 3);
+  ctx.font = "bold 20px monospace";
+  ctx.fillText(sizeAbbr, pad + 175, pad + 36);
+
+  ctx.fillStyle = "#94a3b8";
+  ctx.fillText("·", pad + 250, pad + 35);
+
+  ctx.fillStyle = "#34d399";
+  ctx.font = "bold 20px monospace";
+  ctx.fillText(`${(shot.duration || 2.5).toFixed(1)}s`, pad + 275, pad + 36);
+
+  // 4. Motion Vector Indicator Badge (Top Right)
+  const movType =
+    typeof shot.camera_movement === "object"
+      ? (shot.camera_movement as any)?.type || "static"
+      : shot.camera_movement || "static";
+  const movText = getMovementBadgeText(movType);
+
+  const movW = 320;
+  ctx.fillStyle = "rgba(10, 14, 23, 0.88)";
+  ctx.strokeStyle = "rgba(245, 158, 11, 0.5)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === "function") {
+    (ctx as any).roundRect(width - pad - movW, pad, movW, barH, 8);
+  } else {
+    ctx.rect(width - pad - movW, pad, movW, barH);
+  }
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#fbbf24";
+  ctx.font = "bold 18px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText(`CAMERA: ${movText}`, width - pad - movW / 2, pad + 36);
+  ctx.textAlign = "left";
+
+  // 5. Bottom Action & Prompt Context Strip for Video AI Semantic Grounding
+  const botBarH = 100;
+  const botBarY = height - pad - botBarH;
+  ctx.fillStyle = "rgba(10, 14, 23, 0.9)";
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.3)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === "function") {
+    (ctx as any).roundRect(pad, botBarY, width - pad * 2, botBarH, 10);
+  } else {
+    ctx.rect(pad, botBarY, width - pad * 2, botBarH);
+  }
+  ctx.fill();
+  ctx.stroke();
+
+  // Action text
+  ctx.fillStyle = "#f8fafc";
+  ctx.font = "18px system-ui, -apple-system, sans-serif";
+  const actionText = shot.action ? `[动作指令] ${shot.action}` : "[动作指令] 镜头主体自然电影级动态推进";
+  wrapText(ctx, actionText, pad + 24, botBarY + 36, width - pad * 2 - 48, 26, 1);
+
+  // Dialogue text / Subtitle
+  if (shot.dialogue) {
+    ctx.fillStyle = "#38bdf8";
+    ctx.font = "italic 16px system-ui, -apple-system, sans-serif";
+    wrapText(ctx, `[台词口型对齐] “${shot.dialogue}”`, pad + 24, botBarY + 72, width - pad * 2 - 48, 22, 1);
+  } else {
+    ctx.fillStyle = "#64748b";
+    ctx.font = "15px system-ui, -apple-system, sans-serif";
+    ctx.fillText(`[环境音画] 自然环境声场 · 无台词镜头 · 保持视听连贯`, pad + 24, botBarY + 72);
+  }
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Canvas 导出图片数据为空"));
+        return;
+      }
+      resolve(blob);
+    }, "image/png");
+  });
+}
+
 export async function exportStoryboardSheetToPng(
   project: ProjectModel,
   shots: ShotModel[],

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { ProjectModel, ShotModel } from "@/types/shot";
-import { exportStoryboardSheetToPng, renderStoryboardToBlob } from "@/lib/canvasExporter";
+import { exportStoryboardSheetToPng, renderStoryboardToBlob, renderSingleShotAiFrameBlob } from "@/lib/canvasExporter";
 import { exportCallSheetToCsv, generateCallSheetCsvContent } from "@/lib/callSheetExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { VIDEO_PROMPT_ENGINES, VideoEngineType } from "@/lib/videoPromptEngines";
@@ -124,8 +124,24 @@ export const DeliverStudioView: React.FC<DeliverStudioViewProps> = ({
       const safeTitle = (project.title || "storyboard").replace(/[\\/*?:"<>| \n\t\r,，。！!？"'“”]/g, "_");
       const rootFolder = zip.folder(`${safeTitle}_交付母盘包_${dateStr}`);
 
-      // 1. Storyboard Sheet PNG
-      setZipProgressText("正在压制 1K 标准商业分镜长图...");
+      // 0. AI Video Model Reference Keyframes with HUD Control Slate
+      setZipProgressText(`正在渲染并烧录 ${activeShots.length} 镜 AI 视频对齐关键帧图集...`);
+      const aiFramesFolder = rootFolder?.folder("00_AI视频生成全景参考图集_含机位运镜标识");
+      const isVertical = project.aspect_ratio === "9:16";
+
+      for (let idx = 0; idx < activeShots.length; idx++) {
+        const shot = activeShots[idx];
+        const shotIndexStr = String(idx + 1).padStart(3, "0");
+        try {
+          const frameBlob = await renderSingleShotAiFrameBlob(shot, idx, isVertical ? "9:16" : "16:9");
+          aiFramesFolder?.file(`Shot_${shotIndexStr}_${shot.shot_size || "MS"}_${(shot.duration || 2.5).toFixed(1)}s_AI参考图.png`, frameBlob);
+        } catch (fErr) {
+          console.warn(`Failed to render frame for shot ${idx + 1}:`, fErr);
+        }
+      }
+
+      // 1. Production Storyboard Sheet PNG
+      setZipProgressText("正在渲染全案商业分镜长图...");
       try {
         const pngBlob = await renderStoryboardToBlob(project, activeShots, {
           includeHud: exportWithHud,
@@ -171,6 +187,7 @@ export const DeliverStudioView: React.FC<DeliverStudioViewProps> = ({
 导出时间: ${new Date().toLocaleString()}
 总镜头数: ${activeShots.length} 镜
 包含内容:
+0. 00_AI视频生成全景参考图集_含机位运镜标识/ - 每个镜头的独立超清关键帧图（已烧录九宫格、机位序号、景别、运镜矢量与台词语义），直接喂入 MiniMax / SeaDance / Wan 2.1 等大模型作为首帧与对齐基准
 1. 01_商业分镜打样表.png - 高清景别/运镜/对白排版长图 (Previz Sheet)
 2. 02_剧组制片通告顺场表.csv - 影视制片排期、空间灯光与出场演员统计表
 3. 03_AI视频提示词工程包/ - 适配 MiniMax 海螺 H3、剪映 SeaDance 2.5、Wan 2.1、Runway/可灵 的机位提示词
