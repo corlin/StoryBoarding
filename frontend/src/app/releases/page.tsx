@@ -72,7 +72,7 @@ export default function ReleasesPage() {
             版本更新日志
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            在这里查阅 AI Director Studio 的最新进展与功能演进。我们始终致力于提供通俗易懂的创作体验，让好莱坞级专业导演视听语言触手可及。
+            在这里查阅 AI Director Studio 的最新进展与功能演进。我们始终致力于提供通俗易懂的创作体验，让专业导演视听语言触手可及。
           </p>
         </div>
 
@@ -166,7 +166,7 @@ export default function ReleasesPage() {
             发现新灵感？立即体验最新功能
           </h3>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            好莱坞经典电影、爆款短剧与商业广告模式现已全面就绪，开启您的专业分镜预演之旅。
+            经典电影、爆款短剧与商业广告模式现已全面就绪，开启您的专业分镜预演之旅。
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link
@@ -186,7 +186,7 @@ export default function ReleasesPage() {
           <div className="flex items-center gap-2">
             <Clapperboard className="w-4 h-4 text-primary" />
             <span className="font-semibold text-foreground">AI Director Studio</span>
-            <span>· 好莱坞影视级分镜与 AI 视频预演工作台</span>
+            <span>· 故事板分镜与 AI 视频预演工作台</span>
           </div>
           <div className="flex items-center gap-6">
             <Link href="/" className="hover:text-foreground transition-colors">

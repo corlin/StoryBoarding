@@ -121,7 +121,7 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
             <span
               key={ch.id}
               className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/25 shrink-0"
-              title={`出镜角色: ${ch.name} (${ch.role})\nVisual DNA: ${ch.visual_anchor || ch.visualAnchor || ""}`}
+              title={`出镜角色: ${ch.name} (${ch.role})\n定妆描述: ${ch.visual_anchor || ch.visualAnchor || ""}`}
             >
               <User className="w-3 h-3 text-sky-400" />
               <span>{ch.name}</span>

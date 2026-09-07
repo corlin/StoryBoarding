@@ -294,7 +294,7 @@ export default function DashboardPage() {
     );
 
     if (!hasKey) {
-      notify.info("🔑 请先在「设置」中配置您的专属 OpenRouter API Key，即可开启好莱坞 AI 故事板创作");
+      notify.info("🔑 请先在「设置」中配置您的专属 OpenRouter API Key，即可开启 AI 故事板创作");
       openSettingsModal();
       return;
     }
@@ -416,7 +416,7 @@ export default function DashboardPage() {
                 PRO
               </span>
             </span>
-            <p className="text-[11px] text-muted-foreground hidden sm:block">好莱坞影视级分镜与 AI 视频预演工作台</p>
+            <p className="text-[11px] text-muted-foreground hidden sm:block">故事板分镜与 AI 视频预演工作台</p>
           </div>
         </Link>
 
@@ -694,7 +694,7 @@ export default function DashboardPage() {
                 </span>
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                累计已构建 {totalShotsCount} 个好莱坞预演镜头 · 支持多租户数据隔离与 16:9 打样导出
+                累计已构建 {totalShotsCount} 个预演镜头 · 支持多租户数据隔离与 16:9 打样导出
               </p>
             </div>
 
@@ -816,10 +816,10 @@ export default function DashboardPage() {
                             <Clapperboard className="w-6 h-6" />
                           </div>
                           <span className="text-xs font-medium text-muted-foreground">
-                            好莱坞导演分镜工程
+                            故事板分镜工程
                           </span>
                           <span className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">
-                            16:9 宽银幕电影级
+                            16:9 宽银幕电影画幅
                           </span>
                         </div>
                       )}
@@ -908,7 +908,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <Clapperboard className="w-4 h-4 text-primary" />
             <span className="font-semibold text-foreground">AI Director Studio</span>
-            <span>· 好莱坞影视级分镜与 AI 视频预演工作台</span>
+            <span>· 故事板分镜与 AI 视频预演工作台</span>
           </div>
           <div className="flex items-center gap-6">
             <Link
@@ -965,7 +965,7 @@ export default function DashboardPage() {
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-base">新建好莱坞分镜工程</h3>
+                    <h3 className="font-semibold text-base">新建分镜工程</h3>
                     <p className="text-xs text-muted-foreground">输入灵感梗概，AI 导演将自动完成剧情拆镜与视觉预演</p>
                   </div>
                 </div>

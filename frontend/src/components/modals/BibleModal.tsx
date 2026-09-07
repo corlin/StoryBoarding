@@ -1475,7 +1475,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
               <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-purple-400" />
               <p className="leading-relaxed text-[11px]">
                 <strong>全剧画风统一基准 (Global Visual Style Bible)：</strong>
-                此处选定的流派与控制词将作为全剧所有分镜头的底层光影与质感基调自动注入，并强行阻断气泡框、文字水印、贴纸边框与过度平滑塑胶脸，确保影视级纯净构图。
+                此处选定的流派与控制词将作为全剧所有分镜头的底层光影与质感基调自动注入，并强行阻断气泡框、文字水印、贴纸边框与过度平滑塑胶脸，确保干净纯粹的画面构图。
               </p>
             </div>
 

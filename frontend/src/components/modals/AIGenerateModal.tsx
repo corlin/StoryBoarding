@@ -84,7 +84,7 @@ export const AIGenerateModal: React.FC<AIGenerateModalProps> = ({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-base">AI 导演智能拆镜 (好莱坞工业级规范)</h3>
+              <h3 className="font-semibold text-base">AI 导演智能拆镜 (标准短剧分镜规范)</h3>
               <p className="text-xs text-muted-foreground">基于 6 阶段 30 秒叙事弧，规划 12 镜分镜头并锁定角色场景基准</p>
             </div>
           </div>

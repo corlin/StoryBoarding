@@ -393,7 +393,7 @@ export async function exportStoryboardSheetToPng(
   ctx.fillStyle = "#64748b";
   ctx.font = "11px system-ui, -apple-system, sans-serif";
   ctx.fillText(
-    `StoryBoarding AI · 工业级故事板打样单 (Previz Sheet) · ${count} 镜全套分镜 · 声音与台词对齐版`,
+    `StoryBoarding AI · 标准故事板打样单 (Previz Sheet) · ${count} 镜全套分镜 · 声音与台词对齐版`,
     padding,
     footerY
   );

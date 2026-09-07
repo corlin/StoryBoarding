@@ -361,7 +361,7 @@ export const PitchIdeaGeneratorModal: React.FC<PitchIdeaGeneratorModalProps> = (
                 <div className="grid grid-cols-3 gap-1">
                   {[
                     { id: "restrained", label: "清醒克制", desc: "心理博弈" },
-                    { id: "commercial", label: "好莱坞节奏", desc: "商业黄金" },
+                    { id: "commercial", label: "类型片节奏", desc: "商业黄金" },
                     { id: "extreme", label: "极致反转", desc: "高能爽感" },
                   ].map((c) => (
                     <button

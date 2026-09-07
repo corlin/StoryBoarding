@@ -42,7 +42,7 @@ const PIPELINE_STAGES = [
     icon: Database,
   },
   {
-    title: "2. 好莱坞 AI 导演大模型深度拆镜",
+    title: "2. AI 导演大模型深度拆镜",
     desc: "提炼故事脉络与角色动机，规划视听叙事节拍",
     icon: Film,
   },
@@ -148,7 +148,7 @@ export const DirectorPipelineProgress: React.FC<DirectorPipelineProgressProps> =
                 ? "项目创建受阻"
                 : isComplete
                 ? "🎉 分镜工程初始化就绪"
-                : "好莱坞 AI 导演智能拆镜中"}
+                : "AI 导演智能拆镜中"}
               {!errorMessage && !isComplete && (
                 <span className="inline-block w-2 h-2 rounded-full bg-primary animate-ping" />
               )}
@@ -302,7 +302,7 @@ export const DirectorPipelineProgress: React.FC<DirectorPipelineProgressProps> =
 
       {/* Footer controls */}
       <div className="flex items-center justify-between pt-2 border-t border-border/50 text-xs text-muted-foreground">
-        <span>基于好莱坞 6 阶段戏剧节拍与 Previz 工业规范</span>
+        <span>基于 6 阶段戏剧节拍与 Previz 故事板规范</span>
         {(onCancel || onClose) && !isComplete && (
           <button
             type="button"

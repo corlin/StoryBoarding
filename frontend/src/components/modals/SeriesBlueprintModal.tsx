@@ -311,9 +311,9 @@ export function SeriesBlueprintModal({ isOpen, onClose, onOpenSettings }: Series
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                   <Users className="w-4 h-4 text-sky-400" />
-                  <span>全局角色资产库与视觉 DNA 锚点 (Character Roster & Visual DNA)</span>
+                  <span>全局角色资产库与外貌特征基准 (Character Roster & Visual Anchor)</span>
                   <span className="text-[10px] text-muted-foreground font-normal">
-                    (全剧所有分镜将强制锁定以下英文视觉特征)
+                    (全剧所有分镜将锁定以下外貌特征描述)
                   </span>
                 </div>
 
@@ -342,7 +342,7 @@ export function SeriesBlueprintModal({ isOpen, onClose, onOpenSettings }: Series
                       <p className="text-[11px] text-muted-foreground leading-relaxed">{char.personality}</p>
                       <div className="pt-1">
                         <label className="text-[10px] font-mono text-sky-400/90 block mb-0.5">
-                          Visual DNA Anchor (纯英文生图提示词基准):
+                          外貌特征基准 (纯英文生图提示词):
                         </label>
                         <p className="text-[10px] font-mono text-foreground/80 bg-muted/40 p-2 rounded border border-border/50 leading-normal">
                           {char.visual_anchor}

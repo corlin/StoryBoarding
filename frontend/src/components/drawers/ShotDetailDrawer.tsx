@@ -703,7 +703,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
-                          <span>🎭 本镜出场角色 (Cast Binding · 视觉DNA锚定):</span>
+                          <span>🎭 本镜出场角色 (Cast Binding · 角色定妆锚定):</span>
                         </label>
                         <span className="text-[10px] text-muted-foreground">出场人物面容与服装自动锁定</span>
                       </div>
@@ -939,20 +939,20 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
               <span>分层视听检查器 (Layered Visual Inspector)</span>
             </div>
               <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                5维工业级解构
+                5 维分镜解构
               </span>
             </div>
 
             {/* 5 Layered Visual Modules */}
             <div className="space-y-3 bg-muted/20 p-3.5 rounded-xl border border-border/60">
-              {/* Module 1: Hero & DNA */}
+              {/* Module 1: Hero & Appearance */}
               <div className="flex items-start gap-2.5">
                 <div className="p-1 rounded bg-amber-500/10 text-amber-400 text-xs font-mono shrink-0 mt-0.5">
-                  🧬 基因
+                  👤 人物
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-foreground">主角实体与视觉基因 (Hero DNA)</span>
+                    <span className="text-xs font-medium text-foreground">主角实体与定妆特征 (Hero Identity)</span>
                     <span className="text-[10px] text-muted-foreground">全片连续性基石</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5 font-mono">

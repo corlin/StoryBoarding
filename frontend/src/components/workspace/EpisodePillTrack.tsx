@@ -212,7 +212,7 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
             <button
               onClick={onOpenCharacterHub}
               className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-secondary hover:bg-muted border border-border text-muted-foreground hover:text-foreground text-xs font-medium rounded-lg transition"
-              title="查看与微调全剧全局角色库及视觉基因锚点 (Visual DNA)"
+              title="查看与微调全剧全局角色库及定妆特征描述"
             >
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="hidden sm:inline">全剧角色库</span>
@@ -235,7 +235,7 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
                 </div>
                 <div>
                   <h3 className="font-semibold text-base">追加短剧新集数 (EP {nextEpNum})</h3>
-                  <p className="text-xs text-muted-foreground">自动继承全剧全局角色 Visual DNA，极速拆解新集镜头</p>
+                  <p className="text-xs text-muted-foreground">自动继承全剧全局角色定妆描述，极速拆解新集镜头</p>
                 </div>
               </div>
               <button
@@ -382,10 +382,10 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
             <form onSubmit={handleExpandToSeries} className="space-y-4">
               <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-300 space-y-1">
                 <p className="font-semibold flex items-center gap-1.5">
-                  <span>✨ 自动继承首集基因</span>
+                  <span>✨ 自动继承首集设定</span>
                 </p>
                 <p className="text-[11px] leading-relaxed text-purple-300/80">
-                  当前工程原有的 12 镜台本、角色 Visual DNA 与场景空间将作为不可变基准。AI 导演将紧抓第 1 集结尾悬念，顺延创作连载大纲与各集卡点。
+                  当前工程原有的 12 镜台本、角色定妆描述与场景空间将作为不可变基准。AI 导演将紧抓第 1 集结尾悬念，顺延创作连载大纲与各集卡点。
                 </p>
               </div>
 

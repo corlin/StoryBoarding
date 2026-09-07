@@ -20,16 +20,16 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
     version: "v2.1.0",
-    title: "Director Studio 商业短剧工业级标准导演台 & 全链路安全闭环",
+    title: "Director Studio 商业短剧标准导演台 & 全链路安全闭环",
     date: "2026-09-06",
     badge: "重磅里程碑",
     isLatest: true,
     summary:
-      "全面对齐 Director Studio 短剧工业基准，实现从原著小说抽核、四象限结构取舍与爽点雷达、剧组视觉设定集、文学分镜双向拆解、顺场排期到好莱坞全屏预演的全链路体验闭环，并对公共演示与安全红线实施全方位前置防护。",
+      "全面对齐 Director Studio 短剧制作基准，实现从原著小说抽核、四象限结构取舍与爽点雷达、剧组视觉设定集、文学分镜双向拆解、顺场排期到全屏动态预演的全链路体验闭环，并对公共演示与安全红线实施全方位前置防护。",
     changeGroups: [
       {
         type: "highlight",
-        label: "🎬 Director Studio 影视工业级创作流",
+        label: "🎬 Director Studio 专业短剧创作流",
         items: [
           {
             title: "STAGE 01 · 改编取舍与爽点雷达工作室",
@@ -39,7 +39,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
           {
             title: "Cinema Theater 全屏放映影院系统",
             description:
-              "沉浸式暗场播放，支持 Ken Burns 运镜动态视差、字幕打字机（C键）、连播模式（B键）、好莱坞级分段胶囊进度条与全套导演快捷键体系。",
+              "沉浸式暗场播放，支持 Ken Burns 运镜动态视差、字幕打字机（C键）、连播模式（B键）、分镜头播放进度条与全套导演快捷键体系。",
           },
           {
             title: "顺场表 (Call Sheet) 智能排期与 H3 连贯提示词",
@@ -128,7 +128,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
           {
             title: "叙事风格选择器更直观",
             description:
-              "在看板创建工程和工作台顶部均可随时切换好莱坞经典电影、5分钟短剧与商业广告模式，操作顺畅丝滑。",
+              "在看板创建工程和工作台顶部均可随时切换经典电影、5分钟短剧与商业广告模式，操作顺畅丝滑。",
           },
           {
             title: "分镜卡片新增因果与节奏便签",
@@ -248,24 +248,24 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     title: "AI Director Studio 官方首发",
     date: "2026-09-01",
     summary:
-      "首款好莱坞电影级双向协同 AI 导演工作台正式上线，让每个人都能轻松把故事变成电影级视觉画卷。",
+      "双向协同 AI 导演工作台正式上线，让每个人都能轻松把故事变成高质量视觉分镜画卷。",
     changeGroups: [
       {
         type: "highlight",
         label: "✨ 核心能力首发",
         items: [
           {
-            title: "智能拆解好莱坞视听分镜",
+            title: "智能拆解专业视听分镜",
             description:
               "输入故事梗概，瞬间生成包含景别（特写/全景）、运镜（推拉摇移）、机位视角、情绪电压与音效配乐的专业分镜单。",
           },
           {
             title: "2.39:1 / 16:9 影视画幅动态画卷",
             description:
-              "支持电影级宽高比画幅，自动保持角色外观与环境基石的视觉连续性，拒绝跳戏与面部崩坏。",
+              "支持主流宽高比画幅，自动保持角色外观与环境基石的视觉连续性，拒绝跳戏与面部崩坏。",
           },
           {
-            title: "高清工业级分镜表单导出",
+            title: "高清分镜表单导出",
             description:
               "支持一键导出包含台词、机位图、画面提示词的完整分镜表单（PNG 长图、Markdown 剧本与高清原图打包）。",
           },

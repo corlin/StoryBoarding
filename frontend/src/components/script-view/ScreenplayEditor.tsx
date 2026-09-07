@@ -184,7 +184,7 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground hidden sm:block">
-              好莱坞文学母本格式 · 自由编辑对白与动作描写
+              标准剧本格式 · 自由编辑对白与动作描写
             </p>
           </div>
         </div>

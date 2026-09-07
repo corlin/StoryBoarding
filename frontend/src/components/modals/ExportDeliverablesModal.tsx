@@ -224,7 +224,7 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-bold text-foreground group-hover:text-amber-300 transition-colors">
-                    📦 工业级全套交付总包 (Package ZIP)
+                    📦 全套制片交付总包 (Package ZIP)
                   </h4>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
                     一键打包
@@ -375,7 +375,7 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
                       </div>
                       <div className="min-w-0">
                         <h5 className="text-xs font-semibold text-foreground truncate">设定集 (Bible MD)</h5>
-                        <p className="text-[10px] text-muted-foreground truncate">角色DNA档案与场景空间定妆</p>
+                        <p className="text-[10px] text-muted-foreground truncate">角色定妆档案与场景空间基准</p>
                       </div>
                     </div>
                     <Download className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground shrink-0 ml-2" />

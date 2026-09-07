@@ -112,7 +112,7 @@ export const DirectorMissionBar: React.FC<DirectorMissionBarProps> = ({
     missionContent = (
       <div className="flex items-center gap-2">
         <span className="text-emerald-400 font-bold">🎉 全剧显影就绪</span>
-        <span>所有镜头画面均已生成完毕！可立即开启好莱坞动态预演或导出投产文件</span>
+        <span>所有镜头画面均已生成完毕！可立即开启全屏动态预演或导出投产文件</span>
         <button
           onClick={onOpenTheater}
           className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 text-[11px] font-semibold transition-colors ml-1 cursor-pointer"

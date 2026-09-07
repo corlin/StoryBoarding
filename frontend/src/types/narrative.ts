@@ -12,7 +12,7 @@ export const NARRATIVE_MODES: Array<{
   label: string;
   desc: string;
 }> = [
-  { id: "hollywood", label: "好莱坞大片", desc: "经典六阶段与宽银幕" },
+  { id: "hollywood", label: "经典电影叙事", desc: "六阶段经典结构与宽银幕" },
   { id: "drama_5min", label: "5分钟爆款短剧", desc: "30s黄金钩子 & 四幕因果" },
   { id: "commercial", label: "商业广告快剪", desc: "高燃视觉与紧凑动势" },
 ];

@@ -210,7 +210,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                   )}
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Director Studio 工业级人设档案 · 六维画像 · 双轨弧光 · 关系网 · 声音DNA
+                  全套角色档案 · 六维画像 · 双轨弧光 · 关系网 · 音色特征
                 </p>
               </div>
             </div>
@@ -387,7 +387,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                             prompt = `Single character model sheet on ONE 16:9 landscape canvas divided into three zones by thin hairline rules. Hand-painted anime cel illustration in the manner of classic Studio Ghibli feature animation: clean confident ink linework, simple flat cel shading, warm naturalistic palette. LEFT ZONE (~34% width): bust portrait front-facing, centred ID framing: ${desc}. Clean flat skin tone with single soft shadow shape and warm blush, clear expressive eyes with round highlight. RIGHT-TOP ZONE: three FULL-BODY views of SAME character standing side by side (front, side, back) on shared ground line, identical height and proportions. LIGHTING: even gentle daylight across whole sheet with single soft shadow tone. RIGHT-BOTTOM ZONE: 4-5 small isolated close-up studies of key props (${tags}). Pure white background (#FFFFFF). Clean lineart, masterpiece --no photorealistic, 3d render, hyperrealistic skin texture, visible pores, subsurface scattering, harsh contrast`;
                           }
                           setProfile({ ...profile, sheet_prompt: prompt });
-                          notify.success(`✨ 已生成 16:9 ${style === "realistic" ? "半写实厚涂" : "吉卜力"} 工业级三区定妆提示词！`);
+                          notify.success(`✨ 已生成 16:9 ${style === "realistic" ? "半写实厚涂" : "吉卜力"} 标准三区定妆提示词！`);
                         }}
                         className="inline-flex items-center gap-1 text-[10px] font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 rounded px-2 py-0.5 transition-colors cursor-pointer"
                       >
@@ -663,7 +663,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                   <Volume2 className="w-4 h-4 shrink-0 mt-0.5" />
                   <div className="space-y-1 text-[11px] leading-relaxed">
                     <p className="font-semibold text-pink-200">
-                      Director Studio 工业级双轨声线引擎架构（影视工业规范）：
+                      双轨配音与声线引擎架构：
                     </p>
                     <p>
                       <strong>1. 克隆系引擎 (CosyVoice / IndexTTS2 / F5-TTS)</strong>：吃 <span className="text-amber-300 font-medium">参考音频提示 (Reference Hint)</span> 与情绪通道。

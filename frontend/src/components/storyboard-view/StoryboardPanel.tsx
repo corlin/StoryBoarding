@@ -385,7 +385,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
             <div className="space-y-1 max-w-md">
               <h3 className="text-sm font-semibold text-foreground">故事板画布暂无分镜</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                输入一段剧情梗概，让好莱坞 AI 导演为您自动规划 12 镜起承转合分镜；或在左侧打字机中撰写剧本。
+                输入一段剧情梗概，让 AI 导演为您自动规划 12 镜起承转合分镜；或在左侧打字机中撰写剧本。
               </p>
             </div>
             <div className="flex items-center gap-3 pt-1">

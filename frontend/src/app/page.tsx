@@ -201,7 +201,7 @@ export default function HomePage() {
     }
 
     if (!hasCustomKey) {
-      notify.info("🔑 请先在「设置」中配置您的专属 OpenRouter API Key，即可开启好莱坞 AI 故事板创作");
+      notify.info("🔑 请先在「设置」中配置您的专属 OpenRouter API Key，即可开启 AI 故事板创作");
       openSettingsModal();
       return;
     }
@@ -281,7 +281,7 @@ export default function HomePage() {
             官方上线
           </span>
           <span className="text-foreground/90 font-medium">
-            🎬 好莱坞 AI 导演 2.0 正式就绪：一键剧本智能拆镜，直通 16:9 宽银幕预演画卷
+            🎬 AI 导演 2.0 正式就绪：一键剧本智能拆镜，直通 16:9 宽银幕预演画卷
           </span>
           <Link
             href="/dashboard"
@@ -322,7 +322,7 @@ export default function HomePage() {
               className="text-muted-foreground hover:text-foreground transition-colors hidden sm:flex items-center gap-1.5"
             >
               <Sparkles className="w-3.5 h-3.5 text-primary" />
-              <span>4 大工业起步模板</span>
+              <span>4 大经典起步模板</span>
             </Link>
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
@@ -381,7 +381,7 @@ export default function HomePage() {
             灵感从这里开始！
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto">
-            描述你想创作的电影故事或输入文本剧本，好莱坞 AI 导演即刻为你生成全套分镜画卷与视听台本
+            描述你想创作的电影故事或输入文本剧本，AI 导演即刻为你生成全套分镜画卷与视听台本
           </p>
         </div>
 
@@ -629,7 +629,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <Clapperboard className="w-4 h-4 text-primary" />
             <span className="font-semibold text-foreground">AI Director Studio</span>
-            <span>· 好莱坞影视级分镜与 AI 视频预演工作台</span>
+            <span>· 故事板分镜与 AI 视频预演工作台</span>
           </div>
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="hover:text-foreground transition-colors">

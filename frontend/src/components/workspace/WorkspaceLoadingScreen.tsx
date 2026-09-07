@@ -14,11 +14,11 @@ const LOADING_PHASES = [
   "正在装载电影剧本节拍与场次结构...",
   "正在解析 16:9 / 9:16 视听分镜画卷...",
   "正在同步人物档案与全局视觉设定集 (Bible)...",
-  "好莱坞电影预演画板即刻呈现...",
+  "动态分镜预演画板即刻呈现...",
 ];
 
 export const WorkspaceLoadingScreen: React.FC<WorkspaceLoadingScreenProps> = ({
-  message = "好莱坞 AI 导演工作台",
+  message = "AI 导演工作台",
   subMessage,
   onRetry,
 }) => {

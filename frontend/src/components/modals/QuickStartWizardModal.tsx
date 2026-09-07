@@ -50,10 +50,10 @@ const STYLE_PRESETS: StylePreset[] = [
   },
   {
     id: "hollywood_noir",
-    name: "好莱坞悬疑胶片",
+    name: "经典悬疑胶片",
     tagline: "低调冷光 · 35mm 胶片颗粒 · 戏剧张力",
     gradient: "from-cyan-700/30 via-gray-900/50 to-black",
-    promptSuffix: "Hollywood suspense neo-noir film style, chiaroscuro lighting, dramatic shadows, 35mm film grain, anamorphic lens flare",
+    promptSuffix: "Classic suspense neo-noir film style, chiaroscuro lighting, dramatic shadows, 35mm film grain, anamorphic lens flare",
     negativePrompt: "flat lighting, bright cheerful colors, cartoonish, low contrast",
   },
   {
@@ -194,7 +194,7 @@ export const QuickStartWizardModal: React.FC<QuickStartWizardModalProps> = ({
                   零门槛 · 一键成片
                 </span>
               </h3>
-              <p className="text-xs text-muted-foreground">无需懂影视专业黑话，3 步自动产出工业级商业短剧分镜</p>
+              <p className="text-xs text-muted-foreground">无需懂复杂影视术语，3 步快速生成商业短剧故事板分镜</p>
             </div>
           </div>
 
@@ -349,7 +349,7 @@ export const QuickStartWizardModal: React.FC<QuickStartWizardModalProps> = ({
                   <span>选择短剧视觉画风（像选滤镜一样轻松，底层自动锁定主角面部特征）</span>
                 </label>
                 <p className="text-xs text-muted-foreground">
-                  系统会自动在出片时注入好莱坞 16:9 黄金三区定妆规范，杜绝各镜头间角色脸部漂移。
+                  系统会自动在出片时注入 16:9 标准三区定妆规范，杜绝各镜头间角色脸部漂移。
                 </p>
               </div>
 

@@ -112,10 +112,10 @@ export const AuthModal: React.FC = () => {
             <Film className="w-6 h-6" />
           </div>
           <h2 className="text-lg font-bold text-foreground">
-            {isLogin ? "登录导演工作台" : "加入好莱坞 AI 故事板"}
+            {isLogin ? "登录导演工作台" : "加入 AI 故事板导演台"}
           </h2>
           <p className="text-xs text-muted-foreground">
-            {isLogin ? "登录以同步您的云端故事板项目与多端设置" : "创建专属导演账号，开启工业级 AI 视听创作"}
+            {isLogin ? "登录以同步您的云端故事板项目与多端设置" : "创建专属导演账号，开启专业 AI 分镜与视听创作"}
           </p>
         </div>
 

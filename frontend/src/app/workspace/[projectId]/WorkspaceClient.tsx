@@ -694,7 +694,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   if (isProjectLoading || !currentProject) {
     return (
       <WorkspaceLoadingScreen
-        message={projectError ? "工程加载失败" : "好莱坞 AI 导演工作台"}
+        message={projectError ? "工程加载失败" : "AI 导演工作台"}
         subMessage={projectError || undefined}
         onRetry={() => fetchProject(effectiveProjectId)}
       />

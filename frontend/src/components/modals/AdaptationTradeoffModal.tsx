@@ -328,7 +328,7 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
   };
 
   /**
-   * 生成工业级剧本围读会审 Markdown 通告
+   * 生成剧本围读会审 Markdown 通告
    */
   const generateMarkdownSummary = (): string => {
     const projectName = project?.title || "短剧影视项目";
@@ -336,7 +336,7 @@ export const AdaptationTradeoffModal: React.FC<AdaptationTradeoffModalProps> = (
 
     let md = `# 🎬 《${projectName}》剧作大纲取舍与爽点雷达会审通告\n\n`;
     md += `> **生成时间**：${dateStr}  \n`;
-    md += `> **工业基准**：Director Studio 电影级短剧标准 · Gate 2 爽点节拍门控  \n`;
+    md += `> **制作基准**：Director Studio 短剧标准 · Gate 2 爽点节拍门控  \n`;
     md += `> **剧集体量**：${scaleDesc}（全剧共 ${totalEpisodes} 集）\n\n`;
 
     md += `## 🎯 一、全剧戏剧核心与商业钩子 (Dramatic Core)\n\n`;
