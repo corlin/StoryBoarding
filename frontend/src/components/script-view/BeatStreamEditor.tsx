@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   SequenceModel,
   ProjectModel,
@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 interface BeatStreamEditorProps {
   project: ProjectModel | null;
   sequence: SequenceModel | null;
+  selectedShotId?: string | null;
   onRefreshProject?: () => Promise<void>;
   onSwitchToStoryboard?: () => void;
 }
@@ -163,6 +164,7 @@ export function parseBeatsFromScreenplay(text: string, fallbackSceneTitle: strin
 export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
   project,
   sequence,
+  selectedShotId,
   onRefreshProject,
   onSwitchToStoryboard,
 }) => {
@@ -175,6 +177,25 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
   const [isSyncingToShots, setIsSyncingToShots] = useState(false);
   const [isCopiedScript, setIsCopiedScript] = useState(false);
   const [editingBeatId, setEditingBeatId] = useState<string | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Find index of shot in current sequence to align with beat index
+  const selectedShotIndex = useMemo(() => {
+    if (!selectedShotId || !sequence?.shots) return -1;
+    return sequence.shots.findIndex((s) => s.id === selectedShotId);
+  }, [selectedShotId, sequence?.shots]);
+
+  // Auto-scroll to matching beat when selectedShotId changes
+  useEffect(() => {
+    if (selectedShotIndex < 0) return;
+    const targetElement = document.getElementById(`beat-item-${selectedShotIndex}`);
+    if (targetElement) {
+      targetElement.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }
+  }, [selectedShotIndex]);
 
   // Convert current atomic beats into clean screenplay format with shot blocks for 100% stable parsing
   const convertBeatsToScreenplayText = (seq: SequenceModel, beatList: BeatModel[]): string => {
@@ -605,7 +626,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
       </div>
 
       {/* 3. Scene-by-Scene Atomic Beat Flow (Industry Standard Container) */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
         {sceneGroups.map(([sceneNum, sceneBeats]) => {
           const firstBeat = sceneBeats[0];
           const sceneTitle = firstBeat?.scene_title || `第 ${sceneNum} 场场景`;
@@ -670,21 +691,31 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
                 {sceneBeats.map((beat, idx) => {
                   const isAction = beat.type === "action";
                   const isEditing = editingBeatId === beat.id;
+                  const globalBeatIndex = beats.findIndex((b) => b.id === beat.id);
+                  const isBeatSelected = selectedShotIndex >= 0 && globalBeatIndex === selectedShotIndex;
 
                   return (
                     <div
                       key={beat.id}
+                      id={`beat-item-${globalBeatIndex}`}
                       onDoubleClick={() => setEditingBeatId(beat.id)}
                       className={cn(
                         "group relative flex items-start gap-3 p-2.5 rounded-xl border transition-all text-xs",
-                        isAction
+                        isBeatSelected
+                          ? "border-primary ring-2 ring-primary/40 bg-primary/10 shadow-md"
+                          : isAction
                           ? "bg-amber-500/[0.03] border-border/60 hover:border-amber-500/40"
                           : "bg-blue-500/[0.03] border-border/60 hover:border-blue-500/40"
                       )}
                     >
                       {/* Beat Index */}
                       <div className="flex flex-col items-center shrink-0 pt-0.5">
-                        <span className="w-5 text-center font-mono text-[11px] text-muted-foreground/60">
+                        <span className={cn(
+                          "w-5 text-center font-mono text-[11px] font-bold rounded",
+                          isBeatSelected
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground/60"
+                        )}>
                           {idx + 1}
                         </span>
                       </div>

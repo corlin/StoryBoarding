@@ -118,6 +118,7 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
           <BeatStreamEditor
             project={project || null}
             sequence={sequence || null}
+            selectedShotId={selectedShotId}
             onRefreshProject={onRefreshProject}
           />
         </div>
