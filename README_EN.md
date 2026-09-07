@@ -2,25 +2,25 @@
 
 English | [简体中文](./README.md)
 
-> **Executable Script · Industrial Storyboard Pipeline · Industry Standards · 0ms Edge Cold Start**  
+> **Executable Script · Agile Storyboard Pipeline · Production Standards · 0ms Edge Cold Start**  
 > 
-> An all-in-one industrial-grade studio for film directors, micro-drama screenwriters, and AI creators. Covers the entire production lifecycle: from literary core distillation, four-quadrant adaptation matrix, payoff beat radar, unified visual bible, and dual-pane synchronization to call sheet clustering, cinema previz theater, and production deliverables packaging.  
+> An all-in-one production studio for film directors, micro-drama screenwriters, and AI creators. Covers the entire production lifecycle: from literary core distillation, four-quadrant adaptation matrix, payoff beat radar, unified visual bible, and dual-pane synchronization to call sheet clustering, cinema previz theater, and production deliverables packaging.  
 > **Powered by Cloudflare Serverless Edge Stack (Next.js + Hono + D1 + R2 + Pages).**
 
 ---
 
 ## 🏗️ System Architecture & Production Workflow Map
  
-The system is built on the philosophy of **"Script as Code (Executable Script)"**, establishing **3 Production Phases · 7 Industry Stages · AI Director Co-pilot** across commercial micro-drama lifecycles. Users can press <kbd>M</kbd> or click "🗺️ Feature Map" in the TopBar at any time to open the interactive command map:
+The system is built on the philosophy of **"Script as Code (Executable Script)"**, establishing **3 Production Phases · 7 Production Stages · AI Director Co-pilot** across commercial micro-drama lifecycles. Users can press <kbd>M</kbd> or click "🗺️ Feature Map" in the TopBar at any time to open the interactive command map:
  
 ![StoryBoarding Global Production Architecture Map](./docs/assets/architecture.png)
  
 > 💡 **High-Resolution Vector Asset**: Downloadable directly in the workspace, or view [docs/assets/system_architecture_map.svg](./docs/assets/system_architecture_map.svg).
 >
-> - **Phase 1 · Pre-Production & Visual Bible**: `STAGE 01 Adaptation Tradeoffs & Payoff Radar` ➔ `STAGE 02 Unified Visual Bible (Character DNA & Spatial Anchors)`;
+> - **Phase 1 · Pre-Production & Visual Bible**: `STAGE 01 Adaptation Tradeoffs & Payoff Radar` ➔ `STAGE 02 Unified Visual Bible (Character Anchors & Visual Reference)`;
 > - **Phase 2 · Production & Scheduling**: `STAGE 03 Dual-Pane Self-Healing Studio` ➔ `STAGE 04 Storyboard Canvas & Camera HUD` ➔ `STAGE 05 Call Sheet Production & H3 Prompts`;
-> - **Phase 3 · Post-Production & Delivery**: `STAGE 06 Cinema Theater Previz (Full-Screen Darkroom)` ➔ `STAGE 07 5-Tier Industrial Production Deliverables Package`;
-> - **Cross-Cutting · 🧠 AI Director Co-pilot**: Conflict distillation, face-locking Visual DNA, dirty-state incremental healing, and multi-modal video prompts compiler.
+> - **Phase 3 · Post-Production & Delivery**: `STAGE 06 Cinema Theater Previz (Full-Screen Darkroom)` ➔ `STAGE 07 5 Core Production Deliverables Package`;
+> - **Cross-Cutting · 🧠 AI Director Co-pilot**: Conflict distillation, face-consistency visual anchors, dirty-state incremental healing, and multi-modal video prompts compiler.
 
 ---
 

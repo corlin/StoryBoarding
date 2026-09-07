@@ -110,7 +110,7 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
     if (!text) return;
     navigator.clipboard.writeText(text);
     setHasCopiedDna(true);
-    notify.success("📋 Visual DNA 提示词已复制至剪贴板！");
+    notify.success("📋 角色外貌特征提示词已复制至剪贴板！");
     setTimeout(() => setHasCopiedDna(false), 2000);
   };
 
@@ -157,7 +157,7 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
                       )}
                     >
                       {selectedAsset.asset_type === "character"
-                        ? "角色 DNA 档案"
+                        ? "角色定妆档案"
                         : selectedAsset.asset_type === "location"
                         ? "场景空间锚点"
                         : "核心道具档案"}
@@ -174,7 +174,7 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {selectedAsset
-                  ? "查看该资产的定妆基准、Visual DNA 提示词、声学特征与跨工程复用配置"
+                  ? "查看该资产的定妆基准、外貌特征提示词、配音音色与跨工程复用配置"
                   : "独立于单一项目保存。沉淀您的主角班底、经典场景与传世道具，随时一键跨项目导入复用。"}
               </p>
             </div>
@@ -281,7 +281,7 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                      <span>Visual DNA 核心视觉基准提示词</span>
+                      <span>角色外貌特征提示词</span>
                     </label>
                     <button
                       type="button"
@@ -314,7 +314,7 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
                 <div className="rounded-xl bg-secondary/30 border border-border/70 p-3.5 space-y-3">
                   <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
                     <Tag className="w-3.5 h-3.5 text-amber-400" />
-                    <span>工业级视听设定档案 (Specifications)</span>
+                    <span>人物与场景设定档案 (Specifications)</span>
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -380,7 +380,7 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
                     <div className="p-2.5 rounded-lg bg-card/60 border border-border/60 space-y-1">
                       <div className="flex items-center gap-1.5 text-sky-400 font-semibold text-xs">
                         <Mic className="w-3.5 h-3.5" />
-                        <span>角色声学特征与英文 TTS 提示词</span>
+                        <span>角色音色与英文配音提示词</span>
                       </div>
                       <p className="text-[11px] text-zinc-300 font-mono leading-relaxed bg-zinc-950/60 p-2 rounded border border-border/40">
                         {selectedAsset.metadata.voice_dna}

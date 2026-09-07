@@ -116,15 +116,15 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
       title: "剧组前期视觉设定集 (Visual Bible)",
       phaseId: 1,
       phaseName: "阶段一 · 前期筹备与视听基准",
-      badge: "单一真实源 & 视觉DNA",
+      badge: "全剧统一设定 & 人物外貌基准",
       badgeColor: "border-sky-500/30 text-sky-400 bg-sky-500/10",
-      summary: "作为全剧 Single Source of Truth，沉淀角色、场景与道具的视觉 DNA 提示词基准，解决跨镜头跨集漂移与换脸痛点。",
+      summary: "作为全剧统一定妆与设定基准，沉淀角色外貌特征提示词、场景与道具基准，解决跨镜头跨集漂移与换脸痛点。",
       inputDesc: "全剧主要登场角色 / 核心地理场景 / 关键手持与家具道具",
       aiCapabilities: [
-        "角色定妆档案 (16:9 特写/全身/动态姿势三区定妆图 + 纯英文 Visual DNA)",
+        "角色定妆档案 (16:9 特写/全身/动态姿势三区定妆图 + 角色外貌特征提示词)",
         "场景空间锚点 (固化建筑透视灭点，日景/夜戏光影变体，3-5处实物锚点)",
         "道具特写规范 (手持级、桌面级、家具级三级尺度与开/合/破损状态)",
-        "4套好莱坞导演画风矩阵切换 (王家卫、古典国风、赛博暗黑、现代商业)",
+        "4套经典短剧视听风格预设切换 (王家卫、古典国风、赛博暗黑、现代商业)",
       ],
       outputDesc: "剧组视听设定集 Bible · 跨镜头绘图自动注入的视觉基准模型",
       actionText: "打开剧组视觉设定集 (Bible)",
@@ -144,36 +144,35 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
       summary: "左侧文学剧本流与右侧分镜头毫秒级增量联动。单句超 35 字符自动亮黄防说教，改动原位脏状态自愈，保留已确认镜头。",
       inputDesc: "结构化文学台词与动作节拍",
       aiCapabilities: [
-        "双栏响应式联动 (左文学流 ➔ 右分镜状态树毫秒级增量同步)",
-        "短剧呼吸感监控 (台词超过 35 字符自动黄色高亮警告，杜绝长篇说教)",
-        "一节拍智能拆镜 (将单节拍智能一分为二，切分为景别互补的双镜头组合)",
-        "增量脏状态检测 (仅标记改动关联镜头待重绘，支持原位原图快速重冲印)",
+        "文学剧本毫秒级解析 AST，自动提取角色、场景时段与景别",
+        "单句台词超 35 字符智能标黄预警，倒逼短剧短促台词与快节奏",
+        "右侧单镜增量改动，保留已生图镜头状态，绝不大面积推倒重来",
+        "一键剧本智能拆镜 (按动作节拍与对话停顿精准切分)",
       ],
-      outputDesc: "可执行分镜状态树 (Executable State Tree) · 毫秒级双向自愈",
-      actionText: "进入双栏自愈工作台",
+      outputDesc: "双向联动分镜头台本树 · 原位局部脏状态重绘机制",
+      actionText: "前往分镜创作工作台",
       actionHandler: () => {
         onClose();
-        if (onSelectViewMode) onSelectViewMode("grid");
       },
     },
     {
       id: 4,
       stageCode: "STAGE 04",
-      title: "故事板画板与机位 HUD 工坊",
+      title: "网格化镜头画板与 HUD 参数控制台",
       phaseId: 2,
       phaseName: "阶段二 · 中期创作与制片排期",
-      badge: "多画幅适配 & 运镜HUD",
+      badge: "视觉网格 & 镜头锁",
       badgeColor: "border-amber-500/30 text-amber-400 bg-amber-500/10",
-      summary: "专业故事板网格工坊，支持 4:3、16:9 与 9:16 短剧画幅自由切换，搭载景别运镜 HUD 参数与单镜锁定保护。",
-      inputDesc: "分镜头画面序列与机位属性",
+      summary: "卡片网格直观掌控全片视觉节拍。支持 9:16 / 16:9 画幅自由切换，单镜防误触锁定与精准运镜参数调控。",
+      inputDesc: "AI 拆解完成的各镜头草稿与视觉提示词",
       aiCapabilities: [
-        "多模态比例切换 (9:16 竖屏短剧 / 16:9 电影横屏 / 4:3 经典比例)",
-        "镜头 HUD 参数矩阵 (特写/中景/全景景别、推/拉/摇/移/升降运镜参数)",
-        "单镜锁定防护 (Lock Guard，支持单镜锁定保护或一键全选锁定/解锁)",
-        "抽屉式深度调镜工坊 (微调台词、色温氛围、视线对齐与重新冲印)",
+        "直观画板缩放与多选拖拽排版",
+        "单镜头锁定 (Lock Shot) 机制，保护确认图稿防止误刷与重跑",
+        "HUD 视听参数一览 (景别、角度、运镜、光影与情绪标签)",
+        "快捷一键换画幅 (9:16 短视频竖屏 / 16:9 影视横屏毫秒级响应)",
       ],
-      outputDesc: "视觉化故事板九宫格画板 · 精细化机位控制参数",
-      actionText: "浏览故事板网格画板",
+      outputDesc: "高完成度连续分镜图画板 · 景别运镜视听标签集",
+      actionText: "前往网格故事板",
       actionHandler: () => {
         onClose();
         if (onSelectViewMode) onSelectViewMode("grid");
@@ -182,16 +181,16 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
     {
       id: 5,
       stageCode: "STAGE 05",
-      title: "顺场表制片管理 (Call Sheet)",
+      title: "顺场表拍摄排期与连贯视频指令",
       phaseId: 2,
       phaseName: "阶段二 · 中期创作与制片排期",
-      badge: "智能排期 & 视频编译器",
+      badge: "智能排期 & 批量导出",
       badgeColor: "border-emerald-500/30 text-emerald-400 bg-emerald-500/10",
-      summary: "按「空间地点 + 光影氛围」聚类归并生产批次（B1, B2...），统计每批时长与镜数，一键导出 CSV 与 Hailuo H3 连贯视频指令。",
-      inputDesc: "分镜空间地点、日夜戏与光影标注",
+      summary: "自动按拍摄场景空间与日夜光影归并顺场镜头，一键导出拍摄排期表，并生成视频模型连贯提示词。",
+      inputDesc: "已定稿的故事板分镜头序列与空间场景标注",
       aiCapabilities: [
-        "地点光影智能聚类 (将同一场景日景/夜戏分镜自动聚类为连拍生产批次)",
-        "MiniMax Hailuo H3 多模态视频提示词一键生成并复制",
+        "多镜头场景聚类算法 (按相同场景与光影合并，剧组拍摄零转场浪费)",
+        "海螺 MiniMax / Hailuo-01 镜头连贯性提示词批量编译",
         "可灵 Kling / Runway 运镜连贯性指令编译",
         "标准剧组制片排期表 (CSV / Excel) 秒级格式化导出",
       ],
@@ -205,9 +204,9 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
     {
       id: 6,
       stageCode: "STAGE 06",
-      title: "好莱坞级放映影院 (Cinema Theater)",
+      title: "全屏动态放映厅 (Cinema Theater)",
       phaseId: 3,
-      phaseName: "阶段三 · 预演审片与工业交付",
+      phaseName: "阶段三 · 预演审片与制片交付",
       badge: "纯黑场预演 & 声画同步",
       badgeColor: "border-rose-500/30 text-rose-400 bg-rose-500/10",
       summary: "全屏纯净黑场动态预演，搭载 Ken Burns 运镜动态视差与台词打字机字幕对齐，以 0 拍摄成本验证全片节奏。",
@@ -215,11 +214,11 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
       aiCapabilities: [
         "Ken Burns 运镜动态视差渲染 (模拟真实摄影机缓慢推拉摇移视差)",
         "多模态台词打字机字幕与画面毫秒级精确同步",
-        "好莱坞级分段胶囊进度条 (Segmented Scrubber 直观指引镜号与单镜流速)",
+        "分镜头播放进度条 (Segmented Scrubber 直观指引镜号与单镜流速)",
         "导演键盘快捷键操盘 (Space播放、左右方向键快速切镜、C打字机开关、B连播)",
       ],
-      outputDesc: "沉浸式黑场动态动态样片试映 · 退出时精准反选高亮工作台对应镜头",
-      actionText: "启动好莱坞放映厅试映",
+      outputDesc: "沉浸式黑场动态样片试映 · 退出时精准反选高亮工作台对应镜头",
+      actionText: "启动放映厅试映",
       actionHandler: () => {
         onClose();
         if (onOpenTheater) onOpenTheater();
@@ -228,21 +227,21 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
     {
       id: 7,
       stageCode: "STAGE 07",
-      title: "工业级制片交付物分卷打包",
+      title: "全套制片文件打包导出",
       phaseId: 3,
-      phaseName: "阶段三 · 预演审片与工业交付",
+      phaseName: "阶段三 · 预演审片与制片交付",
       badge: "5大交付物 & 全量归档",
       badgeColor: "border-purple-500/30 text-purple-400 bg-purple-500/10",
       summary: "提供 16:9 PNG 打样单、Markdown 分卷台本、Midjourney 总控词、可灵 Kling 视频清单与全工程资产 ZIP 压缩包。",
       inputDesc: "全工程所有集数、分镜高清图纸与制片元数据",
       aiCapabilities: [
         "16:9 故事板工作草图打样单 (PNG Draft 客户端 Canvas 秒级离线合成)",
-        "导演多集分卷分镜头工业台本 (Markdown 格式，含集尾卡点与片长汇总)",
+        "导演多集分卷分镜头台本 (Markdown 格式，含集尾卡点与片长汇总)",
         "Midjourney / DALL-E 3 导演全局总控提示词 (Global Prompt)",
         "可灵 Kling / Runway Gen-3 视频生成清单 (AI Video Manifest)",
         "制片工程全量资产打包 (ZIP Archive 按集数子目录归档全部分辨率素材)",
       ],
-      outputDesc: "标准化 5 大工业级交付物 · 直接提交出品人与线下实拍剧组",
+      outputDesc: "全套 5 项制片交付文件 · 直接提交出品人与线下实拍剧组",
       actionText: "打开交付物导出中心",
       actionHandler: () => {
         onClose();
@@ -385,15 +384,15 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[10px] font-mono font-bold tracking-wider text-sky-400">STAGE 02</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">
-                      单一真实源
+                      统一定妆基准
                     </span>
                   </div>
                   <h4 className="text-sm font-semibold text-white">剧组前期视觉设定集 (Visual Bible)</h4>
                   <p className="text-xs text-zinc-400 mt-1 line-clamp-2">
-                    16:9 角色 DNA 锁脸、场景空间光影锚点、道具尺度与4大导演风格矩阵。
+                    16:9 角色定妆防换脸、场景空间光影锚点、道具尺度与4大经典视听风格预设。
                   </p>
                   <div className="mt-2.5 flex items-center justify-between text-[11px] text-zinc-500">
-                    <span>产出：Character DNA · 空间锚点</span>
+                    <span>产出：角色外貌提示词 · 空间锚点</span>
                     <span className="text-sky-400 flex items-center gap-0.5">
                       详情 <ArrowRight className="w-3 h-3" />
                     </span>
@@ -436,7 +435,7 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
                     双栏毫秒级协同、35字呼吸感防说教警告、一键拆镜与脏状态原位重绘。
                   </p>
                   <div className="mt-2.5 flex items-center justify-between text-[11px] text-zinc-500">
-                    <span>产出：分镜状态树 · 增量修复</span>
+                    <span>产出：分镜台本树 · 增量修复</span>
                     <span className="text-indigo-400 flex items-center gap-0.5">
                       详情 <ArrowRight className="w-3 h-3" />
                     </span>
@@ -499,7 +498,7 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
                   <span className="flex items-center justify-center w-5 h-5 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40">
                     P3
                   </span>
-                  <span className="text-sm font-bold text-rose-400">阶段三 · 预演审片与工业交付</span>
+                  <span className="text-sm font-bold text-rose-400">阶段三 · 预演审片与制片交付</span>
                 </div>
                 <span className="text-[10px] text-rose-500/80 uppercase font-mono tracking-wider">Delivery</span>
               </div>
@@ -521,9 +520,9 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
                       动态试映
                     </span>
                   </div>
-                  <h4 className="text-sm font-semibold text-white">好莱坞级放映影院 (Cinema Theater)</h4>
+                  <h4 className="text-sm font-semibold text-white">全屏动态放映厅 (Cinema Theater)</h4>
                   <p className="text-xs text-zinc-400 mt-1 line-clamp-2">
-                    纯黑场大屏预演、Ken Burns 动效、打字机台词字幕与好莱坞胶囊进度条。
+                    纯黑场大屏预演、Ken Burns 动效、打字机台词字幕与分镜头播放进度条。
                   </p>
                   <div className="mt-2.5 flex items-center justify-between text-[11px] text-zinc-500">
                     <span>产出：全屏预演 · 0成本声画对齐</span>
@@ -549,12 +548,12 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
                       全量交付
                     </span>
                   </div>
-                  <h4 className="text-sm font-semibold text-white">工业级制片交付物分卷打包</h4>
+                  <h4 className="text-sm font-semibold text-white">全套制片文件打包导出</h4>
                   <p className="text-xs text-zinc-400 mt-1 line-clamp-2">
                     16:9 PNG 打样单、Markdown 分卷台本、Midjourney 提示词、可灵清单与 ZIP 归档。
                   </p>
                   <div className="mt-2.5 flex items-center justify-between text-[11px] text-zinc-500">
-                    <span>产出：5大工业交付物 · ZIP 打包</span>
+                    <span>产出：5大制片交付物 · ZIP 打包</span>
                     <span className="text-purple-400 flex items-center gap-0.5">
                       详情 <ArrowRight className="w-3 h-3" />
                     </span>
@@ -654,9 +653,9 @@ export const SystemArchitectureMapModal: React.FC<SystemArchitectureMapModalProp
               </div>
 
               <div className="p-2.5 rounded-lg bg-zinc-950/40 border border-zinc-800/60">
-                <div className="font-semibold text-sky-400 mb-1">02. 视觉 DNA 与空间锁脸</div>
+                <div className="font-semibold text-sky-400 mb-1">02. 角色定妆与空间防串脸</div>
                 <div className="text-zinc-400 text-[11px]">
-                  16:9 角色 DNA，场景空间光影锚点，4套导演画风，杜绝跨镜头跳戏。
+                  16:9 角色定妆提示词，场景空间光影锚点，4套视听风格预设，杜绝跨镜头跳戏。
                 </div>
               </div>
 

@@ -88,21 +88,21 @@
     <text x="110" y="19" fill="#fbbf24" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="1.5">🎬 AI DIRECTOR &amp; NARRATIVE OS</text>
 
     <rect x="235" y="0" width="180" height="28" rx="6" fill="#10b981" fill-opacity="0.12" stroke="#10b981" stroke-width="1" stroke-opacity="0.4" />
-    <text x="325" y="19" fill="#34d399" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="1">7大工业制片工序闭环</text>
+    <text x="325" y="19" fill="#34d399" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="1">7大制片工序全闭环</text>
 
     <rect x="430" y="0" width="200" height="28" rx="6" fill="#6366f1" fill-opacity="0.12" stroke="#6366f1" stroke-width="1" stroke-opacity="0.4" />
     <text x="530" y="19" fill="#a5b4fc" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="1">双向自愈 · 剧本即代码</text>
 
     <!-- Main Title -->
     <text x="0" y="78" fill="#ffffff" font-size="38" font-weight="800" letter-spacing="1">全局功能引导地图 · 商业短剧全流程制片架构</text>
-    <text x="0" y="112" fill="#94a3b8" font-size="16" font-weight="400" letter-spacing="0.5">从文学抽核、爽点雷达、剧组视觉设定集到双栏分镜协同、顺场表排期、影院试映与5大资产分卷交付</text>
+    <text x="0" y="112" fill="#94a3b8" font-size="16" font-weight="400" letter-spacing="0.5">从文学抽核、爽点雷达、剧组视觉设定集到双栏分镜协同、顺场表排期、放映预演与5大文件分卷交付</text>
 
     <!-- Right Side Status Chips -->
     <g transform="translate(1780, 10)">
       <rect x="0" y="0" width="460" height="85" rx="10" fill="#131724" stroke="#252e44" stroke-width="1.5" />
       <circle cx="28" cy="28" r="6" fill="#10b981" filter="url(#glowCyan)" />
-      <text x="44" y="32" fill="#e2e8f0" font-size="13" font-weight="700">工业短剧工业体系标准</text>
-      <text x="44" y="52" fill="#94a3b8" font-size="12">Single Source of Truth 设定集 · 杜绝跨镜换脸</text>
+      <text x="44" y="32" fill="#e2e8f0" font-size="13" font-weight="700">短剧制作与排期规范</text>
+      <text x="44" y="52" fill="#94a3b8" font-size="12">全剧统一定妆设定基准 · 杜绝跨镜换脸</text>
       <text x="44" y="70" fill="#64748b" font-size="11">Gate 2 爽点真空间隔强制 ≤ 3集 · 35字呼吸感预警</text>
     </g>
   </g>
@@ -176,16 +176,16 @@
       <g transform="translate(20, 50)">
         <rect x="0" y="0" width="582" height="42" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
         <text x="14" y="25" fill="#94a3b8" font-size="12" font-weight="600">🔒 核心原则：</text>
-        <text x="96" y="25" fill="#38bdf8" font-size="12" font-weight="600">单一真实数据源 (Single Source of Truth) · 杜绝换脸与跳戏</text>
+        <text x="96" y="25" fill="#38bdf8" font-size="12" font-weight="600">全剧统一定妆与设定基准 · 杜绝换脸与跳戏</text>
 
         <!-- 3 Pillars -->
         <g transform="translate(0, 56)">
           <rect x="0" y="0" width="186" height="116" rx="8" fill="#111624" stroke="#1d2538" stroke-width="1" />
-          <text x="12" y="24" fill="#38bdf8" font-size="12" font-weight="700">👤 角色定妆 DNA</text>
+          <text x="12" y="24" fill="#38bdf8" font-size="12" font-weight="700">👤 角色定妆基准</text>
           <text x="12" y="46" fill="#94a3b8" font-size="11">16:9 三区定妆标准图</text>
           <text x="12" y="66" fill="#64748b" font-size="10">特写 / 全身 / 动态姿势</text>
-          <text x="12" y="86" fill="#64748b" font-size="10">纯英文 Visual DNA 基准</text>
-          <text x="12" y="104" fill="#a5b4fc" font-size="10">声音共鸣与 TTS 提示词</text>
+          <text x="12" y="86" fill="#64748b" font-size="10">角色外貌特征纯英文描述</text>
+          <text x="12" y="104" fill="#a5b4fc" font-size="10">角色音色与配音语速基准</text>
         </g>
 
         <g transform="translate(198, 56)">
@@ -202,15 +202,15 @@
           <text x="12" y="24" fill="#fbbf24" font-size="12" font-weight="700">🗡️ 道具与风格</text>
           <text x="12" y="46" fill="#94a3b8" font-size="11">手持/桌面/家具三级尺度</text>
           <text x="12" y="66" fill="#64748b" font-size="10">道具开/合/破损状态变体</text>
-          <text x="12" y="86" fill="#64748b" font-size="10">4套导演视觉风格预设</text>
+          <text x="12" y="86" fill="#64748b" font-size="10">4套短剧视听风格预设</text>
           <text x="12" y="104" fill="#a5b4fc" font-size="10">王家卫/国风/暗黑赛博</text>
         </g>
 
         <!-- Output -->
         <rect x="0" y="185" width="582" height="52" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
         <text x="14" y="24" fill="#0ea5e9" font-size="12" font-weight="600">📤 阶段产出：</text>
-        <text x="96" y="24" fill="#e2e8f0" font-size="12" font-weight="600">剧组视听设定集 Bible (跨镜头绘图参考与一致性锁定源)</text>
-        <text x="96" y="42" fill="#64748b" font-size="11">所有分镜出图自动引用 Character DNA，杜绝换脸与环境漂移</text>
+        <text x="96" y="24" fill="#e2e8f0" font-size="12" font-weight="600">剧组视听设定集 Bible (跨镜头绘图参考与一致性基准)</text>
+        <text x="96" y="42" fill="#64748b" font-size="11">所有分镜出图自动引用人物定妆外貌描述，杜绝换脸与环境漂移</text>
       </g>
     </g>
   </g>
@@ -348,7 +348,7 @@
     <!-- Phase Header -->
     <rect x="20" y="14" width="26" height="26" rx="6" fill="#f43f5e" fill-opacity="0.2" />
     <text x="33" y="32" fill="#fb7185" font-size="14" font-weight="800" text-anchor="middle">P3</text>
-    <text x="56" y="33" fill="#fb7185" font-size="18" font-weight="800" letter-spacing="1">阶段三 · 预演审片与工业交付</text>
+    <text x="56" y="33" fill="#fb7185" font-size="18" font-weight="800" letter-spacing="1">阶段三 · 预演审片与制片交付</text>
     <text x="360" y="33" fill="#fca5a5" font-size="13" font-weight="500">POST-PRODUCTION &amp; ASSETS</text>
 
     <!-- Stage 06 Card -->
@@ -357,7 +357,7 @@
       <path d="M 0 0 L 120 0 L 105 32 L 0 32 Z" fill="#f43f5e" fill-opacity="0.18" />
       <text x="16" y="21" fill="#fb7185" font-size="12" font-weight="800" letter-spacing="1">STAGE 06</text>
       
-      <text x="135" y="22" fill="#f8fafc" font-size="17" font-weight="700">好莱坞级放映影院 (Cinema Theater)</text>
+      <text x="135" y="22" fill="#f8fafc" font-size="17" font-weight="700">全屏动态放映厅 (Cinema Theater)</text>
       <rect x="515" y="10" width="88" height="22" rx="4" fill="#f43f5e" fill-opacity="0.15" />
       <text x="559" y="25" fill="#fb7185" font-size="11" font-weight="700" text-anchor="middle">动态试映</text>
 
@@ -372,7 +372,7 @@
           <text x="14" y="24" fill="#fb7185" font-size="13" font-weight="700">🎥 Ken Burns 运镜动态渲染</text>
           <text x="14" y="48" fill="#94a3b8" font-size="11">• 模拟真实摄影机缓慢推拉摇移</text>
           <text x="14" y="68" fill="#94a3b8" font-size="11">• 台词打字机字幕毫米级声画同步</text>
-          <text x="14" y="88" fill="#94a3b8" font-size="11">• 好莱坞胶囊分段进度条 (Scrubber)</text>
+          <text x="14" y="88" fill="#94a3b8" font-size="11">• 分镜头播放进度条 (Scrubber)</text>
         </g>
 
         <g transform="translate(295, 56)">
@@ -397,13 +397,13 @@
       <path d="M 0 0 L 120 0 L 105 32 L 0 32 Z" fill="#8b5cf6" fill-opacity="0.18" />
       <text x="16" y="21" fill="#c084fc" font-size="12" font-weight="800" letter-spacing="1">STAGE 07</text>
       
-      <text x="135" y="22" fill="#f8fafc" font-size="17" font-weight="700">工业级制片交付物分卷打包</text>
+      <text x="135" y="22" fill="#f8fafc" font-size="17" font-weight="700">全套制片文件打包导出</text>
       <rect x="515" y="10" width="88" height="22" rx="4" fill="#8b5cf6" fill-opacity="0.15" />
       <text x="559" y="25" fill="#c084fc" font-size="11" font-weight="700" text-anchor="middle">全套交付</text>
 
       <g transform="translate(20, 50)">
         <rect x="0" y="0" width="577" height="40" rx="6" fill="#131929" stroke="#1e273e" stroke-width="1" />
-        <text x="14" y="25" fill="#c084fc" font-size="12" font-weight="700">📦 标准化 5 大工业级交付物 (Deliverables)</text>
+        <text x="14" y="25" fill="#c084fc" font-size="12" font-weight="700">📦 全套 5 项制片交付文件 (Deliverables)</text>
 
         <!-- 5 Deliverables list -->
         <g transform="translate(0, 50)">
@@ -412,12 +412,12 @@
           <text x="320" y="22" fill="#94a3b8" font-size="11">Canvas 秒级离线极速渲染合成</text>
 
           <rect x="0" y="38" width="577" height="34" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
-          <text x="14" y="22" fill="#34d399" font-size="12" font-weight="600">2. 📝 导演多集分卷工业分镜台本 (Markdown)</text>
+          <text x="14" y="22" fill="#34d399" font-size="12" font-weight="600">2. 📝 导演多集分卷分镜头台本 (Markdown)</text>
           <text x="320" y="22" fill="#94a3b8" font-size="11">## 🎬 EPISODE 分卷排版与集尾卡点</text>
 
           <rect x="0" y="76" width="577" height="34" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
           <text x="14" y="22" fill="#fbbf24" font-size="12" font-weight="600">3. 🎯 Midjourney / DALL-E 3 导演全局提示词</text>
-          <text x="320" y="22" fill="#94a3b8" font-size="11">视觉 DNA 强化控制指令集</text>
+          <text x="320" y="22" fill="#94a3b8" font-size="11">视觉基准强化控制指令集</text>
 
           <rect x="0" y="114" width="577" height="34" rx="6" fill="#111624" stroke="#1d2538" stroke-width="1" />
           <text x="14" y="22" fill="#f43f5e" font-size="12" font-weight="600">4. 🤖 可灵 Kling / Runway Gen-3 视频 Manifest</text>
@@ -464,12 +464,12 @@
         <rect x="0" y="0" width="530" height="180" rx="10" fill="#101422" stroke="#1e273c" stroke-width="1" />
         <rect x="16" y="16" width="32" height="32" rx="8" fill="#0ea5e9" fill-opacity="0.15" />
         <text x="32" y="38" fill="#38bdf8" font-size="16" font-weight="800" text-anchor="middle">02</text>
-        <text x="58" y="38" fill="#f8fafc" font-size="15" font-weight="700">视觉 DNA 与空间光影锁定</text>
-        <text x="16" y="74" fill="#94a3b8" font-size="12">沉淀全剧角色统一 Visual DNA 提示词，建立 Single Source of Truth；</text>
+        <text x="58" y="38" fill="#f8fafc" font-size="15" font-weight="700">角色定妆与空间光影锁定</text>
+        <text x="16" y="74" fill="#94a3b8" font-size="12">沉淀全剧角色统一定妆提示词，建立全剧统一视觉基准；</text>
         <text x="16" y="96" fill="#94a3b8" font-size="12">跨镜头绘图自动注入定妆参考与空间坐标，消除换脸与场景漂移；</text>
-        <text x="16" y="118" fill="#94a3b8" font-size="12">支持王家卫、古典国风、暗黑赛博等4大导演视觉风格矩阵切换。</text>
+        <text x="16" y="118" fill="#94a3b8" font-size="12">支持王家卫、古典国风、暗黑赛博等4套短剧视听风格预设切换。</text>
         <rect x="16" y="138" width="160" height="24" rx="4" fill="#0ea5e9" fill-opacity="0.12" />
-        <text x="96" y="154" fill="#38bdf8" font-size="11" font-weight="600" text-anchor="middle">Character DNA 锁脸</text>
+        <text x="96" y="154" fill="#38bdf8" font-size="11" font-weight="600" text-anchor="middle">角色定妆防串脸</text>
       </g>
 
       <!-- Core 3 -->

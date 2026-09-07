@@ -2,25 +2,25 @@
 
 [English](./README_EN.md) | 简体中文
 
-> **剧本即代码 (Executable Script) · 工业级分镜编排 · 工业短剧规范体系 · 0ms 边缘冷启动**  
+> **剧本即代码 (Executable Script) · 敏捷分镜编排 · 短剧制片规范体系 · 0ms 边缘冷启动**  
 > 
-> 面向影视导演、短剧编剧与 AI 创作者的一站式工业级工作站，提供从「原著文学抽核、四象限结构取舍、爽点节拍雷达、剧组视听设定集、文学分镜双向联动」到「顺场表排期、沉浸式影院预演与全套制片资产交付」的全链路能力。  
+> 面向影视导演、短剧编剧与 AI 创作者的一站式制片工作台，提供从「原著文学抽核、四象限结构取舍、爽点节拍雷达、剧组视听设定集、文学分镜双向联动」到「顺场表排期、沉浸式全屏预演与全套制片资产交付」的全链路能力。  
 > **基于 Cloudflare 全栈 Serverless 边缘架构构建 (Next.js + Hono + D1 + R2 + Pages)。**
 
 ---
 
 ## 🏗️ 系统全景架构与工作流程导图 (System Architecture & Production Workflow)
 
-系统采用**“剧本即代码 (Executable Script)”**的工程设计思想，面向商业短剧建立**三大制片阶段 (Phases) · 7 大工业工序 (Stages) · 全链路 AI 导演协同中枢**。用户可在工作台随时按下键盘快捷键 <kbd>M</kbd> 或点击顶栏「🗺️ 功能全景」呼出交互式总控导图：
+系统采用**“剧本即代码 (Executable Script)”**的工程设计思想，面向商业短剧建立**三大制片阶段 (Phases) · 7 大制片工序 (Stages) · 全链路 AI 导演协同中枢**。用户可在工作台随时按下键盘快捷键 <kbd>M</kbd> 或点击顶栏「🗺️ 功能全景」呼出交互式总控导图：
 
 ![StoryBoarding Global Production Architecture Map](./docs/assets/architecture.png)
 
 > 💡 **高清矢量资产**：支持在工作台直接一键下载，或查阅 [docs/assets/system_architecture_map.svg](./docs/assets/system_architecture_map.svg)。
 >
-> - **阶段一 · 前期筹备与视听基准 (Pre-Production)**：`STAGE 01 大纲改编与爽点雷达` ➔ `STAGE 02 剧组视觉设定集 (Character DNA & Visual Bible)`；
+> - **阶段一 · 前期筹备与视听基准 (Pre-Production)**：`STAGE 01 大纲改编与爽点雷达` ➔ `STAGE 02 剧组视觉设定集 (角色统一定妆 & 视听基准)`；
 > - **阶段二 · 中期创作与制片排期 (Production & Scheduling)**：`STAGE 03 文学/分镜双向自愈工作台` ➔ `STAGE 04 故事板网格与镜头HUD` ➔ `STAGE 05 顺场表制片管理 (Call Sheet & H3 提示词)`；
-> - **阶段三 · 预演审片与工业交付 (Post-Production & Delivery)**：`STAGE 06 好莱坞级放映影院 (Cinema Theater Previz)` ➔ `STAGE 07 工业级制片交付物分卷打包 (5大交付物)`；
-> - **全程贯穿 · 🧠 AI 导演协同中枢**：剧本商业矛盾抽核、跨镜角色视觉一致性锁脸、双向脏状态自愈、多模态连贯视频指令编译。
+> - **阶段三 · 预演审片与制片交付 (Post-Production & Delivery)**：`STAGE 06 全屏动态放映厅 (Cinema Theater Previz)` ➔ `STAGE 07 全套制片文件打包导出 (5大交付物)`；
+> - **全程贯穿 · 🧠 AI 导演协同中枢**：剧本商业矛盾抽核、跨镜角色定妆一致性防换脸、双向脏状态自愈、多模态连贯视频指令编译。
 
 ---
 
@@ -41,10 +41,10 @@
 ---
 
 ### 2. 🎭 STAGE 02 · 剧组前期视觉设定集 (Unified Visual Bible)
-- **单一真实数据源 (Single Source of Truth)**：彻底消除角色库与设定集割裂的冗余；
-- **角色定妆档案 (Character DNA)**：
+- **全剧统一定妆与设定基准**：彻底消除角色库与设定集割裂的冗余；
+- **角色定妆档案 (Character Anchor)**：
   - 生成 16:9 三区定妆图（特写 / 全身 / 动态姿势）；
-  - 沉淀纯英文 Visual DNA 提示词基准，解决多镜头跨集“换脸”漂移；
+  - 沉淀纯英文外貌特征提示词基准，解决多镜头跨集“换脸”漂移；
   - 角色声学参数（音色、共鸣、语速与英文 TTS Acoustic Prompt）；
 - **场景空间锚点 (Environment Anchors)**：
   - 固化全剧关键地理空间的建筑材质、自然光/顶光/夜戏光影变体，定义 3-5 处实物对齐锚点；
@@ -73,10 +73,10 @@
 
 ---
 
-### 5. 🎬 STAGE 06 · 好莱坞级放映影院 (Cinema Theater)
+### 5. 🎬 STAGE 06 · 全屏动态放映厅 (Cinema Theater)
 - **纯净黑场动态预演**：全屏自适应比例播放，搭载 Ken Burns 运镜动态视差；
 - **多模态对白呈现**：台词打字机字幕与画面精准同步；
-- **好莱坞级分段胶囊进度条 (Segmented Scrubber)**：直观指示当前镜号与单镜流逝进度；
+- **分镜头播放进度条 (Segmented Scrubber)**：直观指示当前镜号与单镜流逝进度；
 - **全套导演键盘快捷键**：
   - `Space`：播放 / 暂停试映
   - `←` / `→`：快速切镜跳转
@@ -86,7 +86,7 @@
 
 ---
 
-### 6. 🛡️ 工业级安全与多租户权限隔离
+### 6. 🛡️ 安全合规与多租户权限隔离
 - **公共体验账号零资源泄露红线**：
   - 在 AI 智能拆镜、3步向导、剧组设定集、脚本导入、爆点重构等耗费模型资源的入口处全面接入 `checkAuthAndKey` 前置拦截；
   - 拦截时弹出友好注册引导，**绝不关闭弹窗、绝不丢失用户当前已输入的故事内容**；
@@ -95,10 +95,10 @@
 
 ---
 
-### 7. 📦 STAGE 07 · 工业级制片交付物分卷导出
-- **标准化 5 大工业级交付物**：
+### 7. 📦 STAGE 07 · 全套制片文件打包导出
+- **全套 5 项制片交付文件**：
   1. 🖼️ **16:9 故事板工作草图打样单 (PNG Draft)**（客户端 Canvas 秒级离线合成）；
-  2. 📝 **导演多集分卷分镜头工业台本 (Markdown)**（按 `## 🎬 EPISODE 01` 分卷排版，附带集尾卡点与片长汇总）；
+  2. 📝 **导演多集分卷分镜头台本 (Markdown)**（按 `## 🎬 EPISODE 01` 分卷排版，附带集尾卡点与片长汇总）；
   3. 🎯 **Midjourney / DALL-E 3 导演全局总控提示词 (Global Prompt)**；
   4. 🤖 **可灵 Kling / Runway Gen-3 视频生成清单 (AI Video Manifest)**；
   5. 📦 **制片工程全量资产打包 (ZIP Archive)**（按集数子文件夹规范归档高清图）。

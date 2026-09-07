@@ -306,7 +306,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                     ? "text-amber-400 hover:bg-amber-500/10"
                     : "text-red-400 hover:bg-red-500/10"
                 )}
-                title="点击打开 AI 影视工程体检雷达（大纲、角色DNA、单句≤35字诊断）"
+                title="点击打开工程体检雷达（剧本大纲、角色定妆、单句≤35字诊断）"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>{radarScore}分</span>
@@ -389,7 +389,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-xs"
                 : "bg-secondary text-foreground hover:bg-muted border-border"
             )}
-            title="全屏进入好莱坞电影预演影院"
+            title="全屏进入动态放映预览厅"
           >
             <Film className="w-3.5 h-3.5 text-emerald-400" />
             <span>放映监看</span>
@@ -885,8 +885,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                   <Keyboard className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-foreground">影视剪辑台键盘快捷键指南</h3>
-                  <p className="text-[11px] text-muted-foreground">好莱坞 NLE 标准剪辑手感</p>
+                  <h3 className="font-bold text-sm text-foreground">分镜与剪辑台键盘快捷键指南</h3>
+                  <p className="text-[11px] text-muted-foreground">专业非编剪辑快捷操作体验</p>
                 </div>
               </div>
               <button

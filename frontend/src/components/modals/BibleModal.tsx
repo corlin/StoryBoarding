@@ -43,7 +43,7 @@ interface BibleModalProps {
 const TURNAROUND_PRESETS = [
   {
     id: "studio_16x9_realistic",
-    name: "🏆 16:9 黄金三区定妆卡 · 半写实厚涂 (工业级短剧基准 · 推荐)",
+    name: "🏆 16:9 黄金三区定妆卡 · 半写实厚涂 (标准短剧基准 · 推荐)",
     desc: "左区34%半身像面部基准 + 右上全身正/侧/背三视图平光量体 + 右下4-5个细节条，纯白底",
     template:
       "Single character model sheet on ONE 16:9 landscape canvas. The canvas is divided into three zones by thin hairline rules. LEFT ZONE — about 34% width: one bust portrait, head and shoulders, front-facing, centred, like an ID photograph, BOTH SHOULDERS FULLY VISIBLE, ending in a clean straight cut. LIGHTING IN LEFT ZONE ONLY: soft directional key light from upper left with gentle falloff, subtle ambient occlusion under chin and neck. RIGHT-TOP ZONE — remaining 66%: three FULL-BODY views of SAME character standing side by side (front view, side profile, back view) on shared ground line. PROPORTIONS ARE CRITICAL: identical height, ratio, relaxed posture. LIGHTING IN RIGHT ZONES: flat even orthographic lighting with no directional key and no cast shadows. RIGHT-BOTTOM ZONE: detail strip of 4-5 small isolated close-up studies of key costume/props/accessories, detail studies give way, not the figures. Pure white background (#FFFFFF). Semi-realistic character illustration, painterly rendering, soft blended edges, anatomically grounded, 8k uhd --no plastic waxy skin, over-smoothed doll face, perfectly symmetrical face",
@@ -57,7 +57,7 @@ const TURNAROUND_PRESETS = [
   },
   {
     id: "turnaround_3view",
-    name: "工业三视图 (Front/Side/Back)",
+    name: "标准三视图 (Front/Side/Back)",
     desc: "全身三视图，正视、侧视、后背，对齐标准建模与多角度生图",
     template:
       "character sheet, full body turnaround, front view, side profile view, back view, neutral A-pose, clean neutral studio lighting, plain white background, cinematic realistic character design, precise facial alignment, 8k uhd",
@@ -121,7 +121,7 @@ export const VOICE_DNA_PRESETS = [
 const STYLE_PRESETS = [
   {
     id: "graphite_previz",
-    name: "🏆 1. 经典好莱坞石墨素描 (Graphite Previz · 推荐)",
+    name: "🏆 1. 经典石墨分镜铅笔素描 (Graphite Previz · 推荐)",
     badge: "导演预演基准",
     desc: "纯黑白与克制灰阶、粗犷石墨铅笔速写线、自信结构笔触与运动指示箭头",
     prompt:
@@ -618,7 +618,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
             <div className="p-3 bg-sky-500/10 border border-sky-500/20 rounded-xl flex items-start gap-2.5 text-xs text-sky-300">
               <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
               <p className="leading-relaxed text-[11px]">
-                <strong>双轨一致性引擎：</strong>此处登记的角色将在拆镜与生图时，自动注入英文 Visual DNA 文本与多角度定妆图（Model Sheet），并按空间隔离（Spatial Scoping）排布，防止男女同框串脸串色。
+                <strong>双轨一致性引擎：</strong>此处登记的角色将在拆镜与生图时，自动注入英文角色外貌特征提示词与多角度定妆图（Model Sheet），并按空间隔离（Spatial Scoping）排布，防止男女同框串脸串色。
               </p>
             </div>
 
@@ -748,7 +748,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                     {/* Visual DNA Text */}
                     <div>
                       <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                        视觉特征基因 (Visual DNA Anchor - 英文面容、发型、服装):
+                        角色外貌特征提示词 (外貌、发型、服装等纯英文描述):
                       </label>
                       <textarea
                         rows={2}
@@ -800,7 +800,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
                           <Mic className="w-3 h-3 text-pink-400" />
-                          <span>角色音色特征 (Voice DNA / TTS Prompt):</span>
+                          <span>角色音色与英文配音提示词 (TTS Prompt):</span>
                         </label>
                         <select
                           onChange={(e) => {
@@ -1401,7 +1401,7 @@ export const BibleModal: React.FC<BibleModalProps> = ({
 
                     <div>
                       <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                        道具纯白底特写视觉基因 (Visual DNA · 强制注入尺度短语与无手指令):
+                        道具纯白底特写提示词基准 (强制注入尺度短语与无手指令):
                       </label>
                       <textarea
                         rows={2}

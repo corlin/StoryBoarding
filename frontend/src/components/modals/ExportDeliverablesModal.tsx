@@ -136,7 +136,7 @@ export const ExportDeliverablesModal: React.FC<ExportDeliverablesModalProps> = (
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base text-foreground">导演工业级交付物全套导出</h3>
+                <h3 className="font-bold text-base text-foreground">导演全套制片交付文件导出</h3>
                 <span className={cn(
                   "px-2 py-0.5 rounded text-[10px] font-semibold border",
                   isVertical ? "bg-amber-500/20 text-amber-300 border-amber-500/40" : "bg-sky-500/20 text-sky-300 border-sky-500/40"
