@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ShotModel, CharacterModel } from "@/types/shot";
-import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock, CheckCircle, Compass, Palette, CloudUpload, User, Key, Plus } from "lucide-react";
+import { Film, RefreshCw, Camera, Loader2, Info, Maximize2, Sparkles, Lock, Unlock, CheckCircle, Compass, Palette, CloudUpload, User, Key, Plus, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeAssetUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
@@ -19,6 +19,7 @@ interface StoryboardCellProps {
   onOpenDetail?: () => void;
   onOpenTheater?: () => void;
   onInsertAfter?: () => void;
+  onUpdateShot?: (shotId: string, updates: Partial<ShotModel>) => Promise<void> | void;
 }
 
 const SHOT_SIZE_ABBR: Record<string, string> = {
@@ -189,6 +190,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
   onOpenDetail,
   onOpenTheater,
   onInsertAfter,
+  onUpdateShot,
 }) => {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -407,18 +409,63 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
           </div>
         )}
 
-        {/* Top Badges (Shot No, Shot Size, Duration, Lock) */}
-        <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-background/90 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-mono border border-border/60 shadow-sm z-20">
+        {/* Top Badges (Shot No, Shot Size In-place Edit, Duration In-place Edit, Lock) */}
+        <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-background/90 backdrop-blur-md px-2 py-0.5 rounded-md text-xs font-mono border border-border/60 shadow-sm z-20">
           <span className="font-bold text-sky-400">{String(index + 1).padStart(2, "0")}</span>
           <span className="text-muted-foreground">·</span>
-          <span
-            className="font-semibold text-foreground cursor-help"
-            title={SHOT_SIZE_GLOSSARY[shot.shot_size] || `景别: ${sizeAbbr}`}
-          >
-            {sizeAbbr}
-          </span>
+
+          {/* In-place Shot Size Quick Edit */}
+          <div className="relative group/size flex items-center" onClick={(e) => e.stopPropagation()}>
+            <select
+              value={shot.shot_size || "medium_shot"}
+              disabled={isLocked}
+              onChange={(e) => {
+                const newSize = e.target.value;
+                onUpdateShot?.(shot.id, { shot_size: newSize as any });
+                notify.success(`🎬 镜 ${index + 1} 景别已调整为: ${SHOT_SIZE_ABBR[newSize] || newSize}`);
+              }}
+              className="appearance-none bg-transparent font-semibold text-foreground hover:text-primary pr-3.5 focus:outline-none cursor-pointer disabled:cursor-not-allowed disabled:hover:text-foreground text-xs"
+              title={SHOT_SIZE_GLOSSARY[shot.shot_size] || `景别: ${sizeAbbr} (点击就地切换)`}
+            >
+              <option value="extreme_wide_shot" className="bg-popover text-foreground">大远景 EWS</option>
+              <option value="wide_shot" className="bg-popover text-foreground">全景 WS</option>
+              <option value="full_shot" className="bg-popover text-foreground">全身景 FS</option>
+              <option value="medium_wide" className="bg-popover text-foreground">中远景 MWS</option>
+              <option value="medium_shot" className="bg-popover text-foreground">中景 MS</option>
+              <option value="medium_close_up" className="bg-popover text-foreground">中近景 MCU</option>
+              <option value="close_up" className="bg-popover text-foreground">特写 CU</option>
+              <option value="extreme_close_up" className="bg-popover text-foreground">大特写 ECU</option>
+            </select>
+            <ChevronDown className="w-2.5 h-2.5 text-muted-foreground absolute right-0 pointer-events-none group-hover/size:text-primary transition-colors" />
+          </div>
+
           <span className="text-muted-foreground">·</span>
-          <span className="text-emerald-400 font-semibold">{shot.duration}s</span>
+
+          {/* In-place Duration Quick Edit */}
+          <div className="relative group/dur flex items-center" onClick={(e) => e.stopPropagation()}>
+            <select
+              value={shot.duration || 2.5}
+              disabled={isLocked}
+              onChange={(e) => {
+                const newDur = parseFloat(e.target.value);
+                onUpdateShot?.(shot.id, { duration: newDur });
+                notify.success(`⏱️ 镜 ${index + 1} 时长已调整为: ${newDur}s`);
+              }}
+              className="appearance-none bg-transparent font-semibold text-emerald-400 hover:text-emerald-300 pr-3 focus:outline-none cursor-pointer disabled:cursor-not-allowed text-xs"
+              title="镜头时长 (点击就地切换)"
+            >
+              <option value="1" className="bg-popover text-foreground">1.0s</option>
+              <option value="1.5" className="bg-popover text-foreground">1.5s</option>
+              <option value="2" className="bg-popover text-foreground">2.0s</option>
+              <option value="2.5" className="bg-popover text-foreground">2.5s</option>
+              <option value="3" className="bg-popover text-foreground">3.0s</option>
+              <option value="3.5" className="bg-popover text-foreground">3.5s</option>
+              <option value="4" className="bg-popover text-foreground">4.0s</option>
+              <option value="5" className="bg-popover text-foreground">5.0s</option>
+              <option value="6" className="bg-popover text-foreground">6.0s</option>
+            </select>
+            <ChevronDown className="w-2.5 h-2.5 text-emerald-500/70 absolute right-0 pointer-events-none group-hover/dur:text-emerald-300 transition-colors" />
+          </div>
 
           {isLocked && (
             <>
@@ -578,12 +625,40 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
 
         {/* Footer Info: Camera Movement & Detail Drawer Trigger */}
         <div className="flex items-center justify-between pt-1.5 border-t border-border/30 text-[11px] text-muted-foreground">
+          {/* In-place Camera Movement Quick Edit */}
           <div
-            className="flex items-center gap-1.5 truncate max-w-[150px] cursor-help"
-            title={CAMERA_MOVEMENT_GLOSSARY[shot.camera_movement?.type || "static"] || `运镜: ${shot.camera_movement?.type || "固定镜头"}`}
+            className="relative group/mov flex items-center gap-1.5 max-w-[150px]"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Camera className="w-3 h-3 shrink-0 text-muted-foreground" />
-            <span className="truncate font-mono text-[10px] text-foreground/80">{shot.camera_movement?.type || "static"}</span>
+            <Camera className="w-3 h-3 shrink-0 text-muted-foreground group-hover/mov:text-primary transition-colors" />
+            <select
+              value={shot.camera_movement?.type || "static"}
+              disabled={isLocked}
+              onChange={(e) => {
+                const newMov = e.target.value;
+                onUpdateShot?.(shot.id, {
+                  camera_movement: {
+                    ...(typeof shot.camera_movement === "object" ? shot.camera_movement : {}),
+                    type: newMov,
+                  },
+                });
+                notify.success(`🎥 镜 ${index + 1} 运镜已调整为: ${newMov}`);
+              }}
+              className="appearance-none bg-transparent font-mono text-[10px] text-foreground/80 hover:text-primary pr-3 focus:outline-none cursor-pointer disabled:cursor-not-allowed truncate"
+              title={CAMERA_MOVEMENT_GLOSSARY[shot.camera_movement?.type || "static"] || `运镜: ${shot.camera_movement?.type || "固定镜头"} (点击就地切换)`}
+            >
+              <option value="static" className="bg-popover text-foreground">static 固定</option>
+              <option value="push_in" className="bg-popover text-foreground">push_in 推进</option>
+              <option value="pull_out" className="bg-popover text-foreground">pull_out 拉远</option>
+              <option value="pan_left" className="bg-popover text-foreground">pan_left 左摇</option>
+              <option value="pan_right" className="bg-popover text-foreground">pan_right 右摇</option>
+              <option value="tilt_up" className="bg-popover text-foreground">tilt_up 仰角</option>
+              <option value="tilt_down" className="bg-popover text-foreground">tilt_down 俯角</option>
+              <option value="tracking" className="bg-popover text-foreground">tracking 跟随</option>
+              <option value="crane" className="bg-popover text-foreground">crane 升降</option>
+              <option value="orbital" className="bg-popover text-foreground">orbital 环绕</option>
+            </select>
+            <ChevronDown className="w-2.5 h-2.5 text-muted-foreground absolute right-0 pointer-events-none group-hover/mov:text-primary transition-colors" />
           </div>
 
           {onOpenDetail && (

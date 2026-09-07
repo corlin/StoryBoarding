@@ -953,6 +953,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
                 onOpenGenerateModal={() => setIsOpenAIGenerateModal(true)}
                 onOpenImportScript={() => setIsOpenScriptModal(true)}
                 onInsertShot={(afterIndex) => activeSequence && insertShot(activeSequence.id, afterIndex)}
+                onUpdateShot={saveShotRemote}
                 isBatchRendering={isBatchRendering}
                 batchProgress={batchProgress}
                 onAbortBatchRendering={handleAbortBatchRendering}
