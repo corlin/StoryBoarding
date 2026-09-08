@@ -6,6 +6,7 @@ import { normalizeAssetUrl } from "@/lib/api";
 import {
   compareProductionShots,
   deriveDialogueLineFromShot,
+  estimateVideoGeneration,
   productionMediaFileBase,
   productionShotLabel,
 } from "@/lib/productionKanban";
@@ -54,6 +55,19 @@ interface Take {
   created_at: string;
 }
 
+interface VideoJob {
+  id: string;
+  status: string;
+  provider: string;
+  model: string;
+  externalTaskId: string;
+  failureReason: string;
+  costAmount: number | null;
+  costCurrency: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const STATUS_COLORS: Record<ShotStatus, string> = {
   "待生成": "#64748b",
   "生成中": "#3b82f6",
@@ -82,8 +96,11 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [selectedShot, setSelectedShot] = useState<KanbanShot | null>(null);
   const [takes, setTakes] = useState<Take[]>([]);
+  const [videoJobs, setVideoJobs] = useState<VideoJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [takesLoading, setTakesLoading] = useState(false);
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [pollingJobId, setPollingJobId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<ShotStatus | "全部">("全部");
   const [rejectingTakeId, setRejectingTakeId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -118,6 +135,15 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
       showToast(`候选加载失败: ${e?.response?.data?.detail || e.message}`, "error");
     } finally {
       setTakesLoading(false);
+    }
+  }, []);
+
+  const loadVideoJobs = useCallback(async (shotId: string) => {
+    try {
+      const res = await api.getVideoJobs(shotId);
+      setVideoJobs(res.jobs || []);
+    } catch (e: any) {
+      showToast(`任务加载失败: ${e?.response?.data?.detail || e.message}`, "error");
     }
   }, []);
 
@@ -317,12 +343,58 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
   useEffect(() => {
     if (selectedShot) {
       loadTakes(selectedShot.shot_id);
+      loadVideoJobs(selectedShot.shot_id);
       loadDialogue(selectedShot.shot_id);
     } else {
       setTakes([]);
+      setVideoJobs([]);
       setDialogueLines([]);
     }
-  }, [selectedShot, loadTakes, loadDialogue]);
+  }, [selectedShot, loadTakes, loadVideoJobs, loadDialogue]);
+
+  useEffect(() => {
+    if (!selectedShot || !videoJobs.some((job) => job.status === "submitted" || job.status === "processing")) return;
+    const timer = window.setInterval(() => loadVideoJobs(selectedShot.shot_id), 8000);
+    return () => window.clearInterval(timer);
+  }, [selectedShot, videoJobs, loadVideoJobs]);
+
+  const handleGenerateVideo = async () => {
+    if (!selectedShot) return;
+    const estimate = estimateVideoGeneration(selectedShot.duration);
+    const confirmed = window.confirm(
+      `将调用已配置的视频供应商生成 ${productionShotLabel(selectedShot)}。\n` +
+      `按当前 768P 基准估算：${estimate.billableDuration}s × ¥0.50/s ≈ ¥${estimate.estimatedCost.toFixed(2)}，最终以供应商账单为准。\n\n确认提交付费任务？`
+    );
+    if (!confirmed) return;
+    setGeneratingVideo(true);
+    try {
+      const result = await api.generateVideo(selectedShot.shot_id);
+      showToast(result.status === "existing" ? result.message : "视频任务已提交");
+      await loadVideoJobs(selectedShot.shot_id);
+      loadKanban();
+      loadCosts();
+    } catch (e: any) {
+      showToast(`生成失败: ${e?.response?.data?.detail || e.message}`, "error");
+    } finally {
+      setGeneratingVideo(false);
+    }
+  };
+
+  const handlePollVideo = async (jobId: string) => {
+    if (!selectedShot) return;
+    setPollingJobId(jobId);
+    try {
+      const result = await api.pollVideo(jobId);
+      showToast(result.status === "succeeded" ? "视频已生成，候选素材已刷新" : `任务状态：${result.status}`);
+      await Promise.all([loadVideoJobs(selectedShot.shot_id), loadTakes(selectedShot.shot_id)]);
+      loadKanban();
+      loadCosts();
+    } catch (e: any) {
+      showToast(`状态刷新失败: ${e?.response?.data?.detail || e.message}`, "error");
+    } finally {
+      setPollingJobId(null);
+    }
+  };
 
   const handleAdopt = async (takeId: string) => {
     try {
@@ -571,17 +643,56 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                 <>
                 <div className="mb-4 flex items-center justify-between">
                   <span className="text-xs text-gray-400">共 {takes.length} 个候选</span>
-                  <label className="cursor-pointer rounded-md bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700">
-                    {uploadingShotId === selectedShot.shot_id ? "上传中..." : "上传外部素材"}
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="video/*,audio/*,image/*"
-                      onChange={(e) => handleUpload(e, selectedShot.shot_id)}
-                      disabled={uploadingShotId === selectedShot.shot_id}
-                    />
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleGenerateVideo}
+                      disabled={generatingVideo || videoJobs.some((job) => job.status === "submitted" || job.status === "processing")}
+                      className="rounded-md bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      title="提交前会显示预计费用并要求确认"
+                    >
+                      {generatingVideo ? "提交中..." : videoJobs.some((job) => job.status === "submitted" || job.status === "processing") ? "已有任务进行中" : "生成视频"}
+                    </button>
+                    <label className="cursor-pointer rounded-md bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700">
+                      {uploadingShotId === selectedShot.shot_id ? "上传中..." : "上传外部素材"}
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="video/*,audio/*,image/*"
+                        onChange={(e) => handleUpload(e, selectedShot.shot_id)}
+                        disabled={uploadingShotId === selectedShot.shot_id}
+                      />
+                    </label>
+                  </div>
                 </div>
+
+                {videoJobs.length > 0 && (
+                  <div className="mb-4 space-y-2 rounded-lg border border-[#21262d] bg-[#161b22] p-3">
+                    <div className="text-xs font-medium text-gray-300">视频生成任务</div>
+                    {videoJobs.map((job) => {
+                      const active = job.status === "submitted" || job.status === "processing";
+                      return (
+                        <div key={job.id} className="flex items-start justify-between gap-3 rounded border border-[#30363d] bg-[#0d1117] p-2">
+                          <div className="min-w-0 text-[10px] text-gray-500">
+                            <p><span className={job.status === "succeeded" ? "text-green-400" : job.status === "failed" ? "text-red-400" : "text-blue-400"}>{job.status}</span> · {job.model || job.provider || "视频模型"}</p>
+                            <p>{formatDbDate(job.updatedAt || job.createdAt)}</p>
+                            {job.costCurrency && <p>已记录费用：{job.costCurrency} {job.costAmount || 0}</p>}
+                            {job.failureReason && <p className="text-red-400">{job.failureReason}</p>}
+                          </div>
+                          {active && (
+                            <button
+                              onClick={() => handlePollVideo(job.id)}
+                              disabled={pollingJobId === job.id}
+                              className="shrink-0 rounded bg-blue-600 px-2 py-1 text-[10px] text-white hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              {pollingJobId === job.id ? "刷新中..." : "刷新状态"}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <p className="text-[10px] text-gray-600">关闭页面后任务仍会保留；重新进入看板可继续刷新并恢复结果。</p>
+                  </div>
+                )}
 
                 {takesLoading ? (
                   <div className="py-8 text-center text-sm text-gray-500">加载候选中...</div>

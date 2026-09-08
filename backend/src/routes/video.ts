@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import { shots, sequences, projects, generationJobs, takes } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
@@ -21,6 +21,17 @@ function calculateVideoCost(model: string, resolution: string, duration: number)
   return { amount, currency: "CNY", unit: "seconds" };
 }
 
+async function loadOwnedShotContext(db: any, shotId: string, userId: string) {
+  const shot = await db.select().from(shots).where(eq(shots.id, shotId)).get();
+  if (!shot) return { error: "镜头不存在", status: 404 as const };
+  const sequence = await db.select().from(sequences).where(eq(sequences.id, shot.sequenceId)).get();
+  const project = sequence
+    ? await db.select().from(projects).where(eq(projects.id, sequence.projectId)).get()
+    : null;
+  if (!project || project.userId !== userId) return { error: "无权访问该镜头", status: 403 as const };
+  return { shot, sequence, project };
+}
+
 // ============================================================
 // POST /api/generate/video/{shotId}
 // Submit a video generation task to the configured video provider
@@ -35,14 +46,28 @@ router.post("/video/:shotId", async (c) => {
 
   try {
     // Load shot and its video prompt
-    const shot = await db.select().from(shots).where(eq(shots.id, shotId)).get();
-    if (!shot) return c.json({ detail: "镜头不存在" }, 404);
+    const context = await loadOwnedShotContext(db, shotId, authUser.userId);
+    if ("error" in context) return c.json({ detail: context.error }, context.status);
+    const { shot, project } = context;
+    const projectId = project.id;
 
-    const seq = await db.select().from(sequences).where(eq(sequences.id, shot.sequenceId)).get();
-    const projectId = seq?.projectId || "";
-
-    // Load project for aspect ratio
-    const project = projectId ? await db.select().from(projects).where(eq(projects.id, projectId)).get() : null;
+    // Do not create a second billable provider task while one is active.
+    const existingJobs = await db.select().from(generationJobs)
+      .where(eq(generationJobs.shotId, shotId))
+      .orderBy(desc(generationJobs.createdAt))
+      .all();
+    const activeJob = existingJobs.find((job: any) =>
+      job.jobType === "video" && (job.status === "submitted" || job.status === "processing")
+    );
+    if (activeJob) {
+      return c.json({
+        status: "existing",
+        job_id: activeJob.id,
+        external_task_id: activeJob.externalTaskId,
+        shot_id: shotId,
+        message: "该镜头已有进行中的视频任务，请先刷新任务状态",
+      });
+    }
 
     // Get user video provider settings
     const userSettings = await getUserSettings(db, authUser.userId);
@@ -60,8 +85,8 @@ router.post("/video/:shotId", async (c) => {
     }
 
     // Determine aspect ratio from project
-    const aspectRatio = project?.aspectRatio === "16:9" ? "16:9" : "9:16";
-    const duration = Math.min(Math.max(shot.duration || 5, 3), 10);
+    const aspectRatio = project.aspectRatio === "16:9" ? "16:9" : "9:16";
+    const videoDuration = Math.min(Math.max(Math.round(shot.duration || 5), 4), 15); // H3: 4-15s
 
     // Create GenerationJob record
     const jobId = crypto.randomUUID();
@@ -75,7 +100,7 @@ router.post("/video/:shotId", async (c) => {
       model: userSettings.videoModel || "video-01-h3",
       inputRevision: videoPrompt.substring(0, 500),
       referenceAssetVersion: "",
-      parameters: JSON.stringify({ aspect_ratio: aspectRatio, duration, fps: 24 }),
+      parameters: JSON.stringify({ aspect_ratio: aspectRatio, duration: videoDuration, fps: 24 }),
       externalTaskId: "",
       status: "submitted",
       failureReason: "",
@@ -92,7 +117,6 @@ router.post("/video/:shotId", async (c) => {
     // Submit to MiniMax H3 v2 API
     // API: POST {base}/video_generation with content array format
     const apiBase = userSettings.videoApiBase.replace(/\/+$/, "");
-    const videoDuration = Math.min(Math.max(Math.round(shot.duration || 5), 4), 15); // H3: 4-15s
     const reqBody: any = {
       model: userSettings.videoModel || "MiniMax-H3",
       content: [
@@ -180,12 +204,21 @@ router.post("/poll", async (c) => {
     const job = await db.select().from(generationJobs).where(eq(generationJobs.id, jobId)).get();
     if (!job) return c.json({ detail: "任务不存在" }, 404);
 
+    const jobProject = await db.select().from(projects).where(eq(projects.id, job.projectId)).get();
+    if (!jobProject || jobProject.userId !== authUser.userId) {
+      return c.json({ detail: "无权访问该任务" }, 403);
+    }
+
     // If already completed, return current state
-    if (job.status === "succeeded" || job.status === "failed") {
+    if (job.status === "succeeded" || job.status === "failed" || job.status === "cancelled") {
+      let metadata: any = {};
+      try { metadata = JSON.parse(job.resultMetadata || "{}"); } catch { /* ignore legacy metadata */ }
       return c.json({
         job_id: jobId,
         status: job.status,
         failure_reason: job.failureReason,
+        video_url: job.resultUrl,
+        take_id: metadata.take_id,
       });
     }
 
@@ -319,8 +352,12 @@ router.get("/video/jobs", async (c) => {
   const shotId = c.req.query("shot_id");
   if (!shotId) return c.json({ detail: "shot_id required" }, 400);
 
+  const context = await loadOwnedShotContext(db, shotId, authUser.userId);
+  if ("error" in context) return c.json({ detail: context.error }, context.status);
+
   const jobs = await db.select().from(generationJobs)
     .where(eq(generationJobs.shotId, shotId))
+    .orderBy(desc(generationJobs.createdAt))
     .all();
 
   const videoJobs = jobs.filter((j: any) => j.jobType === "video");

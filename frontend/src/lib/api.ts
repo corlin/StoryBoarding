@@ -628,7 +628,7 @@ export const api = {
   async generateVideo(shotId: string): Promise<{
     status: string;
     job_id: string;
-    external_task_id: string;
+    external_task_id?: string;
     shot_id: string;
     message: string;
   }> {
