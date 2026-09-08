@@ -52,7 +52,7 @@ export async function generateCinematicStoryboardImage(
     if (isOpenRouter) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s strict wait
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 45s strict wait
 
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images`, {
           method: "POST",
@@ -93,7 +93,7 @@ export async function generateCinematicStoryboardImage(
     if (isOpenRouter && !rawImageUrl) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 45s timeout
 
         const cleanPrompt = cleanPromptOfMetaPollution(prompt);
         const userContent: any[] = [{ type: "text", text: cleanPrompt }];
@@ -159,7 +159,7 @@ export async function generateCinematicStoryboardImage(
     if (!rawImageUrl) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 45s timeout
 
         const cleanPrompt = cleanPromptOfMetaPollution(prompt);
         const resp = await fetch(`${apiBase.replace(/\/+$/, "")}/images/generations`, {
