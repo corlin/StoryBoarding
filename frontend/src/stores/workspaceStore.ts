@@ -384,9 +384,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           storyboard_image_url: resp.storyboard_image_url,
           is_dirty: false,
         });
+      } else {
+        throw new Error("生成接口未返回图片地址");
       }
     } catch (e) {
       console.error(e);
+      throw e; // Re-throw so caller can show error notification
     }
   },
 }));

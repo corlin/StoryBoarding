@@ -437,6 +437,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
       setBatchProgress({ current: 0, total: unrendered.length });
       let completed = 0;
+      let succeeded = 0;
+      let failed = 0;
 
       // Concurrency worker pool: strictly max 3 parallel workers
       const concurrency = 3;
@@ -455,7 +457,9 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
                 setTimeout(() => reject(new Error("单镜头渲染超时(45s)")), 45000)
               ),
             ]);
+            succeeded++;
           } catch (err) {
+            failed++;
             console.warn(`Shot ${shot.id} render error:`, err);
           }
           if (abortBatchRenderRef.current) break;
@@ -471,7 +475,13 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       await Promise.all(workers);
       await fetchProject(targetProjectId);
       if (!abortBatchRenderRef.current) {
-        notify.success(`🎨 本集 ${unrendered.length} 个镜头画面显影冲印完成！`);
+        if (failed === 0) {
+          notify.success(`🎨 本集 ${succeeded} 个镜头画面显影冲印完成！`);
+        } else if (succeeded === 0) {
+          notify.error(`❌ 本集 ${failed} 个镜头冲印全部失败，请检查 API 设置`);
+        } else {
+          notify.show(`🎨 冲印完成：${succeeded} 成功，${failed} 失败`, "warning");
+        }
       }
     } catch (e: any) {
       console.error("Client render queue error:", e);
