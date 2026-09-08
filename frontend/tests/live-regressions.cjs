@@ -85,3 +85,43 @@ test('call sheet keeps missing bindings unknown and respects valid cast/location
   assert.ok(known.includes('"苏晓 / 宋知远"'));
   assert.ok(known.includes('"4.5"'));
 });
+
+test('project refresh preserves screenplay anchors and beat data for every episode', async () => {
+  const { api } = require('../src/lib/api.ts');
+  const { useWorkspaceStore } = require('../src/stores/workspaceStore.ts');
+  const originalGetProject = api.getProject;
+  api.getProject = async () => ({
+    id: 'project-refresh',
+    user_id: 'director',
+    title: '三集样片',
+    style_config: {},
+    target_duration: 180,
+    sequences: [{
+      id: 'ep-3',
+      project_id: 'project-refresh',
+      order: 3,
+      episode_number: 3,
+      hook_summary: '信封已经被拆开',
+      cliffhanger_summary: '欠款对象揭晓',
+      payoff_summary: '两人重新谈判',
+      target_duration: 60,
+      screenplay_text: '第三集母本',
+      beats_data: [{ id: 'beat-1', type: 'dialogue', speaker: '林夏', content: '这封信写给谁？', duration: 2.2 }],
+      shots: [],
+    }],
+    characters: [],
+    locations: [],
+    props: [],
+  });
+
+  try {
+    await useWorkspaceStore.getState().fetchProject('project-refresh');
+    const episode = useWorkspaceStore.getState().currentProject.sequences[0];
+    assert.equal(episode.hook_summary, '信封已经被拆开');
+    assert.equal(episode.cliffhanger_summary, '欠款对象揭晓');
+    assert.equal(episode.payoff_summary, '两人重新谈判');
+    assert.equal(episode.beats_data[0].content, '这封信写给谁？');
+  } finally {
+    api.getProject = originalGetProject;
+  }
+});
