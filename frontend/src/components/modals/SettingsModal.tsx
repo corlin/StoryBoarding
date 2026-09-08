@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap, Globe, AlertCircle, ChevronDown } from "lucide-react";
+import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap, Globe, AlertCircle, ChevronDown, Film } from "lucide-react";
 import { api, getApiBaseUrl, setApiBaseUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -26,6 +26,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [imageApiKey, setImageApiKey] = useState("");
   const [imageModel, setImageModel] = useState("bytedance-seed/seedream-5-0-lite");
   const [syncApiKey, setSyncApiKey] = useState(true);
+
+  // Video provider settings (P0-2)
+  const [videoProvider, setVideoProvider] = useState("minimax");
+  const [videoApiBase, setVideoApiBase] = useState("https://api.minimax.chat/v1");
+  const [videoApiKey, setVideoApiKey] = useState("");
+  const [videoModel, setVideoModel] = useState("video-01-h3");
+  const [hasVideoKey, setHasVideoKey] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -61,6 +68,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             setImageApiKey(""); // Plaintext strictly not populated
             setHasImageKey(Boolean(config.has_image_key || config.image_api_key_masked));
             setImageModel(config.image_model || "bytedance-seed/seedream-5-0-lite");
+            // Video provider settings
+            setVideoProvider(config.video_provider || "minimax");
+            setVideoApiBase(config.video_api_base || "https://api.minimax.chat/v1");
+            setVideoApiKey("");
+            setHasVideoKey(Boolean(config.has_video_key || config.video_api_key_masked));
+            setVideoModel(config.video_model || "video-01-h3");
           }
         })
         .catch(console.error);
@@ -165,11 +178,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         image_api_base: imageApiBase,
         image_api_key: finalImageKey.trim() || undefined,
         image_model: imageModel,
+        video_provider: videoProvider,
+        video_api_base: videoApiBase,
+        video_api_key: videoApiKey.trim() || undefined,
+        video_model: videoModel,
       });
       if (res?.has_llm_key !== undefined) setHasLlmKey(res.has_llm_key);
       if (res?.has_image_key !== undefined) setHasImageKey(res.has_image_key);
+      if (res?.has_video_key !== undefined) setHasVideoKey(res.has_video_key);
       setLlmApiKey("");
       setImageApiKey("");
+      setVideoApiKey("");
       setIsSaved(true);
       await useAuthStore.getState().initAuth();
       notify.success("AI 模型与密钥设置已成功同步生效！");
@@ -489,6 +508,94 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   {imageTestMsg}
                 </span>
               )}
+            </div>
+          </div>
+
+          {/* Section 3: Video Model Settings (P0-2) */}
+          <div className="p-4 rounded-lg border border-border/70 bg-background/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <Film className="w-4 h-4 text-purple-400" />
+                <span>文生视频 / Video Generator (视频模型)</span>
+              </div>
+              <span className="text-[10px] font-mono text-purple-400/90 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                MiniMax H3 · 异步生成
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] text-muted-foreground block mb-1">视频 Provider</label>
+                <select
+                  value={videoProvider}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setVideoProvider(val);
+                    if (val === "minimax") {
+                      setVideoApiBase("https://api.minimax.chat/v1");
+                      setVideoModel("video-01-h3");
+                    }
+                  }}
+                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
+                >
+                  <option value="minimax">MiniMax (H3 视频生成)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] text-muted-foreground block mb-1">视频模型</label>
+                <select
+                  value={videoModel}
+                  onChange={(e) => setVideoModel(e.target.value)}
+                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
+                >
+                  <option value="video-01-h3">video-01-h3 (MiniMax H3 旗舰)</option>
+                  <option value="video-01">video-01 (MiniMax 标准)</option>
+                </select>
+                <input
+                  type="text"
+                  value={videoModel}
+                  onChange={(e) => setVideoModel(e.target.value)}
+                  placeholder="自定义 Model ID"
+                  className="w-full text-[11px] font-mono bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] text-muted-foreground block mb-1">视频 API Base URL</label>
+              <input
+                type="text"
+                value={videoApiBase}
+                onChange={(e) => setVideoApiBase(e.target.value)}
+                placeholder="https://api.minimax.chat/v1"
+                className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] text-muted-foreground">视频生成 API Key</label>
+                {hasVideoKey && (
+                  <span className="text-[10px] text-purple-400 font-mono flex items-center gap-1">
+                    🔒 D1 视频密钥已脱敏保护
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={videoApiKey}
+                  onChange={(e) => setVideoApiKey(e.target.value)}
+                  placeholder={hasVideoKey ? "● 已加密保存在云端 D1 数据库 (若不修改请留空)" : "输入 MiniMax API Key (eyJhbGci...)"}
+                  className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 pl-8 focus:outline-none focus:border-primary"
+                />
+                <Key className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
+              </div>
+            </div>
+
+            <div className="text-[10px] text-muted-foreground/70 leading-relaxed">
+              视频生成采用异步模式：提交任务后返回 job_id，通过轮询获取结果。生成的视频自动存入候选素材(Take)，可在生产看板中采用或退回。MiniMax API Key 请在 <a href="https://platform.minimaxi.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">platform.minimaxi.com</a> 申请。
             </div>
           </div>
 
