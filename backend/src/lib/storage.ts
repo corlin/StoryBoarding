@@ -19,6 +19,67 @@ export function detectBase64MimeType(base64: string): string {
   return "image/jpeg";
 }
 
+/**
+ * Download an external HTTP(S) media file (image / video / audio) and persist to R2.
+ * Returns the public asset URL on success, null on failure.
+ * @param mediaSource  HTTP(S) URL of the source media
+ * @param r2Key        Destination key in the R2 bucket
+ * @param storage      R2 bucket binding
+ * @param timeoutMs    Fetch timeout in milliseconds (default 60s for larger files)
+ * @param acceptHeader Accept header for the upstream fetch
+ */
+export async function saveMediaToR2(
+  mediaSource: string,
+  r2Key: string,
+  storage?: R2Bucket,
+  timeoutMs: number = 60000,
+  acceptHeader: string = "*/*"
+): Promise<string | null> {
+  if (!storage) {
+    console.warn(`[R2 Storage] storage binding is undefined, cannot save ${r2Key}`);
+    return null;
+  }
+  if (!mediaSource.startsWith("http://") && !mediaSource.startsWith("https://")) {
+    console.warn(`[R2 Storage] source is not an HTTP(S) URL, cannot fetch: ${mediaSource.slice(0, 60)}`);
+    return null;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(mediaSource, {
+        method: "GET",
+        redirect: "follow",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+          Accept: acceptHeader,
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const buffer = await res.arrayBuffer();
+        const contentType = res.headers.get("content-type") || "application/octet-stream";
+        await storage.put(r2Key, buffer, {
+          httpMetadata: { contentType },
+        });
+        console.log(`[R2 Storage] Successfully stored external media to R2: ${r2Key} (${buffer.byteLength} bytes, type=${contentType})`);
+        return `https://storyboarding-api.caifu.social/api/assets/${r2Key}`;
+      } else {
+        console.warn(`[R2 Storage] Upstream fetch failed: HTTP ${res.status} for ${mediaSource.slice(0, 80)}`);
+      }
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      console.warn(`[R2 Storage] Upstream fetch timed out or failed:`, fetchErr?.message || fetchErr);
+    }
+  } catch (err) {
+    console.warn(`[R2 Storage] Failed to persist media to R2 (${r2Key}):`, err);
+  }
+
+  return null;
+}
+
 export async function saveImageToR2(
   imageSource: string,
   r2Key: string,

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import { shots, sequences, projects, generationJobs, takes } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
+import { saveMediaToR2 } from "../lib/storage";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -225,10 +226,18 @@ router.post("/poll", async (c) => {
 
     if (newStatus === "succeeded" && videoUrl) {
       updateData.completedAt = new Date().toISOString();
-      updateData.resultUrl = videoUrl;
+
+      // Persist video to our own R2 (MiniMax URLs are signed & expire)
+      const takeId = crypto.randomUUID();
+      const r2Key = `takes/${job.shotId || "orphan"}/${takeId}.mp4`;
+      const r2Url = await saveMediaToR2(videoUrl, r2Key, c.env.STORAGE, 120000, "video/*,*/*");
+      const finalUrl = r2Url || videoUrl;
+      if (!r2Url) {
+        console.warn(`[Video Poll] R2 persist failed, keeping upstream URL for job ${jobId}`);
+      }
+      updateData.resultUrl = finalUrl;
 
       // Create a Take record for the generated video
-      const takeId = crypto.randomUUID();
       await db.insert(takes).values({
         id: takeId,
         projectId: job.projectId || "",
@@ -236,11 +245,18 @@ router.post("/poll", async (c) => {
         jobId: job.id,
         takeType: "video",
         source: "ai_generated",
-        mediaUrl: videoUrl,
+        mediaUrl: finalUrl,
         duration: task?.duration || 0,
         reviewStatus: "pending",
         isAdopted: false,
-        metadata: JSON.stringify({ external_task_id: job.externalTaskId, model: task?.model || job.model, resolution: task?.resolution, ratio: task?.ratio }),
+        metadata: JSON.stringify({
+          external_task_id: job.externalTaskId,
+          model: task?.model || job.model,
+          resolution: task?.resolution,
+          ratio: task?.ratio,
+          upstream_url: r2Url ? videoUrl : undefined,
+          r2_persisted: Boolean(r2Url),
+        }),
       });
 
       updateData.resultMetadata = JSON.stringify({ take_id: takeId });
@@ -255,7 +271,7 @@ router.post("/poll", async (c) => {
       job_id: jobId,
       status: newStatus,
       external_status: taskStatus,
-      video_url: videoUrl || "",
+      video_url: newStatus === "succeeded" ? (updateData.resultUrl || videoUrl || "") : (videoUrl || ""),
       failure_reason: newStatus === "failed" ? (errorMsg || job.failureReason) : "",
       take_id: newStatus === "succeeded" ? JSON.parse(updateData.resultMetadata || "{}").take_id : undefined,
     });
