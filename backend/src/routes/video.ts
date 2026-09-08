@@ -108,16 +108,21 @@ router.post("/video/:shotId", async (c) => {
       }, 502);
     }
 
-    // MiniMax returns task_id
-    const externalTaskId = submitData?.task_id || submitData?.data?.task_id || "";
+    // MiniMax returns task_id (try multiple possible field names)
+    const externalTaskId = submitData?.task_id
+      || submitData?.data?.task_id
+      || submitData?.id
+      || submitData?.data?.id
+      || "";
     if (!externalTaskId) {
+      const respBody = JSON.stringify(submitData).substring(0, 500);
       await db.update(generationJobs).set({
         status: "failed",
-        failureReason: "供应商未返回 task_id",
+        failureReason: `供应商未返回 task_id, 响应: ${respBody}`,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }).where(eq(generationJobs.id, jobId));
-      return c.json({ detail: "供应商未返回任务ID", job_id: jobId, status: "failed" }, 502);
+      return c.json({ detail: `供应商未返回任务ID, 响应: ${respBody}`, job_id: jobId, status: "failed" }, 502);
     }
 
     // Update job with external task ID
