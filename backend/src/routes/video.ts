@@ -76,11 +76,9 @@ router.post("/video/:shotId", async (c) => {
 
     // Submit to MiniMax H3 API
     const apiBase = userSettings.videoApiBase.replace(/\/+$/, "");
-    // MiniMax video_generation endpoint: only send known-valid params
+    // MiniMax video_generation endpoint: try minimal params first
     const reqBody: any = {
       prompt: videoPrompt,
-      duration: 5, // MiniMax supports 5s or 10s
-      aspect_ratio: aspectRatio,
     };
     const submitResp = await fetch(`${apiBase}/video_generation`, {
       method: "POST",
@@ -94,10 +92,10 @@ router.post("/video/:shotId", async (c) => {
     const submitData: any = await submitResp.json().catch(() => ({}));
 
     if (!submitResp.ok) {
-      const errorMsg = submitData?.message || submitData?.error || `HTTP ${submitResp.status}`;
+      const errorMsg = submitData?.base_resp?.status_msg || submitData?.message || submitData?.error || `HTTP ${submitResp.status}`;
       await db.update(generationJobs).set({
         status: "failed",
-        failureReason: `提交失败: ${errorMsg}`,
+        failureReason: `提交失败: ${errorMsg}, 请求体: ${JSON.stringify(reqBody).substring(0, 200)}`,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }).where(eq(generationJobs.id, jobId));
@@ -108,7 +106,7 @@ router.post("/video/:shotId", async (c) => {
       }, 502);
     }
 
-    // MiniMax returns task_id (try multiple possible field names)
+    // MiniMax returns task_id
     const externalTaskId = submitData?.task_id
       || submitData?.data?.task_id
       || submitData?.id
@@ -118,7 +116,7 @@ router.post("/video/:shotId", async (c) => {
       const respBody = JSON.stringify(submitData).substring(0, 500);
       await db.update(generationJobs).set({
         status: "failed",
-        failureReason: `供应商未返回 task_id, 响应: ${respBody}`,
+        failureReason: `供应商未返回 task_id, 响应: ${respBody}, 请求体: ${JSON.stringify(reqBody).substring(0, 200)}`,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }).where(eq(generationJobs.id, jobId));
