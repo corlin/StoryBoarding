@@ -774,7 +774,7 @@ const handleGenerateSingleShotImage = async (c: any) => {
   try {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
-    const shotId = c.req.param("id");
+    const shotId = c.req.param("shotId");
 
     const shot = await db.select().from(shots).where(eq(shots.id, shotId)).get();
     if (!shot) {
@@ -795,15 +795,27 @@ const handleGenerateSingleShotImage = async (c: any) => {
     // Create a GenerationJob record for tracking (P0-1)
     const jobId = crypto.randomUUID();
     const { generationJobs } = await import("../db/schema");
+    const projectIdForShot = shot.sequenceId
+      ? (await db.select().from(sequences).where(eq(sequences.id, shot.sequenceId)).get())?.projectId || ""
+      : "";
     await db.insert(generationJobs).values({
       id: jobId,
-      projectId: shot.sequenceId ? (await db.select().from(sequences).where(eq(sequences.id, shot.sequenceId)).get())?.projectId || "" : "",
-      shotId,
+      projectId: projectIdForShot,
+      shotId: shotId || "",
       jobType: "image",
       provider: settings.imageApiBase?.includes("openrouter") ? "openrouter" : "custom",
       model: settings.imageModel || "",
-      parameters: JSON.stringify({ aspect_ratio: shot.sequenceId ? "9:16" : "9:16", seed: Date.now() }),
+      inputRevision: "",
+      referenceAssetVersion: "",
+      parameters: JSON.stringify({ aspect_ratio: "9:16", seed: Date.now() }),
+      externalTaskId: "",
       status: "submitted",
+      failureReason: "",
+      resultUrl: "",
+      resultMetadata: "{}",
+      costAmount: 0,
+      costCurrency: "",
+      costUnit: "",
       submittedAt: new Date().toISOString(),
     }).catch((e) => console.warn("Failed to create generation job record:", e));
 
@@ -859,15 +871,21 @@ const handleGenerateSingleShotImage = async (c: any) => {
     const takeId = crypto.randomUUID();
     await db.insert(takes).values({
       id: takeId,
-      projectId: (await db.select().from(sequences).where(eq(sequences.id, shot.sequenceId)).get())?.projectId || "",
-      shotId,
+      projectId: projectIdForShot,
+      shotId: shotId || "",
       jobId,
       takeType: "image",
       source: "generated",
       mediaUrl: imageUrl,
-      reviewStatus: "pending",
-      isAdopted: existingHistory.length === 0, // auto-adopt first take
+      thumbnailUrl: "",
+      duration: 0,
+      resolution: "",
+      reviewStatus: existingHistory.length === 0 ? "approved" : "pending",
+      rejectionReason: "",
+      isAdopted: existingHistory.length === 0,
       adoptedAt: existingHistory.length === 0 ? new Date().toISOString() : null,
+      reviewerNote: "",
+      metadata: JSON.stringify({ seed, model: settings.imageModel }),
     }).catch((e) => console.warn("Failed to create take record:", e));
 
     return c.json({
@@ -879,7 +897,7 @@ const handleGenerateSingleShotImage = async (c: any) => {
       take_id: takeId,
     });
   } catch (err: any) {
-    console.error(`[ImageGen] UNHANDLED ERROR shot=${c.req.param("id")}:`, err?.message || err, err?.stack);
+    console.error(`[ImageGen] UNHANDLED ERROR shot=${c.req.param("shotId")}:`, err?.message || err, err?.stack);
     return c.json({
       detail: `图片生成服务异常: ${err?.message || "未知错误"}`,
       error: String(err),
