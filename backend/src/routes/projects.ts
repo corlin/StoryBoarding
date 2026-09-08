@@ -441,6 +441,7 @@ router.post("/create-series", async (c) => {
       title,
       story,
       targetDuration: totalTargetDuration,
+      aspectRatio: body.aspect_ratio || "9:16",
     });
 
     // 2. Insert Characters
@@ -482,16 +483,21 @@ router.post("/create-series", async (c) => {
         title: epTitle,
         order: i + 1,
         episodeNumber: Number(ep.episode_number) || i + 1,
+        hookSummary: ep.hook_summary || "",
         cliffhangerSummary: ep.cliffhanger_hook || "",
+        payoffSummary: ep.payoff_summary || "",
         targetDuration: epDuration,
         screenplayText: ep.synopsis || story || "",
+        beatsData: JSON.stringify(ep.beats_data || []),
       });
 
       // Construct enriched episode context with character DNA
       const epStory = `${ep.synopsis || story}. 集尾卡点悬念：${ep.cliffhanger_hook || "悬念未决"}. 核心出场角色：${(ep.featured_characters || []).join("、")}. ${characterAnchorContext}`;
 
       // Fast, non-blocking narrative shot breakdown (instant 0ms response, zero Cloudflare timeout risk)
-      const epShots = generateAdaptiveStoryShots(epStory, epDuration);
+      const epShots = Array.isArray(ep.shots) && ep.shots.length > 0
+        ? ep.shots
+        : generateAdaptiveStoryShots(epStory, epDuration);
 
       for (const s of epShots) {
         const shotId = crypto.randomUUID();
@@ -499,10 +505,10 @@ router.post("/create-series", async (c) => {
         await db.insert(shots).values({
           id: shotId,
           sequenceId: seqId,
-          order: s.order,
-          duration: s.duration,
-          shotSize: s.shot_size,
-          cameraAngle: s.camera_angle,
+          order: Number(s.order) || allInsertedShotTasks.length + 1,
+          duration: Number(s.duration) || 6,
+          shotSize: s.shot_size || "medium_shot",
+          cameraAngle: s.camera_angle || "eye_level",
           cameraMovement: JSON.stringify(s.camera_movement || {}),
           subject: s.subject || "",
           action: s.action,
@@ -510,8 +516,8 @@ router.post("/create-series", async (c) => {
           narrativeFunction: s.narrative_function || "动作推进",
           lighting: s.lighting || "黑白灰石墨光影",
           audio: JSON.stringify(s.audio || {}),
-          imagePrompt: s.image_prompt,
-          videoPrompt: s.video_prompt,
+          imagePrompt: s.image_prompt || "",
+          videoPrompt: s.video_prompt || s.action || "",
           continuityData: JSON.stringify(s.continuity_data || {}),
           beatType: s.beat_type || "tension_build",
           emotionalVoltage: Number(s.emotional_voltage) || 50.0,
@@ -529,14 +535,16 @@ router.post("/create-series", async (c) => {
         title: epTitle,
         order: i + 1,
         episode_number: Number(ep.episode_number) || i + 1,
+        hook_summary: ep.hook_summary || "",
         cliffhanger_summary: ep.cliffhanger_hook || "",
+        payoff_summary: ep.payoff_summary || "",
         target_duration: epDuration,
         screenplay_text: ep.synopsis || story || "",
       });
     }
 
     // 4. Bounded background image rendering for Episode 1 preview frames (up to 4 shots to avoid Cloudflare limit)
-    if (settings.hasKey) {
+    if (settings.hasKey && body.generate_preview_images !== false) {
       const previewTasks = allInsertedShotTasks.slice(0, 4);
       const backgroundRenderJob = async () => {
         try {

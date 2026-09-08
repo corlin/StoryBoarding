@@ -22,11 +22,10 @@ export function productionMediaFileBase(shot: ProductionShotIdentity): string {
   return `ep_${String(shot.episode_number || 1).padStart(2, "0")}_shot_${String(shot.order).padStart(2, "0")}`;
 }
 
-export function estimateVideoGeneration(duration: number, ratePerSecond = 0.5) {
-  const billableDuration = Math.min(Math.max(Math.round(duration || 5), 4), 15);
+export function estimateVideoGeneration(duration: number) {
+  const billableDuration = duration > 6 ? 10 : 6;
   return {
     billableDuration,
-    estimatedCost: Math.round(billableDuration * ratePerSecond * 100) / 100,
   };
 }
 

@@ -363,7 +363,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
     const estimate = estimateVideoGeneration(selectedShot.duration);
     const confirmed = window.confirm(
       `将调用已配置的视频供应商生成 ${productionShotLabel(selectedShot)}。\n` +
-      `按当前 768P 基准估算：${estimate.billableDuration}s × ¥0.50/s ≈ ¥${estimate.estimatedCost.toFixed(2)}，最终以供应商账单为准。\n\n确认提交付费任务？`
+      `当前将提交最低可用档：768P · ${estimate.billableDuration}s。具体扣费取决于供应商套餐或按量账单。\n\n确认提交付费任务？`
     );
     if (!confirmed) return;
     setGeneratingVideo(true);

@@ -7,18 +7,13 @@ import { saveMediaToR2 } from "../lib/storage";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
-// MiniMax H3 pricing (China region, api.minimax.cn)
-// Source: https://platform.minimaxi.com/docs/guides/pricing-paygo
-const MINIMAX_PRICING: Record<string, Record<string, number>> = {
-  "MiniMax-H3": { "768P": 0.50, "2K": 0.80 },
-  "MiniMax-H3-Max": { "480P": 0.30, "768P": 0.50 },
-};
-
-/** Calculate video generation cost based on model, resolution, duration. */
-function calculateVideoCost(model: string, resolution: string, duration: number): { amount: number; currency: string; unit: string } {
-  const perSecond = MINIMAX_PRICING[model]?.[resolution] ?? 0.50;
-  const amount = Math.round(perSecond * duration * 100) / 100;
-  return { amount, currency: "CNY", unit: "seconds" };
+function normalizeMiniMaxConfig(apiBase: string, model: string) {
+  let base = (apiBase || "https://api.minimax.cn/v1").replace(/\/+$/, "");
+  if (base.endsWith("/v2")) base = `${base.slice(0, -3)}/v1`;
+  const normalizedModel = model === "MiniMax-H3" || model === "MiniMax-H3-Max" || model === "video-01-h3"
+    ? "MiniMax-Hailuo-02"
+    : (model || "MiniMax-Hailuo-02");
+  return { apiBase: base, model: normalizedModel };
 }
 
 async function loadOwnedShotContext(db: any, shotId: string, userId: string) {
@@ -86,7 +81,8 @@ router.post("/video/:shotId", async (c) => {
 
     // Determine aspect ratio from project
     const aspectRatio = project.aspectRatio === "16:9" ? "16:9" : "9:16";
-    const videoDuration = Math.min(Math.max(Math.round(shot.duration || 5), 4), 15); // H3: 4-15s
+    const videoDuration = (shot.duration || 0) > 6 ? 10 : 6;
+    const providerConfig = normalizeMiniMaxConfig(userSettings.videoApiBase, userSettings.videoModel);
 
     // Create GenerationJob record
     const jobId = crypto.randomUUID();
@@ -97,7 +93,7 @@ router.post("/video/:shotId", async (c) => {
       shotId,
       jobType: "video",
       provider: userSettings.videoProvider || "minimax",
-      model: userSettings.videoModel || "video-01-h3",
+      model: providerConfig.model,
       inputRevision: videoPrompt.substring(0, 500),
       referenceAssetVersion: "",
       parameters: JSON.stringify({ aspect_ratio: aspectRatio, duration: videoDuration, fps: 24 }),
@@ -114,19 +110,14 @@ router.post("/video/:shotId", async (c) => {
       updatedAt: now,
     });
 
-    // Submit to MiniMax H3 v2 API
-    // API: POST {base}/video_generation with content array format
-    const apiBase = userSettings.videoApiBase.replace(/\/+$/, "");
+    // MiniMax China v1 API: POST /video_generation with prompt.
     const reqBody: any = {
-      model: userSettings.videoModel || "MiniMax-H3",
-      content: [
-        { type: "text", text: videoPrompt },
-      ],
-      resolution: "768P", // MiniMax-H3 supports 768P / 2K
+      model: providerConfig.model,
+      prompt: videoPrompt.substring(0, 2000),
+      resolution: "768P",
       duration: videoDuration,
-      ratio: aspectRatio, // 9:16 or 16:9
     };
-    const submitResp = await fetch(`${apiBase}/video_generation`, {
+    const submitResp = await fetch(`${providerConfig.apiBase}/video_generation`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -228,11 +219,11 @@ router.post("/poll", async (c) => {
 
     // Get user settings for API key
     const userSettings = await getUserSettings(db, authUser.userId);
-    const apiBase = userSettings.videoApiBase.replace(/\/+$/, "");
+    const providerConfig = normalizeMiniMaxConfig(userSettings.videoApiBase, job.model || userSettings.videoModel);
 
-    // Poll MiniMax v2 task status: GET {base}/query/video_generation/{task_id}
+    // MiniMax v1 task query returns status and file_id.
     const pollResp = await fetch(
-      `${apiBase}/query/video_generation/${encodeURIComponent(job.externalTaskId)}`,
+      `${providerConfig.apiBase}/query/video_generation?task_id=${encodeURIComponent(job.externalTaskId)}`,
       {
         method: "GET",
         headers: { Authorization: `Bearer ${userSettings.videoApiKey}` },
@@ -250,22 +241,33 @@ router.post("/poll", async (c) => {
       });
     }
 
-    // MiniMax v2 response: { task: { id, status, content: { url }, ... } }
-    const task = pollData?.task || {};
-    const taskStatus = task?.status || "";
-    const videoUrl = task?.content?.url || "";
-    const errorMsg = task?.error || pollData?.error?.message || "";
+    const taskStatus = pollData?.status || "";
+    const fileId = pollData?.file_id || "";
+    const errorMsg = pollData?.error_message || pollData?.base_resp?.status_msg || pollData?.error?.message || "";
+    let videoUrl = "";
 
     // Map MiniMax v2 status to our status: queued, running, succeeded, failed, cancelled
     let newStatus = job.status;
-    if (taskStatus === "succeeded") {
+    if (taskStatus === "Success" || taskStatus === "success" || taskStatus === "succeeded") {
       newStatus = "succeeded";
-    } else if (taskStatus === "failed") {
+    } else if (taskStatus === "Fail" || taskStatus === "failed") {
       newStatus = "failed";
-    } else if (taskStatus === "cancelled") {
+    } else if (taskStatus === "Cancelled" || taskStatus === "cancelled") {
       newStatus = "cancelled";
-    } else if (taskStatus === "queued" || taskStatus === "running") {
+    } else if (["Queueing", "Preparing", "Processing", "queued", "running", "processing"].includes(taskStatus)) {
       newStatus = "processing";
+    }
+
+    if (newStatus === "succeeded" && fileId) {
+      const fileResp = await fetch(
+        `${providerConfig.apiBase}/files/retrieve?file_id=${encodeURIComponent(fileId)}`,
+        { headers: { Authorization: `Bearer ${userSettings.videoApiKey}` } }
+      );
+      const fileData: any = await fileResp.json().catch(() => ({}));
+      if (!fileResp.ok || !fileData?.file?.download_url) {
+        return c.json({ job_id: jobId, status: "processing", message: "视频已生成，下载地址暂未就绪" });
+      }
+      videoUrl = fileData.file.download_url;
     }
 
     // Update job status
@@ -284,17 +286,9 @@ router.post("/poll", async (c) => {
       }
       updateData.resultUrl = finalUrl;
 
-      // Calculate and record cost (P0-6)
-      const cost = calculateVideoCost(
-        task?.model || job.model || "MiniMax-H3",
-        task?.resolution || "768P",
-        task?.duration || 0
-      );
-      updateData.costAmount = cost.amount;
-      updateData.costCurrency = cost.currency;
-      updateData.costUnit = cost.unit;
-
       // Create a Take record for the generated video
+      let parameters: any = {};
+      try { parameters = JSON.parse(job.parameters || "{}"); } catch { /* ignore */ }
       await db.insert(takes).values({
         id: takeId,
         projectId: job.projectId || "",
@@ -303,14 +297,15 @@ router.post("/poll", async (c) => {
         takeType: "video",
         source: "ai_generated",
         mediaUrl: finalUrl,
-        duration: task?.duration || 0,
+        duration: parameters.duration || 0,
         reviewStatus: "pending",
         isAdopted: false,
         metadata: JSON.stringify({
           external_task_id: job.externalTaskId,
-          model: task?.model || job.model,
-          resolution: task?.resolution,
-          ratio: task?.ratio,
+          file_id: fileId,
+          model: job.model,
+          resolution: "768P",
+          ratio: parameters.aspect_ratio,
           upstream_url: r2Url ? videoUrl : undefined,
           r2_persisted: Boolean(r2Url),
         }),

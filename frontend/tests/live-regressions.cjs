@@ -146,6 +146,6 @@ test('three-episode production order and filenames retain episode identity', () 
   assert.equal(derived.speaker, '周明');
   assert.equal(derived.plannedDuration, 4);
   assert.equal(derived.derivedFromShot, true);
-  assert.deepEqual(estimateVideoGeneration(3.2), { billableDuration: 4, estimatedCost: 2 });
-  assert.deepEqual(estimateVideoGeneration(18), { billableDuration: 15, estimatedCost: 7.5 });
+  assert.deepEqual(estimateVideoGeneration(3.2), { billableDuration: 6 });
+  assert.deepEqual(estimateVideoGeneration(8), { billableDuration: 10 });
 });
