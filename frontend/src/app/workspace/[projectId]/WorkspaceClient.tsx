@@ -480,7 +480,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         } else if (succeeded === 0) {
           notify.error(`❌ 本集 ${failed} 个镜头冲印全部失败，请检查 API 设置`);
         } else {
-          notify.show(`🎨 冲印完成：${succeeded} 成功，${failed} 失败`, "warning");
+          notify.show(`🎨 冲印完成：${succeeded} 成功，${failed} 失败`, "info");
         }
       }
     } catch (e: any) {
