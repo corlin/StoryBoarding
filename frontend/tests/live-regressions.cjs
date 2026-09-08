@@ -125,3 +125,24 @@ test('project refresh preserves screenplay anchors and beat data for every episo
     api.getProject = originalGetProject;
   }
 });
+
+test('three-episode production order and filenames retain episode identity', () => {
+  const {
+    compareProductionShots,
+    deriveDialogueLineFromShot,
+    productionMediaFileBase,
+    productionShotLabel,
+  } = require('../src/lib/productionKanban.ts');
+  const ep2s1 = { shot_id: 'ep2-s1', episode_number: 2, order: 1, duration: 4, dialogue: '周明：“钥匙打不开。”' };
+  const ep1s2 = { shot_id: 'ep1-s2', episode_number: 1, order: 2, duration: 3.5, dialogue: '旁白：“门锁换过了。”' };
+  const ep1s1 = { shot_id: 'ep1-s1', episode_number: 1, order: 1, duration: 3, dialogue: '' };
+  const ordered = [ep2s1, ep1s2, ep1s1].sort(compareProductionShots);
+  assert.deepEqual(ordered.map((s) => s.shot_id), ['ep1-s1', 'ep1-s2', 'ep2-s1']);
+  assert.equal(productionShotLabel(ep2s1), 'EP 02 · SHOT 01');
+  assert.equal(productionMediaFileBase(ep2s1), 'ep_02_shot_01');
+  assert.notEqual(productionMediaFileBase(ep2s1), productionMediaFileBase(ep1s1));
+  const derived = deriveDialogueLineFromShot(ep2s1);
+  assert.equal(derived.speaker, '周明');
+  assert.equal(derived.plannedDuration, 4);
+  assert.equal(derived.derivedFromShot, true);
+});

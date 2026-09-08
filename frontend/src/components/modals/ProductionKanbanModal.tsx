@@ -3,6 +3,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import { normalizeAssetUrl } from "@/lib/api";
+import {
+  compareProductionShots,
+  deriveDialogueLineFromShot,
+  productionMediaFileBase,
+  productionShotLabel,
+} from "@/lib/productionKanban";
 
 interface ProductionKanbanModalProps {
   isOpen: boolean;
@@ -15,6 +21,9 @@ type ShotStatus = "待生成" | "生成中" | "失败" | "待审" | "退回" | "
 
 interface KanbanShot {
   shot_id: string;
+  sequence_id: string;
+  episode_number: number;
+  episode_title: string;
   order: number;
   shot_size: string;
   duration: number;
@@ -141,7 +150,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
   const getExportSequence = useCallback(async () => {
     const adoptedShots = shots.filter((s) => s.adopted_take_id);
     const sequence: any[] = [];
-    for (const shot of adoptedShots.sort((a, b) => a.order - b.order)) {
+    for (const shot of adoptedShots.sort(compareProductionShots)) {
       const res = await api.getShotTakes(shot.shot_id);
       const take = (res.takes || []).find((t: any) => t.id === shot.adopted_take_id);
       if (take) {
@@ -163,6 +172,8 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
         assembly_data: {
           shots: sequence.map((item) => ({
             shot_id: item.shot.shot_id,
+            sequence_id: item.shot.sequence_id,
+            episode_number: item.shot.episode_number,
             order: item.shot.order,
             take_id: item.take.id,
             media_url: item.take.media_url,
@@ -196,8 +207,8 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
     ];
     sequence.forEach((item, i) => {
       const ext = item.take.take_type === "video" ? "mp4" : item.take.take_type === "audio" ? "mp3" : "jpg";
-      lines.push(`# SHOT ${String(item.shot.order).padStart(2, "0")}: ${item.shot.action?.slice(0, 40) || ""}`);
-      lines.push(`file 'shot_${String(item.shot.order).padStart(2, "0")}.${ext}'`);
+      lines.push(`# ${productionShotLabel(item.shot)}: ${item.shot.action?.slice(0, 40) || ""}`);
+      lines.push(`file '${productionMediaFileBase(item.shot)}.${ext}'`);
       lines.push(`duration ${item.take.duration || 2}`);
       lines.push("");
     });
@@ -223,6 +234,8 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
       total_shots: sequence.length,
       total_duration: sequence.reduce((a, i) => a + (i.take.duration || 0), 0),
       shots: sequence.map((item) => ({
+        episode_number: item.shot.episode_number,
+        episode_title: item.shot.episode_title,
         order: item.shot.order,
         shot_id: item.shot.shot_id,
         action: item.shot.action,
@@ -251,13 +264,19 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
     try {
       const res = await api.getDialogueLines(projectId);
       const shotLines = (res.dialogue_lines || []).filter((l: any) => l.shotId === shotId);
-      setDialogueLines(shotLines);
+      if (shotLines.length > 0) {
+        setDialogueLines(shotLines);
+      } else {
+        const shot = shots.find((item) => item.shot_id === shotId);
+        const derived = shot ? deriveDialogueLineFromShot(shot) : null;
+        setDialogueLines(derived ? [derived] : []);
+      }
     } catch (e: any) {
       showToast(`台词加载失败: ${e?.response?.data?.detail || e.message}`, "error");
     } finally {
       setDialogueLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, shots]);
 
   const handleSaveLine = async (line: any) => {
     try {
@@ -491,7 +510,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-mono text-gray-400">SHOT {String(shot.order).padStart(2, "0")}</span>
+                      <span className="text-xs font-mono text-gray-400">{productionShotLabel(shot)}</span>
                       <span
                         className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
                         style={{ backgroundColor: STATUS_COLORS[shot.status] }}
@@ -526,7 +545,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
               <div>
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="text-sm font-bold text-white">
-                    SHOT {String(selectedShot.order).padStart(2, "0")}
+                    {productionShotLabel(selectedShot)}
                   </h3>
                   <div className="flex gap-1">
                     <button
@@ -569,7 +588,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                 ) : takes.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-[#30363d] py-12 text-center">
                     <p className="text-sm text-gray-500">暂无候选素材</p>
-                    <p className="mt-1 text-xs text-gray-600">生成图片或上传外部素材后将显示在这里</p>
+                    <p className="mt-1 text-xs text-gray-600">生成视频、图片或上传外部素材后将显示在这里</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -813,7 +832,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                     ) : (
                       <div className="space-y-2">
                         {dialogueLines.map((line, i) => (
-                          <div key={line.id} className="rounded-lg border border-[#21262d] bg-[#161b22] p-3">
+                          <div key={line.id || `derived-${selectedShot.shot_id}-${i}`} className="rounded-lg border border-[#21262d] bg-[#161b22] p-3">
                             <div className="mb-1 flex items-center justify-between">
                               <span className="text-xs font-bold text-blue-400">{line.speaker || "旁白"}</span>
                               <span className="text-[10px] text-gray-500">
@@ -822,6 +841,9 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                             </div>
                             <p className="text-xs text-gray-300">{line.text}</p>
                             {line.performance && <p className="mt-1 text-[10px] text-gray-500">表演: {line.performance}</p>}
+                            {line.derivedFromShot && (
+                              <p className="mt-1 text-[10px] text-amber-400">来自分镜台词；录入实际时长后建立可追踪台词记录</p>
+                            )}
                             <div className="mt-2 flex gap-2">
                               <input
                                 type="number"

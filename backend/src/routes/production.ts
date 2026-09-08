@@ -34,6 +34,7 @@ router.get("/kanban", async (c) => {
     // Get all sequences for project
     const seqs = await db.select().from(sequences).where(eq(sequences.projectId, projectId)).all();
     const seqIds = seqs.map((s: any) => s.id);
+    const sequenceById = new Map(seqs.map((s: any) => [s.id, s]));
 
     if (seqIds.length === 0) {
       return c.json({ project_id: projectId, shots: [], status_counts: {} });
@@ -60,6 +61,7 @@ router.get("/kanban", async (c) => {
 
     // Build kanban items
     const items = projectShots.map((shot: any) => {
+      const sequence: any = sequenceById.get(shot.sequenceId);
       const shotTakes = projectTakes.filter((t: any) => t.shotId === shot.id);
       const shotJobs = projectJobs.filter((j: any) => j.shotId === shot.id);
       const adoptedTake = shotTakes.find((t: any) => t.isAdopted);
@@ -76,6 +78,9 @@ router.get("/kanban", async (c) => {
 
       return {
         shot_id: shot.id,
+        sequence_id: shot.sequenceId,
+        episode_number: sequence?.episodeNumber || sequence?.order || 1,
+        episode_title: sequence?.title || `第 ${sequence?.episodeNumber || sequence?.order || 1} 集`,
         order: shot.order,
         shot_size: shot.shotSize,
         duration: shot.duration,
@@ -100,7 +105,7 @@ router.get("/kanban", async (c) => {
       project_id: projectId,
       total_shots: items.length,
       status_counts: statusCounts,
-      shots: items.sort((a: any, b: any) => a.order - b.order),
+      shots: items.sort((a: any, b: any) => a.episode_number - b.episode_number || a.order - b.order),
     });
   } catch (err: any) {
     console.error("[Kanban Error]:", err);
