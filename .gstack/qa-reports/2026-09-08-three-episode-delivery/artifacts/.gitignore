@@ -1,0 +1,13 @@
+delivery/ep01/
+delivery/ep02/
+delivery/ep03/
+delivery/*.mp4
+delivery/*.srt
+delivery/*.txt
+audio-uploads.jsonl
+create-series-response.json
+delivery-uploads*.jsonl
+edit-version*.json
+cost-summary-live.json
+project-live.json
+video-*.json

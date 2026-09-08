@@ -1,0 +1,745 @@
+{
+  "title": "第二把钥匙 · 三集制作验收版",
+  "story": "林夏用父亲留下的缺口黄铜钥匙追查旧照相馆后室的秘密，周明承认换锁并交出铁盒，最终一封信揭开照相馆归属与未偿债务。",
+  "aspect_ratio": "9:16",
+  "generate_preview_images": false,
+  "characters": [
+    {
+      "name": "林夏",
+      "role": "protagonist",
+      "visual_anchor": "Chinese woman, 26, shoulder-length black hair, light beige trench coat, alert eyes, carries a notched brass key",
+      "personality": "敏锐、克制、坚持查明真相"
+    },
+    {
+      "name": "周明",
+      "role": "supporting",
+      "visual_anchor": "Chinese man, 31, short black hair, dark navy work shirt, thin metal glasses, restrained and guarded",
+      "personality": "沉默、守诺、背负隐情"
+    }
+  ],
+  "episodes": [
+    {
+      "episode_number": 1,
+      "title": "EP01 钥匙打不开",
+      "target_duration": 48,
+      "hook_summary": "林夏用父亲遗留的缺口黄铜钥匙插入后室柜门，钥匙完全转不动。",
+      "cliffhanger_hook": "周明脱口说出钥匙右侧有缺口，林夏追问他为何知道。",
+      "payoff_summary": "林夏识破周明并非毫不知情。",
+      "synopsis": "同一晚，林夏回到旧照相馆寻找父亲留下的铁盒。她用黄铜钥匙试开后室柜门失败，回到前厅质问周明。周明否认知情，却准确说出钥匙的缺口位置。",
+      "shots": [
+        {
+          "order": 1,
+          "duration": 6,
+          "shot_size": "extreme_close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "雨夜照相馆后室，浅米色外套的林夏右手握住有缺口的黄铜钥匙，钥匙插进旧柜门锁孔。",
+          "action": "雨夜照相馆后室，浅米色外套的林夏右手握住有缺口的黄铜钥匙，钥匙插进旧柜门锁孔。",
+          "dialogue": "旁白：“父亲只留下这一把钥匙。”",
+          "narrative_function": "钩子",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 雨夜照相馆后室，浅米色外套的林夏右手握住有缺口的黄铜钥匙，钥匙插进旧柜门锁孔。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 雨夜照相馆后室，浅米色外套的林夏右手握住有缺口的黄铜钥匙，钥匙插进旧柜门锁孔。 旁白：“父亲只留下这一把钥匙。” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "钥匙特写；右手持有；柜门关闭"
+          },
+          "beat_type": "hook",
+          "emotional_voltage": 55
+        },
+        {
+          "order": 2,
+          "duration": 6,
+          "shot_size": "medium_shot",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "push_in"
+          },
+          "subject": "林夏用力转动钥匙，锁芯纹丝不动，她压住失望。",
+          "action": "林夏用力转动钥匙，锁芯纹丝不动，她压住失望。",
+          "dialogue": "林夏：“打不开……”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏用力转动钥匙，锁芯纹丝不动，她压住失望。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏用力转动钥匙，锁芯纹丝不动，她压住失望。 林夏：“打不开……” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "后室；柜门关闭；钥匙仍在右手"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 60
+        },
+        {
+          "order": 3,
+          "duration": 6,
+          "shot_size": "close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "林夏拔出钥匙，检查右侧缺口，转身走向前厅。",
+          "action": "林夏拔出钥匙，检查右侧缺口，转身走向前厅。",
+          "dialogue": "",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏拔出钥匙，检查右侧缺口，转身走向前厅。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏拔出钥匙，检查右侧缺口，转身走向前厅。  Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "钥匙右侧有缺口；林夏持有"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 65
+        },
+        {
+          "order": 4,
+          "duration": 6,
+          "shot_size": "wide_shot",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "tracking"
+          },
+          "subject": "林夏从后室进入前厅，深蓝工作衬衫的周明站在柜台后，两人隔着旧木柜台对峙。",
+          "action": "林夏从后室进入前厅，深蓝工作衬衫的周明站在柜台后，两人隔着旧木柜台对峙。",
+          "dialogue": "林夏：“我爸的柜门，谁动过？”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏从后室进入前厅，深蓝工作衬衫的周明站在柜台后，两人隔着旧木柜台对峙。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏从后室进入前厅，深蓝工作衬衫的周明站在柜台后，两人隔着旧木柜台对峙。 林夏：“我爸的柜门，谁动过？” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "空间从后室连续到前厅"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 70
+        },
+        {
+          "order": 5,
+          "duration": 6,
+          "shot_size": "medium_close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "周明避开视线，手指停在账本上。",
+          "action": "周明避开视线，手指停在账本上。",
+          "dialogue": "周明：“我不知道。”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 周明避开视线，手指停在账本上。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 周明避开视线，手指停在账本上。 周明：“我不知道。” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "周明站柜台后；未接触钥匙"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 75
+        },
+        {
+          "order": 6,
+          "duration": 6,
+          "shot_size": "two_shot",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "push_in"
+          },
+          "subject": "林夏把钥匙放到柜台中央，缺口朝向周明。",
+          "action": "林夏把钥匙放到柜台中央，缺口朝向周明。",
+          "dialogue": "林夏：“那你看看这把钥匙。”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏把钥匙放到柜台中央，缺口朝向周明。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏把钥匙放到柜台中央，缺口朝向周明。 林夏：“那你看看这把钥匙。” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "钥匙由林夏放在柜台"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 80
+        },
+        {
+          "order": 7,
+          "duration": 6,
+          "shot_size": "close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "周明没有拿钥匙，却下意识盯住右侧缺口。",
+          "action": "周明没有拿钥匙，却下意识盯住右侧缺口。",
+          "dialogue": "周明：“缺口都崩了，当然打不开。”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 周明没有拿钥匙，却下意识盯住右侧缺口。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 周明没有拿钥匙，却下意识盯住右侧缺口。 周明：“缺口都崩了，当然打不开。” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "周明识别缺口；钥匙仍在柜台"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 85
+        },
+        {
+          "order": 8,
+          "duration": 6,
+          "shot_size": "close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "push_in"
+          },
+          "subject": "林夏立即抬眼锁住周明，周明意识到失言。",
+          "action": "林夏立即抬眼锁住周明，周明意识到失言。",
+          "dialogue": "林夏：“你为什么知道缺口在哪边？”",
+          "narrative_function": "集尾断点",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏立即抬眼锁住周明，周明意识到失言。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏立即抬眼锁住周明，周明意识到失言。 林夏：“你为什么知道缺口在哪边？” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "集尾对峙；钥匙在两人之间"
+          },
+          "beat_type": "cliffhanger",
+          "emotional_voltage": 90
+        }
+      ],
+      "featured_characters": [
+        "林夏",
+        "周明"
+      ],
+      "beats_data": [
+        {
+          "id": "ep1-beat-1",
+          "type": "dialogue",
+          "speaker": "旁白",
+          "content": "旁白：“父亲只留下这一把钥匙。”",
+          "duration": 6
+        },
+        {
+          "id": "ep1-beat-2",
+          "type": "dialogue",
+          "speaker": "林夏",
+          "content": "林夏：“打不开……”",
+          "duration": 6
+        },
+        {
+          "id": "ep1-beat-3",
+          "type": "action",
+          "speaker": "",
+          "content": "林夏拔出钥匙，检查右侧缺口，转身走向前厅。",
+          "duration": 6
+        },
+        {
+          "id": "ep1-beat-4",
+          "type": "dialogue",
+          "speaker": "林夏",
+          "content": "林夏：“我爸的柜门，谁动过？”",
+          "duration": 6
+        },
+        {
+          "id": "ep1-beat-5",
+          "type": "dialogue",
+          "speaker": "周明",
+          "content": "周明：“我不知道。”",
+          "duration": 6
+        },
+        {
+          "id": "ep1-beat-6",
+          "type": "dialogue",
+          "speaker": "林夏",
+          "content": "林夏：“那你看看这把钥匙。”",
+          "duration": 6
+        },
+        {
+          "id": "ep1-beat-7",
+          "type": "dialogue",
+          "speaker": "周明",
+          "content": "周明：“缺口都崩了，当然打不开。”",
+          "duration": 6
+        },
+        {
+          "id": "ep1-beat-8",
+          "type": "dialogue",
+          "speaker": "林夏",
+          "content": "林夏：“你为什么知道缺口在哪边？”",
+          "duration": 6
+        }
+      ]
+    },
+    {
+      "episode_number": 2,
+      "title": "EP02 谁换了锁",
+      "target_duration": 48,
+      "hook_summary": "紧接上一集，林夏逼问缺口方向，周明无法再回避。",
+      "cliffhanger_hook": "黄铜钥匙打开铁盒，里面出现一封写给林夏的密封信。",
+      "payoff_summary": "周明承认换锁，并交出真正要由钥匙打开的铁盒。",
+      "synopsis": "周明承认遵照林父要求换过柜门。他从柜台下取出布袋交给林夏。林夏右手拿回钥匙，左手从布袋取出关闭的铁盒，用钥匙打开，发现一封仍密封的信。",
+      "shots": [
+        {
+          "order": 1,
+          "duration": 6,
+          "shot_size": "two_shot",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "承接上集站位，钥匙仍在柜台中央，林夏与周明对峙。",
+          "action": "承接上集站位，钥匙仍在柜台中央，林夏与周明对峙。",
+          "dialogue": "林夏：“回答我，为什么知道？”",
+          "narrative_function": "钩子",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 承接上集站位，钥匙仍在柜台中央，林夏与周明对峙。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 承接上集站位，钥匙仍在柜台中央，林夏与周明对峙。 林夏：“回答我，为什么知道？” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "前厅原站位；钥匙在柜台"
+          },
+          "beat_type": "hook",
+          "emotional_voltage": 55
+        },
+        {
+          "order": 2,
+          "duration": 6,
+          "shot_size": "medium_close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "push_in"
+          },
+          "subject": "周明低头承认，双手始终没有碰钥匙。",
+          "action": "周明低头承认，双手始终没有碰钥匙。",
+          "dialogue": "周明：“柜门是我换的。”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 周明低头承认，双手始终没有碰钥匙。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 周明低头承认，双手始终没有碰钥匙。 周明：“柜门是我换的。” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "周明承认换锁"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 60
+        },
+        {
+          "order": 3,
+          "duration": 6,
+          "shot_size": "close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "林夏将钥匙收回右手，指节收紧。",
+          "action": "林夏将钥匙收回右手，指节收紧。",
+          "dialogue": "林夏：“你还瞒了什么？”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏将钥匙收回右手，指节收紧。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏将钥匙收回右手，指节收紧。 林夏：“你还瞒了什么？” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "钥匙回到林夏右手"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 65
+        },
+        {
+          "order": 4,
+          "duration": 6,
+          "shot_size": "medium_shot",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "tracking"
+          },
+          "subject": "周明蹲下，从柜台下层取出一只旧布袋，双手放到柜台上。",
+          "action": "周明蹲下，从柜台下层取出一只旧布袋，双手放到柜台上。",
+          "dialogue": "周明：“你父亲让我保管这个。”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 周明蹲下，从柜台下层取出一只旧布袋，双手放到柜台上。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 周明蹲下，从柜台下层取出一只旧布袋，双手放到柜台上。 周明：“你父亲让我保管这个。” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "布袋由周明取出并放柜台"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 70
+        },
+        {
+          "order": 5,
+          "duration": 6,
+          "shot_size": "over_shoulder",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "林夏左手拉开布袋，露出一只关闭的黑色铁盒，右手仍握钥匙。",
+          "action": "林夏左手拉开布袋，露出一只关闭的黑色铁盒，右手仍握钥匙。",
+          "dialogue": "",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏左手拉开布袋，露出一只关闭的黑色铁盒，右手仍握钥匙。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏左手拉开布袋，露出一只关闭的黑色铁盒，右手仍握钥匙。  Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "布袋打开；铁盒关闭"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 75
+        },
+        {
+          "order": 6,
+          "duration": 6,
+          "shot_size": "extreme_close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "push_in"
+          },
+          "subject": "黄铜钥匙插入铁盒锁孔，这次顺利转动。",
+          "action": "黄铜钥匙插入铁盒锁孔，这次顺利转动。",
+          "dialogue": "",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 黄铜钥匙插入铁盒锁孔，这次顺利转动。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 黄铜钥匙插入铁盒锁孔，这次顺利转动。  Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "钥匙匹配铁盒；铁盒开始解锁"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 80
+        },
+        {
+          "order": 7,
+          "duration": 6,
+          "shot_size": "close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "铁盒盖被林夏左手掀开，里面只有一封完好密封的信。",
+          "action": "铁盒盖被林夏左手掀开，里面只有一封完好密封的信。",
+          "dialogue": "",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 铁盒盖被林夏左手掀开，里面只有一封完好密封的信。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 铁盒盖被林夏左手掀开，里面只有一封完好密封的信。  Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "铁盒打开；信封密封"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 85
+        },
+        {
+          "order": 8,
+          "duration": 6,
+          "shot_size": "two_shot",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "pull_out"
+          },
+          "subject": "林夏拿起密封信看向周明，周明沉默站在柜台另一侧。",
+          "action": "林夏拿起密封信看向周明，周明沉默站在柜台另一侧。",
+          "dialogue": "林夏：“这封信，留给谁？”",
+          "narrative_function": "集尾断点",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏拿起密封信看向周明，周明沉默站在柜台另一侧。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏拿起密封信看向周明，周明沉默站在柜台另一侧。 林夏：“这封信，留给谁？” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "信封由林夏持有；集尾悬念"
+          },
+          "beat_type": "cliffhanger",
+          "emotional_voltage": 90
+        }
+      ],
+      "featured_characters": [
+        "林夏",
+        "周明"
+      ],
+      "beats_data": [
+        {
+          "id": "ep2-beat-1",
+          "type": "dialogue",
+          "speaker": "林夏",
+          "content": "林夏：“回答我，为什么知道？”",
+          "duration": 6
+        },
+        {
+          "id": "ep2-beat-2",
+          "type": "dialogue",
+          "speaker": "周明",
+          "content": "周明：“柜门是我换的。”",
+          "duration": 6
+        },
+        {
+          "id": "ep2-beat-3",
+          "type": "dialogue",
+          "speaker": "林夏",
+          "content": "林夏：“你还瞒了什么？”",
+          "duration": 6
+        },
+        {
+          "id": "ep2-beat-4",
+          "type": "dialogue",
+          "speaker": "周明",
+          "content": "周明：“你父亲让我保管这个。”",
+          "duration": 6
+        },
+        {
+          "id": "ep2-beat-5",
+          "type": "action",
+          "speaker": "",
+          "content": "林夏左手拉开布袋，露出一只关闭的黑色铁盒，右手仍握钥匙。",
+          "duration": 6
+        },
+        {
+          "id": "ep2-beat-6",
+          "type": "action",
+          "speaker": "",
+          "content": "黄铜钥匙插入铁盒锁孔，这次顺利转动。",
+          "duration": 6
+        },
+        {
+          "id": "ep2-beat-7",
+          "type": "action",
+          "speaker": "",
+          "content": "铁盒盖被林夏左手掀开，里面只有一封完好密封的信。",
+          "duration": 6
+        },
+        {
+          "id": "ep2-beat-8",
+          "type": "dialogue",
+          "speaker": "林夏",
+          "content": "林夏：“这封信，留给谁？”",
+          "duration": 6
+        }
+      ]
+    },
+    {
+      "episode_number": 3,
+      "title": "EP03 留给谁的信",
+      "target_duration": 48,
+      "hook_summary": "林夏举起未拆的信，逼问周明为何替父亲隐瞒。",
+      "cliffhanger_hook": "信中同时写明照相馆归林夏、父亲欠周明的钱由她偿还。",
+      "payoff_summary": "误会解除，但债务让两人必须重新谈判。",
+      "synopsis": "林夏拿着仍密封的信追问。周明解释林父临终前托他保管铁盒，也要求不到林夏决定留下照相馆时不要交出。林夏拆信，读到照相馆留给她，同时父亲欠周明的钱请她还清。她由怀疑转为复杂理解，两人重新谈判。",
+      "shots": [
+        {
+          "order": 1,
+          "duration": 6,
+          "shot_size": "close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "林夏右手举着仍密封的信，封口完整可见。",
+          "action": "林夏右手举着仍密封的信，封口完整可见。",
+          "dialogue": "林夏：“你替他瞒了我多久？”",
+          "narrative_function": "钩子",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏右手举着仍密封的信，封口完整可见。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏右手举着仍密封的信，封口完整可见。 林夏：“你替他瞒了我多久？” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "信封密封；林夏持有"
+          },
+          "beat_type": "hook",
+          "emotional_voltage": 55
+        },
+        {
+          "order": 2,
+          "duration": 6,
+          "shot_size": "medium_close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "push_in"
+          },
+          "subject": "周明正视林夏，语气克制。",
+          "action": "周明正视林夏，语气克制。",
+          "dialogue": "周明：“他走前把铁盒交给我。”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 周明正视林夏，语气克制。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 周明正视林夏，语气克制。 周明：“他走前把铁盒交给我。” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "周明开始解释受托经过"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 60
+        },
+        {
+          "order": 3,
+          "duration": 6,
+          "shot_size": "two_shot",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "两人隔柜台相对，打开的铁盒和布袋都留在桌面。",
+          "action": "两人隔柜台相对，打开的铁盒和布袋都留在桌面。",
+          "dialogue": "周明：“他说，等你决定留下照相馆再给你。”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 两人隔柜台相对，打开的铁盒和布袋都留在桌面。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 两人隔柜台相对，打开的铁盒和布袋都留在桌面。 周明：“他说，等你决定留下照相馆再给你。” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "铁盒打开；信仍未拆"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 65
+        },
+        {
+          "order": 4,
+          "duration": 6,
+          "shot_size": "close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "林夏的怀疑稍缓，但没有放下信。",
+          "action": "林夏的怀疑稍缓，但没有放下信。",
+          "dialogue": "林夏：“那你为什么换锁？”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏的怀疑稍缓，但没有放下信。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏的怀疑稍缓，但没有放下信。 林夏：“那你为什么换锁？” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "情绪从敌意转为求证"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 70
+        },
+        {
+          "order": 5,
+          "duration": 6,
+          "shot_size": "medium_close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "push_in"
+          },
+          "subject": "周明看向后室，坦白旧柜门已经损坏，也提到未结清的借款。",
+          "action": "周明看向后室，坦白旧柜门已经损坏，也提到未结清的借款。",
+          "dialogue": "周明：“门坏了。还有一笔钱，他一直没还。”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 周明看向后室，坦白旧柜门已经损坏，也提到未结清的借款。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 周明看向后室，坦白旧柜门已经损坏，也提到未结清的借款。 周明：“门坏了。还有一笔钱，他一直没还。” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "揭示换锁动机与债务"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 75
+        },
+        {
+          "order": 6,
+          "duration": 6,
+          "shot_size": "extreme_close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "林夏沿封口拆开信封，抽出信纸。",
+          "action": "林夏沿封口拆开信封，抽出信纸。",
+          "dialogue": "",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏沿封口拆开信封，抽出信纸。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏沿封口拆开信封，抽出信纸。  Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "信封从密封变为拆开"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 80
+        },
+        {
+          "order": 7,
+          "duration": 6,
+          "shot_size": "insert_shot",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "static"
+          },
+          "subject": "信纸文字以后期字幕清晰叠加：照相馆留给你，欠周明的钱也请你还清。",
+          "action": "信纸文字以后期字幕清晰叠加：照相馆留给你，欠周明的钱也请你还清。",
+          "dialogue": "旁白：“照相馆留给你，欠周明的钱也请你还清。”",
+          "narrative_function": "推进",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 信纸文字以后期字幕清晰叠加：照相馆留给你，欠周明的钱也请你还清。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 信纸文字以后期字幕清晰叠加：照相馆留给你，欠周明的钱也请你还清。 旁白：“照相馆留给你，欠周明的钱也请你还清。” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "信件文字用后期叠加，不依赖模型渲字"
+          },
+          "beat_type": "progression",
+          "emotional_voltage": 85
+        },
+        {
+          "order": 8,
+          "duration": 6,
+          "shot_size": "two_shot",
+          "camera_angle": "eye_level",
+          "camera_movement": {
+            "type": "pull_out"
+          },
+          "subject": "林夏放下信，复杂地看向周明；周明把账本推到两人中间。",
+          "action": "林夏放下信，复杂地看向周明；周明把账本推到两人中间。",
+          "dialogue": "林夏：“先把账算清。照相馆，我们再谈。”",
+          "narrative_function": "集尾断点",
+          "lighting": "同一雨夜，暖黄钨丝灯与冷蓝窗外雨光，9:16电影感",
+          "image_prompt": "Vertical 9:16 Chinese urban mystery short drama, old photo studio at night, 林夏放下信，复杂地看向周明；周明把账本推到两人中间。, Lin Xia in light beige coat, Zhou Ming in dark navy work shirt, cinematic tungsten light and cool rainy window light, consistent faces and props, no readable text",
+          "video_prompt": "Vertical 9:16 cinematic Chinese urban mystery. 林夏放下信，复杂地看向周明；周明把账本推到两人中间。 林夏：“先把账算清。照相馆，我们再谈。” Keep Lin Xia in a light beige coat, Zhou Ming in a dark navy work shirt, brass key has a notch on its right edge. Natural restrained acting. [Static shot]",
+          "continuity_data": {
+            "state": "信已拆；账本进入谈判；三集收束"
+          },
+          "beat_type": "cliffhanger",
+          "emotional_voltage": 90
+        }
+      ],
+      "featured_characters": [
+        "林夏",
+        "周明"
+      ],
+      "beats_data": [
+        {
+          "id": "ep3-beat-1",
+          "type": "dialogue",
+          "speaker": "林夏",
+          "content": "林夏：“你替他瞒了我多久？”",
+          "duration": 6
+        },
+        {
+          "id": "ep3-beat-2",
+          "type": "dialogue",
+          "speaker": "周明",
+          "content": "周明：“他走前把铁盒交给我。”",
+          "duration": 6
+        },
+        {
+          "id": "ep3-beat-3",
+          "type": "dialogue",
+          "speaker": "周明",
+          "content": "周明：“他说，等你决定留下照相馆再给你。”",
+          "duration": 6
+        },
+        {
+          "id": "ep3-beat-4",
+          "type": "dialogue",
+          "speaker": "林夏",
+          "content": "林夏：“那你为什么换锁？”",
+          "duration": 6
+        },
+        {
+          "id": "ep3-beat-5",
+          "type": "dialogue",
+          "speaker": "周明",
+          "content": "周明：“门坏了。还有一笔钱，他一直没还。”",
+          "duration": 6
+        },
+        {
+          "id": "ep3-beat-6",
+          "type": "action",
+          "speaker": "",
+          "content": "林夏沿封口拆开信封，抽出信纸。",
+          "duration": 6
+        },
+        {
+          "id": "ep3-beat-7",
+          "type": "dialogue",
+          "speaker": "旁白",
+          "content": "旁白：“照相馆留给你，欠周明的钱也请你还清。”",
+          "duration": 6
+        },
+        {
+          "id": "ep3-beat-8",
+          "type": "dialogue",
+          "speaker": "林夏",
+          "content": "林夏：“先把账算清。照相馆，我们再谈。”",
+          "duration": 6
+        }
+      ]
+    }
+  ]
+}

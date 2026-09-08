@@ -1,0 +1,33 @@
+{
+  "title": "第二把钥匙 · 三集制作验收版",
+  "format": "technical_animatic_with_one_real_ai_video",
+  "aspect_ratio": "9:16",
+  "episodes": [
+    {
+      "episode_number": 1,
+      "title": "EP01 钥匙打不开",
+      "duration": 48,
+      "file": "EP01-钥匙打不开-带字幕.mp4",
+      "subtitle": "ep01/subtitles.srt"
+    },
+    {
+      "episode_number": 2,
+      "title": "EP02 谁换了锁",
+      "duration": 48,
+      "file": "EP02-谁换了锁-带字幕.mp4",
+      "subtitle": "ep02/subtitles.srt"
+    },
+    {
+      "episode_number": 3,
+      "title": "EP03 留给谁的信",
+      "duration": 48,
+      "file": "EP03-留给谁的信-带字幕.mp4",
+      "subtitle": "ep03/subtitles.srt"
+    }
+  ],
+  "total_duration": 144,
+  "full_video": "第二把钥匙-三集完整样片-带字幕.mp4",
+  "full_subtitle": "subtitles-full.srt",
+  "subtitle_mode": "embedded_mov_text_and_external_srt",
+  "note": "EP01 SHOT01 uses the recovered and adopted MiniMax video. The other 23 shots are technical animatic cards."
+}
