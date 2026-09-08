@@ -29,9 +29,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   // Video provider settings (P0-2)
   const [videoProvider, setVideoProvider] = useState("minimax");
-  const [videoApiBase, setVideoApiBase] = useState("https://api.minimax.chat/v1");
+  const [videoApiBase, setVideoApiBase] = useState("https://api.minimax.cn/v2");
   const [videoApiKey, setVideoApiKey] = useState("");
-  const [videoModel, setVideoModel] = useState("video-01-h3");
+  const [videoModel, setVideoModel] = useState("MiniMax-H3");
   const [hasVideoKey, setHasVideoKey] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -70,10 +70,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             setImageModel(config.image_model || "bytedance-seed/seedream-5-0-lite");
             // Video provider settings
             setVideoProvider(config.video_provider || "minimax");
-            setVideoApiBase(config.video_api_base || "https://api.minimax.chat/v1");
+            setVideoApiBase(config.video_api_base || "https://api.minimax.cn/v2");
             setVideoApiKey("");
             setHasVideoKey(Boolean(config.has_video_key || config.video_api_key_masked));
-            setVideoModel(config.video_model || "video-01-h3");
+            setVideoModel(config.video_model || "MiniMax-H3");
           }
         })
         .catch(console.error);
@@ -532,8 +532,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     const val = e.target.value;
                     setVideoProvider(val);
                     if (val === "minimax") {
-                      setVideoApiBase("https://api.minimax.chat/v1");
-                      setVideoModel("video-01-h3");
+                      setVideoApiBase("https://api.minimax.cn/v2");
+                      setVideoModel("MiniMax-H3");
                     }
                   }}
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
@@ -549,8 +549,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   onChange={(e) => setVideoModel(e.target.value)}
                   className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
                 >
-                  <option value="video-01-h3">video-01-h3 (MiniMax H3 旗舰)</option>
-                  <option value="video-01">video-01 (MiniMax 标准)</option>
+                  <option value="MiniMax-H3">MiniMax-H3 (旗舰 · 768P/2K · 4-15s)</option>
+                  <option value="MiniMax-H3-Max">MiniMax-H3-Max (快速 · 480P/768P · 5-15s)</option>
                 </select>
                 <input
                   type="text"
@@ -568,7 +568,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 type="text"
                 value={videoApiBase}
                 onChange={(e) => setVideoApiBase(e.target.value)}
-                placeholder="https://api.minimax.chat/v1"
+                placeholder="https://api.minimax.cn/v2"
                 className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
               />
             </div>

@@ -74,11 +74,18 @@ router.post("/video/:shotId", async (c) => {
       updatedAt: now,
     });
 
-    // Submit to MiniMax H3 API
+    // Submit to MiniMax H3 v2 API
+    // API: POST {base}/video_generation with content array format
     const apiBase = userSettings.videoApiBase.replace(/\/+$/, "");
-    // MiniMax video_generation endpoint: try minimal params first
+    const videoDuration = Math.min(Math.max(Math.round(shot.duration || 5), 4), 15); // H3: 4-15s
     const reqBody: any = {
-      prompt: videoPrompt,
+      model: userSettings.videoModel || "MiniMax-H3",
+      content: [
+        { type: "text", text: videoPrompt },
+      ],
+      resolution: "768P", // MiniMax-H3 supports 768P / 2K
+      duration: videoDuration,
+      ratio: aspectRatio, // 9:16 or 16:9
     };
     const submitResp = await fetch(`${apiBase}/video_generation`, {
       method: "POST",
@@ -92,10 +99,10 @@ router.post("/video/:shotId", async (c) => {
     const submitData: any = await submitResp.json().catch(() => ({}));
 
     if (!submitResp.ok) {
-      const errorMsg = submitData?.base_resp?.status_msg || submitData?.message || submitData?.error || `HTTP ${submitResp.status}`;
+      const errorMsg = submitData?.error?.message || submitData?.message || submitData?.base_resp?.status_msg || `HTTP ${submitResp.status}`;
       await db.update(generationJobs).set({
         status: "failed",
-        failureReason: `提交失败: ${errorMsg}, 请求体: ${JSON.stringify(reqBody).substring(0, 200)}`,
+        failureReason: `提交失败: ${errorMsg}`,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }).where(eq(generationJobs.id, jobId));
@@ -106,17 +113,13 @@ router.post("/video/:shotId", async (c) => {
       }, 502);
     }
 
-    // MiniMax returns task_id
-    const externalTaskId = submitData?.task_id
-      || submitData?.data?.task_id
-      || submitData?.id
-      || submitData?.data?.id
-      || "";
+    // MiniMax v2 returns { task_id: "..." }
+    const externalTaskId = submitData?.task_id || "";
     if (!externalTaskId) {
       const respBody = JSON.stringify(submitData).substring(0, 500);
       await db.update(generationJobs).set({
         status: "failed",
-        failureReason: `供应商未返回 task_id, 响应: ${respBody}, 请求体: ${JSON.stringify(reqBody).substring(0, 200)}`,
+        failureReason: `供应商未返回 task_id, 响应: ${respBody}`,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }).where(eq(generationJobs.id, jobId));
@@ -179,9 +182,9 @@ router.post("/video/poll", async (c) => {
     const userSettings = await getUserSettings(db, authUser.userId);
     const apiBase = userSettings.videoApiBase.replace(/\/+$/, "");
 
-    // Poll MiniMax task status
+    // Poll MiniMax v2 task status: GET {base}/query/video_generation/{task_id}
     const pollResp = await fetch(
-      `${apiBase}/video_generation?task_id=${encodeURIComponent(job.externalTaskId)}`,
+      `${apiBase}/query/video_generation/${encodeURIComponent(job.externalTaskId)}`,
       {
         method: "GET",
         headers: { Authorization: `Bearer ${userSettings.videoApiKey}` },
@@ -191,24 +194,29 @@ router.post("/video/poll", async (c) => {
     const pollData: any = await pollResp.json().catch(() => ({}));
 
     if (!pollResp.ok) {
+      const errMsg = pollData?.error?.message || pollData?.message || `HTTP ${pollResp.status}`;
       return c.json({
         job_id: jobId,
         status: job.status,
-        message: `轮询失败: HTTP ${pollResp.status}`,
+        message: `轮询失败: ${errMsg}`,
       });
     }
 
-    const taskStatus = pollData?.status || pollData?.data?.status || "";
-    const videoUrl = pollData?.video_url || pollData?.data?.video_url || "";
-    const errorMsg = pollData?.error || pollData?.message || "";
+    // MiniMax v2 response: { task: { id, status, content: { url }, ... } }
+    const task = pollData?.task || {};
+    const taskStatus = task?.status || "";
+    const videoUrl = task?.content?.url || "";
+    const errorMsg = task?.error || pollData?.error?.message || "";
 
-    // Map MiniMax status to our status
+    // Map MiniMax v2 status to our status: queued, running, succeeded, failed, cancelled
     let newStatus = job.status;
-    if (taskStatus === "Success" || taskStatus === "success" || taskStatus === "completed") {
+    if (taskStatus === "succeeded") {
       newStatus = "succeeded";
-    } else if (taskStatus === "Failed" || taskStatus === "failed" || taskStatus === "error") {
+    } else if (taskStatus === "failed") {
       newStatus = "failed";
-    } else if (taskStatus === "Processing" || taskStatus === "processing" || taskStatus === "queued") {
+    } else if (taskStatus === "cancelled") {
+      newStatus = "cancelled";
+    } else if (taskStatus === "queued" || taskStatus === "running") {
       newStatus = "processing";
     }
 
@@ -221,7 +229,6 @@ router.post("/video/poll", async (c) => {
 
       // Create a Take record for the generated video
       const takeId = crypto.randomUUID();
-      const params = job.parameters ? JSON.parse(job.parameters) : {};
       await db.insert(takes).values({
         id: takeId,
         projectId: job.projectId || "",
@@ -230,10 +237,10 @@ router.post("/video/poll", async (c) => {
         takeType: "video",
         source: "ai_generated",
         mediaUrl: videoUrl,
-        duration: params.duration || 0,
+        duration: task?.duration || 0,
         reviewStatus: "pending",
         isAdopted: false,
-        metadata: JSON.stringify({ external_task_id: job.externalTaskId, model: job.model }),
+        metadata: JSON.stringify({ external_task_id: job.externalTaskId, model: task?.model || job.model, resolution: task?.resolution, ratio: task?.ratio }),
       });
 
       updateData.resultMetadata = JSON.stringify({ take_id: takeId });

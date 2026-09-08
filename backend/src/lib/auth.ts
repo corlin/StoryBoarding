@@ -191,7 +191,7 @@ export async function getUserSettings(db: any, userId?: string) {
     imageModel: userSettings.imageModel || "bytedance-seed/seedream-5-0-lite",
     videoProvider: userSettings.videoProvider || "minimax",
     videoApiKey,
-    videoApiBase: userSettings.videoApiBase || "https://api.minimax.chat/v1",
-    videoModel: userSettings.videoModel || "video-01-h3",
+    videoApiBase: userSettings.videoApiBase || "https://api.minimax.cn/v2",
+    videoModel: userSettings.videoModel || "MiniMax-H3",
   };
 }
