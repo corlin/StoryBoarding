@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import {
   projects, sequences, shots, generationJobs, takes,
@@ -39,12 +39,11 @@ router.get("/kanban", async (c) => {
       return c.json({ project_id: projectId, shots: [], status_counts: {} });
     }
 
-    // Get all shots
-    const allShots = await db.select().from(shots)
-      .where(sql`${shots.sequenceId} in (${sql.join(seqIds.map(() => sql`${""}`), sql`,`)})`)
-      .all();
-    // Simpler: fetch all and filter
-    const projectShots = allShots.filter((s: any) => seqIds.includes(s.sequenceId));
+    // Get all shots for this project's sequences
+    const allShots = seqIds.length > 0
+      ? await db.select().from(shots).where(inArray(shots.sequenceId, seqIds)).all()
+      : [];
+    const projectShots = allShots;
 
     // Get takes count per shot
     const shotIds = projectShots.map((s: any) => s.id);
