@@ -1,0 +1,2 @@
+# Preserve downloaded CSV evidence bytes and recognize RFC 4180 CRLF lines.
+docs/evidence/**/*.csv -text whitespace=cr-at-eol

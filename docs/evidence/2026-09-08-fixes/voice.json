@@ -1,0 +1,74 @@
+[
+  {
+    "index": 1,
+    "shotId": "shot-lover-101",
+    "shotOrder": 1,
+    "speakerName": "旁白",
+    "voiceDna": "待确认音色",
+    "status": "resolved",
+    "dialogue": "旁白：“二十万，留给母亲的时间只剩四十八小时。”",
+    "emotion": "正常叙事",
+    "duration": 3,
+    "durationBasis": "planned_shot"
+  },
+  {
+    "index": 2,
+    "shotId": "shot-lover-102",
+    "shotOrder": 2,
+    "speakerName": "苏晓",
+    "voiceDna": "年轻女性声音，清澈带一丝疲惫，情绪爆发时坚定克制",
+    "status": "resolved",
+    "dialogue": "苏晓：“我真的已经……没有任何办法了。”",
+    "emotion": "正常叙事",
+    "duration": 4,
+    "durationBasis": "planned_shot"
+  },
+  {
+    "index": 3,
+    "shotId": "shot-lover-103",
+    "shotOrder": 3,
+    "speakerName": "宋知远",
+    "voiceDna": "年轻磁性男低音，冷静理性，微带压抑的关切",
+    "status": "resolved",
+    "dialogue": "宋知远：“退学申请书写好了？这就是你的骨气？”",
+    "emotion": "正常叙事",
+    "duration": 3.5,
+    "durationBasis": "planned_shot"
+  },
+  {
+    "index": 4,
+    "shotId": "shot-lover-104",
+    "shotOrder": 4,
+    "speakerName": "苏晓",
+    "voiceDna": "年轻女性声音，清澈带一丝疲惫，情绪爆发时坚定克制",
+    "status": "resolved",
+    "dialogue": "苏晓：“你怎么会知道……你到底在偷看我什么？！”",
+    "emotion": "正常叙事",
+    "duration": 4,
+    "durationBasis": "planned_shot"
+  },
+  {
+    "index": 5,
+    "shotId": "shot-lover-105",
+    "shotOrder": 5,
+    "speakerName": "宋知远",
+    "voiceDna": "年轻磁性男低音，冷静理性，微带压抑的关切",
+    "status": "resolved",
+    "dialogue": "宋知远：“我不是偷看。三年前匿名给你母亲汇款的‘宋先生’，就是我。”",
+    "emotion": "正常叙事",
+    "duration": 4.5,
+    "durationBasis": "planned_shot"
+  },
+  {
+    "index": 6,
+    "shotId": "shot-lover-106",
+    "shotOrder": 6,
+    "speakerName": "宋知远",
+    "voiceDna": "年轻磁性男低音，冷静理性，微带压抑的关切",
+    "status": "resolved",
+    "dialogue": "宋知远：“做我的‘合约恋人’，不仅所有的医药费我结，你必须给我把大学念完。”",
+    "emotion": "正常叙事",
+    "duration": 5,
+    "durationBasis": "planned_shot"
+  }
+]

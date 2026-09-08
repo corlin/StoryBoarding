@@ -546,14 +546,14 @@ export default function HomePage() {
             href="/workspace?id=6f01c422-48ea-4796-afc7-09cc6447f764"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-foreground border border-border/80 hover:border-primary/50 transition-all font-medium shadow-2xs group"
           >
-            <span>🎬 体验都市短剧《合约恋人》（3集·18镜完整工程）</span>
+            <span>🎬 体验都市短剧《合约恋人》（3集·18镜流程演示，配图未审）</span>
             <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
           </Link>
           <Link
             href="/workspace?id=2792deae-5f60-4246-850a-56b93eaf790a"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-foreground border border-border/80 hover:border-primary/50 transition-all font-medium shadow-2xs group"
           >
-            <span>📜 体验古装短剧《本草劫》（18镜视觉工程）</span>
+            <span>📜 体验古装短剧《本草劫》（18镜流程演示，配图未审）</span>
             <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
           </Link>
         </div>

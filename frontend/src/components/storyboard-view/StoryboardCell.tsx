@@ -22,12 +22,16 @@ interface StoryboardCellProps {
   onUpdateShot?: (shotId: string, updates: Partial<ShotModel>) => Promise<void> | void;
 }
 
+const DURATION_PRESETS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6];
+const SIZE_PRESETS = ["extreme_wide_shot", "wide_shot", "full_shot", "medium_wide", "medium_shot", "medium_close_up", "close_up", "extreme_close_up", "two_shot"];
+
 const SHOT_SIZE_ABBR: Record<string, string> = {
   extreme_wide_shot: "EWS",
   extreme_wide: "EWS",
   wide_shot: "WS",
   wide: "WS",
   full_shot: "FS",
+  two_shot: "2S",
   medium_wide: "MWS",
   medium_shot: "MS",
   medium: "MS",
@@ -42,6 +46,7 @@ export const SHOT_SIZE_GLOSSARY: Record<string, string> = {
   extreme_wide: "大远景 (EWS) · 交代宏观地理与空间格局",
   wide_shot: "全景 (WS) · 呈现人物全身与周围环境关系",
   wide: "全景 (WS) · 呈现人物全身与周围环境关系",
+  two_shot: "双人镜头 (2S) · 两人同框",
   full_shot: "全景全身 (FS) · 聚焦人物全身动作与体态",
   medium_wide: "中远景 (MWS) · 膝盖以上，兼顾动作与互动",
   medium_shot: "中景 (MS) · 腰部以上，黄金对话与叙事景别",
@@ -245,7 +250,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
     return true;
   };
 
-  const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || "MS";
+  const sizeAbbr = SHOT_SIZE_ABBR[shot.shot_size] || shot.shot_size || "MS";
   const isLocked = Boolean(shot.is_locked);
   const isActivelyDeveloping = isRegenerating;
 
@@ -448,6 +453,10 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
               className="appearance-none bg-transparent font-semibold text-foreground hover:text-primary pr-3.5 focus:outline-none cursor-pointer disabled:cursor-not-allowed disabled:hover:text-foreground text-xs"
               title={SHOT_SIZE_GLOSSARY[shot.shot_size] || `景别: ${sizeAbbr} (点击就地切换)`}
             >
+              {!SIZE_PRESETS.includes(shot.shot_size || "medium_shot") && (
+                <option value={shot.shot_size} className="bg-popover text-foreground">{SHOT_SIZE_GLOSSARY[shot.shot_size]?.split(" · ")[0] || shot.shot_size}</option>
+              )}
+              <option value="two_shot" className="bg-popover text-foreground">双人镜头 2S</option>
               <option value="extreme_wide_shot" className="bg-popover text-foreground">大远景 EWS</option>
               <option value="wide_shot" className="bg-popover text-foreground">全景 WS</option>
               <option value="full_shot" className="bg-popover text-foreground">全身景 FS</option>
@@ -475,15 +484,9 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
               className="appearance-none bg-transparent font-semibold text-emerald-400 hover:text-emerald-300 pr-3 focus:outline-none cursor-pointer disabled:cursor-not-allowed text-xs"
               title="镜头时长 (点击就地切换)"
             >
-              <option value="1" className="bg-popover text-foreground">1.0s</option>
-              <option value="1.5" className="bg-popover text-foreground">1.5s</option>
-              <option value="2" className="bg-popover text-foreground">2.0s</option>
-              <option value="2.5" className="bg-popover text-foreground">2.5s</option>
-              <option value="3" className="bg-popover text-foreground">3.0s</option>
-              <option value="3.5" className="bg-popover text-foreground">3.5s</option>
-              <option value="4" className="bg-popover text-foreground">4.0s</option>
-              <option value="5" className="bg-popover text-foreground">5.0s</option>
-              <option value="6" className="bg-popover text-foreground">6.0s</option>
+              {Array.from(new Set([...DURATION_PRESETS, shot.duration || 2.5])).sort((a, b) => a - b).map((duration) => (
+                <option key={duration} value={duration} className="bg-popover text-foreground">{Number(duration.toFixed(2))}s</option>
+              ))}
             </select>
             <ChevronDown className="w-2.5 h-2.5 text-emerald-500/70 absolute right-0 pointer-events-none group-hover/dur:text-emerald-300 transition-colors" />
           </div>

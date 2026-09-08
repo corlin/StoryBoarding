@@ -378,7 +378,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
               "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border shadow-2xs cursor-pointer disabled:opacity-40",
               "border-pink-500/40 text-pink-300 hover:bg-pink-500/15 hover:text-pink-200"
             )}
-            title="打开角色配音对齐单 · 提取全剧台词与角色音色 DNA，对接 CosyVoice / ElevenLabs 批量合成"
+            title="导出当前镜头的台词与音色资料，供外部配音工具使用"
           >
             <Mic className="w-3.5 h-3.5 text-pink-400" />
             <span className="hidden sm:inline">配音对齐</span>

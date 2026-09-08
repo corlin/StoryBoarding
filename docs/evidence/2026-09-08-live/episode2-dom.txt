@@ -1,0 +1,535 @@
+- banner:
+  - link "控制台":
+    - /url: /dashboard
+    - generic: 控制台
+  - heading "合约恋人" [level=1]
+  - button "EP 2":
+    - generic: EP 2
+  - button "v1.0":
+    - generic: v1.0
+  - navigation:
+    - button "01 设定与剧本":
+      - generic: 01 设定与剧本
+    - button "02 分镜工坊":
+      - generic: 02 分镜工坊
+    - button "03 放映与质检":
+      - generic: 03 放映与质检
+    - button "04 交付导出":
+      - generic: 04 交付导出
+  - button "◇ 资产库":
+    - generic: ◇ 资产库
+  - button "帮助、系统全景导图与快捷键指南":
+  - button "API 与模型设置":
+  - button "corlinbj corlinbj":
+    - img "corlinbj"
+    - generic: corlinbj
+- button "节拍流":
+  - generic: 节拍流
+- button "分镜列表 (6)":
+  - generic: 分镜列表 (6)
+- button "文学母本":
+  - generic: 文学母本
+- generic: 剧本 /
+- generic: 第 2 集
+- generic: 24s / 60s
+- generic "【节奏失衡】超出 ±15% 容差警戒线，建议增删台词或动作节拍，防止观众出戏":
+  - generic: "-60%"
+  - generic: (超容差)
+- button "同步分镜":
+  - generic: 同步分镜
+- generic: · 1 场 · 12 节拍
+- button "复制剧本":
+  - generic: 复制剧本
+- button "同步更新分镜":
+  - generic: 同步更新分镜
+- button "保存剧本":
+  - generic: 保存剧本
+- generic: 钩子 (Hook · 0-3s 抓人设问)
+- generic: 双击改
+- 'textbox "例如: 皮箱里到底装了什么，值得她指节发白..."'
+- generic: 断点 (Cliffhanger · 集尾高压死结)
+- generic: 双击改
+- 'textbox "例如: 陆行远的右手从上船起就没离开过大衣口袋..."': 母亲在病床上握住苏晓的手，说出了藏在病历本里的真相
+- generic: 爽点认领：
+- button "悬念钩"
+- button "身份揭破"
+- button "反转"
+- button "收束"
+- generic: 场次 1
+- generic: S01
+- generic: 书房暗格中的银色相框
+- generic: 自然光影
+- generic: 苏晓
+- generic: 宋知远
+- generic: P01
+- button "+ 动作"
+- button "+ 台词"
+- generic: "1"
+- paragraph: 苏晓擦拭书架时不慎碰开抽屉暗格，露出宋知远与年轻女孩的合影
+- generic: 双击改
+- generic: 1.2000000000000002s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic: "2"
+- generic: 书房暗格中的银色相框
+- generic: 旁白：“抽屉深处的时间，永远停留在五年前的冬天。”
+- generic: 双击改
+- generic: 1.7999999999999998s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic: "3"
+- paragraph: 相片翻转，背后是稚嫩却绝望的手写字迹：“哥，我把唯一的读书名额还给你。”
+- generic: 双击改
+- generic: 1.6s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic: "4"
+- generic: 相框背后的绝笔字迹
+- generic: 宋知远（回忆回响）：“是我逼死了她……是我……”
+- generic: 双击改
+- generic: 2.4s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic: "5"
+- paragraph: 宋知远一把夺过相框，手臂青筋暴起，眼神中掠过刺骨的惊恐与暴怒
+- generic: 双击改
+- generic: 1.4000000000000001s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic: "6"
+- generic: 宋知远突然出现在书房门口
+- generic: 宋知远：“谁准你碰这里的？！出去！”
+- generic: 双击改
+- generic: 2.1s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic: "7"
+- paragraph: 苏晓没有后退，平静注视着他颤抖的手，看穿了他暴怒外表下的无助
+- generic: 双击改
+- generic: 1.6s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic: "8"
+- generic: 苏晓第一次直视宋知远脆弱的眼底
+- generic: 苏晓：“你看着我的时候，其实是在看她，对不对？”
+- generic: 双击改
+- generic: 2.4s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic: "9"
+- paragraph: 病床上的母亲从枕头下拿出一封被压平的录取通知书，老泪纵横
+- generic: 双击改
+- generic: 1.8s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic: "10"
+- generic: 医院病床前母亲抚摸录取通知书
+- generic: 母亲：“晓晓……妈这辈子最大的愿望，就是看你穿上学士服……”
+- generic: 双击改
+- generic: 2.6999999999999997s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic: "11"
+- paragraph: 苏晓背靠白墙瘫坐，手里握着母亲的录取通知书和宋知远的合约，泪水决堤
+- generic: 双击改
+- generic: 2s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic: "12"
+- generic: 苏晓在医院走廊泪流满面握紧信封
+- generic: 苏晓（内心独白）：“原来你们都在用自己的方式……用命托举我。”
+- generic: 双击改
+- generic: 3s
+- button "✂️ 将该节拍按标点一分为二（快速拆为双镜）":
+- button "删除该节拍":
+- generic "按住鼠标左键左右拖拽调整分栏比例；双击恢复 50:50 均等分栏":
+  - button "收起左侧剧本流（纯净画板全屏）":
+- heading "故事板" [level=2]
+- generic: (6 镜)
+- button "时间轴":
+  - generic: 时间轴
+- button "顺场表":
+  - generic: 顺场表
+- button "2列"
+- button "3列"
+- button "4列"
+- button "AI 对齐 HUD":
+  - generic: AI 对齐 HUD
+- button "显示":
+  - generic: 显示
+- button "配音对齐":
+  - generic: 配音对齐
+- button "影院试映":
+  - generic: 影院试映
+- generic: 分镜视觉节奏条 (Rhythm Barcode)
+- generic: 6 镜 · 24.0s (均 4.0s/镜)
+- text: 缺乏环境全景交代
+- button "图例":
+  - generic: 图例
+- 'button "#1 [特写 CU] - 3s: 苏晓擦拭书架时不慎碰开抽屉暗格，露出宋知远与年轻女孩的合影..."'
+- 'button "#2 [大特写 ECU] - 4s: 相片翻转，背后是稚嫩却绝望的手写字迹：“哥，我把唯一的读书名..."'
+- 'button "#3 [中景 MS] - 3.5s: 宋知远一把夺过相框，手臂青筋暴起，眼神中掠过刺骨的惊恐与暴怒..."'
+- 'button "#4 [特写 CU] - 4s: 苏晓没有后退，平静注视着他颤抖的手，看穿了他暴怒外表下的无助..."'
+- 'button "#5 [中景 MS] - 4.5s: 病床上的母亲从枕头下拿出一封被压平的录取通知书，老泪纵横..."'
+- 'button "#6 [特写 CU] - 5s: 苏晓背靠白墙瘫坐，手里握着母亲的录取通知书和宋知远的合约，泪..."'
+- generic "点击放大进入影院动态播放模式":
+  - img "Shot 1"
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: SHOT 01
+  - generic: ·
+  - generic: 特写 (CU)
+  - generic: ·
+  - generic: 3.0s
+  - generic: ▲ CRANE / TILT UP (升机位)
+  - paragraph: "[动作] 苏晓擦拭书架时不慎碰开抽屉暗格，露出宋知远与年轻女孩的合影"
+  - paragraph: "[台词] “旁白：“抽屉深处的时间，永远停留在五年前的冬天。””"
+  - generic: AI REF CONTROL RIG
+  - generic: AXIS 180° · facing_camera
+  - generic: "01"
+  - generic: ·
+  - combobox "特写 (CU) · 肩颈面部，聚焦强烈情感冲击":
+    - option "大远景 EWS"
+    - option "全景 WS"
+    - option "全身景 FS"
+    - option "中远景 MWS"
+    - option "中景 MS"
+    - option "中近景 MCU"
+    - option "特写 CU" [selected]
+    - option "大特写 ECU"
+  - generic: ·
+  - combobox "镜头时长 (点击就地切换)":
+    - option "1.0s"
+    - option "1.5s"
+    - option "2.0s"
+    - option "2.5s"
+    - option "3.0s" [selected]
+    - option "3.5s"
+    - option "4.0s"
+    - option "5.0s"
+    - option "6.0s"
+  - button "点击锁定分镜（AI 拆镜时将受保护保持不变）":
+  - button "重新打样当前分镜画面 (存入 R2)":
+  - button "全屏影院预览":
+  - generic: 伏笔初显
+- paragraph: 苏晓擦拭书架时不慎碰开抽屉暗格，露出宋知远与年轻女孩的合影
+- paragraph: “旁白：“抽屉深处的时间，永远停留在五年前的冬天。””
+- combobox "向上俯仰 · 仰望高大目标或力量对比":
+  - option "static 固定"
+  - option "push_in 推进"
+  - option "pull_out 拉远"
+  - option "pan_left 左摇"
+  - option "pan_right 右摇"
+  - option "tilt_up 仰角" [selected]
+  - option "tilt_down 俯角"
+  - option "tracking 跟随"
+  - option "crane 升降"
+  - option "orbital 环绕"
+- button "精修":
+  - generic: 精修
+- button "插镜":
+  - generic: 插镜
+- generic "点击放大进入影院动态播放模式":
+  - img "Shot 2"
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: SHOT 02
+  - generic: ·
+  - generic: 大特写 (ECU)
+  - generic: ·
+  - generic: 4.0s
+  - generic: ⊡ LOCKED STATIC (固定机位)
+  - paragraph: "[动作] 相片翻转，背后是稚嫩却绝望的手写字迹：“哥，我把唯一的读书名额还给你。”"
+  - paragraph: "[台词] “宋知远（回忆回响）：“是我逼死了她……是我……””"
+  - generic: AI REF CONTROL RIG
+  - generic: AXIS 180° · facing_camera
+  - generic: "02"
+  - generic: ·
+  - combobox "大特写 (ECU) · 局部器官（眼睛/嘴角/持物），极度张力":
+    - option "大远景 EWS"
+    - option "全景 WS"
+    - option "全身景 FS"
+    - option "中远景 MWS"
+    - option "中景 MS"
+    - option "中近景 MCU"
+    - option "特写 CU"
+    - option "大特写 ECU" [selected]
+  - generic: ·
+  - combobox "镜头时长 (点击就地切换)":
+    - option "1.0s"
+    - option "1.5s"
+    - option "2.0s"
+    - option "2.5s"
+    - option "3.0s"
+    - option "3.5s"
+    - option "4.0s" [selected]
+    - option "5.0s"
+    - option "6.0s"
+  - button "点击锁定分镜（AI 拆镜时将受保护保持不变）":
+  - button "重新打样当前分镜画面 (存入 R2)":
+  - button "全屏影院预览":
+  - generic: 隐秘痛点
+- paragraph: 相片翻转，背后是稚嫩却绝望的手写字迹：“哥，我把唯一的读书名额还给你。”
+- paragraph: “宋知远（回忆回响）：“是我逼死了她……是我……””
+- combobox "固定镜头 · 稳健客观记录，无机位晃动":
+  - option "static 固定" [selected]
+  - option "push_in 推进"
+  - option "pull_out 拉远"
+  - option "pan_left 左摇"
+  - option "pan_right 右摇"
+  - option "tilt_up 仰角"
+  - option "tilt_down 俯角"
+  - option "tracking 跟随"
+  - option "crane 升降"
+  - option "orbital 环绕"
+- button "精修":
+  - generic: 精修
+- button "插镜":
+  - generic: 插镜
+- generic "点击放大进入影院动态播放模式":
+  - img "Shot 3"
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: SHOT 03
+  - generic: ·
+  - generic: 中景 (MS)
+  - generic: ·
+  - generic: 3.5s
+  - generic: PUSH IN ➔ (推进)
+  - paragraph: "[动作] 宋知远一把夺过相框，手臂青筋暴起，眼神中掠过刺骨的惊恐与暴怒"
+  - paragraph: "[台词] “宋知远：“谁准你碰这里的？！出去！””"
+  - generic: AI REF CONTROL RIG
+  - generic: AXIS 180° · facing_camera
+  - generic: "03"
+  - generic: ·
+  - combobox "中景 (MS) · 腰部以上，黄金对话与叙事景别":
+    - option "大远景 EWS"
+    - option "全景 WS"
+    - option "全身景 FS"
+    - option "中远景 MWS"
+    - option "中景 MS" [selected]
+    - option "中近景 MCU"
+    - option "特写 CU"
+    - option "大特写 ECU"
+  - generic: ·
+  - combobox "镜头时长 (点击就地切换)":
+    - option "1.0s"
+    - option "1.5s"
+    - option "2.0s"
+    - option "2.5s"
+    - option "3.0s"
+    - option "3.5s" [selected]
+    - option "4.0s"
+    - option "5.0s"
+    - option "6.0s"
+  - button "点击锁定分镜（AI 拆镜时将受保护保持不变）":
+  - button "重新打样当前分镜画面 (存入 R2)":
+  - button "全屏影院预览":
+  - generic: 防线崩塌
+- paragraph: 宋知远一把夺过相框，手臂青筋暴起，眼神中掠过刺骨的惊恐与暴怒
+- paragraph: “宋知远：“谁准你碰这里的？！出去！””
+- combobox "缓缓推进 · 聚焦人物内心或紧张感提升":
+  - option "static 固定"
+  - option "push_in 推进" [selected]
+  - option "pull_out 拉远"
+  - option "pan_left 左摇"
+  - option "pan_right 右摇"
+  - option "tilt_up 仰角"
+  - option "tilt_down 俯角"
+  - option "tracking 跟随"
+  - option "crane 升降"
+  - option "orbital 环绕"
+- button "精修":
+  - generic: 精修
+- button "插镜":
+  - generic: 插镜
+- generic "点击放大进入影院动态播放模式":
+  - img "Shot 4"
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: SHOT 04
+  - generic: ·
+  - generic: 特写 (CU)
+  - generic: ·
+  - generic: 4.0s
+  - generic: ⊡ LOCKED STATIC (固定机位)
+  - paragraph: "[动作] 苏晓没有后退，平静注视着他颤抖的手，看穿了他暴怒外表下的无助"
+  - paragraph: "[台词] “苏晓：“你看着我的时候，其实是在看她，对不对？””"
+  - generic: AI REF CONTROL RIG
+  - generic: AXIS 180° · facing_camera
+  - generic: "04"
+  - generic: ·
+  - combobox "特写 (CU) · 肩颈面部，聚焦强烈情感冲击":
+    - option "大远景 EWS"
+    - option "全景 WS"
+    - option "全身景 FS"
+    - option "中远景 MWS"
+    - option "中景 MS"
+    - option "中近景 MCU"
+    - option "特写 CU" [selected]
+    - option "大特写 ECU"
+  - generic: ·
+  - combobox "镜头时长 (点击就地切换)":
+    - option "1.0s"
+    - option "1.5s"
+    - option "2.0s"
+    - option "2.5s"
+    - option "3.0s"
+    - option "3.5s"
+    - option "4.0s" [selected]
+    - option "5.0s"
+    - option "6.0s"
+  - button "点击锁定分镜（AI 拆镜时将受保护保持不变）":
+  - button "重新打样当前分镜画面 (存入 R2)":
+  - button "全屏影院预览":
+  - generic: 心理反制
+- paragraph: 苏晓没有后退，平静注视着他颤抖的手，看穿了他暴怒外表下的无助
+- paragraph: “苏晓：“你看着我的时候，其实是在看她，对不对？””
+- combobox "固定镜头 · 稳健客观记录，无机位晃动":
+  - option "static 固定" [selected]
+  - option "push_in 推进"
+  - option "pull_out 拉远"
+  - option "pan_left 左摇"
+  - option "pan_right 右摇"
+  - option "tilt_up 仰角"
+  - option "tilt_down 俯角"
+  - option "tracking 跟随"
+  - option "crane 升降"
+  - option "orbital 环绕"
+- button "精修":
+  - generic: 精修
+- button "插镜":
+  - generic: 插镜
+- generic "点击放大进入影院动态播放模式":
+  - img "Shot 5"
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: SHOT 05
+  - generic: ·
+  - generic: 中景 (MS)
+  - generic: ·
+  - generic: 4.5s
+  - generic: ▼ TILT DOWN (俯视降机位)
+  - paragraph: "[动作] 病床上的母亲从枕头下拿出一封被压平的录取通知书，老泪纵横"
+  - paragraph: "[台词] “母亲：“晓晓……妈这辈子最大的愿望，就是看你穿上学士服……””"
+  - generic: AI REF CONTROL RIG
+  - generic: AXIS 180° · facing_camera
+  - generic: "05"
+  - generic: ·
+  - combobox "中景 (MS) · 腰部以上，黄金对话与叙事景别":
+    - option "大远景 EWS"
+    - option "全景 WS"
+    - option "全身景 FS"
+    - option "中远景 MWS"
+    - option "中景 MS" [selected]
+    - option "中近景 MCU"
+    - option "特写 CU"
+    - option "大特写 ECU"
+  - generic: ·
+  - combobox "镜头时长 (点击就地切换)":
+    - option "1.0s" [selected]
+    - option "1.5s"
+    - option "2.0s"
+    - option "2.5s"
+    - option "3.0s"
+    - option "3.5s"
+    - option "4.0s"
+    - option "5.0s"
+    - option "6.0s"
+  - button "点击锁定分镜（AI 拆镜时将受保护保持不变）":
+  - button "重新打样当前分镜画面 (存入 R2)":
+  - button "全屏影院预览":
+  - generic: 情感双重共振
+- paragraph: 病床上的母亲从枕头下拿出一封被压平的录取通知书，老泪纵横
+- paragraph: “母亲：“晓晓……妈这辈子最大的愿望，就是看你穿上学士服……””
+- combobox "向下俯仰 · 俯瞰地面细节或压迫感":
+  - option "static 固定"
+  - option "push_in 推进"
+  - option "pull_out 拉远"
+  - option "pan_left 左摇"
+  - option "pan_right 右摇"
+  - option "tilt_up 仰角"
+  - option "tilt_down 俯角" [selected]
+  - option "tracking 跟随"
+  - option "crane 升降"
+  - option "orbital 环绕"
+- button "精修":
+  - generic: 精修
+- button "插镜":
+  - generic: 插镜
+- generic "点击放大进入影院动态播放模式":
+  - img "Shot 6"
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: ┼
+  - generic: SHOT 06
+  - generic: ·
+  - generic: 特写 (CU)
+  - generic: ·
+  - generic: 5.0s
+  - generic: PUSH IN ➔ (推进)
+  - paragraph: "[动作] 苏晓背靠白墙瘫坐，手里握着母亲的录取通知书和宋知远的合约，泪水决堤"
+  - paragraph: "[台词] “苏晓（内心独白）：“原来你们都在用自己的方式……用命托举我。””"
+  - generic: AI REF CONTROL RIG
+  - generic: AXIS 180° · facing_camera
+  - generic: "06"
+  - generic: ·
+  - combobox "特写 (CU) · 肩颈面部，聚焦强烈情感冲击":
+    - option "大远景 EWS"
+    - option "全景 WS"
+    - option "全身景 FS"
+    - option "中远景 MWS"
+    - option "中景 MS"
+    - option "中近景 MCU"
+    - option "特写 CU" [selected]
+    - option "大特写 ECU"
+  - generic: ·
+  - combobox "镜头时长 (点击就地切换)":
+    - option "1.0s"
+    - option "1.5s"
+    - option "2.0s"
+    - option "2.5s"
+    - option "3.0s"
+    - option "3.5s"
+    - option "4.0s"
+    - option "5.0s" [selected]
+    - option "6.0s"
+  - button "点击锁定分镜（AI 拆镜时将受保护保持不变）":
+  - button "重新打样当前分镜画面 (存入 R2)":
+  - button "全屏影院预览":
+  - generic: 悬念高光卡点
+- paragraph: 苏晓背靠白墙瘫坐，手里握着母亲的录取通知书和宋知远的合约，泪水决堤
+- paragraph: “苏晓（内心独白）：“原来你们都在用自己的方式……用命托举我。””
+- combobox "缓缓推进 · 聚焦人物内心或紧张感提升":
+  - option "static 固定"
+  - option "push_in 推进" [selected]
+  - option "pull_out 拉远"
+  - option "pan_left 左摇"
+  - option "pan_right 右摇"
+  - option "tilt_up 仰角"
+  - option "tilt_down 俯角"
+  - option "tracking 跟随"
+  - option "crane 升降"
+  - option "orbital 环绕"
+- button "精修":
+  - generic: 精修
+- button "插镜":
+  - generic: 插镜
+- button "展开时间轴与节奏切片":
+  - generic: 展开时间轴与节奏切片
+- generic: 6 镜 · 24.0s
+- paragraph: 🎬 已切换至第 2 集台本与分镜
+- button:
+- alert
+- document

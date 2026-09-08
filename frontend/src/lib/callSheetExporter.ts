@@ -51,9 +51,9 @@ export function generateCallSheetCsvContent(
 
   shots.forEach((s, idx) => {
     const loc = locMap.get(s.location_id || "");
-    const locName = loc ? loc.name : s.subject?.split(/[,，\s]/)[0] || "通用主场景";
+    const locName = loc ? loc.name : "待确认场景";
     const lighting = s.lighting || (loc?.lighting_style) || "自然光";
-    const groupKey = `${locName}__${lighting}`;
+    const groupKey = loc ? `${loc.id}__${lighting}` : `unbound_${s.id}`;
 
     if (!locationGroups.has(groupKey)) {
       locationGroups.set(groupKey, batchCounter++);
@@ -64,26 +64,23 @@ export function generateCallSheetCsvContent(
     if (s.character_ids && Array.isArray(s.character_ids) && s.character_ids.length > 0) {
       s.character_ids.forEach((cId) => {
         const name = charMap.get(cId);
-        if (name) charNames.push(name);
+        charNames.push(name || "待确认出场人物");
       });
-    }
-    if (charNames.length === 0 && s.subject) {
-      charNames.push(s.subject.split(/[,，\s]/)[0]);
     }
 
     rows.push({
-      batchNumber: `批次 ${String(currentBatch).padStart(2, "0")}`,
+      batchNumber: loc ? `批次 ${String(currentBatch).padStart(2, "0")}` : "待排期（场景未绑定）",
       order: s.order || idx + 1,
       shotSize: s.shot_size || "MS",
       cameraAngle: s.camera_angle || "平视",
       cameraMovement: s.camera_movement?.type || "固定",
       locationName: locName,
       lightingState: lighting,
-      characters: charNames.join(" / ") || "未指定",
+      characters: charNames.join(" / ") || "待确认出场人物",
       action: s.action || "",
       dialogue: s.dialogue || "",
       duration: Number(s.duration) || 2.5,
-      hasArtwork: s.storyboard_image_url ? "已打样" : "未打样",
+      hasArtwork: s.is_dirty ? "待更新 · 内容未审" : s.storyboard_image_url?.trim() ? "有图片引用 · 内容未审" : "无图片引用",
     });
   });
 
@@ -98,8 +95,8 @@ export function generateCallSheetCsvContent(
     "出场人物",
     "画面动作描述",
     "对白台词",
-    "预估时长(秒)",
-    "画面打样状态",
+    "计划镜头时长(秒)",
+    "图片引用与审片状态",
   ];
 
   const csvLines: string[] = [];

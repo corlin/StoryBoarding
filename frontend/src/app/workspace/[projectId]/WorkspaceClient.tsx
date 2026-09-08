@@ -791,6 +791,12 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         </div>
       )}
 
+      {["6f01c422-48ea-4796-afc7-09cc6447f764", "2792deae-5f60-4246-850a-56b93eaf790a"].includes(displayProject?.id || "") && (
+        <div role="note" className="shrink-0 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-300">
+          流程演示工程 · 配图未按剧情验收，请勿作为角色一致性或成片质量参考。
+        </div>
+      )}
+
       {/* Responsive Episode Track for Screens below lg breakpoint (< 1024px, only shown when multiple episodes exist) */}
       {(displayProject?.sequences && displayProject.sequences.length > 1) && (
         <div className="flex lg:hidden items-center px-3 py-1.5 border-b border-border/80 bg-card/60 backdrop-blur-xs overflow-x-auto no-scrollbar shrink-0">

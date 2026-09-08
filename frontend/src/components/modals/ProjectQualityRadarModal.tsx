@@ -281,7 +281,7 @@ export function computeProjectQualityDiagnostics(
         stageLabel: "分镜镜头",
         ruleName: "单镜头时长上限 (≤ 15 秒)",
         status: "pass",
-        detail: "全片镜头时长均在 15 秒安全生成窗口内，无模型超时风险。",
+        detail: "当前镜头计划时长均不超过 15 秒；实际生成限制需按所用模型核验。",
         jumpTarget: "storyboard",
       });
     } else {
@@ -291,37 +291,25 @@ export function computeProjectQualityDiagnostics(
         stageLabel: "分镜镜头",
         ruleName: "单镜头时长上限 (≤ 15 秒)",
         status: "fail",
-        detail: `有 ${over15sShots.length} 个镜头超过 15 秒视频生成物理上限。`,
+        detail: `有 ${over15sShots.length} 个镜头超过当前 15 秒规划阈值。`,
         suggestion: "将长镜头拆分为 2–5 秒的对话正反打或特写插入分镜。",
         jumpTarget: "storyboard",
       });
     }
 
-    // Gate 9: H3 提示词对齐与首帧显影率
-    const developedCount = shots.filter((s) => s.storyboard_image_url && !s.is_dirty).length;
-    const devRatio = shots.length > 0 ? Math.round((developedCount / shots.length) * 100) : 100;
-    if (devRatio === 100) {
-      items.push({
-        id: "storyboard_visual_readiness",
-        stage: "storyboard",
-        stageLabel: "生成管线",
-        ruleName: "全剧首帧显影与提示词就绪 (100%)",
-        status: "pass",
-        detail: `全片 ${shots.length} 镜已 100% 显影存盘并就绪，可直接投产。`,
-        jumpTarget: "storyboard",
-      });
-    } else {
-      items.push({
-        id: "storyboard_visual_readiness",
-        stage: "storyboard",
-        stageLabel: "生成管线",
-        ruleName: "全剧首帧显影与提示词就绪",
-        status: "warn",
-        detail: `当前显影进度为 ${devRatio}%（已完成 ${developedCount}/${shots.length} 镜）。`,
-        suggestion: "使用分镜时间轴顶部的「一键冲印剩余」完成全片画面显影。",
-        jumpTarget: "storyboard",
-      });
-    }
+    // An image URL is a reference, not proof of successful loading or content review.
+    const referencedCount = shots.filter((s) => s.storyboard_image_url?.trim()).length;
+    const dirtyCount = shots.filter((s) => s.is_dirty).length;
+    items.push({
+      id: "storyboard_visual_readiness",
+      stage: "storyboard",
+      stageLabel: "当前镜头范围",
+      ruleName: "图片引用与内容审片（未审）",
+      status: "warn",
+      detail: `当前范围 ${shots.length} 镜，${referencedCount} 镜有图片引用，${dirtyCount} 镜待更新。画面加载、图文匹配、角色连续性及提示词可用性待人工审片。`,
+      suggestion: "逐镜核对画面与剧本后再交付；图片地址存在不代表内容已通过。",
+      jumpTarget: "storyboard",
+    });
 
     const score = items.length === 0 ? 100 : Math.round(
       items.reduce((acc, item) => {

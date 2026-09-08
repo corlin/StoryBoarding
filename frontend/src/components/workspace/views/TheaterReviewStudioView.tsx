@@ -151,11 +151,11 @@ export const TheaterReviewStudioView: React.FC<TheaterReviewStudioViewProps> = (
                   ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
                   : "bg-rose-500/15 text-rose-300 border-rose-500/30"
               )}>
-                健康度 {radarScore} 分
+                资料检查 {radarScore} 分
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground hidden sm:block">
-              连续动态视听监看，伴随穿透式工程质量雷达自动诊断与错漏定位
+              分镜预演与资料规则检查；评分不代表图文匹配、音画质量或成片已通过审片
             </p>
           </div>
         </div>
@@ -370,7 +370,7 @@ export const TheaterReviewStudioView: React.FC<TheaterReviewStudioViewProps> = (
             {/* Health Overview Summary */}
             <div className="p-3 rounded-xl bg-card border border-border/70 space-y-2 shadow-2xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-foreground">全案视听就绪度</span>
+                <span className="text-xs font-semibold text-foreground">资料规则检查分</span>
                 <span className={cn(
                   "font-mono text-sm font-bold",
                   radarScore >= 85 ? "text-emerald-400" : radarScore >= 70 ? "text-amber-400" : "text-rose-400"

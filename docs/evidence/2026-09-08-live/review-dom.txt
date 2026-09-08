@@ -1,0 +1,115 @@
+- banner:
+  - link "控制台":
+    - /url: /dashboard
+    - generic: 控制台
+  - heading "合约恋人" [level=1]
+  - button "EP 1":
+    - generic: EP 1
+  - button "v1.0":
+    - generic: v1.0
+  - navigation:
+    - button "01 设定与剧本":
+      - generic: 01 设定与剧本
+    - button "02 分镜工坊":
+      - generic: 02 分镜工坊
+    - button "03 放映与质检" [active]:
+      - generic: 03 放映与质检
+    - button "04 交付导出":
+      - generic: 04 交付导出
+  - button "◇ 资产库":
+    - generic: ◇ 资产库
+  - button "帮助、系统全景导图与快捷键指南":
+  - button "API 与模型设置":
+  - button "corlinbj corlinbj":
+    - img "corlinbj"
+    - generic: corlinbj
+- heading "STAGE 03 · 动态放映与工程质检 (Theater & Review Suite)" [level=2]
+- generic: 健康度 82 分
+- paragraph: 连续动态视听监看，伴随穿透式工程质量雷达自动诊断与错漏定位
+- button "前往 Stage 04 交付":
+  - generic: 前往 Stage 04 交付
+- img "Shot 1"
+- generic: "SHOT #1"
+- generic: "|"
+- generic: extreme_close_up
+- generic: "|"
+- generic: static
+- generic: "|"
+- generic: 3s
+- paragraph: 旁白：“二十万，留给母亲的时间只剩四十八小时。”
+- paragraph: 水滴顺着苏晓颤抖的指尖滑落，红色的病危催款单被水渍模糊
+- button "Thumb 1 3s":
+  - img "Thumb 1"
+  - generic: 3s
+- button "Thumb 2 4s":
+  - img "Thumb 2"
+  - generic: 4s
+- button "Thumb 3 3.5s":
+  - img "Thumb 3"
+  - generic: 3.5s
+- button "Thumb 4 4s":
+  - img "Thumb 4"
+  - generic: 4s
+- button "Thumb 5 4.5s":
+  - img "Thumb 5"
+  - generic: 4.5s
+- button "Thumb 6 5s":
+  - img "Thumb 6"
+  - generic: 5s
+- generic: 1 / 6
+- generic: ·
+- generic: 24.0s 全片
+- 'button "上一镜 (快捷键: ← 方向键)"':
+- 'button "连播放映 (快捷键: Space 空格)"':
+- 'button "下一镜 (快捷键: → 方向键)"':
+- generic: Space 播放
+- generic: ·
+- generic: ← → 步进
+- generic: ·
+- generic: F 全屏
+- button "静音":
+- button "1x"
+- button "全屏大屏监看 (F)":
+- generic: 工程体检雷达诊断
+- generic: 1 阻断 · 3 提示
+- generic: 全案视听就绪度
+- generic: 82 / 100
+- heading "诊断清单与穿透定位 (9)" [level=4]
+- generic: 主角组规模 (1–5 人)
+- generic: 大纲与角色档
+- paragraph: 当前主角组共有 2 人，观众心智与注意力负荷合理。
+- text: 点击前往修复
+- generic: 爽点跨集无真空 (间隔 ≤ 3 集)
+- generic: 大纲与爽点表
+- paragraph: 检测到连续 3 集缺乏核心戏剧兑现（标准必须 ≤ 3 集）。
+- text: 点击前往修复
+- generic: 全员声学音色 DNA 齐备
+- generic: 角色资产
+- paragraph: 全员 2 位角色均已登记音色提示词或特征描述。
+- text: 点击前往修复
+- generic: 主场景上限约束 (≤ 5 个)
+- generic: 美术空间
+- paragraph: 当前登记 3 个场景空间，符合 3 集短剧的资产一致性预算。
+- text: 点击前往修复
+- generic: 核心道具数量 (3–8 件)
+- generic: 叙事道具
+- paragraph: 尚未登记核心叙事道具（如信物、信件、武器等）。
+- text: 点击前往修复
+- generic: 单句台词一口气 (≤ 35 字)
+- generic: 剧本台词
+- paragraph: 检测到 1 处台词超过 35 字（最长达 38 字）。
+- text: 点击前往修复
+- generic: 首集前 3 拍冷开场钩子 (Hook Gate)
+- generic: 剧本节拍
+- paragraph: 第 1 集尚未登记开场抓人钩子（0-3秒抓人设问）。
+- text: 点击前往修复
+- generic: 单镜头时长上限 (≤ 15 秒)
+- generic: 分镜镜头
+- paragraph: 全片镜头时长均在 15 秒安全生成窗口内，无模型超时风险。
+- text: 点击前往修复
+- generic: 全剧首帧显影与提示词就绪 (100%)
+- generic: 生成管线
+- paragraph: 全片 6 镜已 100% 显影存盘并就绪，可直接投产。
+- text: 点击前往修复
+- alert
+- document

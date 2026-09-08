@@ -1,0 +1,1 @@
+record_id,record_type,episode_id,shot_id,shot_revision,job_id,attempt_id,take_id,provider,model,input_asset_versions,started_at,finished_at,status,review_result,rejection_reason,adopted_edit_version,currency,estimated_cost,actual_cost,cost_status,human_minutes,machine_wait_seconds,rework_reason,affected_assets,evidence_path,notes

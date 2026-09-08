@@ -1,3 +1,4 @@
+import { resolveDialogueSpeaker } from "@/lib/dialogueSpeaker";
 import { useMemo, useCallback } from "react";
 import { ShotModel } from "@/types/shot";
 import { H3CutItem, generateH3Prompt } from "@/lib/h3Prompt";
@@ -19,7 +20,7 @@ export function buildH3CutItem(shot: ShotModel, order: number = 1): H3CutItem {
     action: shot.action || "",
     dialogue: shot.dialogue || "",
     dialogueEmotion: shot.dialogue_emotion,
-    speakerName: shot.subject,
+    speakerName: resolveDialogueSpeaker(shot).speakerName,
     beatsRange: shot.beats_range,
   };
 }

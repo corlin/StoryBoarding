@@ -1,5 +1,6 @@
 "use client";
 
+import { resolveDialogueSpeaker } from "@/lib/dialogueSpeaker";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   SequenceModel,
@@ -299,7 +300,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
           type: "dialogue",
           scene_number: 1,
           scene_title: sceneTitle,
-          speaker: s.subject?.split(/[,，\s]/)[0] || "人物",
+          speaker: resolveDialogueSpeaker(s, project?.characters || []).speakerName,
           content: s.dialogue.trim(),
           duration: Math.max(1.5, (s.duration || 2.5) * 0.6),
         });
@@ -487,12 +488,12 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
             第 {sequence.episode_number || sequence.order || 1} 集
           </span>
           <span className="font-mono text-muted-foreground ml-1">
-            {totalDuration}s / {targetDuration}s
+            计划 {totalDuration}s / 目标 {targetDuration}s
           </span>
           {Math.abs(diffPercent) > 15 && (
             <span
               className="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold border flex items-center gap-1 bg-red-500/10 text-red-400 border-red-500/30 animate-pulse cursor-help"
-              title="【节奏失衡】超出 ±15% 容差警戒线，建议增删台词或动作节拍，防止观众出戏"
+              title="计划时长与目标相差超过 15%；不代表实际配音时长或剧情质量"
             >
               <span>{diffPercent > 0 ? `+${diffPercent}%` : `${diffPercent}%`}</span>
               <span className="text-[9px] opacity-80">(超容差)</span>
@@ -822,7 +823,7 @@ export const BeatStreamEditor: React.FC<BeatStreamEditorProps> = ({
 
                       {/* Duration Tag (.secs.mono in Director Studio) */}
                       <span className="font-mono text-muted-foreground text-[11px] shrink-0 pt-0.5 w-10 text-right">
-                        {beat.duration}s
+                        {Number(beat.duration.toFixed(2))}s
                       </span>
 
                       {/* Quick Split Beat Button (Hover Action) */}

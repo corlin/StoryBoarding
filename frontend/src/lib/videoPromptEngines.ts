@@ -1,3 +1,4 @@
+import { resolveDialogueSpeaker } from "@/lib/dialogueSpeaker";
 /**
  * Multi-Platform AI Video Generation Prompt Engine
  * Supports:
@@ -141,7 +142,7 @@ export const VIDEO_PROMPT_ENGINES: VideoPromptEngineItem[] = [
         cameraMovement: s.camera_movement?.type,
         action: s.action,
         dialogue: s.dialogue,
-        speakerName: s.subject?.split(/[,，\s]/)[0],
+        speakerName: resolveDialogueSpeaker(s, project?.characters || []).speakerName,
       }));
       return generateH3Prompt(cuts, { lang: "en" });
     },

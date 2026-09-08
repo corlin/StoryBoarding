@@ -1,0 +1,84 @@
+- banner:
+  - link "控制台":
+    - /url: /dashboard
+    - generic: 控制台
+  - heading "合约恋人" [level=1]
+  - button "EP 1":
+    - generic: EP 1
+  - button "v1.0":
+    - generic: v1.0
+  - navigation:
+    - button "01 设定与剧本":
+      - generic: 01 设定与剧本
+    - button "02 分镜工坊":
+      - generic: 02 分镜工坊
+    - button "03 放映与质检":
+      - generic: 03 放映与质检
+    - button "04 交付导出" [active]:
+      - generic: 04 交付导出
+  - button "◇ 资产库":
+    - generic: ◇ 资产库
+  - button "帮助、系统全景导图与快捷键指南":
+  - button "API 与模型设置":
+  - button "corlinbj corlinbj":
+    - img "corlinbj"
+    - generic: corlinbj
+- note: 流程演示工程 · 配图未按剧情验收，请勿作为角色一致性或成片质量参考。
+- heading "STAGE 04 · 工业级交付与导出看板 (Deliver Suite)" [level=2]
+- generic: 标准工业规格
+- paragraph: 一键输出符合影视剧组工业标准的分镜长图、场记单、模型提示词包与原画母盘
+- button "当前集 (6 镜)"
+- button "全剧工程 (18 镜)"
+- heading "可选交付物规格清单 (Deliverable Assets)" [level=3]:
+  - generic: 可选交付物规格清单 (Deliverable Assets)
+- generic: PNG / PDF
+- heading "商业导演分镜表 (Storyboard Sheet)" [level=4]
+- paragraph: 高清水印排版长图，标注景别、机位运镜、台词与镜头时长，适用于提案与现场监看。
+- button "生成高清分镜表长图":
+  - generic: 生成高清分镜表长图
+- generic: CSV / Excel
+- heading "制片通告单与场记表 (Call Sheet)" [level=4]
+- paragraph: 结构化汇总演员出场场次、场景道具分布与时长排期，方便制片团队现场统筹。
+- button "导出通告场记表 (CSV)":
+  - generic: 导出通告场记表 (CSV)
+- generic: 多模型兼容
+- heading "AI 视频引擎提示词包 (Prompt Package)" [level=4]
+- paragraph: 结构化输出符合海螺 H3、剪映 SeaDance 2.5、阿里 Wan 2.1、Runway/可灵语法的机位提示词。
+- generic: "选择适配的生成模型语法规范:"
+- button "MiniMax 海螺 H3 首尾帧/对齐图":
+  - generic: MiniMax 海螺 H3
+  - generic: 首尾帧/对齐图
+- button "ByteDance 剪映 SeaDance 2.5 高动态/短剧":
+  - generic: ByteDance 剪映 SeaDance 2.5
+  - generic: 高动态/短剧
+- button "Wan 2.1 (万象开源) 物理真实/24FPS":
+  - generic: Wan 2.1 (万象开源)
+  - generic: 物理真实/24FPS
+- button "Runway Gen-3 / 可灵 Kling 商业影视机位":
+  - generic: Runway Gen-3 / 可灵 Kling
+  - generic: 商业影视机位
+- button "复制 MiniMax 海螺 H3 提示词":
+  - generic: 复制 MiniMax 海螺 H3 提示词
+- generic: ZIP 全包归档
+- heading "全案工业交付母盘 (Master Archive)" [level=4]
+- paragraph: 一键打包分镜长图 (PNG)、顺场表 (CSV)、四大模型提示词工程包 (TXT) 与全案母盘元数据 (JSON)。
+- button "一键打包下载全要素母盘 ZIP":
+  - generic: 一键打包下载全要素母盘 ZIP
+- heading "交付资料检查" [level=3]:
+  - generic: 交付资料检查
+- paragraph: 以下统计图片引用；画面加载、图文匹配与连续性尚未审片。导出前请逐镜核对。
+- generic: 镜头总计
+- generic: 6 镜
+- generic: 有图片引用
+- generic: 6 / 6
+- generic: 画幅比例
+- generic: 16:9
+- generic: 计划镜头总时长
+- generic: 24.0s
+- status: 内容未审 · 本页导出制作资料，不包含已合成的配音或成片视频。
+- heading "排版与交付偏好" [level=4]
+- paragraph: 附带导演机位 HUD 水印
+- paragraph: 在分镜长图上保留景别、运镜参数标注
+- checkbox "附带导演机位 HUD 水印 在分镜长图上保留景别、运镜参数标注" [checked]
+- alert
+- document

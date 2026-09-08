@@ -1,0 +1,23 @@
+{
+  "base_commit": "a231056da5328302c52c7bd81549893bbc253dbf",
+  "working_tree_changes": true,
+  "build_id": "EX6zx4wJEm2q0ATt1HKx3",
+  "files": {
+    "frontend/package.json": "c593df149f624dbb5a571ba646d83b7e5a32fcdc20d0ea67bb21af044857f8f3",
+    "frontend/src/app/page.tsx": "7d10a69417b20425b362664f7fb7dfde3d9a35d2c32aed299f94be350c78fbd7",
+    "frontend/src/app/workspace/[projectId]/WorkspaceClient.tsx": "f119dcaa42cfd9b3c9926932a513ea1baee4a0ad0341ab15388cdb4813f35a21",
+    "frontend/src/components/drawers/VoiceAlignmentDrawer.tsx": "f714170fd92c99b337b64392f9531bcacfd7f614ec82cbfbcc919731c056334e",
+    "frontend/src/components/modals/ProjectQualityRadarModal.tsx": "2b450918daa8afddb7b6c4ce88ab1221539773d97415d464a2cfaecf78b38950",
+    "frontend/src/components/script-view/BeatStreamEditor.tsx": "018e02e6423c76951715eeebf8b09eee5a34d0a0c1b29902c90aa1c1468be576",
+    "frontend/src/components/storyboard-view/RhythmBarcode.tsx": "a3eb12ee8f9dce6734300603f9ff93d4d95acd3010340e3ad30095b62a6c8b90",
+    "frontend/src/components/storyboard-view/StoryboardCell.tsx": "6045cb156f06b09c91bccff9deeb09f007dbf97559c7a372e6a25b6b03e628bc",
+    "frontend/src/components/storyboard-view/StoryboardPanel.tsx": "7bca61bac0e7649f216b122158ec51c4175ee6300cd658f5c5635a4a956a6769",
+    "frontend/src/components/workspace/views/DeliverStudioView.tsx": "062771fea7d7c7d131d60f77439fbc9db54851ff6503cd26674d9610a34d1427",
+    "frontend/src/components/workspace/views/TheaterReviewStudioView.tsx": "b945a57770bd669c4fcdee55e27d5841ceb7c164c3a799c249cd05f08eb4a7fe",
+    "frontend/src/hooks/useH3Prompt.ts": "7ea73e39a022e5da791a33e107410d5a682cc83ddce2493f6aca0c9f94718856",
+    "frontend/src/lib/callSheetExporter.ts": "e7a98517834e2a8c2830bbbaabcf9e348e98c1662c646d9c0b80a3c952032665",
+    "frontend/src/lib/dialogueSpeaker.ts": "5577591d1a973bd5a911510bb1800867d6d3f7741395aa094c67a95cdb6c71fb",
+    "frontend/src/lib/videoPromptEngines.ts": "24f256ccc64a13f8bb04b146fe805b6a4297a07c94288e8f38ef992ab49fae88",
+    "frontend/tests/live-regressions.cjs": "c449663b7066ae71959e272aff26c8df314a75ebbcd1f26641543e76f798ad2a"
+  }
+}

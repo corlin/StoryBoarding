@@ -1,5 +1,6 @@
 "use client";
 
+import { buildVoiceAlignmentRows, voiceAlignmentCsv } from "@/lib/dialogueSpeaker";
 import React, { useState } from "react";
 import { ShotModel, CharacterModel } from "@/types/shot";
 import { X, Mic, Download, Copy, Check, Sparkles, Volume2 } from "lucide-react";
@@ -23,35 +24,10 @@ export const VoiceAlignmentDrawer: React.FC<VoiceAlignmentDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  // Filter dialogue shots
-  const dialogueShots = shots
-    .filter((s) => s.dialogue && s.dialogue.trim().length > 0)
-    .map((shot, idx) => {
-      // Find speaker character
-      let char = characters.find((c) => (shot.character_ids || []).includes(c.id));
-      if (!char && shot.subject) {
-        char = characters.find((c) => shot.subject?.includes(c.name));
-      }
-      return {
-        index: idx + 1,
-        shotOrder: shot.order,
-        speakerName: char?.name || shot.subject || "画外音",
-        voiceDna: char?.voice_dna || char?.voiceDna || "沉稳中音，清晰自然",
-        dialogue: shot.dialogue || "",
-        emotion: shot.dialogue_emotion || shot.emotion || "正常叙事",
-        duration: shot.duration || 2.5,
-      };
-    });
+  const dialogueShots = buildVoiceAlignmentRows(shots, characters);
 
   const handleCopyCsv = () => {
-    const header = "序号,镜头号,说话角色,声音特征/音色Prompt,台词文本,情感语气,预估时长(秒)\n";
-    const rows = dialogueShots
-      .map(
-        (d) =>
-          `"${d.index}","Shot #${d.shotOrder}","${d.speakerName}","${d.voiceDna.replace(/"/g, '""')}","${d.dialogue.replace(/"/g, '""')}","${d.emotion}","${d.duration}"`
-      )
-      .join("\n");
-    navigator.clipboard.writeText(header + rows);
+    navigator.clipboard.writeText(voiceAlignmentCsv(dialogueShots));
     setCopied(true);
     notify.success("已复制配音对齐单 CSV 数据至剪贴板");
     setTimeout(() => setCopied(false), 2000);
@@ -81,16 +57,16 @@ export const VoiceAlignmentDrawer: React.FC<VoiceAlignmentDrawerProps> = ({
               <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
                 角色配音对齐单 (Voice Alignment Sheet)
                 <span className="text-[10px] font-mono bg-pink-500/20 text-pink-300 border border-pink-500/30 px-1.5 py-0.2 rounded">
-                  TTS直通
+                  配音资料
                 </span>
               </h3>
               <p className="text-xs text-muted-foreground">
-                提取全剧台词与角色音色特征，一键对接 CosyVoice / ElevenLabs 批量合成
+                导出所选镜头的台词与音色资料；需在配音工具中合成并核对实际时长
               </p>
             </div>
           </div>
 
-          <button onClick={onClose} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+          <button aria-label="关闭配音资料" onClick={onClose} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -129,7 +105,7 @@ export const VoiceAlignmentDrawer: React.FC<VoiceAlignmentDrawerProps> = ({
           ) : (
             dialogueShots.map((item) => (
               <div
-                key={item.shotOrder}
+                key={item.shotId}
                 className="p-3.5 bg-background border border-border/70 rounded-xl space-y-2 hover:border-border transition-colors"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -139,14 +115,14 @@ export const VoiceAlignmentDrawer: React.FC<VoiceAlignmentDrawerProps> = ({
                     </span>
                     <span className="text-xs font-bold text-foreground flex items-center gap-1">
                       <Mic className="w-3 h-3 text-pink-400" />
-                      {item.speakerName}
+                      {item.speakerName}{item.status === "unresolved" && item.speakerName !== "待确认说话者" ? "（待确认）" : ""}
                     </span>
                     <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-pink-500/10 text-pink-300 border border-pink-500/20">
                       语气: {item.emotion}
                     </span>
                   </div>
                   <span className="text-[10px] text-muted-foreground font-mono">
-                    预估 {item.duration}s
+                    计划镜头 {Number(item.duration.toFixed(2))}s
                   </span>
                 </div>
 
