@@ -189,3 +189,115 @@ export type InsertLocation = typeof locations.$inferInsert;
 
 export type Prop = typeof props.$inferSelect;
 export type InsertProp = typeof props.$inferInsert;
+
+// ============================================================
+// P0-1: Short Drama Production Pipeline Data Models
+// ============================================================
+
+// GenerationJob: tracks every AI generation attempt (image/video/audio)
+export const generationJobs = sqliteTable("generation_jobs", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  shotId: text("shot_id").references(() => shots.id, { onDelete: "cascade" }),
+  jobType: text("job_type").notNull(), // 'image' | 'video' | 'audio' | 'tts'
+  provider: text("provider").notNull().default(""), // 'openrouter' | 'minimax' | 'runway' | 'kling' | 'wan' | 'external'
+  model: text("model").notNull().default(""),
+  inputRevision: text("input_revision").notNull().default(""), // snapshot hash of input prompt
+  referenceAssetVersion: text("reference_asset_version").notNull().default(""),
+  parameters: text("parameters").notNull().default("{}"), // JSON: aspect_ratio, duration, seed, etc.
+  externalTaskId: text("external_task_id").notNull().default(""), // provider-side task ID
+  status: text("status").notNull().default("pending"), // 'pending' | 'submitted' | 'processing' | 'succeeded' | 'failed' | 'cancelled'
+  failureReason: text("failure_reason").notNull().default(""),
+  resultUrl: text("result_url").notNull().default(""),
+  resultMetadata: text("result_metadata").notNull().default("{}"), // JSON: duration, resolution, etc.
+  costAmount: real("cost_amount").default(0), // numeric cost
+  costCurrency: text("cost_currency").notNull().default(""), // 'USD' | 'CNY' | 'unknown'
+  costUnit: text("cost_unit").notNull().default(""), // 'per_call' | 'per_second' | 'per_image'
+  submittedAt: text("submitted_at"),
+  completedAt: text("completed_at"),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+// Take: each actual media output from a generation job or external upload
+export const takes = sqliteTable("takes", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  shotId: text("shot_id").notNull().references(() => shots.id, { onDelete: "cascade" }),
+  jobId: text("job_id").references(() => generationJobs.id, { onDelete: "set null" }),
+  takeType: text("take_type").notNull().default("video"), // 'video' | 'image' | 'audio'
+  source: text("source").notNull().default("generated"), // 'generated' | 'external_upload'
+  mediaUrl: text("media_url").notNull().default(""),
+  thumbnailUrl: text("thumbnail_url").notNull().default(""),
+  duration: real("duration").default(0), // seconds
+  resolution: text("resolution").notNull().default(""), // e.g. '1024x576'
+  reviewStatus: text("review_status").notNull().default("pending"), // 'pending' | 'approved' | 'rejected'
+  rejectionReason: text("rejection_reason").notNull().default(""),
+  isAdopted: integer("is_adopted", { mode: "boolean" }).default(false).notNull(),
+  adoptedAt: text("adopted_at"),
+  reviewerNote: text("reviewer_note").notNull().default(""),
+  metadata: text("metadata").notNull().default("{}"),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+// DialogueLine: explicit speaker, text, performance, audio version, actual duration
+export const dialogueLines = sqliteTable("dialogue_lines", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  shotId: text("shot_id").references(() => shots.id, { onDelete: "cascade" }),
+  sequenceId: text("sequence_id").references(() => sequences.id, { onDelete: "cascade" }),
+  speaker: text("speaker").notNull().default(""), // character name or '旁白'
+  text: text("text").notNull().default(""),
+  performance: text("performance").notNull().default(""), // emotion/tone direction
+  emotion: text("emotion").notNull().default(""),
+  audioVersion: text("audio_version").notNull().default(""), // reference to audio take/file
+  audioUrl: text("audio_url").notNull().default(""),
+  actualDuration: real("actual_duration").default(0), // seconds, from actual audio
+  plannedDuration: real("planned_duration").default(0), // seconds, from shot plan
+  isVoiceover: integer("is_voiceover", { mode: "boolean" }).default(false).notNull(),
+  orderIndex: integer("order_index").notNull().default(0),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+// EditVersion: saved edit assembly using specific takes, in/out points, audio tracks, subtitles
+export const editVersions = sqliteTable("edit_versions", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  sequenceId: text("sequence_id").references(() => sequences.id, { onDelete: "cascade" }),
+  versionTag: text("version_tag").notNull(), // e.g. 'v1.0', 'v1.1-rework'
+  versionName: text("version_name").notNull().default(""),
+  assemblyData: text("assembly_data").notNull().default("{}"), // JSON: [{shotId, takeId, inPoint, outPoint, audioTracks}]
+  subtitleData: text("subtitle_data").notNull().default("[]"), // JSON array of subtitle cues
+  exportResult: text("export_result").notNull().default("{}"), // JSON: {mp4Url, srtUrl, manifestUrl, exportedAt}
+  isCurrent: integer("is_current", { mode: "boolean" }).default(false).notNull(),
+  totalDuration: real("total_duration").default(0),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+// AssetVersion: versioned reference for character, costume, scene, prop
+export const assetVersions = sqliteTable("asset_versions", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  assetType: text("asset_type").notNull(), // 'character' | 'costume' | 'scene' | 'prop'
+  assetRefId: text("asset_ref_id").notNull().default(""), // ID in characters/locations/props table
+  versionNumber: integer("version_number").notNull().default(1),
+  versionLabel: text("version_label").notNull().default(""),
+  referenceImageUrl: text("reference_image_url").notNull().default(""),
+  visualPrompt: text("visual_prompt").notNull().default(""),
+  stateData: text("state_data").notNull().default("{}"), // JSON: holder, open/closed state, known info
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+export type GenerationJob = typeof generationJobs.$inferSelect;
+export type InsertGenerationJob = typeof generationJobs.$inferInsert;
+export type Take = typeof takes.$inferSelect;
+export type InsertTake = typeof takes.$inferInsert;
+export type DialogueLine = typeof dialogueLines.$inferSelect;
+export type InsertDialogueLine = typeof dialogueLines.$inferInsert;
+export type EditVersion = typeof editVersions.$inferSelect;
+export type InsertEditVersion = typeof editVersions.$inferInsert;
+export type AssetVersion = typeof assetVersions.$inferSelect;
+export type InsertAssetVersion = typeof assetVersions.$inferInsert;

@@ -501,4 +501,157 @@ export const api = {
     });
     return data;
   },
+
+  // ============================================================
+  // P0-1: Short Drama Production Pipeline APIs
+  // ============================================================
+
+  // Production Kanban: status overview for all shots
+  async getProductionKanban(projectId: string): Promise<{
+    project_id: string;
+    total_shots: number;
+    status_counts: Record<string, number>;
+    shots: Array<{
+      shot_id: string;
+      order: number;
+      shot_size: string;
+      duration: number;
+      action: string;
+      dialogue: string;
+      status: string;
+      has_image: boolean;
+      takes_count: number;
+      pending_takes: number;
+      adopted_take_id: string | null;
+      latest_failure: string;
+    }>;
+  }> {
+    const { data } = await apiClient.get("/production/kanban", { params: { project_id: projectId } });
+    return data;
+  },
+
+  // Takes: list candidates for a shot
+  async getShotTakes(shotId: string): Promise<{ takes: any[] }> {
+    const { data } = await apiClient.get("/production/takes", { params: { shot_id: shotId } });
+    return data;
+  },
+
+  // Adopt a take
+  async adoptTake(takeId: string): Promise<{ status: string; take_id: string; adopted: boolean }> {
+    const { data } = await apiClient.post(`/production/takes/${takeId}/adopt`);
+    return data;
+  },
+
+  // Reject a take with reason
+  async rejectTake(takeId: string, reason: string): Promise<{ status: string; take_id: string; rejected: boolean; reason: string }> {
+    const { data } = await apiClient.post(`/production/takes/${takeId}/reject`, { reason });
+    return data;
+  },
+
+  // Upload external media (video/audio)
+  async uploadTake(shotId: string, file: File, takeType: string = "video"): Promise<{
+    status: string;
+    take_id: string;
+    media_url: string;
+    take_type: string;
+    source: string;
+  }> {
+    const formData = new FormData();
+    formData.append("shot_id", shotId);
+    formData.append("take_type", takeType);
+    formData.append("file", file);
+    const { data } = await apiClient.post("/production/takes/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
+  },
+
+  // Generation jobs: list all jobs for a project
+  async getGenerationJobs(projectId: string, limit: number = 50): Promise<{ jobs: any[]; count: number }> {
+    const { data } = await apiClient.get("/production/jobs", { params: { project_id: projectId, limit } });
+    return data;
+  },
+
+  // Dialogue lines
+  async getDialogueLines(projectId: string): Promise<{ dialogue_lines: any[] }> {
+    const { data } = await apiClient.get("/production/dialogue", { params: { project_id: projectId } });
+    return data;
+  },
+
+  async saveDialogueLine(payload: any): Promise<{ status: string; dialogue_id: string; action: string }> {
+    const { data } = await apiClient.post("/production/dialogue", payload);
+    return data;
+  },
+
+  // Edit versions
+  async getEditVersions(projectId: string): Promise<{ edit_versions: any[] }> {
+    const { data } = await apiClient.get("/production/edit-versions", { params: { project_id: projectId } });
+    return data;
+  },
+
+  async createEditVersion(payload: any): Promise<{ status: string; edit_version_id: string }> {
+    const { data } = await apiClient.post("/production/edit-versions", payload);
+    return data;
+  },
+
+  // Cost summary
+  async getCostSummary(projectId: string): Promise<{
+    project_id: string;
+    total_jobs: number;
+    total_takes: number;
+    reviewed_takes: number;
+    approved_takes: number;
+    pending_review: number;
+    adoption_rate: number;
+    costs_by_currency: Record<string, any>;
+    has_unknown_cost: boolean;
+    cost_complete: boolean;
+    jobs: any[];
+  }> {
+    const { data } = await apiClient.get("/production/costs", { params: { project_id: projectId } });
+    return data;
+  },
+
+  // Asset versions
+  async getAssetVersions(projectId: string, assetType?: string): Promise<{ asset_versions: any[] }> {
+    const params: any = { project_id: projectId };
+    if (assetType) params.asset_type = assetType;
+    const { data } = await apiClient.get("/production/asset-versions", { params });
+    return data;
+  },
+
+  // ============================================================
+  // P0-2: Video Generation APIs (MiniMax H3 async)
+  // ============================================================
+
+  // Submit a video generation task for a shot
+  async generateVideo(shotId: string): Promise<{
+    status: string;
+    job_id: string;
+    external_task_id: string;
+    shot_id: string;
+    message: string;
+  }> {
+    const { data } = await apiClient.post(`/generate/video/${shotId}`);
+    return data;
+  },
+
+  // Poll a video generation task status
+  async pollVideo(jobId: string): Promise<{
+    job_id: string;
+    status: string;
+    external_status: string;
+    video_url: string;
+    failure_reason: string;
+    take_id?: string;
+  }> {
+    const { data } = await apiClient.post("/generate/video/poll", { job_id: jobId });
+    return data;
+  },
+
+  // List video generation jobs for a shot
+  async getVideoJobs(shotId: string): Promise<{ jobs: any[]; count: number }> {
+    const { data } = await apiClient.get("/generate/video/jobs", { params: { shot_id: shotId } });
+    return data;
+  },
 };

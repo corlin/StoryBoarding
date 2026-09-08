@@ -22,6 +22,7 @@ import {
   Check,
   MoreVertical,
   Trash2,
+  ClipboardList,
 } from "lucide-react";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
@@ -54,6 +55,7 @@ interface TopBarProps {
   onBatchRender?: () => void;
   onOpenTour?: () => void;
   onOpenArchitectureMap?: () => void;
+  onOpenProductionKanban?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -79,6 +81,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onBatchRender,
   onOpenTour,
   onOpenArchitectureMap,
+  onOpenProductionKanban,
 }) => {
   const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
   const {
@@ -361,6 +364,19 @@ export const TopBar: React.FC<TopBarProps> = ({
             title="跨工程全局资产库：跨项目复用角色、场景与道具"
           >
             <span>◇ 资产库</span>
+          </button>
+        )}
+
+        {/* Production Kanban (P0-1) */}
+        {onOpenProductionKanban && (
+          <button
+            type="button"
+            onClick={onOpenProductionKanban}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors cursor-pointer border border-blue-500/30"
+            title="生产看板：镜头状态、候选素材采用/退回、外部上传、任务与成本追踪"
+          >
+            <ClipboardList className="w-3.5 h-3.5" />
+            <span>生产看板</span>
           </button>
         )}
 

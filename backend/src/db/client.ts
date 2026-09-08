@@ -206,6 +206,113 @@ export async function ensureSchema(d1: D1Database) {
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN h3_prompt TEXT DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN beats_range TEXT DEFAULT '[]';`).run(); } catch (_) {}
 
+    // 10. P0-1: generation_jobs table
+    await d1.prepare(`
+      CREATE TABLE IF NOT EXISTS generation_jobs (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        shot_id TEXT REFERENCES shots(id) ON DELETE CASCADE,
+        job_type TEXT NOT NULL,
+        provider TEXT NOT NULL DEFAULT '',
+        model TEXT NOT NULL DEFAULT '',
+        input_revision TEXT NOT NULL DEFAULT '',
+        reference_asset_version TEXT NOT NULL DEFAULT '',
+        parameters TEXT NOT NULL DEFAULT '{}',
+        external_task_id TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'pending',
+        failure_reason TEXT NOT NULL DEFAULT '',
+        result_url TEXT NOT NULL DEFAULT '',
+        result_metadata TEXT NOT NULL DEFAULT '{}',
+        cost_amount REAL DEFAULT 0,
+        cost_currency TEXT NOT NULL DEFAULT '',
+        cost_unit TEXT NOT NULL DEFAULT '',
+        submitted_at TEXT,
+        completed_at TEXT,
+        created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+      );
+    `).run();
+
+    // 11. P0-1: takes table
+    await d1.prepare(`
+      CREATE TABLE IF NOT EXISTS takes (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        shot_id TEXT NOT NULL REFERENCES shots(id) ON DELETE CASCADE,
+        job_id TEXT REFERENCES generation_jobs(id) ON DELETE SET NULL,
+        take_type TEXT NOT NULL DEFAULT 'video',
+        source TEXT NOT NULL DEFAULT 'generated',
+        media_url TEXT NOT NULL DEFAULT '',
+        thumbnail_url TEXT NOT NULL DEFAULT '',
+        duration REAL DEFAULT 0,
+        resolution TEXT NOT NULL DEFAULT '',
+        review_status TEXT NOT NULL DEFAULT 'pending',
+        rejection_reason TEXT NOT NULL DEFAULT '',
+        is_adopted INTEGER NOT NULL DEFAULT 0,
+        adopted_at TEXT,
+        reviewer_note TEXT NOT NULL DEFAULT '',
+        metadata TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+      );
+    `).run();
+
+    // 12. P0-1: dialogue_lines table
+    await d1.prepare(`
+      CREATE TABLE IF NOT EXISTS dialogue_lines (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        shot_id TEXT REFERENCES shots(id) ON DELETE CASCADE,
+        sequence_id TEXT REFERENCES sequences(id) ON DELETE CASCADE,
+        speaker TEXT NOT NULL DEFAULT '',
+        text TEXT NOT NULL DEFAULT '',
+        performance TEXT NOT NULL DEFAULT '',
+        emotion TEXT NOT NULL DEFAULT '',
+        audio_version TEXT NOT NULL DEFAULT '',
+        audio_url TEXT NOT NULL DEFAULT '',
+        actual_duration REAL DEFAULT 0,
+        planned_duration REAL DEFAULT 0,
+        is_voiceover INTEGER NOT NULL DEFAULT 0,
+        order_index INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+        updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+      );
+    `).run();
+
+    // 13. P0-1: edit_versions table
+    await d1.prepare(`
+      CREATE TABLE IF NOT EXISTS edit_versions (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        sequence_id TEXT REFERENCES sequences(id) ON DELETE CASCADE,
+        version_tag TEXT NOT NULL,
+        version_name TEXT NOT NULL DEFAULT '',
+        assembly_data TEXT NOT NULL DEFAULT '{}',
+        subtitle_data TEXT NOT NULL DEFAULT '[]',
+        export_result TEXT NOT NULL DEFAULT '{}',
+        is_current INTEGER NOT NULL DEFAULT 0,
+        total_duration REAL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+      );
+    `).run();
+
+    // 14. P0-1: asset_versions table
+    await d1.prepare(`
+      CREATE TABLE IF NOT EXISTS asset_versions (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        asset_type TEXT NOT NULL,
+        asset_ref_id TEXT NOT NULL DEFAULT '',
+        version_number INTEGER NOT NULL DEFAULT 1,
+        version_label TEXT NOT NULL DEFAULT '',
+        reference_image_url TEXT NOT NULL DEFAULT '',
+        visual_prompt TEXT NOT NULL DEFAULT '',
+        state_data TEXT NOT NULL DEFAULT '{}',
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+      );
+    `).run();
+
     schemaInitialized = true;
   } catch (e) {
     console.warn("Schema initialization note:", e);

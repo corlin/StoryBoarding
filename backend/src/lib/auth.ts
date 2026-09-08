@@ -174,10 +174,12 @@ export async function getUserSettings(db: any, userId?: string) {
 
   const rawLlmKey = (userSettings.llmApiKey || "").trim();
   const rawImageKey = (userSettings.imageApiKey || "").trim();
+  const rawVideoKey = (userSettings.videoApiKey || "").trim();
 
   // Decrypt ciphertext into in-memory plaintext
   const llmApiKey = rawLlmKey ? await decryptUserSecret(rawLlmKey, userSalt) : "";
   const imageApiKey = rawImageKey ? await decryptUserSecret(rawImageKey, userSalt) : llmApiKey;
+  const videoApiKey = rawVideoKey ? await decryptUserSecret(rawVideoKey, userSalt) : "";
 
   return {
     hasKey: !!llmApiKey,
@@ -187,5 +189,9 @@ export async function getUserSettings(db: any, userId?: string) {
     imageApiKey,
     imageApiBase: userSettings.imageApiBase || "https://openrouter.ai/api/v1",
     imageModel: userSettings.imageModel || "bytedance-seed/seedream-5-0-lite",
+    videoProvider: userSettings.videoProvider || "minimax",
+    videoApiKey,
+    videoApiBase: userSettings.videoApiBase || "https://api.minimax.chat/v1",
+    videoModel: userSettings.videoModel || "video-01-h3",
   };
 }

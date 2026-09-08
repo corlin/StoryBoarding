@@ -13,6 +13,8 @@ import charactersRouter from "./routes/characters";
 import locationsRouter from "./routes/locations";
 import propsRouter from "./routes/props";
 import globalAssetsRouter from "./routes/globalAssets";
+import productionRouter from "./routes/production";
+import videoRouter from "./routes/video";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -60,6 +62,8 @@ app.route("/api/generate", generationRouter);
 app.route("/api/export", exportRouter);
 app.route("/api/settings", settingsRouter);
 app.route("/api/assets", assetsRouter);
+app.route("/api/production", productionRouter);
+app.route("/api/generate", videoRouter);
 
 // Global Exception & Error Handler with Friendly JSON
 app.onError((err, c) => {

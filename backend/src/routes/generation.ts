@@ -771,56 +771,120 @@ export async function resolveShotPromptAndOptions(
 }
 
 const handleGenerateSingleShotImage = async (c: any) => {
-  await ensureSchema(c.env.DB);
-  const db = getDb(c.env.DB);
-  const shotId = c.req.param("id");
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const shotId = c.req.param("id");
 
-  const shot = await db.select().from(shots).where(eq(shots.id, shotId)).get();
-  if (!shot) {
-    return c.json({ detail: "Shot not found" }, 404);
+    const shot = await db.select().from(shots).where(eq(shots.id, shotId)).get();
+    if (!shot) {
+      return c.json({ detail: "Shot not found" }, 404);
+    }
+
+    const authHeader = c.req.header("Authorization");
+    const authUser = await getAuthUser(authHeader);
+    if (!authUser) {
+      return c.json({ detail: "请先登录导演账号" }, 401);
+    }
+
+    const settings = await getUserSettings(db, authUser.userId);
+    if (!settings.hasKey) {
+      return c.json({ detail: "请先在「设置」中配置您的专属 OpenRouter API Key 后再生成 AI 画面" }, 400);
+    }
+
+    // Create a GenerationJob record for tracking (P0-1)
+    const jobId = crypto.randomUUID();
+    const { generationJobs } = await import("../db/schema");
+    await db.insert(generationJobs).values({
+      id: jobId,
+      projectId: shot.sequenceId ? (await db.select().from(sequences).where(eq(sequences.id, shot.sequenceId)).get())?.projectId || "" : "",
+      shotId,
+      jobType: "image",
+      provider: settings.imageApiBase?.includes("openrouter") ? "openrouter" : "custom",
+      model: settings.imageModel || "",
+      parameters: JSON.stringify({ aspect_ratio: shot.sequenceId ? "9:16" : "9:16", seed: Date.now() }),
+      status: "submitted",
+      submittedAt: new Date().toISOString(),
+    }).catch((e) => console.warn("Failed to create generation job record:", e));
+
+    const { prompt: enrichedPrompt, options } = await resolveShotPromptAndOptions(db, shot);
+    const seed = Math.floor(Math.random() * 9000000) + Date.now() % 10000;
+
+    console.log(`[ImageGen] shot=${shotId} model=${settings.imageModel} promptLen=${enrichedPrompt.length}`);
+
+    const imageUrl = await generateCinematicStoryboardImage(
+      enrichedPrompt,
+      shotId,
+      settings,
+      c.env.STORAGE,
+      seed,
+      options
+    );
+
+    if (!imageUrl) {
+      console.warn(`[ImageGen] FAILED shot=${shotId} - empty result from provider`);
+      // Update job as failed
+      await db.update(generationJobs).set({
+        status: "failed",
+        failureReason: "Provider returned empty image URL (check API key, model availability, or prompt)",
+        completedAt: new Date().toISOString(),
+      }).where(eq(generationJobs.id, jobId)).catch(() => {});
+      return c.json({
+        detail: "图片生成失败：供应商未返回有效图片。请检查API Key有效性、模型是否可用，或稍后重试。",
+        shot_id: shotId,
+        job_id: jobId,
+      }, 502);
+    }
+
+    const existingHistory: string[] = shot.imageHistory ? JSON.parse(shot.imageHistory) : [];
+    const updatedHistory = imageUrl && !existingHistory.includes(imageUrl)
+      ? [imageUrl, ...existingHistory].slice(0, 10)
+      : existingHistory;
+
+    await db.update(shots).set({
+      storyboardImageUrl: imageUrl,
+      imageHistory: JSON.stringify(updatedHistory),
+      isDirty: false,
+      updatedAt: new Date().toISOString(),
+    }).where(eq(shots.id, shotId));
+
+    // Update job as succeeded and create a Take record
+    await db.update(generationJobs).set({
+      status: "succeeded",
+      resultUrl: imageUrl,
+      completedAt: new Date().toISOString(),
+    }).where(eq(generationJobs.id, jobId)).catch(() => {});
+
+    const { takes } = await import("../db/schema");
+    const takeId = crypto.randomUUID();
+    await db.insert(takes).values({
+      id: takeId,
+      projectId: (await db.select().from(sequences).where(eq(sequences.id, shot.sequenceId)).get())?.projectId || "",
+      shotId,
+      jobId,
+      takeType: "image",
+      source: "generated",
+      mediaUrl: imageUrl,
+      reviewStatus: "pending",
+      isAdopted: existingHistory.length === 0, // auto-adopt first take
+      adoptedAt: existingHistory.length === 0 ? new Date().toISOString() : null,
+    }).catch((e) => console.warn("Failed to create take record:", e));
+
+    return c.json({
+      status: "success",
+      shot_id: shotId,
+      storyboard_image_url: imageUrl,
+      image_history: updatedHistory,
+      job_id: jobId,
+      take_id: takeId,
+    });
+  } catch (err: any) {
+    console.error(`[ImageGen] UNHANDLED ERROR shot=${c.req.param("id")}:`, err?.message || err, err?.stack);
+    return c.json({
+      detail: `图片生成服务异常: ${err?.message || "未知错误"}`,
+      error: String(err),
+    }, 500);
   }
-
-  const authHeader = c.req.header("Authorization");
-  const authUser = await getAuthUser(authHeader);
-  if (!authUser) {
-    return c.json({ detail: "请先登录导演账号" }, 401);
-  }
-
-  const settings = await getUserSettings(db, authUser.userId);
-  if (!settings.hasKey) {
-    return c.json({ detail: "请先在「设置」中配置您的专属 OpenRouter API Key 后再生成 AI 画面" }, 400);
-  }
-
-  const { prompt: enrichedPrompt, options } = await resolveShotPromptAndOptions(db, shot);
-  const seed = Math.floor(Math.random() * 9000000) + Date.now() % 10000;
-
-  const imageUrl = await generateCinematicStoryboardImage(
-    enrichedPrompt,
-    shotId,
-    settings,
-    c.env.STORAGE,
-    seed,
-    options
-  );
-
-  const existingHistory: string[] = shot.imageHistory ? JSON.parse(shot.imageHistory) : [];
-  const updatedHistory = imageUrl && !existingHistory.includes(imageUrl) 
-    ? [imageUrl, ...existingHistory].slice(0, 10) 
-    : existingHistory;
-
-  await db.update(shots).set({
-    storyboardImageUrl: imageUrl,
-    imageHistory: JSON.stringify(updatedHistory),
-    isDirty: false,
-    updatedAt: new Date().toISOString(),
-  }).where(eq(shots.id, shotId));
-
-  return c.json({
-    status: "success",
-    shot_id: shotId,
-    storyboard_image_url: imageUrl,
-    image_history: updatedHistory,
-  });
 };
 
 router.post("/images/:shotId", handleGenerateSingleShotImage);

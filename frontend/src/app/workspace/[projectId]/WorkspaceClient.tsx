@@ -26,6 +26,7 @@ import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibrar
 import { QuickStartWizardModal } from "@/components/modals/QuickStartWizardModal";
 import { OnboardingTourModal } from "@/components/modals/OnboardingTourModal";
 import { SystemArchitectureMapModal } from "@/components/modals/SystemArchitectureMapModal";
+import ProductionKanbanModal from "@/components/modals/ProductionKanbanModal";
 import { WorkspaceLoadingScreen } from "@/components/workspace/WorkspaceLoadingScreen";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -77,6 +78,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const [isArchitectureMapOpen, setIsArchitectureMapOpen] = useState(false);
+  const [isProductionKanbanOpen, setIsProductionKanbanOpen] = useState(false);
   const hasAutoOpenedWizardRef = useRef(false);
   const abortBatchRenderRef = useRef(false);
 
@@ -753,6 +755,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onBatchRender={handleRegenerateDirty}
         onOpenTour={() => setIsOnboardingTourOpen(true)}
         onOpenArchitectureMap={() => setIsArchitectureMapOpen(true)}
+        onOpenProductionKanban={() => setIsProductionKanbanOpen(true)}
       />
 
       {/* Time Travel Read-Only Banner */}
@@ -1217,6 +1220,14 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         }}
         onOpenExport={() => setIsOpenExportModal(true)}
         onOpenTour={() => setIsOnboardingTourOpen(true)}
+      />
+
+      {/* P0-1: Production Kanban Modal */}
+      <ProductionKanbanModal
+        isOpen={isProductionKanbanOpen}
+        onClose={() => setIsProductionKanbanOpen(false)}
+        projectId={projectId || ""}
+        projectTitle={displayProject?.title || ""}
       />
     </div>
   );

@@ -28,6 +28,12 @@ router.get("/providers", async (c) => {
     image_api_key: "", // Plaintext strictly zeroed
     image_api_base: settings.imageApiBase,
     image_model: settings.imageModel,
+    video_provider: settings.videoProvider || "minimax",
+    has_video_key: Boolean(settings.videoApiKey && settings.videoApiKey.trim()),
+    video_api_key_masked: maskApiKey(settings.videoApiKey),
+    video_api_key: "",
+    video_api_base: settings.videoApiBase || "https://api.minimax.chat/v1",
+    video_model: settings.videoModel || "video-01-h3",
   });
 });
 
@@ -72,6 +78,14 @@ const handleUpdateProviders = async (c: any) => {
     }
   }
 
+  let finalEncryptedVideoKey = existingUserSettings.videoApiKey || "";
+  if (body.video_api_key !== undefined && typeof body.video_api_key === "string") {
+    const raw = body.video_api_key.trim();
+    if (raw && !raw.includes("••••")) {
+      finalEncryptedVideoKey = await encryptUserSecret(raw, user.salt);
+    }
+  }
+
   const updateData = {
     llmProvider: body.llm_provider || existingUserSettings.llmProvider || "openrouter",
     llmApiKey: finalEncryptedLlmKey,
@@ -81,6 +95,10 @@ const handleUpdateProviders = async (c: any) => {
     imageApiKey: finalEncryptedImageKey,
     imageApiBase: (body.image_api_base || existingUserSettings.imageApiBase || "https://openrouter.ai/api/v1").trim(),
     imageModel: (body.image_model || existingUserSettings.imageModel || "bytedance-seed/seedream-5-0-lite").trim(),
+    videoProvider: body.video_provider || existingUserSettings.videoProvider || "minimax",
+    videoApiKey: finalEncryptedVideoKey,
+    videoApiBase: (body.video_api_base || existingUserSettings.videoApiBase || "https://api.minimax.chat/v1").trim(),
+    videoModel: (body.video_model || existingUserSettings.videoModel || "video-01-h3").trim(),
     updatedAt: new Date().toISOString(),
   };
 
@@ -96,10 +114,12 @@ const handleUpdateProviders = async (c: any) => {
     status: "success",
     has_llm_key: Boolean(finalEncryptedLlmKey),
     has_image_key: Boolean(finalEncryptedImageKey),
+    has_video_key: Boolean(finalEncryptedVideoKey),
     settings: {
       ...updateData,
       llmApiKey: maskApiKey(body.llm_api_key || "••••••••"),
       imageApiKey: maskApiKey(body.image_api_key || "••••••••"),
+      videoApiKey: maskApiKey(body.video_api_key || "••••••••"),
     },
   });
 };
