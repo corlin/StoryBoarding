@@ -1226,7 +1226,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       <ProductionKanbanModal
         isOpen={isProductionKanbanOpen}
         onClose={() => setIsProductionKanbanOpen(false)}
-        projectId={projectId || ""}
+        projectId={effectiveProjectId}
         projectTitle={displayProject?.title || ""}
       />
     </div>
