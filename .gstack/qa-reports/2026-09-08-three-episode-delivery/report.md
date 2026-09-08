@@ -75,7 +75,7 @@
 ## 可复现材料
 
 - `artifacts/create-series.json`：三集工程输入，关闭预览图自动生成以避免额外付费。
-- `artifacts/generate-delivery.js`：按工程镜头生成技术样片、SRT 和拼接清单。
+- `artifacts/generate-delivery.js`：通过 `REAL_VIDEO=/path/to/recovered.mp4 node artifacts/generate-delivery.js` 替换 EP01 SHOT01，生成三集/全片 MP4、SRT 与内嵌字幕轨。
 - `artifacts/render-cards.py`：生成明确标识的 9:16 技术卡。
 - `artifacts/delivery/delivery-manifest.json`：交付清单。
 

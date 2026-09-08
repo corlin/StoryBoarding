@@ -29,5 +29,5 @@
   "full_video": "第二把钥匙-三集完整样片-带字幕.mp4",
   "full_subtitle": "subtitles-full.srt",
   "subtitle_mode": "embedded_mov_text_and_external_srt",
-  "note": "EP01 SHOT01 uses the recovered and adopted MiniMax video. The other 23 shots are technical animatic cards."
+  "note": "EP01 SHOT01 uses REAL_VIDEO; the other 23 shots are technical animatic cards."
 }
