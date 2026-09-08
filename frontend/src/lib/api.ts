@@ -645,7 +645,7 @@ export const api = {
     failure_reason: string;
     take_id?: string;
   }> {
-    const { data } = await apiClient.post("/generate/video/poll", { job_id: jobId });
+    const { data } = await apiClient.post("/generate/poll", { job_id: jobId });
     return data;
   },
 

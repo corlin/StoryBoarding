@@ -147,10 +147,10 @@ router.post("/video/:shotId", async (c) => {
 });
 
 // ============================================================
-// POST /api/generate/video/poll
+// POST /api/generate/poll
 // Poll a video generation task status; create Take when complete
 // ============================================================
-router.post("/video/poll", async (c) => {
+router.post("/poll", async (c) => {
   const authUser = await getAuthUser(c.req.header("Authorization"));
   if (!authUser) return c.json({ detail: "请先登录" }, 401);
 
