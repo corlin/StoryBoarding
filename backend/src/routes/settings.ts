@@ -32,8 +32,8 @@ router.get("/providers", async (c) => {
     has_video_key: Boolean(settings.videoApiKey && settings.videoApiKey.trim()),
     video_api_key_masked: maskApiKey(settings.videoApiKey),
     video_api_key: "",
-    video_api_base: settings.videoApiBase || "https://api.minimax.cn/v2",
-    video_model: settings.videoModel || "MiniMax-H3",
+    video_api_base: settings.videoApiBase || "https://api.minimax.cn/v1",
+    video_model: settings.videoModel || "MiniMax-Hailuo-02",
   });
 });
 
@@ -97,8 +97,8 @@ const handleUpdateProviders = async (c: any) => {
     imageModel: (body.image_model || existingUserSettings.imageModel || "bytedance-seed/seedream-5-0-lite").trim(),
     videoProvider: body.video_provider || existingUserSettings.videoProvider || "minimax",
     videoApiKey: finalEncryptedVideoKey,
-    videoApiBase: (body.video_api_base || existingUserSettings.videoApiBase || "https://api.minimax.cn/v2").trim(),
-    videoModel: (body.video_model || existingUserSettings.videoModel || "MiniMax-H3").trim(),
+    videoApiBase: (body.video_api_base || existingUserSettings.videoApiBase || "https://api.minimax.cn/v1").trim(),
+    videoModel: (body.video_model || existingUserSettings.videoModel || "MiniMax-Hailuo-02").trim(),
     updatedAt: new Date().toISOString(),
   };
 

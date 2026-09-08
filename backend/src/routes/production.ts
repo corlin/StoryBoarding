@@ -273,6 +273,47 @@ router.post("/takes/upload", async (c) => {
   }
 });
 
+// Upload a final delivery artifact and return its durable R2 URL.
+router.post("/deliveries/upload", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const authUser = await getAuthUser(c.req.header("Authorization"));
+    if (!authUser) return c.json({ detail: "请先登录" }, 401);
+
+    const formData = await c.req.formData();
+    const projectId = formData.get("project_id") as string;
+    const artifactType = (formData.get("artifact_type") as string) || "artifact";
+    const file = formData.get("file") as File;
+    if (!projectId || !file) return c.json({ detail: "project_id and file required" }, 400);
+
+    const project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
+    if (!project) return c.json({ detail: "Project not found" }, 404);
+    if (project.userId !== authUser.userId) return c.json({ detail: "无权访问该工程" }, 403);
+    if (!c.env.STORAGE) return c.json({ detail: "R2 storage is not configured" }, 503);
+
+    const safeType = artifactType.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const ext = file.name.split(".").pop()?.replace(/[^a-zA-Z0-9]/g, "") || "bin";
+    const r2Key = `deliveries/${projectId}/${safeType}-${crypto.randomUUID()}.${ext}`;
+    await c.env.STORAGE.put(r2Key, file.stream(), {
+      httpMetadata: { contentType: file.type || "application/octet-stream" },
+      customMetadata: { projectId, artifactType, originalName: file.name },
+    });
+
+    return c.json({
+      status: "success",
+      project_id: projectId,
+      artifact_type: artifactType,
+      filename: file.name,
+      size: file.size,
+      media_url: `/api/assets/${r2Key}`,
+    });
+  } catch (err: any) {
+    console.error("[Delivery Upload Error]:", err);
+    return c.json({ detail: `交付文件上传失败: ${err?.message || err}` }, 500);
+  }
+});
+
 // ============================================================
 // Generation Jobs: list and status
 // ============================================================
@@ -427,7 +468,7 @@ router.post("/edit-versions", async (c) => {
     if (!authUser) return c.json({ detail: "请先登录" }, 401);
 
     const { project_id, sequence_id, version_tag, version_name, assembly_data,
-      subtitle_data, total_duration, is_current } = body;
+      subtitle_data, export_result, total_duration, is_current } = body;
 
     if (!project_id || !version_tag) return c.json({ detail: "project_id and version_tag required" }, 400);
 
@@ -445,6 +486,7 @@ router.post("/edit-versions", async (c) => {
       versionName: version_name || "",
       assemblyData: JSON.stringify(assembly_data || {}),
       subtitleData: JSON.stringify(subtitle_data || []),
+      exportResult: JSON.stringify(export_result || {}),
       isCurrent: is_current || false,
       totalDuration: total_duration || 0,
     });
