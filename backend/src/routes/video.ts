@@ -7,6 +7,20 @@ import { saveMediaToR2 } from "../lib/storage";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
+// MiniMax H3 pricing (China region, api.minimax.cn)
+// Source: https://platform.minimaxi.com/docs/guides/pricing-paygo
+const MINIMAX_PRICING: Record<string, Record<string, number>> = {
+  "MiniMax-H3": { "768P": 0.50, "2K": 0.80 },
+  "MiniMax-H3-Max": { "480P": 0.30, "768P": 0.50 },
+};
+
+/** Calculate video generation cost based on model, resolution, duration. */
+function calculateVideoCost(model: string, resolution: string, duration: number): { amount: number; currency: string; unit: string } {
+  const perSecond = MINIMAX_PRICING[model]?.[resolution] ?? 0.50;
+  const amount = Math.round(perSecond * duration * 100) / 100;
+  return { amount, currency: "CNY", unit: "seconds" };
+}
+
 // ============================================================
 // POST /api/generate/video/{shotId}
 // Submit a video generation task to the configured video provider
@@ -236,6 +250,16 @@ router.post("/poll", async (c) => {
         console.warn(`[Video Poll] R2 persist failed, keeping upstream URL for job ${jobId}`);
       }
       updateData.resultUrl = finalUrl;
+
+      // Calculate and record cost (P0-6)
+      const cost = calculateVideoCost(
+        task?.model || job.model || "MiniMax-H3",
+        task?.resolution || "768P",
+        task?.duration || 0
+      );
+      updateData.costAmount = cost.amount;
+      updateData.costCurrency = cost.currency;
+      updateData.costUnit = cost.unit;
 
       // Create a Take record for the generated video
       await db.insert(takes).values({
