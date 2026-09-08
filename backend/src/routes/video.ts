@@ -76,19 +76,20 @@ router.post("/video/:shotId", async (c) => {
 
     // Submit to MiniMax H3 API
     const apiBase = userSettings.videoApiBase.replace(/\/+$/, "");
+    // MiniMax video_generation endpoint does not accept model param (returns "incorrect model param input")
+    const reqBody: any = {
+      prompt: videoPrompt,
+      duration,
+      aspect_ratio: aspectRatio,
+      fps: 24,
+    };
     const submitResp = await fetch(`${apiBase}/video_generation`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${userSettings.videoApiKey}`,
       },
-      body: JSON.stringify({
-        model: userSettings.videoModel || "video-01-h3",
-        prompt: videoPrompt,
-        duration,
-        aspect_ratio: aspectRatio,
-        fps: 24,
-      }),
+      body: JSON.stringify(reqBody),
     });
 
     const submitData: any = await submitResp.json().catch(() => ({}));
