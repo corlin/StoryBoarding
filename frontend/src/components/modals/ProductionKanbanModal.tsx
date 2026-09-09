@@ -597,15 +597,15 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
   const currentExport = currentEditVersion?.export_result || {};
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="relative flex h-[90vh] w-full max-w-7xl flex-col rounded-xl bg-[#0d1117] border border-[#21262d] shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-0 sm:p-4">
+      <div className="relative flex h-full w-full max-w-7xl flex-col rounded-none bg-[#0d1117] border border-[#21262d] shadow-2xl sm:h-[90vh] sm:rounded-xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#21262d] px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#21262d] px-3 py-3 sm:px-6 sm:py-4">
           <div>
             <h2 className="text-lg font-bold text-white">生产看板 · Production Kanban</h2>
             <p className="text-xs text-gray-400">{projectTitle} · 共 {shots.length} 镜</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               onClick={() => setShowExport(!showExport)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium ${
@@ -632,7 +632,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
 
         {/* Cost summary bar (P0-6) */}
         {costData && (
-          <div className="flex items-center gap-4 border-b border-[#21262d] bg-[#161b22] px-6 py-2 text-[11px] overflow-x-auto">
+          <div className="flex items-center gap-4 border-b border-[#21262d] bg-[#161b22] px-3 py-2 text-[11px] overflow-x-auto sm:px-6">
             <span className="text-gray-400">
               任务 <span className="font-bold text-white">{costData.total_jobs}</span>
             </span>
@@ -665,7 +665,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
 
         {/* Export panel (P0-5) */}
         {showExport && (
-          <div className="border-b border-[#21262d] bg-[#161b22] px-6 py-3">
+          <div className="border-b border-[#21262d] bg-[#161b22] px-3 py-3 sm:px-6">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-bold text-white">整集导出 · Export</span>
               <span className="text-[10px] text-gray-500">
@@ -727,7 +727,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
         )}
 
         {/* Status filter bar */}
-        <div className="flex items-center gap-2 border-b border-[#21262d] px-6 py-3 overflow-x-auto">
+        <div className="flex items-center gap-2 border-b border-[#21262d] px-3 py-3 overflow-x-auto sm:px-6">
           {statuses.map((s) => (
             <button
               key={s}
@@ -745,9 +745,9 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
           {/* Shot list */}
-          <div className="w-1/2 overflow-y-auto border-r border-[#21262d] p-4">
+          <div className="h-2/5 w-full overflow-y-auto border-b border-[#21262d] p-3 md:h-auto md:w-1/2 md:border-b-0 md:border-r md:p-4">
             {loading ? (
               <div className="py-12 text-center text-sm text-gray-500">加载中...</div>
             ) : filteredShots.length === 0 ? (
@@ -792,7 +792,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
           </div>
 
           {/* Take detail panel */}
-          <div className="w-1/2 overflow-y-auto p-4">
+          <div className="h-3/5 w-full overflow-y-auto p-3 md:h-auto md:w-1/2 md:p-4">
             {!selectedShot ? (
               <div className="flex h-full items-center justify-center text-sm text-gray-500">
                 选择左侧镜头查看候选素材
