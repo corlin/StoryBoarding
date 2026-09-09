@@ -60,7 +60,7 @@ export const TtsConfigSection: React.FC<TtsConfigSectionProps> = ({
     setTestError("");
 
     try {
-      const token = localStorage.getItem("token") || "";
+      const token = localStorage.getItem("storyboard_token") || "";
       const response = await fetch("/api/generate/tts/test", {
         method: "POST",
         headers: {
