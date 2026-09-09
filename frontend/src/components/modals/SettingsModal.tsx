@@ -595,7 +595,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
 
             <div className="text-[10px] text-muted-foreground/70 leading-relaxed">
-              视频生成采用异步模式：提交任务后返回 job_id，通过轮询获取结果。镜头有分镜图时自动作为首帧走图生视频，适合保持 9:16 画幅；竖屏镜头没有首帧时会在付费提交前提示横屏风险。生成结果自动存入视频候选，可在生产看板中采用或退回。MiniMax API Key 请在 <a href="https://platform.minimaxi.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">platform.minimaxi.com</a> 申请。
+              视频生成采用异步模式：提交任务后返回 job_id，通过轮询获取结果。镜头有分镜图时自动作为首帧走图生视频，并以首帧画幅约束输出；竖屏镜头没有首帧时会在付费提交前提示横屏风险。生成结果自动存入视频候选，可在生产看板中采用或退回。MiniMax API Key 请在 <a href="https://platform.minimaxi.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">platform.minimaxi.com</a> 申请。
             </div>
           </div>
 

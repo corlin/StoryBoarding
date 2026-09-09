@@ -396,7 +396,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
     if (!selectedShot) return;
     const estimate = planVideoGeneration(projectAspectRatio, selectedShot.has_image, selectedShot.duration);
     const modeDescription = estimate.generationMode === "image_to_video"
-      ? `图生视频 · 使用当前 ${projectAspectRatio} 分镜图作为首帧`
+      ? "图生视频 · 使用当前分镜图作为首帧画幅约束"
       : "文生视频 · 没有首帧约束";
     const aspectWarning = estimate.requiresLandscapeFallbackConfirmation
       ? "\n\n⚠ 当前是 9:16 工程，但该镜头没有首帧。MiniMax 文生视频不接受画幅参数，可能返回横屏。建议取消并先生成或上传 9:16 分镜图。"

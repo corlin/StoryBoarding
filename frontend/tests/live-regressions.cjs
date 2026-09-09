@@ -152,7 +152,7 @@ test('three-episode production order and filenames retain episode identity', () 
   assert.deepEqual(planVideoGeneration('9:16', true, 4), {
     billableDuration: 6,
     generationMode: 'image_to_video',
-    preservesRequestedAspectRatio: true,
+    usesFirstFrameAspectConstraint: true,
     requiresLandscapeFallbackConfirmation: false,
   });
   assert.equal(planVideoGeneration('9:16', false, 4).requiresLandscapeFallbackConfirmation, true);

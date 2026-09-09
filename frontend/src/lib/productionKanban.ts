@@ -35,7 +35,7 @@ export function planVideoGeneration(aspectRatio: string, hasFirstFrame: boolean,
   return {
     billableDuration,
     generationMode,
-    preservesRequestedAspectRatio: hasFirstFrame,
+    usesFirstFrameAspectConstraint: hasFirstFrame,
     requiresLandscapeFallbackConfirmation: aspectRatio === "9:16" && !hasFirstFrame,
   };
 }
