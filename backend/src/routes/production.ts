@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, ne, and, desc, sql, inArray } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import {
   projects, sequences, shots, generationJobs, takes,
@@ -63,9 +63,11 @@ router.get("/kanban", async (c) => {
     const items = projectShots.map((shot: any) => {
       const sequence: any = sequenceById.get(shot.sequenceId);
       const shotTakes = projectTakes.filter((t: any) => t.shotId === shot.id);
+      const visualTakes = shotTakes.filter((t: any) => t.takeType !== "audio");
+      const audioTakes = shotTakes.filter((t: any) => t.takeType === "audio");
       const shotJobs = projectJobs.filter((j: any) => j.shotId === shot.id);
-      const adoptedTake = shotTakes.find((t: any) => t.isAdopted);
-      const pendingTakes = shotTakes.filter((t: any) => t.reviewStatus === "pending");
+      const adoptedTake = visualTakes.find((t: any) => t.isAdopted);
+      const pendingTakes = visualTakes.filter((t: any) => t.reviewStatus === "pending");
       const failedJobs = shotJobs.filter((j: any) => j.status === "failed");
 
       // Determine kanban status
@@ -73,7 +75,7 @@ router.get("/kanban", async (c) => {
       if (failedJobs.length > 0 && !adoptedTake) status = "失败";
       else if (shotJobs.some((j: any) => j.status === "processing" || j.status === "submitted")) status = "生成中";
       else if (pendingTakes.length > 0 && !adoptedTake) status = "待审";
-      else if (shotTakes.some((t: any) => t.reviewStatus === "rejected") && !adoptedTake) status = "退回";
+      else if (visualTakes.some((t: any) => t.reviewStatus === "rejected") && !adoptedTake) status = "退回";
       else if (adoptedTake) status = "已采用";
 
       return {
@@ -88,7 +90,9 @@ router.get("/kanban", async (c) => {
         dialogue: shot.dialogue,
         status,
         has_image: !!shot.storyboardImageUrl,
-        takes_count: shotTakes.length,
+        takes_count: visualTakes.length,
+        visual_takes_count: visualTakes.length,
+        audio_takes_count: audioTakes.length,
         pending_takes: pendingTakes.length,
         adopted_take_id: adoptedTake?.id || null,
         latest_failure: failedJobs.length > 0 ? failedJobs[failedJobs.length - 1].failureReason : "",
@@ -155,8 +159,13 @@ router.post("/takes/:id/adopt", async (c) => {
     const take = await db.select().from(takes).where(eq(takes.id, takeId)).get();
     if (!take) return c.json({ detail: "候选不存在" }, 404);
 
-    // Un-adopt all other takes for this shot
-    await db.update(takes).set({ isAdopted: false, adoptedAt: null }).where(eq(takes.shotId, take.shotId));
+    // Visual and audio selections are independent tracks. Adopting a voice take
+    // must not silently un-adopt the selected video/image for the same shot.
+    const sameTrack = take.takeType === "audio" ? eq(takes.takeType, "audio") : ne(takes.takeType, "audio");
+    await db.update(takes).set({ isAdopted: false, adoptedAt: null }).where(and(
+      eq(takes.shotId, take.shotId),
+      sameTrack,
+    ));
 
     // Adopt this take
     await db.update(takes).set({
@@ -531,8 +540,12 @@ router.get("/costs", async (c) => {
 
     // Takes stats
     const allTakes = await db.select().from(takes).where(eq(takes.projectId, projectId!)).all();
+    const visualTakes = allTakes.filter((t: any) => t.takeType !== "audio");
+    const audioTakes = allTakes.filter((t: any) => t.takeType === "audio");
     const reviewedTakes = allTakes.filter((t: any) => t.reviewStatus !== "pending");
     const approvedTakes = allTakes.filter((t: any) => t.reviewStatus === "approved" || t.isAdopted);
+    const reviewedVisualTakes = visualTakes.filter((t: any) => t.reviewStatus !== "pending");
+    const approvedVisualTakes = visualTakes.filter((t: any) => t.reviewStatus === "approved" || t.isAdopted);
 
     return c.json({
       project_id: projectId,
@@ -542,6 +555,12 @@ router.get("/costs", async (c) => {
       approved_takes: approvedTakes.length,
       pending_review: allTakes.length - reviewedTakes.length,
       adoption_rate: reviewedTakes.length > 0 ? approvedTakes.length / reviewedTakes.length : 0,
+      total_visual_takes: visualTakes.length,
+      total_audio_takes: audioTakes.length,
+      reviewed_visual_takes: reviewedVisualTakes.length,
+      approved_visual_takes: approvedVisualTakes.length,
+      pending_visual_review: visualTakes.length - reviewedVisualTakes.length,
+      visual_adoption_rate: reviewedVisualTakes.length > 0 ? approvedVisualTakes.length / reviewedVisualTakes.length : 0,
       costs_by_currency: costsByCurrency,
       has_unknown_cost: hasUnknownCost,
       cost_complete: !hasUnknownCost && jobs.every((j: any) => j.costCurrency && j.costAmount !== null),

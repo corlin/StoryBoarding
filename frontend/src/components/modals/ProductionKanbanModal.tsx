@@ -33,6 +33,8 @@ interface KanbanShot {
   status: ShotStatus;
   has_image: boolean;
   takes_count: number;
+  visual_takes_count?: number;
+  audio_takes_count?: number;
   pending_takes: number;
   adopted_take_id: string | null;
   latest_failure: string;
@@ -66,6 +68,23 @@ interface VideoJob {
   costCurrency: string;
   createdAt: string;
   updatedAt: string;
+}
+
+interface EditVersion {
+  id: string;
+  version_tag: string;
+  version_name: string;
+  total_duration: number;
+  is_current: boolean;
+  created_at: string;
+  export_result: {
+    mp4_url?: string;
+    srt_url?: string;
+    manifest_url?: string;
+    episode_mp4_urls?: string[];
+    episode_srt_urls?: string[];
+    subtitle_mode?: string;
+  };
 }
 
 const STATUS_COLORS: Record<ShotStatus, string> = {
@@ -155,6 +174,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
 
   // P0-6: Cost summary
   const [costData, setCostData] = useState<any>(null);
+  const [editVersions, setEditVersions] = useState<EditVersion[]>([]);
 
   // P0-5: Export panel
   const [showExport, setShowExport] = useState(false);
@@ -169,6 +189,16 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
       setCostData(res);
     } catch (e: any) {
       console.warn("Cost load failed:", e?.message);
+    }
+  }, [projectId]);
+
+  const loadEditVersions = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const res = await api.getEditVersions(projectId);
+      setEditVersions(res.edit_versions || []);
+    } catch (e: any) {
+      console.warn("Edit version load failed:", e?.message);
     }
   }, [projectId]);
 
@@ -210,6 +240,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
         total_duration: totalDuration,
         is_current: true,
       });
+      await loadEditVersions();
       showToast(`已创建剪辑版本（${sequence.length}镜，${totalDuration.toFixed(1)}s）`);
     } catch (e: any) {
       showToast(`创建失败: ${e?.response?.data?.detail || e.message}`, "error");
@@ -337,8 +368,9 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
     if (isOpen) {
       loadKanban();
       loadCosts();
+      loadEditVersions();
     }
-  }, [isOpen, loadKanban, loadCosts]);
+  }, [isOpen, loadKanban, loadCosts, loadEditVersions]);
 
   useEffect(() => {
     if (selectedShot) {
@@ -402,6 +434,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
       showToast("已采用该候选");
       if (selectedShot) loadTakes(selectedShot.shot_id);
       loadKanban();
+      loadCosts();
     } catch (e: any) {
       showToast(`采用失败: ${e?.response?.data?.detail || e.message}`, "error");
     }
@@ -419,6 +452,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
       setRejectReason("");
       if (selectedShot) loadTakes(selectedShot.shot_id);
       loadKanban();
+      loadCosts();
     } catch (e: any) {
       showToast(`退回失败: ${e?.response?.data?.detail || e.message}`, "error");
     }
@@ -434,6 +468,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
       showToast(`已上传 ${file.name}`);
       if (selectedShot) loadTakes(selectedShot.shot_id);
       loadKanban();
+      loadCosts();
     } catch (e: any) {
       showToast(`上传失败: ${e?.response?.data?.detail || e.message}`, "error");
     } finally {
@@ -446,6 +481,9 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
 
   const filteredShots = activeFilter === "全部" ? shots : shots.filter((s) => s.status === activeFilter);
   const statuses: (ShotStatus | "全部")[] = ["全部", "待生成", "生成中", "失败", "待审", "退回", "已采用"];
+  const visualTakes = takes.filter((take) => take.take_type !== "audio");
+  const currentEditVersion = editVersions.find((version) => version.is_current) || editVersions[0];
+  const currentExport = currentEditVersion?.export_result || {};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -466,7 +504,11 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
               导出整集
             </button>
             <button
-              onClick={loadKanban}
+              onClick={() => {
+                loadKanban();
+                loadCosts();
+                loadEditVersions();
+              }}
               className="rounded-md bg-[#21262d] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#30363d]"
             >
               刷新
@@ -484,16 +526,19 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
               任务 <span className="font-bold text-white">{costData.total_jobs}</span>
             </span>
             <span className="text-gray-400">
-              候选 <span className="font-bold text-white">{costData.total_takes}</span>
+              视频候选 <span className="font-bold text-white">{costData.total_visual_takes ?? costData.total_takes}</span>
             </span>
             <span className="text-gray-400">
-              已采用 <span className="font-bold text-green-400">{costData.approved_takes}</span>
+              配音 <span className="font-bold text-white">{costData.total_audio_takes ?? 0}</span>
             </span>
             <span className="text-gray-400">
-              待审 <span className="font-bold text-amber-400">{costData.pending_review}</span>
+              视频已采用 <span className="font-bold text-green-400">{costData.approved_visual_takes ?? costData.approved_takes}</span>
             </span>
             <span className="text-gray-400">
-              采用率 <span className="font-bold text-white">{((costData.adoption_rate || 0) * 100).toFixed(0)}%</span>
+              视频待审 <span className="font-bold text-amber-400">{costData.pending_visual_review ?? costData.pending_review}</span>
+            </span>
+            <span className="text-gray-400">
+              视频采用率 <span className="font-bold text-white">{((costData.visual_adoption_rate ?? costData.adoption_rate ?? 0) * 100).toFixed(0)}%</span>
             </span>
             {Object.entries(costData.costs_by_currency || {}).map(([currency, data]: [string, any]) => (
               <span key={currency} className="text-gray-400">
@@ -537,9 +582,36 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                 下载素材清单 JSON
               </button>
               <span className="text-[10px] text-gray-600">
-                提示：完整 MP4 合成需本地 FFmpeg 或浏览器端 ffmpeg.wasm（后续支持）
+                {currentExport.mp4_url ? "当前完整成片已回收到 R2，可直接下载" : "提示：完整 MP4 合成需本地 FFmpeg 或浏览器端 ffmpeg.wasm"}
               </span>
             </div>
+            {currentEditVersion && (
+              <div className="mt-3 rounded-lg border border-green-500/30 bg-green-500/5 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold text-green-300">当前交付 · {currentEditVersion.version_tag}</p>
+                    <p className="mt-0.5 text-[10px] text-gray-400">
+                      {currentEditVersion.version_name || "未命名剪辑版本"} · {Number(currentEditVersion.total_duration || 0).toFixed(1)}s · {formatDbDate(currentEditVersion.created_at)}
+                    </p>
+                  </div>
+                  {currentExport.mp4_url && (
+                    <a href={normalizeAssetUrl(currentExport.mp4_url)} target="_blank" rel="noopener noreferrer" className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700">
+                      下载完整 MP4
+                    </a>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2 text-[10px]">
+                  {(currentExport.episode_mp4_urls || []).map((url, index) => (
+                    <a key={url} href={normalizeAssetUrl(url)} target="_blank" rel="noopener noreferrer" className="rounded bg-[#21262d] px-2 py-1 text-blue-300 hover:text-white">EP{String(index + 1).padStart(2, "0")} MP4</a>
+                  ))}
+                  {(currentExport.episode_srt_urls || []).map((url, index) => (
+                    <a key={url} href={normalizeAssetUrl(url)} target="_blank" rel="noopener noreferrer" className="rounded bg-[#21262d] px-2 py-1 text-blue-300 hover:text-white">EP{String(index + 1).padStart(2, "0")} SRT</a>
+                  ))}
+                  {currentExport.srt_url && <a href={normalizeAssetUrl(currentExport.srt_url)} target="_blank" rel="noopener noreferrer" className="rounded bg-[#21262d] px-2 py-1 text-blue-300 hover:text-white">完整 SRT</a>}
+                  {currentExport.manifest_url && <a href={normalizeAssetUrl(currentExport.manifest_url)} target="_blank" rel="noopener noreferrer" className="rounded bg-[#21262d] px-2 py-1 text-blue-300 hover:text-white">交付清单</a>}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -594,7 +666,8 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                     <div className="flex items-center gap-3 text-[10px] text-gray-500">
                       <span>{shot.shot_size?.replace(/_/g, " ")}</span>
                       <span>{shot.duration}s</span>
-                      <span>候选 {shot.takes_count}</span>
+                      <span>视频 {shot.visual_takes_count ?? shot.takes_count}</span>
+                      {(shot.audio_takes_count || 0) > 0 && <span>配音 {shot.audio_takes_count}</span>}
                       {shot.pending_takes > 0 && <span className="text-amber-400">待审 {shot.pending_takes}</span>}
                       {shot.has_image && <span className="text-green-400">✓ 有图</span>}
                     </div>
@@ -642,7 +715,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                 {activeRightTab === "takes" && (
                 <>
                 <div className="mb-4 flex items-center justify-between">
-                  <span className="text-xs text-gray-400">共 {takes.length} 个候选</span>
+                  <span className="text-xs text-gray-400">共 {visualTakes.length} 个视频/图片候选</span>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleGenerateVideo}
@@ -696,14 +769,14 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
 
                 {takesLoading ? (
                   <div className="py-8 text-center text-sm text-gray-500">加载候选中...</div>
-                ) : takes.length === 0 ? (
+                ) : visualTakes.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-[#30363d] py-12 text-center">
                     <p className="text-sm text-gray-500">暂无候选素材</p>
                     <p className="mt-1 text-xs text-gray-600">生成视频、图片或上传外部素材后将显示在这里</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {takes.map((take) => (
+                    {visualTakes.map((take) => (
                       <div
                         key={take.id}
                         className={`rounded-lg border p-3 ${

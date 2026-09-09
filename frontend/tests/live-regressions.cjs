@@ -149,3 +149,26 @@ test('three-episode production order and filenames retain episode identity', () 
   assert.deepEqual(estimateVideoGeneration(3.2), { billableDuration: 6 });
   assert.deepEqual(estimateVideoGeneration(8), { billableDuration: 10 });
 });
+
+test('production API records normalize media casing and persisted edit artifacts', () => {
+  const { normalizeProductionTake, normalizeEditVersion } = require('../src/lib/api.ts');
+  const video = normalizeProductionTake({
+    id: 'take-1', shotId: 'shot-1', takeType: 'video', mediaUrl: '/api/assets/takes/one.mp4',
+    reviewStatus: 'approved', isAdopted: 1, createdAt: '2026-09-09 00:00:00',
+  });
+  assert.equal(video.shot_id, 'shot-1');
+  assert.equal(video.take_type, 'video');
+  assert.equal(video.media_url, '/api/assets/takes/one.mp4');
+  assert.equal(video.review_status, 'approved');
+  assert.equal(video.is_adopted, true);
+
+  const version = normalizeEditVersion({
+    id: 'edit-1', versionTag: 'v1.1-subtitled-delivery', versionName: '三集交付',
+    totalDuration: 144, isCurrent: 1,
+    exportResult: JSON.stringify({ mp4_url: '/api/assets/deliveries/full.mp4', episode_mp4_urls: ['/ep1.mp4'] }),
+  });
+  assert.equal(version.version_tag, 'v1.1-subtitled-delivery');
+  assert.equal(version.total_duration, 144);
+  assert.equal(version.is_current, true);
+  assert.equal(version.export_result.mp4_url, '/api/assets/deliveries/full.mp4');
+});

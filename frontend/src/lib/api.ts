@@ -48,6 +48,45 @@ export function normalizeAssetUrl(url: string | null | undefined): string {
   return trimmed;
 }
 
+export function normalizeProductionTake(take: any) {
+  return {
+    ...take,
+    shot_id: take.shot_id ?? take.shotId,
+    job_id: take.job_id ?? take.jobId,
+    take_type: take.take_type ?? take.takeType,
+    media_url: take.media_url ?? take.mediaUrl,
+    thumbnail_url: take.thumbnail_url ?? take.thumbnailUrl,
+    review_status: take.review_status ?? take.reviewStatus,
+    rejection_reason: take.rejection_reason ?? take.rejectionReason,
+    is_adopted: Boolean(take.is_adopted ?? take.isAdopted),
+    adopted_at: take.adopted_at ?? take.adoptedAt,
+    created_at: take.created_at ?? take.createdAt,
+  };
+}
+
+function parseJsonField(value: unknown, fallback: any) {
+  if (typeof value !== "string") return value ?? fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+export function normalizeEditVersion(version: any) {
+  return {
+    ...version,
+    version_tag: version.version_tag ?? version.versionTag,
+    version_name: version.version_name ?? version.versionName,
+    total_duration: version.total_duration ?? version.totalDuration ?? 0,
+    is_current: Boolean(version.is_current ?? version.isCurrent ?? false),
+    created_at: version.created_at ?? version.createdAt,
+    assembly_data: parseJsonField(version.assembly_data ?? version.assemblyData, {}),
+    subtitle_data: parseJsonField(version.subtitle_data ?? version.subtitleData, []),
+    export_result: parseJsonField(version.export_result ?? version.exportResult, {}),
+  };
+}
+
 export function setApiBaseUrl(url: string) {
   if (typeof window !== "undefined") {
     if (!url || !url.trim()) {
@@ -521,6 +560,8 @@ export const api = {
       status: string;
       has_image: boolean;
       takes_count: number;
+      visual_takes_count: number;
+      audio_takes_count: number;
       pending_takes: number;
       adopted_take_id: string | null;
       latest_failure: string;
@@ -533,7 +574,7 @@ export const api = {
   // Takes: list candidates for a shot
   async getShotTakes(shotId: string): Promise<{ takes: any[] }> {
     const { data } = await apiClient.get("/production/takes", { params: { shot_id: shotId } });
-    return data;
+    return { ...data, takes: (data.takes || []).map(normalizeProductionTake) };
   },
 
   // Adopt a take
@@ -586,7 +627,7 @@ export const api = {
   // Edit versions
   async getEditVersions(projectId: string): Promise<{ edit_versions: any[] }> {
     const { data } = await apiClient.get("/production/edit-versions", { params: { project_id: projectId } });
-    return data;
+    return { ...data, edit_versions: (data.edit_versions || []).map(normalizeEditVersion) };
   },
 
   async createEditVersion(payload: any): Promise<{ status: string; edit_version_id: string }> {
@@ -603,6 +644,12 @@ export const api = {
     approved_takes: number;
     pending_review: number;
     adoption_rate: number;
+    total_visual_takes: number;
+    total_audio_takes: number;
+    reviewed_visual_takes: number;
+    approved_visual_takes: number;
+    pending_visual_review: number;
+    visual_adoption_rate: number;
     costs_by_currency: Record<string, any>;
     has_unknown_cost: boolean;
     cost_complete: boolean;
