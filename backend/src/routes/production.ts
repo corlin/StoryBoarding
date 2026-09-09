@@ -168,7 +168,15 @@ router.post("/takes/:id/adopt", async (c) => {
 
     // Visual and audio selections are independent. Generated TTS is scoped to one
     // dialogue line so multiple spoken lines in the same shot can each be adopted.
-    const dialogueId = take.takeType === "audio" ? dialogueIdFromTakeMetadata(take.metadata) : "";
+    const metadataDialogueId = take.takeType === "audio" ? dialogueIdFromTakeMetadata(take.metadata) : "";
+    const dialogueLine = metadataDialogueId
+      ? await db.select().from(dialogueLines).where(and(
+          eq(dialogueLines.id, metadataDialogueId),
+          eq(dialogueLines.projectId, take.projectId),
+          eq(dialogueLines.shotId, take.shotId),
+        )).get()
+      : null;
+    const dialogueId = dialogueLine?.id || "";
     if (dialogueId) {
       const shotAudioTakes = await db.select().from(takes).where(and(
         eq(takes.shotId, take.shotId),
@@ -177,6 +185,11 @@ router.post("/takes/:id/adopt", async (c) => {
       const sameDialogueTakeIds = shotAudioTakes
         .filter((candidate: any) => dialogueIdFromTakeMetadata(candidate.metadata) === dialogueId)
         .map((candidate: any) => candidate.id);
+      // Audio uploaded before dialogue-scoped TTS has no dialogue_id metadata.
+      // audioVersion is its durable association, so retire that legacy take too.
+      if (dialogueLine?.audioVersion && !sameDialogueTakeIds.includes(dialogueLine.audioVersion)) {
+        sameDialogueTakeIds.push(dialogueLine.audioVersion);
+      }
       if (sameDialogueTakeIds.length > 0) {
         await db.update(takes).set({ isAdopted: false, adoptedAt: null }).where(inArray(takes.id, sameDialogueTakeIds));
       }
@@ -245,7 +258,11 @@ router.post("/takes/:id/reject", async (c) => {
     if (take.takeType === "audio") {
       const dialogueId = dialogueIdFromTakeMetadata(take.metadata);
       if (dialogueId) {
-        const line = await db.select().from(dialogueLines).where(eq(dialogueLines.id, dialogueId)).get();
+        const line = await db.select().from(dialogueLines).where(and(
+          eq(dialogueLines.id, dialogueId),
+          eq(dialogueLines.projectId, take.projectId),
+          eq(dialogueLines.shotId, take.shotId),
+        )).get();
         if (line?.audioVersion === take.id) {
           await db.update(dialogueLines).set({ audioVersion: "", audioUrl: "", updatedAt: new Date().toISOString() })
             .where(eq(dialogueLines.id, dialogueId));
