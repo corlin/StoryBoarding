@@ -78,10 +78,14 @@ router.get("/:id", async (c) => {
     const db = getDb(c.env.DB);
     const id = c.req.param("id");
 
+    const authUser = await getAuthUser(c.req.header("Authorization"));
+    if (!authUser) return c.json({ detail: "请先登录" }, 401);
+
     const proj = await db.select().from(projects).where(eq(projects.id, id)).get();
     if (!proj) {
       return c.json({ detail: "Project not found" }, 404);
     }
+    if (proj.userId !== authUser.userId) return c.json({ detail: "无权访问该工程" }, 403);
 
     const charList = await db.select().from(characters).where(eq(characters.projectId, id)).all();
     const locList = await db.select().from(locations).where(eq(locations.projectId, id)).all();
@@ -596,6 +600,13 @@ router.put("/:id", async (c) => {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
     const id = c.req.param("id");
+
+    const authUser = await getAuthUser(c.req.header("Authorization"));
+    if (!authUser) return c.json({ detail: "请先登录" }, 401);
+    const ownedProject = await db.select().from(projects).where(eq(projects.id, id)).get();
+    if (!ownedProject) return c.json({ detail: "Project not found" }, 404);
+    if (ownedProject.userId !== authUser.userId) return c.json({ detail: "无权修改该工程" }, 403);
+
     const body = await c.req.json();
 
     const updates: any = {};
