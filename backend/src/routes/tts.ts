@@ -12,61 +12,73 @@ const router = new Hono<{ Bindings: Bindings }>();
  * 用于设置页面中用户试听音色效果。
  */
 router.post("/tts/test", async (c) => {
-  const authUser = await getAuthUser(c.req.header("Authorization"));
-  if (!authUser) return c.json({ detail: "请先登录" }, 401);
-
-  await ensureSchema(c.env.DB);
-  const db = getDb(c.env.DB);
-  const settings = await getUserSettings(db, authUser.userId);
-  if (!settings.ttsApiKey) {
-    return c.json({ detail: "未配置 OpenRouter API Key，请先在模型设置中保存密钥" }, 400);
-  }
-
-  const body = await c.req.json().catch(() => ({}));
-  const model = (typeof body.model === "string" && body.model.trim()) || settings.ttsModel;
-  const voice = (typeof body.voice === "string" && body.voice.trim()) || settings.ttsVoiceFemale;
-  const text = (typeof body.text === "string" && body.text.trim()) || "你好，世界";
-  const speedValue = Number(body.speed ?? 1);
-  const speed = Number.isFinite(speedValue) ? Math.min(2, Math.max(0.5, speedValue)) : 1;
-
-  if (text.length > 500) {
-    return c.json({ detail: "测试文本超过 500 字符限制" }, 400);
-  }
-
-  let response: Response;
   try {
-    response = await fetch(`${settings.ttsApiBase.replace(/\/+$/, "")}/audio/speech`, {
-      method: "POST",
+    const authUser = await getAuthUser(c.req.header("Authorization"));
+    if (!authUser) return c.json({ detail: "请先登录" }, 401);
+
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const settings = await getUserSettings(db, authUser.userId);
+    if (!settings.ttsApiKey) {
+      return c.json({ detail: "未配置 OpenRouter API Key，请先在模型设置中保存密钥" }, 400);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const model = (typeof body.model === "string" && body.model.trim()) || settings.ttsModel;
+    const voice = (typeof body.voice === "string" && body.voice.trim()) || settings.ttsVoiceFemale;
+    const text = (typeof body.text === "string" && body.text.trim()) || "你好，世界";
+    const speedValue = Number(body.speed ?? 1);
+    const speed = Number.isFinite(speedValue) ? Math.min(2, Math.max(0.5, speedValue)) : 1;
+
+    if (text.length > 500) {
+      return c.json({ detail: "测试文本超过 500 字符限制" }, 400);
+    }
+
+    const apiBase = settings.ttsApiBase || "https://openrouter.ai/api/v1";
+    const requestBody = buildOpenRouterTtsRequest(model, text, voice, speed);
+
+    let response: Response;
+    try {
+      response = await fetch(`${apiBase.replace(/\/+$/, "")}/audio/speech`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${settings.ttsApiKey}`,
+          "HTTP-Referer": "https://storyboarding.caifu.social",
+          "X-Title": "AI StoryBoarding TTS Test",
+        },
+        body: JSON.stringify(requestBody),
+      });
+    } catch (error: any) {
+      console.error("[TTS Test] OpenRouter connection error:", error?.message || error);
+      return c.json({ detail: `OpenRouter TTS 连接失败：${error?.message || error}` }, 502);
+    }
+
+    if (!response.ok) {
+      const providerError = (await response.text()).substring(0, 2000);
+      console.error(`[TTS Test] OpenRouter HTTP ${response.status}:`, providerError);
+      console.error("[TTS Test] Request body:", JSON.stringify(requestBody));
+      return c.json({ detail: `OpenRouter TTS 返回 HTTP ${response.status}: ${providerError}` }, 502);
+    }
+
+    const audio = await response.arrayBuffer();
+    if (!audio.byteLength) {
+      console.error("[TTS Test] OpenRouter returned empty audio");
+      return c.json({ detail: "OpenRouter TTS 返回了空音频" }, 502);
+    }
+
+    return new Response(audio, {
+      status: 200,
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${settings.ttsApiKey}`,
-        "HTTP-Referer": "https://storyboarding.caifu.social",
-        "X-Title": "AI StoryBoarding TTS Test",
+        "Content-Type": "audio/mpeg",
+        "Content-Length": String(audio.byteLength),
+        "Cache-Control": "no-store",
       },
-      body: JSON.stringify(buildOpenRouterTtsRequest(model, text, voice, speed)),
     });
   } catch (error: any) {
-    return c.json({ detail: `OpenRouter TTS 连接失败：${error?.message || error}` }, 502);
+    console.error("[TTS Test] Unhandled error:", error);
+    return c.json({ detail: `音色测试内部错误：${error?.message || error}` }, 500);
   }
-
-  if (!response.ok) {
-    const providerError = (await response.text()).substring(0, 1000);
-    return c.json({ detail: `OpenRouter TTS 返回 HTTP ${response.status}: ${providerError}` }, 502);
-  }
-
-  const audio = await response.arrayBuffer();
-  if (!audio.byteLength) {
-    return c.json({ detail: "OpenRouter TTS 返回了空音频" }, 502);
-  }
-
-  return new Response(audio, {
-    status: 200,
-    headers: {
-      "Content-Type": "audio/mpeg",
-      "Content-Length": String(audio.byteLength),
-      "Cache-Control": "no-store",
-    },
-  });
 });
 
 router.post("/tts/:dialogueId", async (c) => {

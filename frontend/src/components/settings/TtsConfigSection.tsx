@@ -75,8 +75,15 @@ export const TtsConfigSection: React.FC<TtsConfigSectionProps> = ({
       });
 
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${response.status}`);
+        // 先尝试解析 JSON，失败则读取文本
+        let detail = "";
+        try {
+          const err = await response.json();
+          detail = err.detail || "";
+        } catch {
+          detail = await response.text().catch(() => "");
+        }
+        throw new Error(detail || `HTTP ${response.status}`);
       }
 
       const blob = await response.blob();
