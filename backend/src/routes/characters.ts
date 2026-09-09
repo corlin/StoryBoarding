@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import { characters, shots } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
+import { authorizeProjectOwner } from "../lib/projectAccess";
 import { saveImageToR2 } from "../lib/storage";
 
 const router = new Hono<{ Bindings: Bindings }>();
@@ -65,6 +66,8 @@ router.post("/:id/generate-avatar", async (c) => {
     if (!char) {
       return c.json({ detail: "角色不存在" }, 404);
     }
+    const access = await authorizeProjectOwner(db, authHeader, char.projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const body = await c.req.json().catch(() => ({}));
     const customPrompt = body.prompt?.trim();
@@ -202,6 +205,11 @@ router.post("/:id/set-from-shot", async (c) => {
     const charId = c.req.param("id");
     const body = await c.req.json();
 
+    const char = await db.select().from(characters).where(eq(characters.id, charId)).get();
+    if (!char) return c.json({ detail: "角色不存在" }, 404);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), char.projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
+
     let imageUrl = body.image_url;
     if (!imageUrl && body.shot_id) {
       const shot = await db.select().from(shots).where(eq(shots.id, body.shot_id)).get();
@@ -245,6 +253,8 @@ router.put("/:id", async (c) => {
 
     const existing = await db.select().from(characters).where(eq(characters.id, charId)).get();
     if (!existing) return c.json({ detail: "未找到角色" }, 404);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), existing.projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const updates: any = {
       updatedAt: new Date().toISOString(),

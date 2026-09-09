@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import { props, shots } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
+import { authorizeProjectOwner } from "../lib/projectAccess";
 import { saveImageToR2 } from "../lib/storage";
 
 const router = new Hono<{ Bindings: Bindings }>();
@@ -13,6 +14,8 @@ router.get("/project/:projectId", async (c) => {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
     const projectId = c.req.param("projectId");
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const propList = await db.select().from(props).where(eq(props.projectId, projectId)).all();
     return c.json({
@@ -38,6 +41,8 @@ router.post("/", async (c) => {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
     const body = await c.req.json();
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), body.project_id);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const id = crypto.randomUUID();
     const newProp = {
@@ -79,6 +84,11 @@ router.put("/:id", async (c) => {
     const id = c.req.param("id");
     const body = await c.req.json();
 
+    const existing = await db.select().from(props).where(eq(props.id, id)).get();
+    if (!existing) return c.json({ detail: "道具不存在" }, 404);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), existing.projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
+
     const updates: any = { updatedAt: new Date().toISOString() };
     if (body.name !== undefined) updates.name = body.name;
     if (body.category !== undefined) updates.category = body.category;
@@ -115,6 +125,11 @@ router.delete("/:id", async (c) => {
     const db = getDb(c.env.DB);
     const id = c.req.param("id");
 
+    const existing = await db.select().from(props).where(eq(props.id, id)).get();
+    if (!existing) return c.json({ detail: "道具不存在" }, 404);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), existing.projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
+
     await db.delete(props).where(eq(props.id, id));
     return c.json({ success: true });
   } catch (err: any) {
@@ -139,6 +154,8 @@ router.post("/:id/generate-concept", async (c) => {
     if (!prop) {
       return c.json({ detail: "道具不存在" }, 404);
     }
+    const access = await authorizeProjectOwner(db, authHeader, prop.projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const settings = await getUserSettings(db, authUser.userId);
     if (!settings.hasKey) {
