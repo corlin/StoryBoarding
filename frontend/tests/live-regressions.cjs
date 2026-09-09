@@ -230,3 +230,15 @@ test('generation jobs keep unknown provider charges out of recorded-cost totals'
   assert.match(imageRoute, /costCurrency: "unknown"/);
   assert.match(videoRoute, /0, 'unknown', 'video'/);
 });
+
+test('TTS test errors preserve JSON and plain-text provider details after one body read', async () => {
+  const { readTtsErrorDetail } = require('../src/components/settings/TtsConfigSection.tsx');
+  let reads = 0;
+  const jsonDetail = await readTtsErrorDetail({
+    status: 502,
+    text: async () => { reads += 1; return '{"detail":"上游音色无效"}'; },
+  });
+  assert.equal(jsonDetail, '上游音色无效');
+  assert.equal(reads, 1);
+  assert.equal(await readTtsErrorDetail({ status: 502, text: async () => 'gateway timeout' }), 'gateway timeout');
+});

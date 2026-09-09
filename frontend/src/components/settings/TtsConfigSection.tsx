@@ -26,6 +26,17 @@ type PresetNotice =
   | { type: "fish_audio"; modelId: string }
   | null;
 
+export async function readTtsErrorDetail(response: Response): Promise<string> {
+  const raw = await response.text().catch(() => "");
+  if (!raw) return `HTTP ${response.status}`;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.detail || parsed?.error || raw;
+  } catch {
+    return raw;
+  }
+}
+
 export const TtsConfigSection: React.FC<TtsConfigSectionProps> = ({
   config,
   speechModels,
@@ -88,15 +99,7 @@ export const TtsConfigSection: React.FC<TtsConfigSectionProps> = ({
       });
 
       if (!response.ok) {
-        // 先尝试解析 JSON，失败则读取文本
-        let detail = "";
-        try {
-          const err = await response.json();
-          detail = err.detail || "";
-        } catch {
-          detail = await response.text().catch(() => "");
-        }
-        throw new Error(detail || `HTTP ${response.status}`);
+        throw new Error(await readTtsErrorDetail(response));
       }
 
       const blob = await response.blob();
