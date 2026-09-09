@@ -10,6 +10,28 @@ export interface ProductionShotIdentity {
   dialogue?: string;
 }
 
+export interface ProductionTtsConfig {
+  model: string;
+  voiceFemale: string;
+  voiceMale: string;
+  voiceNarrator: string;
+}
+
+export interface ProductionTtsVoiceOption {
+  value: string;
+  label: string;
+}
+
+export function configuredTtsVoiceOptions(config: ProductionTtsConfig): ProductionTtsVoiceOption[] {
+  const candidates = [
+    { value: config.voiceFemale.trim(), label: "设置默认女声" },
+    { value: config.voiceMale.trim(), label: "设置默认男声" },
+    { value: config.voiceNarrator.trim(), label: "设置默认旁白" },
+  ];
+  const seen = new Set<string>();
+  return candidates.filter(({ value }) => value && !seen.has(value) && seen.add(value));
+}
+
 export function compareProductionShots(a: ProductionShotIdentity, b: ProductionShotIdentity): number {
   return (a.episode_number || 1) - (b.episode_number || 1) || a.order - b.order;
 }

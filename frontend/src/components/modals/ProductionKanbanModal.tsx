@@ -5,11 +5,13 @@ import { api } from "@/lib/api";
 import { normalizeAssetUrl } from "@/lib/api";
 import {
   compareProductionShots,
+  configuredTtsVoiceOptions,
   deriveDialogueLineFromShot,
   planVideoGeneration,
   productionMediaFileBase,
   productionShotLabel,
 } from "@/lib/productionKanban";
+import type { ProviderConfigApiResponse } from "@/types/modelConfig";
 
 interface ProductionKanbanModalProps {
   isOpen: boolean;
@@ -184,6 +186,12 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
   const [newLine, setNewLine] = useState({ speaker: "", text: "", performance: "", planned_duration: 0 });
   const [generatingTtsKey, setGeneratingTtsKey] = useState<string | null>(null);
   const [ttsVoiceOverrides, setTtsVoiceOverrides] = useState<Record<string, string>>({});
+  const [ttsConfig, setTtsConfig] = useState({
+    model: "",
+    voiceFemale: "",
+    voiceMale: "",
+    voiceNarrator: "",
+  });
 
   // P0-6: Cost summary
   const [costData, setCostData] = useState<any>(null);
@@ -214,6 +222,20 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
       console.warn("Edit version load failed:", e?.message);
     }
   }, [projectId]);
+
+  const loadTtsConfig = useCallback(async () => {
+    try {
+      const res = await api.getProviderConfig() as ProviderConfigApiResponse;
+      setTtsConfig({
+        model: res.tts_model || "",
+        voiceFemale: res.tts_voice_female || "",
+        voiceMale: res.tts_voice_male || "",
+        voiceNarrator: res.tts_voice_narrator || "",
+      });
+    } catch (e: any) {
+      console.warn("TTS config load failed:", e?.message);
+    }
+  }, []);
 
   // P0-5: Get adopted takes in shot order for export
   const getExportSequence = useCallback(async () => {
@@ -385,8 +407,10 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
       showToast("台词内容为空", "error");
       return;
     }
+    const selectedVoice = ttsVoiceOverrides[lineKey]?.trim();
     const confirmed = window.confirm(
-      `将通过 OpenRouter 为 ${line.speaker || "旁白"} 生成配音（${spokenLength} 字符）。\n` +
+      `将通过 ${ttsConfig.model || "当前 Speech 模型"} 为 ${line.speaker || "旁白"} 生成配音（${spokenLength} 字符）。\n` +
+      `声线：${selectedVoice || "按角色使用设置中的默认声线"}\n` +
       "生成结果会保存到 R2 并进入音频候选，费用按 OpenRouter 实际账单结算。\n\n确认提交付费 TTS？"
     );
     if (!confirmed) return;
@@ -407,7 +431,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
         });
         dialogueId = saved.dialogue_id;
       }
-      const voice = ttsVoiceOverrides[lineKey] || undefined;
+      const voice = selectedVoice || undefined;
       const result = await api.generateTts(dialogueId, { voice, speed: 1 });
       showToast(`配音已生成 · ${result.model} · ${result.voice}`);
       await Promise.all([
@@ -429,8 +453,10 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
       loadKanban();
       loadCosts();
       loadEditVersions();
+      loadTtsConfig();
+      setTtsVoiceOverrides({});
     }
-  }, [isOpen, loadKanban, loadCosts, loadEditVersions]);
+  }, [isOpen, loadKanban, loadCosts, loadEditVersions, loadTtsConfig]);
 
   useEffect(() => {
     if (selectedShot) {
@@ -1127,17 +1153,12 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                                 }))}
                                 className="rounded border border-[#30363d] bg-[#0d1117] px-2 py-1 text-[10px] text-white"
                                 aria-label={`${line.speaker || "旁白"} 配音音色`}
-                                placeholder="自动匹配角色声线"
+                                placeholder="留空则按角色自动选声"
                               />
                               <datalist id={`tts-voices-${line.id || i}`}>
-                                <option value="">自动匹配角色声线</option>
-                                <option value="af_heart">Heart · 温暖女声</option>
-                                <option value="af_bella">Bella · 甜美女声</option>
-                                <option value="af_sarah">Sarah · 清晰女声</option>
-                                <option value="am_adam">Adam · 沉稳男声</option>
-                                <option value="am_michael">Michael · 阳光男声</option>
-                                <option value="bf_emma">Emma · 英式女声(旁白)</option>
-                                <option value="bm_george">George · 英式男声(旁白)</option>
+                                {configuredTtsVoiceOptions(ttsConfig).map((option) => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
                               </datalist>
                               <button
                                 onClick={() => handleGenerateTts(line, i)}
@@ -1155,6 +1176,11 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                               />
                               <span className="text-[10px] text-gray-600 self-center">实际音频时长</span>
                             </div>
+                            <p className="mt-1 text-[10px] text-gray-600">
+                              {ttsConfig.model
+                                ? `留空时由 ${ttsConfig.model} 按角色使用设置中的女声、男声或旁白声线`
+                                : "留空时按设置中的 Speech 模型与角色默认声线生成"}
+                            </p>
                             {audioTakesForLine(line).length > 0 && (
                               <div className="mt-3 space-y-2 border-t border-[#30363d] pt-3">
                                 <p className="text-[10px] font-medium text-gray-400">配音候选 {audioTakesForLine(line).length}</p>

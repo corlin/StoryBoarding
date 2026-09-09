@@ -129,6 +129,7 @@ test('project refresh preserves screenplay anchors and beat data for every episo
 test('three-episode production order and filenames retain episode identity', () => {
   const {
     compareProductionShots,
+    configuredTtsVoiceOptions,
     deriveDialogueLineFromShot,
     estimateVideoGeneration,
     planVideoGeneration,
@@ -157,6 +158,22 @@ test('three-episode production order and filenames retain episode identity', () 
   });
   assert.equal(planVideoGeneration('9:16', false, 4).requiresLandscapeFallbackConfirmation, true);
   assert.equal(planVideoGeneration('16:9', false, 4).requiresLandscapeFallbackConfirmation, false);
+  assert.deepEqual(configuredTtsVoiceOptions({
+    model: 'hexgrad/kokoro-82m',
+    voiceFemale: 'zf_xiaoxiao',
+    voiceMale: 'zm_yunxi',
+    voiceNarrator: 'zf_xiaobei',
+  }), [
+    { value: 'zf_xiaoxiao', label: '设置默认女声' },
+    { value: 'zm_yunxi', label: '设置默认男声' },
+    { value: 'zf_xiaobei', label: '设置默认旁白' },
+  ]);
+  assert.deepEqual(configuredTtsVoiceOptions({
+    model: 'same-voice-model',
+    voiceFemale: ' shared ',
+    voiceMale: 'shared',
+    voiceNarrator: '',
+  }), [{ value: 'shared', label: '设置默认女声' }]);
 });
 
 test('production API records normalize media casing and persisted edit artifacts', () => {
