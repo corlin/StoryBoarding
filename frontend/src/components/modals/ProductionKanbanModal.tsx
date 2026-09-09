@@ -110,6 +110,15 @@ function formatDbDate(s: string | null | undefined): string {
   return d ? d.toLocaleString() : "—";
 }
 
+function takeMetadata(take: Take): Record<string, any> {
+  if (typeof take.metadata !== "string") return (take.metadata || {}) as Record<string, any>;
+  try {
+    return JSON.parse(take.metadata);
+  } catch {
+    return {};
+  }
+}
+
 export default function ProductionKanbanModal({ isOpen, onClose, projectId, projectTitle }: ProductionKanbanModalProps) {
   const [shots, setShots] = useState<KanbanShot[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
@@ -407,7 +416,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
         loadKanban(),
         loadCosts(),
       ]);
-      setActiveRightTab("takes");
+      setActiveRightTab("dialogue");
     } catch (e: any) {
       showToast(`配音生成失败: ${e?.response?.data?.detail || e.message}`, "error");
     } finally {
@@ -493,9 +502,14 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
     try {
       await api.adoptTake(takeId);
       showToast("已采用该候选");
-      if (selectedShot) loadTakes(selectedShot.shot_id);
-      loadKanban();
-      loadCosts();
+      if (selectedShot) {
+        await Promise.all([
+          loadTakes(selectedShot.shot_id),
+          loadDialogue(selectedShot.shot_id),
+          loadKanban(),
+          loadCosts(),
+        ]);
+      }
     } catch (e: any) {
       showToast(`采用失败: ${e?.response?.data?.detail || e.message}`, "error");
     }
@@ -511,9 +525,14 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
       showToast("已退回该候选");
       setRejectingTakeId(null);
       setRejectReason("");
-      if (selectedShot) loadTakes(selectedShot.shot_id);
-      loadKanban();
-      loadCosts();
+      if (selectedShot) {
+        await Promise.all([
+          loadTakes(selectedShot.shot_id),
+          loadDialogue(selectedShot.shot_id),
+          loadKanban(),
+          loadCosts(),
+        ]);
+      }
     } catch (e: any) {
       showToast(`退回失败: ${e?.response?.data?.detail || e.message}`, "error");
     }
@@ -543,6 +562,11 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
   const filteredShots = activeFilter === "全部" ? shots : shots.filter((s) => s.status === activeFilter);
   const statuses: (ShotStatus | "全部")[] = ["全部", "待生成", "生成中", "失败", "待审", "退回", "已采用"];
   const visualTakes = takes.filter((take) => take.take_type !== "audio");
+  const audioTakes = takes.filter((take) => take.take_type === "audio");
+  const audioTakesForLine = (line: any) => audioTakes.filter((take) => {
+    const metadata = takeMetadata(take);
+    return (line.id && metadata.dialogue_id === line.id) || (line.audioVersion && take.id === line.audioVersion);
+  });
   const currentEditVersion = editVersions.find((version) => version.is_current) || editVersions[0];
   const currentExport = currentEditVersion?.export_result || {};
 
@@ -1124,6 +1148,50 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                               />
                               <span className="text-[10px] text-gray-600 self-center">实际音频时长</span>
                             </div>
+                            {audioTakesForLine(line).length > 0 && (
+                              <div className="mt-3 space-y-2 border-t border-[#30363d] pt-3">
+                                <p className="text-[10px] font-medium text-gray-400">配音候选 {audioTakesForLine(line).length}</p>
+                                {audioTakesForLine(line).map((take) => {
+                                  const metadata = takeMetadata(take);
+                                  return (
+                                    <div key={take.id} className={`rounded border p-2 ${take.is_adopted ? "border-green-500/60 bg-green-500/5" : "border-[#30363d] bg-[#0d1117]"}`}>
+                                      {take.media_url && (
+                                        <audio
+                                          src={normalizeAssetUrl(take.media_url)}
+                                          className="h-8 w-full"
+                                          controls
+                                          preload="metadata"
+                                        />
+                                      )}
+                                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-gray-500">
+                                        <span>{take.source === "external_upload" ? "外部上传" : "AI 生成"}</span>
+                                        {metadata.voice && <span>{metadata.voice}</span>}
+                                        {metadata.model && <span>{metadata.model}</span>}
+                                        <span>{formatDbDate(take.created_at)}</span>
+                                        {take.is_adopted && <span className="rounded bg-green-600 px-1.5 py-0.5 font-bold text-white">已采用</span>}
+                                        {take.review_status === "rejected" && <span className="rounded bg-purple-600 px-1.5 py-0.5 font-bold text-white">已退回</span>}
+                                      </div>
+                                      <div className="mt-2 flex items-center gap-2">
+                                        {!take.is_adopted && take.review_status !== "rejected" && (
+                                          <>
+                                            <button onClick={() => handleAdopt(take.id)} className="rounded bg-green-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-green-700">采用</button>
+                                            <button onClick={() => { setRejectingTakeId(take.id); setRejectReason(""); }} className="rounded bg-purple-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-purple-700">退回</button>
+                                          </>
+                                        )}
+                                        {take.media_url && <a href={normalizeAssetUrl(take.media_url)} target="_blank" rel="noopener noreferrer" className="rounded bg-[#21262d] px-2 py-1 text-[10px] text-gray-400 hover:text-white">查看</a>}
+                                      </div>
+                                      {rejectingTakeId === take.id && (
+                                        <div className="mt-2 flex items-center gap-2">
+                                          <input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="退回原因..." className="flex-1 rounded border border-[#30363d] bg-[#161b22] px-2 py-1 text-[10px] text-white" />
+                                          <button onClick={() => handleReject(take.id)} className="rounded bg-purple-600 px-2 py-1 text-[10px] font-bold text-white">确认</button>
+                                          <button onClick={() => setRejectingTakeId(null)} className="rounded bg-[#21262d] px-2 py-1 text-[10px] text-gray-400">取消</button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
