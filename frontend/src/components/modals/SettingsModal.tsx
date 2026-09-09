@@ -1,9 +1,35 @@
-import React, { useState, useEffect } from "react";
-import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap, Globe, AlertCircle, ChevronDown, Film, Volume2, RefreshCw } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Settings, Zap, Sparkles, Image as ImageIcon, Film, Globe, Loader2, Check } from "lucide-react";
 import { api, getApiBaseUrl, setApiBaseUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
-import { cn } from "@/lib/utils";
+import {
+  type ProviderConfigState,
+  type ProviderConfigApiResponse,
+  type TestStatus,
+  type ModelChannelConfig,
+  DEFAULT_LLM_CONFIG,
+  DEFAULT_IMAGE_CONFIG,
+  DEFAULT_VIDEO_CONFIG,
+  DEFAULT_TTS_CONFIG,
+  apiResponseToState,
+  stateToApiPayload,
+} from "@/types/modelConfig";
+import {
+  LLM_MODELS,
+  IMAGE_MODELS,
+  VIDEO_MODELS,
+  LLM_PROVIDERS,
+  IMAGE_PROVIDERS,
+  VIDEO_PROVIDERS,
+  LLM_PROVIDER_PRESETS,
+  IMAGE_PROVIDER_PRESETS,
+  VIDEO_PROVIDER_PRESETS,
+  OPENROUTER_RECOMMENDED_PRESET,
+} from "@/data/modelCatalog";
+import { ModelProviderCard } from "@/components/settings/ModelProviderCard";
+import { TtsConfigSection } from "@/components/settings/TtsConfigSection";
+import { AdvancedEndpointSection } from "@/components/settings/AdvancedEndpointSection";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -17,54 +43,43 @@ interface SpeechModelOption {
   is_free: boolean;
 }
 
+/** 构建初始空状态 */
+function createInitialState(): ProviderConfigState {
+  return {
+    llm: { ...DEFAULT_LLM_CONFIG, apiKey: "", hasKey: false },
+    image: { ...DEFAULT_IMAGE_CONFIG, apiKey: "", hasKey: false },
+    video: { ...DEFAULT_VIDEO_CONFIG, apiKey: "", hasKey: false },
+    tts: { ...DEFAULT_TTS_CONFIG },
+    syncImageKeyWithLlm: true,
+  };
+}
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+  // ===== 网络端点状态 =====
   const [apiUrl, setApiUrl] = useState("");
-  const [apiStatus, setApiStatus] = useState<"idle" | "testing" | "ok" | "err">("idle");
+  const [apiStatus, setApiStatus] = useState<TestStatus>("idle");
   const [apiErrMsg, setApiErrMsg] = useState("");
-  const [showAdvancedEndpoint, setShowAdvancedEndpoint] = useState(false);
 
-  const [llmProvider, setLlmProvider] = useState("openrouter");
-  const [llmApiBase, setLlmApiBase] = useState("https://openrouter.ai/api/v1");
-  const [llmApiKey, setLlmApiKey] = useState("");
-  const [llmModel, setLlmModel] = useState("deepseek/deepseek-chat");
+  // ===== 模型配置统一状态 =====
+  const [config, setConfig] = useState<ProviderConfigState>(createInitialState());
 
-  const [imageProvider, setImageProvider] = useState("openrouter");
-  const [imageApiBase, setImageApiBase] = useState("https://openrouter.ai/api/v1");
-  const [imageApiKey, setImageApiKey] = useState("");
-  const [imageModel, setImageModel] = useState("bytedance-seed/seedream-5-0-lite");
-  const [syncApiKey, setSyncApiKey] = useState(true);
-
-  // Video provider settings (P0-2)
-  const [videoProvider, setVideoProvider] = useState("minimax");
-  const [videoApiBase, setVideoApiBase] = useState("https://api.minimax.cn/v1");
-  const [videoApiKey, setVideoApiKey] = useState("");
-  const [videoModel, setVideoModel] = useState("MiniMax-Hailuo-02");
-  const [hasVideoKey, setHasVideoKey] = useState(false);
-
-  // OpenRouter TTS reuses the encrypted LLM key.
-  const [ttsApiBase, setTtsApiBase] = useState("https://openrouter.ai/api/v1");
-  const [ttsModel, setTtsModel] = useState("hexgrad/kokoro-82m");
-  const [ttsVoiceFemale, setTtsVoiceFemale] = useState("zf_xiaoxiao");
-  const [ttsVoiceMale, setTtsVoiceMale] = useState("zm_yunxi");
-  const [ttsVoiceNarrator, setTtsVoiceNarrator] = useState("zf_xiaobei");
+  // ===== TTS 模型目录 =====
   const [speechModels, setSpeechModels] = useState<SpeechModelOption[]>([]);
   const [speechModelsLoading, setSpeechModelsLoading] = useState(false);
   const [speechModelsError, setSpeechModelsError] = useState("");
 
+  // ===== 测试状态 =====
+  const [llmTestStatus, setLlmTestStatus] = useState<TestStatus>("idle");
+  const [llmTestMsg, setLlmTestMsg] = useState("");
+  const [imageTestStatus, setImageTestStatus] = useState<TestStatus>("idle");
+  const [imageTestMsg, setImageTestMsg] = useState("");
+
+  // ===== 保存状态 =====
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
-  // Key Security state (never store plaintext keys in client state)
-  const [hasLlmKey, setHasLlmKey] = useState(false);
-  const [hasImageKey, setHasImageKey] = useState(false);
-
-  // Model Diagnostics states
-  const [llmTestStatus, setLlmTestStatus] = useState<"idle" | "testing" | "ok" | "err">("idle");
-  const [llmTestMsg, setLlmTestMsg] = useState("");
-  const [imageTestStatus, setImageTestStatus] = useState<"idle" | "testing" | "ok" | "err">("idle");
-  const [imageTestMsg, setImageTestMsg] = useState("");
-
-  const loadSpeechModels = async () => {
+  // ===== 加载 Speech 模型目录 =====
+  const loadSpeechModels = useCallback(async () => {
     setSpeechModelsLoading(true);
     setSpeechModelsError("");
     try {
@@ -75,8 +90,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     } finally {
       setSpeechModelsLoading(false);
     }
-  };
+  }, []);
 
+  // ===== Modal 打开时初始化 =====
   useEffect(() => {
     if (isOpen) {
       setIsSaved(false);
@@ -86,38 +102,80 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       setImageTestStatus("idle");
       loadSpeechModels();
 
-      api.getProviderConfig()
-        .then((config: any) => {
-          if (config) {
-            setLlmProvider(config.llm_provider || "openrouter");
-            setLlmApiBase(config.llm_api_base || "https://openrouter.ai/api/v1");
-            setLlmApiKey(""); // Plaintext strictly not populated
-            setHasLlmKey(Boolean(config.has_llm_key || config.llm_api_key_masked));
-            setLlmModel(config.llm_model || "deepseek/deepseek-chat");
-            setImageProvider(config.image_provider || "openrouter");
-            setImageApiBase(config.image_api_base || "https://openrouter.ai/api/v1");
-            setImageApiKey(""); // Plaintext strictly not populated
-            setHasImageKey(Boolean(config.has_image_key || config.image_api_key_masked));
-            setImageModel(config.image_model || "bytedance-seed/seedream-5-0-lite");
-            // Video provider settings
-            setVideoProvider(config.video_provider || "minimax");
-            setVideoApiBase(config.video_api_base || "https://api.minimax.cn/v1");
-            setVideoApiKey("");
-            setHasVideoKey(Boolean(config.has_video_key || config.video_api_key_masked));
-            setVideoModel(config.video_model || "MiniMax-Hailuo-02");
-            setTtsApiBase(config.tts_api_base || config.llm_api_base || "https://openrouter.ai/api/v1");
-            setTtsModel(config.tts_model || "hexgrad/kokoro-82m");
-            setTtsVoiceFemale(config.tts_voice_female || "zf_xiaoxiao");
-            setTtsVoiceMale(config.tts_voice_male || "zm_yunxi");
-            setTtsVoiceNarrator(config.tts_voice_narrator || "zf_xiaobei");
+      api
+        .getProviderConfig()
+        .then((res: ProviderConfigApiResponse) => {
+          if (res) {
+            setConfig(apiResponseToState(res));
           }
         })
         .catch(console.error);
     }
-  }, [isOpen]);
+  }, [isOpen, loadSpeechModels]);
 
   if (!isOpen) return null;
 
+  // ===== 配置更新辅助函数 =====
+  const updateChannel = (channel: "llm" | "image" | "video", patch: Partial<ModelChannelConfig>) => {
+    setConfig((prev) => ({
+      ...prev,
+      [channel]: { ...prev[channel], ...patch },
+    }));
+  };
+
+  // ===== Provider 切换时应用预设 =====
+  const handleLlmProviderChange = (provider: string) => {
+    const preset = LLM_PROVIDER_PRESETS[provider as keyof typeof LLM_PROVIDER_PRESETS];
+    if (preset) {
+      updateChannel("llm", { provider, apiBase: preset.apiBase, model: preset.model });
+    } else {
+      updateChannel("llm", { provider });
+    }
+  };
+
+  const handleImageProviderChange = (provider: string) => {
+    const preset = IMAGE_PROVIDER_PRESETS[provider as keyof typeof IMAGE_PROVIDER_PRESETS];
+    if (preset) {
+      updateChannel("image", { provider, apiBase: preset.apiBase, model: preset.model });
+    } else {
+      updateChannel("image", { provider });
+    }
+  };
+
+  const handleVideoProviderChange = (provider: string) => {
+    const preset = VIDEO_PROVIDER_PRESETS[provider as keyof typeof VIDEO_PROVIDER_PRESETS];
+    if (preset) {
+      updateChannel("video", { provider, apiBase: preset.apiBase, model: preset.model });
+    } else {
+      updateChannel("video", { provider });
+    }
+  };
+
+  // ===== 应用 OpenRouter 推荐预设 =====
+  const applyOpenRouterPreset = () => {
+    setConfig((prev) => ({
+      ...prev,
+      llm: {
+        ...prev.llm,
+        provider: OPENROUTER_RECOMMENDED_PRESET.llm.provider,
+        apiBase: OPENROUTER_RECOMMENDED_PRESET.llm.apiBase,
+        model: OPENROUTER_RECOMMENDED_PRESET.llm.model,
+      },
+      image: {
+        ...prev.image,
+        provider: OPENROUTER_RECOMMENDED_PRESET.image.provider,
+        apiBase: OPENROUTER_RECOMMENDED_PRESET.image.apiBase,
+        model: OPENROUTER_RECOMMENDED_PRESET.image.model,
+      },
+      tts: {
+        ...prev.tts,
+        ...OPENROUTER_RECOMMENDED_PRESET.tts,
+      },
+      syncImageKeyWithLlm: OPENROUTER_RECOMMENDED_PRESET.syncImageKeyWithLlm,
+    }));
+  };
+
+  // ===== 测试 API 连接 =====
   const testApiConnection = async () => {
     setApiStatus("testing");
     setApiErrMsg("");
@@ -136,14 +194,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     }
   };
 
+  // ===== 测试 LLM =====
   const handleTestLlm = async () => {
     setLlmTestStatus("testing");
     setLlmTestMsg("");
     try {
       const res = await api.testLlm({
-        api_key: llmApiKey.trim(),
-        api_base: llmApiBase.trim(),
-        model: llmModel.trim(),
+        api_key: config.llm.apiKey.trim(),
+        api_base: config.llm.apiBase.trim(),
+        model: config.llm.model.trim(),
       });
       if (res.ok) {
         setLlmTestStatus("ok");
@@ -162,15 +221,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     }
   };
 
+  // ===== 测试图像 =====
   const handleTestImage = async () => {
-    const key = (syncApiKey ? llmApiKey : imageApiKey).trim();
+    const key = (config.syncImageKeyWithLlm ? config.llm.apiKey : config.image.apiKey).trim();
     setImageTestStatus("testing");
     setImageTestMsg("");
     try {
       const res = await api.testImage({
         api_key: key,
-        api_base: imageApiBase.trim(),
-        model: imageModel.trim(),
+        api_base: config.image.apiBase.trim(),
+        model: config.image.model.trim(),
       });
       if (res.ok) {
         setImageTestStatus("ok");
@@ -189,52 +249,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     }
   };
 
-  const applyOpenRouterPreset = () => {
-    setLlmProvider("openrouter");
-    setLlmApiBase("https://openrouter.ai/api/v1");
-    setLlmModel("deepseek/deepseek-chat");
-    setImageProvider("openrouter");
-    setImageApiBase("https://openrouter.ai/api/v1");
-    setImageModel("x-ai/grok-imagine-image-2.0");
-    setSyncApiKey(true);
-    setTtsApiBase("https://openrouter.ai/api/v1");
-    setTtsModel("hexgrad/kokoro-82m");
-    setTtsVoiceFemale("zf_xiaoxiao");
-    setTtsVoiceMale("zm_yunxi");
-    setTtsVoiceNarrator("zf_xiaobei");
-  };
-
+  // ===== 保存配置 =====
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setApiBaseUrl(apiUrl);
-    const finalImageKey = syncApiKey && llmApiKey ? llmApiKey : imageApiKey;
+
+    const payload = stateToApiPayload(config);
+
     try {
-      const res = await api.updateProviderConfig({
-        llm_provider: llmProvider,
-        llm_api_base: llmApiBase,
-        llm_api_key: llmApiKey.trim() || undefined,
-        llm_model: llmModel,
-        image_provider: imageProvider,
-        image_api_base: imageApiBase,
-        image_api_key: finalImageKey.trim() || undefined,
-        image_model: imageModel,
-        video_provider: videoProvider,
-        video_api_base: videoApiBase,
-        video_api_key: videoApiKey.trim() || undefined,
-        video_model: videoModel,
-        tts_api_base: ttsApiBase,
-        tts_model: ttsModel,
-        tts_voice_female: ttsVoiceFemale,
-        tts_voice_male: ttsVoiceMale,
-        tts_voice_narrator: ttsVoiceNarrator,
-      });
-      if (res?.has_llm_key !== undefined) setHasLlmKey(res.has_llm_key);
-      if (res?.has_image_key !== undefined) setHasImageKey(res.has_image_key);
-      if (res?.has_video_key !== undefined) setHasVideoKey(res.has_video_key);
-      setLlmApiKey("");
-      setImageApiKey("");
-      setVideoApiKey("");
+      const res = await api.updateProviderConfig(payload);
+      if (res?.has_llm_key !== undefined) {
+        updateChannel("llm", { hasKey: res.has_llm_key });
+      }
+      if (res?.has_image_key !== undefined) {
+        updateChannel("image", { hasKey: res.has_image_key });
+      }
+      if (res?.has_video_key !== undefined) {
+        updateChannel("video", { hasKey: res.has_video_key });
+      }
+      // 保存后清空明文密钥
+      setConfig((prev) => ({
+        ...prev,
+        llm: { ...prev.llm, apiKey: "" },
+        image: { ...prev.image, apiKey: "" },
+        video: { ...prev.video, apiKey: "" },
+      }));
       setIsSaved(true);
       await useAuthStore.getState().initAuth();
       notify.success("AI 模型与密钥设置已成功同步生效！");
@@ -254,6 +294,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-xl p-6 max-w-xl w-full shadow-2xl overflow-y-auto max-h-[90vh]">
+        {/* 标题栏 */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Settings className="w-5 h-5 text-primary" />
@@ -270,546 +311,155 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </button>
         </div>
 
-        {/* Server-Side D1 Persistence Badge & Zero Fallback Notice */}
+        {/* D1 持久化徽章 */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono text-emerald-400 mb-2.5">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span>☁️ 专属云端存储 (Cloudflare D1 · 登录后多设备自动漫游)</span>
         </div>
 
+        {/* 自备 Key 提示 */}
         <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200/90 text-xs leading-relaxed mb-4">
           💡 <strong>自备 API Key 模式（无公共兜底 Key）</strong>：平台不提供共享兜底 Key，所有 AI 智能拆镜与生图均使用您个人的 OpenRouter Key。费用由 OpenRouter 按实际调用独立扣费，无中间商差价与并发限制。
         </div>
 
         <form onSubmit={handleSave} className="space-y-4">
-          {/* Section 1: LLM Settings (Primary Focus) */}
-          <div className="p-4 rounded-lg border border-border/70 bg-background/50 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                <Sparkles className="w-4 h-4 text-emerald-400" />
-                <span>文生文 / Director Agent (LLM 语言模型)</span>
-              </div>
-              <span className="text-[10px] font-mono text-emerald-400/90 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                推荐: deepseek/deepseek-chat
-              </span>
-            </div>
+          {/* LLM 配置 */}
+          <ModelProviderCard
+            channel="llm"
+            icon={<Sparkles className="w-4 h-4" />}
+            title="文生文 / Director Agent (LLM 语言模型)"
+            badge="推荐: deepseek/deepseek-chat"
+            accentColor="emerald"
+            config={config.llm}
+            providerOptions={LLM_PROVIDERS}
+            modelOptions={LLM_MODELS}
+            testButtonLabel="服务端实测 LLM 导演"
+            testButtonIcon={<Sparkles className="w-3.5 h-3.5" />}
+            testStatus={llmTestStatus}
+            testMessage={llmTestMsg}
+            keyPlaceholder={
+              config.llm.hasKey
+                ? "● 已加密保存在云端 D1 数据库 (若不修改请留空)"
+                : "输入 OpenRouter / OpenAI API Key..."
+            }
+            onChange={(patch) => {
+              if (patch.provider !== undefined) {
+                handleLlmProviderChange(patch.provider);
+              } else {
+                if (patch.apiKey !== undefined) setLlmTestStatus("idle");
+                updateChannel("llm", patch);
+              }
+            }}
+            onTest={handleTestLlm}
+          />
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">Provider 协议类型</label>
-                <select
-                  value={llmProvider}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setLlmProvider(val);
-                    if (val === "openrouter") {
-                      setLlmApiBase("https://openrouter.ai/api/v1");
-                      setLlmModel("deepseek/deepseek-chat");
-                    } else if (val === "openai_compatible") {
-                      setLlmApiBase("https://api.openai.com/v1");
-                      setLlmModel("gpt-4o");
-                    }
-                  }}
-                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
+          {/* 图像配置 */}
+          <ModelProviderCard
+            channel="image"
+            icon={<ImageIcon className="w-4 h-4" />}
+            title="文生图 / Storyboard Image Generator (图像模型)"
+            badge="默认: seedream-5-0-lite · 推荐: seedream-5-0-pro / seedream-4.5"
+            accentColor="sky"
+            config={config.image}
+            providerOptions={IMAGE_PROVIDERS}
+            modelOptions={IMAGE_MODELS}
+            testButtonLabel="服务端实测 AI 绘画"
+            testButtonIcon={<ImageIcon className="w-3.5 h-3.5" />}
+            testStatus={imageTestStatus}
+            testMessage={imageTestMsg}
+            showSyncKeyCheckbox
+            syncKeyWithLlm={config.syncImageKeyWithLlm}
+            keyPlaceholder={
+              config.image.hasKey
+                ? "● 已加密保存在云端 D1 数据库 (若不修改请留空)"
+                : "输入单独的生图 API Key..."
+            }
+            onChange={(patch) => {
+              if (patch.provider !== undefined) {
+                handleImageProviderChange(patch.provider);
+              } else {
+                if (patch.apiKey !== undefined) setImageTestStatus("idle");
+                updateChannel("image", patch);
+              }
+            }}
+            onTest={handleTestImage}
+            onSyncKeyToggle={(checked) =>
+              setConfig((prev) => ({ ...prev, syncImageKeyWithLlm: checked }))
+            }
+          />
+
+          {/* TTS 配置 */}
+          <TtsConfigSection
+            config={config.tts}
+            speechModels={speechModels}
+            speechModelsLoading={speechModelsLoading}
+            speechModelsError={speechModelsError}
+            onChange={(patch) => setConfig((prev) => ({ ...prev, tts: { ...prev.tts, ...patch } }))}
+            onRefreshModels={loadSpeechModels}
+          />
+
+          {/* 视频配置 */}
+          <ModelProviderCard
+            channel="video"
+            icon={<Film className="w-4 h-4" />}
+            title="文生视频 / Video Generator (视频模型)"
+            badge="MiniMax H3 · 异步生成"
+            accentColor="purple"
+            config={config.video}
+            providerOptions={VIDEO_PROVIDERS}
+            modelOptions={VIDEO_MODELS}
+            testButtonLabel="服务端实测视频"
+            testButtonIcon={<Film className="w-3.5 h-3.5" />}
+            testStatus="idle"
+            testMessage=""
+            keyPlaceholder={
+              config.video.hasKey
+                ? "● 已加密保存在云端 D1 数据库 (若不修改请留空)"
+                : "输入 MiniMax API Key (eyJhbGci...)"
+            }
+            footerNote={
+              <>
+                视频生成采用异步模式：提交任务后返回 job_id，通过轮询获取结果。镜头有分镜图时自动作为首帧走图生视频，并以首帧画幅约束输出；竖屏镜头没有首帧时会在付费提交前提示横屏风险。生成结果自动存入视频候选，可在生产看板中采用或退回。MiniMax API Key 请在{" "}
+                <a
+                  href="https://platform.minimaxi.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline"
                 >
-                  <option value="openrouter">OpenRouter (推荐)</option>
-                  <option value="openai_compatible">OpenAI Compatible (Direct / OneAPI)</option>
-                </select>
-              </div>
+                  platform.minimaxi.com
+                </a>{" "}
+                申请。
+              </>
+            }
+            onChange={(patch) => {
+              if (patch.provider !== undefined) {
+                handleVideoProviderChange(patch.provider);
+              } else {
+                updateChannel("video", patch);
+              }
+            }}
+            onTest={() => {}}
+          />
 
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">模型快捷选择 / 自定义</label>
-                <select
-                  value={llmModel}
-                  onChange={(e) => setLlmModel(e.target.value)}
-                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
-                >
-                  <option value="deepseek/deepseek-chat">deepseek/deepseek-chat (超快中英文拆镜)</option>
-                  <option value="deepseek/deepseek-r1">deepseek/deepseek-r1 (深度推理思考)</option>
-                  <option value="qwen/qwen-2.5-72b-instruct">qwen/qwen-2.5-72b-instruct (千问大模型)</option>
-                  <option value="meta-llama/llama-3.3-70b-instruct">meta-llama/llama-3.3-70b-instruct</option>
-                  <option value="openai/gpt-4o">openai/gpt-4o</option>
-                </select>
-                <input
-                  type="text"
-                  value={llmModel}
-                  onChange={(e) => setLlmModel(e.target.value)}
-                  placeholder="自定义输入任意 Model ID"
-                  className="w-full text-[11px] font-mono bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary"
-                />
-              </div>
-            </div>
+          {/* 高级端点配置 */}
+          <AdvancedEndpointSection
+            apiUrl={apiUrl}
+            apiStatus={apiStatus}
+            apiErrMsg={apiErrMsg}
+            onUrlChange={(url) => {
+              setApiUrl(url);
+              setApiStatus("idle");
+            }}
+            onTest={testApiConnection}
+          />
 
-            <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">API Base URL</label>
-              <input
-                type="text"
-                value={llmApiBase}
-                onChange={(e) => setLlmApiBase(e.target.value)}
-                placeholder="https://openrouter.ai/api/v1"
-                className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] text-muted-foreground">API Key</label>
-                {hasLlmKey && (
-                  <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-                    🔒 D1 密钥已脱敏保护
-                  </span>
-                )}
-              </div>
-              <div className="relative">
-                <input
-                  type="password"
-                  value={llmApiKey}
-                  onChange={(e) => {
-                    setLlmApiKey(e.target.value);
-                    setLlmTestStatus("idle");
-                  }}
-                  placeholder={hasLlmKey ? "● 已加密保存在云端 D1 数据库 (若不修改请留空)" : "输入 OpenRouter / OpenAI API Key..."}
-                  className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 pl-8 focus:outline-none focus:border-primary"
-                />
-                <Key className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <button
-                type="button"
-                onClick={handleTestLlm}
-                disabled={llmTestStatus === "testing"}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 transition-colors shadow-xs"
-              >
-                {llmTestStatus === "testing" ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>服务端发包探测中...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>服务端实测 LLM 导演</span>
-                  </>
-                )}
-              </button>
-              {llmTestStatus === "ok" && (
-                <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5" />
-                  {llmTestMsg}
-                </span>
-              )}
-              {llmTestStatus === "err" && (
-                <span className="text-[11px] text-red-400 font-mono flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {llmTestMsg}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Section 2: Image Model Settings */}
-          <div className="p-4 rounded-lg border border-border/70 bg-background/50 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                <ImageIcon className="w-4 h-4 text-sky-400" />
-                <span>文生图 / Storyboard Image Generator (图像模型)</span>
-              </div>
-              <span className="text-[10px] font-mono text-sky-400/90 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
-                默认: seedream-5-0-lite · 推荐: seedream-5-0-pro / seedream-4.5
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">图像 Provider 类型</label>
-                <select
-                  value={imageProvider}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setImageProvider(val);
-                    if (val === "openrouter") {
-                      setImageApiBase("https://openrouter.ai/api/v1");
-                      setImageModel("bytedance-seed/seedream-5-0-lite");
-                    } else if (val === "openai_compatible") {
-                      setImageApiBase("https://api.openai.com/v1");
-                      setImageModel("dall-e-3");
-                    }
-                  }}
-                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
-                >
-                  <option value="openrouter">OpenRouter Dedicated /images</option>
-                  <option value="openai_compatible">OpenAI DALL-E 3 / Proxy</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">图像模型选择 / 自定义</label>
-                <select
-                  value={imageModel}
-                  onChange={(e) => setImageModel(e.target.value)}
-                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
-                >
-                  <option value="bytedance-seed/seedream-5-0-lite">bytedance-seed/seedream-5-0-lite (字节跳动 Seedream 5.0 Lite 极速轻量 · 默认推荐)</option>
-                  <option value="bytedance-seed/seedream-5-0-pro">bytedance-seed/seedream-5-0-pro (字节跳动 Seedream 5.0 Pro 旗舰超清 · 推荐)</option>
-                  <option value="bytedance-seed/seedream-4.5">bytedance-seed/seedream-4.5 (字节跳动 Seedream 4.5 电影级生图)</option>
-                  <option value="qwen/qwen-image-3-pro">qwen/qwen-image-3-pro (阿里千问 Qwen Image 3 Pro 旗舰生图 · 推荐)</option>
-                  <option value="openai/gpt-image-2">openai/gpt-image-2 (OpenAI 最新超清电影分镜)</option>
-                  <option value="google/gemini-3.1-flash-image">google/gemini-3.1-flash-image (Google 最新超快分镜生图)</option>
-                  <option value="google/gemini-2.5-flash-image">google/gemini-2.5-flash-image (Google 纳米香蕉生图)</option>
-                  <option value="x-ai/grok-imagine-image-2.0">x-ai/grok-imagine-image-2.0 (极快高保真)</option>
-                  <option value="black-forest-labs/flux-1-schnell">black-forest-labs/flux-1-schnell (Flux 极速)</option>
-                  <option value="black-forest-labs/flux-1-dev">black-forest-labs/flux-1-dev (Flux 精细)</option>
-                  <option value="recraft/recraft-20b-svg">recraft/recraft-20b-svg (矢量速写风格)</option>
-                  <option value="openai/dall-e-3">openai/dall-e-3 (DALL-E 3)</option>
-                </select>
-                <input
-                  type="text"
-                  value={imageModel}
-                  onChange={(e) => setImageModel(e.target.value)}
-                  placeholder="自定义输入 Image Model ID"
-                  className="w-full text-[11px] font-mono bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">图像 API Base URL</label>
-              <input
-                type="text"
-                value={imageApiBase}
-                onChange={(e) => setImageApiBase(e.target.value)}
-                placeholder="https://openrouter.ai/api/v1"
-                className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] text-muted-foreground">图像生成 API Key</label>
-                <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={syncApiKey}
-                    onChange={(e) => setSyncApiKey(e.target.checked)}
-                    className="rounded border-border"
-                  />
-                  <span>复用上方 LLM API Key (OpenRouter 共享密钥)</span>
-                </label>
-              </div>
-              {!syncApiKey && (
-                <div>
-                  {hasImageKey && (
-                    <div className="flex justify-end mb-1">
-                      <span className="text-[10px] text-sky-400 font-mono flex items-center gap-1">
-                        🔒 D1 生图密钥已脱敏保护
-                      </span>
-                    </div>
-                  )}
-                  <div className="relative">
-                    <input
-                      type="password"
-                      value={imageApiKey}
-                      onChange={(e) => {
-                        setImageApiKey(e.target.value);
-                        setImageTestStatus("idle");
-                      }}
-                      placeholder={hasImageKey ? "● 已加密保存在云端 D1 数据库 (若不修改请留空)" : "输入单独的生图 API Key..."}
-                      className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 pl-8 focus:outline-none focus:border-primary"
-                    />
-                    <Key className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <button
-                type="button"
-                onClick={handleTestImage}
-                disabled={imageTestStatus === "testing"}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50 transition-colors shadow-xs"
-              >
-                {imageTestStatus === "testing" ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>服务端生图发包探测中...</span>
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    <span>服务端实测 AI 绘画</span>
-                  </>
-                )}
-              </button>
-              {imageTestStatus === "ok" && (
-                <span className="text-[11px] text-sky-400 font-mono flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5" />
-                  {imageTestMsg}
-                </span>
-              )}
-              {imageTestStatus === "err" && (
-                <span className="text-[11px] text-red-400 font-mono flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {imageTestMsg}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Section 3: OpenRouter TTS */}
-          <div className="p-4 rounded-lg border border-border/70 bg-background/50 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                <Volume2 className="w-4 h-4 text-emerald-400" />
-                <span>文字配音 / OpenRouter TTS</span>
-              </div>
-              <span className="text-[10px] font-mono text-emerald-400/90 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                复用 OpenRouter Key · R2 回收
-              </span>
-            </div>
-
-            <div>
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <label className="text-[11px] text-muted-foreground">Speech 模型</label>
-                <button
-                  type="button"
-                  onClick={loadSpeechModels}
-                  disabled={speechModelsLoading}
-                  className="flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
-                >
-                  <RefreshCw className={cn("h-3 w-3", speechModelsLoading && "animate-spin")} />
-                  {speechModelsLoading ? "读取中" : "刷新 OpenRouter 模型"}
-                </button>
-              </div>
-              <select
-                value={ttsModel}
-                onChange={(e) => setTtsModel(e.target.value)}
-                disabled={speechModelsLoading && speechModels.length === 0}
-                className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
-              >
-                {!speechModels.some((model) => model.id === ttsModel) && (
-                  <option value={ttsModel}>{ttsModel}（当前或自定义）</option>
-                )}
-                {speechModels.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.name} · {model.id} · {model.is_free ? "免费" : `$${model.price_per_character || "未标价"}/字符`}
-                  </option>
-                ))}
-              </select>
-              <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground/70">
-                <span>{speechModels.length > 0 ? `OpenRouter 当前返回 ${speechModels.length} 个 speech 模型` : "支持直接填写模型 ID"}</span>
-                {ttsModel === "hexgrad/kokoro-82m" && <span className="text-emerald-400">中文低成本已实测</span>}
-              </div>
-              {speechModelsError && <p className="mt-1 text-[10px] text-amber-400">{speechModelsError}；仍可使用当前模型。</p>}
-              <details className="mt-2 rounded border border-border/60 px-2 py-1.5">
-                <summary className="cursor-pointer text-[10px] text-muted-foreground">高级：手动指定 Speech 模型 ID</summary>
-                <input
-                  type="text"
-                  value={ttsModel}
-                  onChange={(e) => setTtsModel(e.target.value)}
-                  placeholder="例如 mistralai/voxtral-mini-tts-2603"
-                  className="mt-2 w-full text-[11px] font-mono bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary"
-                />
-              </details>
-            </div>
-
-            <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">TTS API Base URL</label>
-              <input
-                type="text"
-                value={ttsApiBase}
-                onChange={(e) => setTtsApiBase(e.target.value)}
-                placeholder="https://openrouter.ai/api/v1"
-                className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div>
-                <label className="text-[10px] text-muted-foreground block mb-1">默认女声</label>
-                <input value={ttsVoiceFemale} onChange={(e) => setTtsVoiceFemale(e.target.value)} className="w-full text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5" />
-              </div>
-              <div>
-                <label className="text-[10px] text-muted-foreground block mb-1">默认男声</label>
-                <input value={ttsVoiceMale} onChange={(e) => setTtsVoiceMale(e.target.value)} className="w-full text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5" />
-              </div>
-              <div>
-                <label className="text-[10px] text-muted-foreground block mb-1">默认旁白</label>
-                <input value={ttsVoiceNarrator} onChange={(e) => setTtsVoiceNarrator(e.target.value)} className="w-full text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5" />
-              </div>
-            </div>
-
-            <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
-              配音调用 OpenRouter 的 <code>/audio/speech</code> 接口并返回 MP3。角色声线包含男性特征时使用默认男声，旁白使用旁白音色，其余使用默认女声；生成后自动进入生产看板的音频候选，可试听、采用或退回。费用按模型实际账单结算。
-            </p>
-          </div>
-
-          {/* Section 4: Video Model Settings (P0-2) */}
-          <div className="p-4 rounded-lg border border-border/70 bg-background/50 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                <Film className="w-4 h-4 text-purple-400" />
-                <span>文生视频 / Video Generator (视频模型)</span>
-              </div>
-              <span className="text-[10px] font-mono text-purple-400/90 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
-                MiniMax H3 · 异步生成
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">视频 Provider</label>
-                <select
-                  value={videoProvider}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setVideoProvider(val);
-                    if (val === "minimax") {
-                    setVideoApiBase("https://api.minimax.cn/v1");
-                    setVideoModel("MiniMax-Hailuo-02");
-                    }
-                  }}
-                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
-                >
-                  <option value="minimax">MiniMax (H3 视频生成)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">视频模型</label>
-                <select
-                  value={videoModel}
-                  onChange={(e) => setVideoModel(e.target.value)}
-                  className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
-                >
-                  <option value="MiniMax-Hailuo-2.3">MiniMax-Hailuo-2.3 (768P/1080P · 6/10s)</option>
-                  <option value="MiniMax-Hailuo-02">MiniMax-Hailuo-02 (768P/1080P · 6/10s)</option>
-                </select>
-                <input
-                  type="text"
-                  value={videoModel}
-                  onChange={(e) => setVideoModel(e.target.value)}
-                  placeholder="自定义 Model ID"
-                  className="w-full text-[11px] font-mono bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">视频 API Base URL</label>
-              <input
-                type="text"
-                value={videoApiBase}
-                onChange={(e) => setVideoApiBase(e.target.value)}
-                placeholder="https://api.minimax.cn/v1"
-                className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] text-muted-foreground">视频生成 API Key</label>
-                {hasVideoKey && (
-                  <span className="text-[10px] text-purple-400 font-mono flex items-center gap-1">
-                    🔒 D1 视频密钥已脱敏保护
-                  </span>
-                )}
-              </div>
-              <div className="relative">
-                <input
-                  type="password"
-                  value={videoApiKey}
-                  onChange={(e) => setVideoApiKey(e.target.value)}
-                  placeholder={hasVideoKey ? "● 已加密保存在云端 D1 数据库 (若不修改请留空)" : "输入 MiniMax API Key (eyJhbGci...)"}
-                  className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 pl-8 focus:outline-none focus:border-primary"
-                />
-                <Key className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
-              </div>
-            </div>
-
-            <div className="text-[10px] text-muted-foreground/70 leading-relaxed">
-              视频生成采用异步模式：提交任务后返回 job_id，通过轮询获取结果。镜头有分镜图时自动作为首帧走图生视频，并以首帧画幅约束输出；竖屏镜头没有首帧时会在付费提交前提示横屏风险。生成结果自动存入视频候选，可在生产看板中采用或退回。MiniMax API Key 请在 <a href="https://platform.minimaxi.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">platform.minimaxi.com</a> 申请。
-            </div>
-          </div>
-
-          {/* Advanced Collapsible: Worker Endpoint Settings */}
-          <div className="rounded-lg border border-border/60 bg-muted/20 overflow-hidden transition-all">
-            <button
-              type="button"
-              onClick={() => setShowAdvancedEndpoint((prev) => !prev)}
-              className="w-full flex items-center justify-between p-3 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Globe className="w-3.5 h-3.5 text-primary" />
-                <span>⚙️ 高级网络连接配置 (Cloudflare Worker Endpoint)</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-normal">
-                <span className="text-muted-foreground/70 font-mono truncate max-w-[200px] sm:max-w-xs">{apiUrl}</span>
-                <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showAdvancedEndpoint && "rotate-180")} />
-              </div>
-            </button>
-
-            {showAdvancedEndpoint && (
-              <div className="p-3.5 border-t border-border/50 bg-background/50 space-y-3 animate-in fade-in duration-150">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">生产服务节点地址</span>
-                  <button
-                    type="button"
-                    onClick={testApiConnection}
-                    disabled={apiStatus === "testing" || !apiUrl.trim()}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
-                  >
-                    {apiStatus === "testing" ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        <span>测试中...</span>
-                      </>
-                    ) : apiStatus === "ok" ? (
-                      <>
-                        <Check className="w-3 h-3 text-emerald-300" />
-                        <span>连接正常</span>
-                      </>
-                    ) : (
-                      <span>测试连通性</span>
-                    )}
-                  </button>
-                </div>
-
-                <div>
-                  <input
-                    type="text"
-                    value={apiUrl}
-                    onChange={(e) => {
-                      setApiUrl(e.target.value);
-                      setApiStatus("idle");
-                    }}
-                    placeholder="默认官方生产服务: https://storyboarding-api.caifu.social"
-                    className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary text-foreground"
-                  />
-                  <div className="flex items-center justify-between mt-1.5 text-[10px]">
-                    <span className="text-muted-foreground">
-                      默认直连官方全球边缘节点，非自建私有后端请保持默认
-                    </span>
-                    {apiStatus === "err" && (
-                      <span className="text-red-400 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        {apiErrMsg}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footnote Notice */}
+          {/* 脚注 */}
           <div className="text-[11px] text-muted-foreground/80 bg-muted/30 border border-border/50 rounded-lg p-2.5 flex items-center gap-2">
             <Globe className="w-4 h-4 text-primary shrink-0" />
             <span>所有连通性实测均由 Cloudflare Worker 后端服务器直接发起，非本地浏览器端直连，不受本地网络及跨域限制。</span>
           </div>
 
-          {/* Footer Buttons */}
+          {/* 底部按钮 */}
           <div className="flex items-center justify-between pt-1">
             <span className="text-[11px] text-muted-foreground">配置将安全持久化保存在云端 D1 数据库与本地</span>
             <div className="flex items-center gap-2">
