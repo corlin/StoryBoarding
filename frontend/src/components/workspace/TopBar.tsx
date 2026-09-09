@@ -169,9 +169,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   }, [project, shots]);
 
   return (
-    <header className="h-12 border-b border-border/80 bg-card/90 backdrop-blur px-3 md:px-4 flex items-center justify-between shrink-0 select-none relative z-40 gap-3">
+    <header className="min-h-12 h-auto md:h-12 border-b border-border/80 bg-card/90 backdrop-blur px-3 py-1 md:px-4 md:py-0 flex flex-wrap md:flex-nowrap items-center justify-between shrink-0 select-none relative z-40 gap-x-3 gap-y-1">
       {/* 1. Left Wing: Project Identity, Versioning & Safe Return */}
-      <div className="flex items-center gap-2.5 shrink-0 min-w-0">
+      <div className="order-1 flex items-center gap-2.5 shrink-0 min-w-0">
         <Link
           href="/dashboard"
           className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border/70 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
@@ -295,7 +295,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               ? "bg-primary text-primary-foreground shadow-xs font-bold"
               : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
           )}
-          title="STAGE 01 & 02 · 剧本大纲、爽点雷达与视觉设定集 (快捷键 1)"
+          title="STAGE 01 · 剧本大纲、爽点雷达与视觉设定集 (快捷键 1)"
         >
           <BookOpen className="w-3.5 h-3.5" />
           <span>01 设定与剧本</span>
@@ -311,7 +311,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               ? "bg-primary text-primary-foreground shadow-xs font-bold"
               : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
           )}
-          title="STAGE 03 · 核心镜头卡片流、AI 拆镜与渲染 (快捷键 2)"
+          title="STAGE 02 · 核心镜头卡片流、AI 拆镜与渲染 (快捷键 2)"
         >
           <LayoutGrid className="w-3.5 h-3.5" />
           <span>02 分镜工坊</span>
@@ -327,7 +327,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               ? "bg-primary text-primary-foreground shadow-xs font-bold"
               : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
           )}
-          title="STAGE 04 · 全屏影院动态预演与工程体检诊断 (快捷键 3)"
+          title="STAGE 03 · 全屏影院动态预演与工程体检诊断 (快捷键 3)"
         >
           <Film className="w-3.5 h-3.5" />
           <span>03 放映与质检</span>
@@ -346,15 +346,39 @@ export const TopBar: React.FC<TopBarProps> = ({
               ? "bg-primary text-primary-foreground shadow-xs font-bold"
               : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
           )}
-          title="STAGE 05 · 分镜长图、场记单与无损母盘交付 (快捷键 4)"
+          title="STAGE 04 · 分镜长图、场记单与无损母盘交付 (快捷键 4)"
         >
           <Download className="w-3.5 h-3.5" />
           <span>04 交付导出</span>
         </button>
       </nav>
 
+      <nav className="order-3 grid w-full grid-cols-4 gap-1 md:hidden" aria-label="制作阶段">
+        {([
+          ["prep", "01 设定"],
+          ["storyboard", "02 分镜"],
+          ["review", "03 质检"],
+          ["deliver", "04 交付"],
+        ] as const).map(([stage, label]) => (
+          <button
+            key={stage}
+            type="button"
+            onClick={() => setActiveStudioStage(stage)}
+            aria-current={activeStudioStage === stage ? "step" : undefined}
+            className={cn(
+              "min-w-0 rounded-md px-1.5 py-1 text-[10px] font-semibold transition-colors",
+              activeStudioStage === stage
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary/60 text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
       {/* 3. Right Wing: Global Assets, Consolidated Help & Settings Guardrail */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="order-2 flex items-center gap-2 shrink-0 md:order-none">
         {/* Global Asset Library */}
         {onOpenAssetLibrary && (
           <button
