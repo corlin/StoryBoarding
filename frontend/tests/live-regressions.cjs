@@ -181,3 +181,13 @@ test('production API records normalize media casing and persisted edit artifacts
   assert.equal(version.is_current, true);
   assert.equal(version.export_result.mp4_url, '/api/assets/deliveries/full.mp4');
 });
+
+test('video jobs share one active slot and one stable review candidate', () => {
+  const { generatedVideoTakeId, isActiveVideoJob } = require('../../backend/src/lib/videoJobState.ts');
+  assert.equal(isActiveVideoJob({ jobType: 'video', status: 'submitted' }), true);
+  assert.equal(isActiveVideoJob({ jobType: 'video', status: 'processing' }), true);
+  assert.equal(isActiveVideoJob({ jobType: 'video', status: 'succeeded' }), false);
+  assert.equal(isActiveVideoJob({ jobType: 'audio', status: 'processing' }), false);
+  assert.equal(generatedVideoTakeId('job-123'), 'video-job-123');
+  assert.equal(generatedVideoTakeId('job-123'), generatedVideoTakeId('job-123'));
+});

@@ -4,6 +4,7 @@ import { getDb, ensureSchema, Bindings } from "../db/client";
 import { shots, sequences, projects, generationJobs, takes } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
 import { saveMediaToR2 } from "../lib/storage";
+import { generatedVideoTakeId, isActiveVideoJob } from "../lib/videoJobState";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -64,16 +65,14 @@ router.post("/video/:shotId", async (c) => {
       .where(eq(generationJobs.shotId, shotId))
       .orderBy(desc(generationJobs.createdAt))
       .all();
-    const activeJob = existingJobs.find((job: any) =>
-      job.jobType === "video" && (job.status === "submitted" || job.status === "processing")
-    );
+    const activeJob = existingJobs.find(isActiveVideoJob);
     if (activeJob) {
       return c.json({
         status: "existing",
         job_id: activeJob.id,
         external_task_id: activeJob.externalTaskId,
         shot_id: shotId,
-        message: "该镜头已有进行中的视频任务，请先刷新任务状态",
+        message: "该镜头已有进行中的视频任务，已阻止重复付费提交",
       });
     }
 
@@ -114,34 +113,56 @@ router.post("/video/:shotId", async (c) => {
     // Create GenerationJob record
     const jobId = crypto.randomUUID();
     const now = new Date().toISOString();
-    await db.insert(generationJobs).values({
-      id: jobId,
-      projectId: projectId || "",
-      shotId,
-      jobType: "video",
-      provider: userSettings.videoProvider || "minimax",
-      model: providerConfig.model,
-      inputRevision: videoPrompt.substring(0, 500),
-      referenceAssetVersion: firstFrameReference,
-      parameters: JSON.stringify({
-        requested_aspect_ratio: aspectRatio,
-        duration: videoDuration,
-        fps: 24,
-        generation_mode: generationMode,
-        first_frame_image_url: firstFrameReference,
-      }),
-      externalTaskId: "",
-      status: "submitted",
-      failureReason: "",
-      resultUrl: "",
-      resultMetadata: "{}",
-      costAmount: 0,
-      costCurrency: "",
-      costUnit: "",
-      submittedAt: now,
-      createdAt: now,
-      updatedAt: now,
+    const parameters = JSON.stringify({
+      requested_aspect_ratio: aspectRatio,
+      duration: videoDuration,
+      fps: 24,
+      generation_mode: generationMode,
+      first_frame_image_url: firstFrameReference,
     });
+    // D1 serializes writes. Reserve the active slot in one INSERT...SELECT statement so
+    // concurrent clicks cannot both pass a separate read-before-write check and bill twice.
+    const reservation = await c.env.DB.prepare(`
+      INSERT INTO generation_jobs (
+        id, project_id, shot_id, job_type, provider, model, input_revision,
+        reference_asset_version, parameters, external_task_id, status,
+        failure_reason, result_url, result_metadata, cost_amount, cost_currency,
+        cost_unit, submitted_at, created_at, updated_at
+      )
+      SELECT ?, ?, ?, 'video', ?, ?, ?, ?, ?, '', 'submitted', '', '', '{}', 0, '', '', ?, ?, ?
+      WHERE NOT EXISTS (
+        SELECT 1 FROM generation_jobs
+        WHERE shot_id = ? AND job_type = 'video' AND status IN ('submitted', 'processing')
+      )
+    `).bind(
+      jobId,
+      projectId || "",
+      shotId,
+      userSettings.videoProvider || "minimax",
+      providerConfig.model,
+      videoPrompt.substring(0, 500),
+      firstFrameReference,
+      parameters,
+      now,
+      now,
+      now,
+      shotId,
+    ).run();
+
+    if (!Number((reservation.meta as any)?.changes || 0)) {
+      const concurrentJobs = await db.select().from(generationJobs)
+        .where(eq(generationJobs.shotId, shotId))
+        .orderBy(desc(generationJobs.createdAt))
+        .all();
+      const concurrentJob = concurrentJobs.find(isActiveVideoJob);
+      return c.json({
+        status: "existing",
+        job_id: concurrentJob?.id || "",
+        external_task_id: concurrentJob?.externalTaskId || "",
+        shot_id: shotId,
+        message: "该镜头已有进行中的视频任务，已阻止重复付费提交",
+      });
+    }
 
     // MiniMax China v1 API: POST /video_generation with prompt.
     const reqBody: any = {
@@ -151,14 +172,31 @@ router.post("/video/:shotId", async (c) => {
       duration: videoDuration,
     };
     if (firstFrameImage) reqBody.first_frame_image = firstFrameImage;
-    const submitResp = await fetch(`${providerConfig.apiBase}/video_generation`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${userSettings.videoApiKey}`,
-      },
-      body: JSON.stringify(reqBody),
-    });
+    let submitResp: Response;
+    try {
+      submitResp = await fetch(`${providerConfig.apiBase}/video_generation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userSettings.videoApiKey}`,
+        },
+        body: JSON.stringify(reqBody),
+      });
+    } catch (submitError: any) {
+      const errorMsg = submitError?.message || String(submitError);
+      const failureReason = `供应商连接中断，平台无法确认任务是否已受理：${errorMsg}`;
+      await db.update(generationJobs).set({
+        status: "failed",
+        failureReason,
+        completedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }).where(eq(generationJobs.id, jobId));
+      return c.json({
+        detail: `${failureReason}。请先在 MiniMax 任务列表核对，再决定是否重试。`,
+        job_id: jobId,
+        status: "failed",
+      }, 502);
+    }
 
     const submitData: any = await submitResp.json().catch(() => ({}));
 
@@ -314,7 +352,9 @@ router.post("/poll", async (c) => {
       updateData.completedAt = new Date().toISOString();
 
       // Persist video to our own R2 (MiniMax URLs are signed & expire)
-      const takeId = crypto.randomUUID();
+      // A provider job owns one deterministic Take. Concurrent poll requests may repeat
+      // retrieval/R2 work, but can no longer create duplicate review candidates.
+      const takeId = generatedVideoTakeId(job.id);
       const r2Key = `takes/${job.shotId || "orphan"}/${takeId}.mp4`;
       const r2Url = await saveMediaToR2(videoUrl, r2Key, c.env.STORAGE, 120000, "video/*,*/*");
       const finalUrl = r2Url || videoUrl;
@@ -348,7 +388,10 @@ router.post("/poll", async (c) => {
           upstream_url: r2Url ? videoUrl : undefined,
           r2_persisted: Boolean(r2Url),
         }),
-      });
+      }).onConflictDoNothing({ target: takes.id });
+
+      const persistedTake = await db.select().from(takes).where(eq(takes.id, takeId)).get();
+      updateData.resultUrl = persistedTake?.mediaUrl || finalUrl;
 
       updateData.resultMetadata = JSON.stringify({ take_id: takeId });
     } else if (newStatus === "failed") {
