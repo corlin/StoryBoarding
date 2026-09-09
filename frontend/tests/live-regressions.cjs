@@ -131,6 +131,7 @@ test('three-episode production order and filenames retain episode identity', () 
     compareProductionShots,
     deriveDialogueLineFromShot,
     estimateVideoGeneration,
+    planVideoGeneration,
     productionMediaFileBase,
     productionShotLabel,
   } = require('../src/lib/productionKanban.ts');
@@ -148,6 +149,14 @@ test('three-episode production order and filenames retain episode identity', () 
   assert.equal(derived.derivedFromShot, true);
   assert.deepEqual(estimateVideoGeneration(3.2), { billableDuration: 6 });
   assert.deepEqual(estimateVideoGeneration(8), { billableDuration: 10 });
+  assert.deepEqual(planVideoGeneration('9:16', true, 4), {
+    billableDuration: 6,
+    generationMode: 'image_to_video',
+    preservesRequestedAspectRatio: true,
+    requiresLandscapeFallbackConfirmation: false,
+  });
+  assert.equal(planVideoGeneration('9:16', false, 4).requiresLandscapeFallbackConfirmation, true);
+  assert.equal(planVideoGeneration('16:9', false, 4).requiresLandscapeFallbackConfirmation, false);
 });
 
 test('production API records normalize media casing and persisted edit artifacts', () => {

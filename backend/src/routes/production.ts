@@ -30,6 +30,9 @@ router.get("/kanban", async (c) => {
 
     const authUser = await getAuthUser(c.req.header("Authorization"));
     if (!authUser) return c.json({ detail: "请先登录" }, 401);
+    const project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
+    if (!project) return c.json({ detail: "工程不存在" }, 404);
+    if (project.userId !== authUser.userId) return c.json({ detail: "无权访问该工程" }, 403);
 
     // Get all sequences for project
     const seqs = await db.select().from(sequences).where(eq(sequences.projectId, projectId)).all();
@@ -37,7 +40,7 @@ router.get("/kanban", async (c) => {
     const sequenceById = new Map(seqs.map((s: any) => [s.id, s]));
 
     if (seqIds.length === 0) {
-      return c.json({ project_id: projectId, shots: [], status_counts: {} });
+      return c.json({ project_id: projectId, project_aspect_ratio: project?.aspectRatio || "9:16", shots: [], status_counts: {} });
     }
 
     // Get all shots for this project's sequences
@@ -107,6 +110,7 @@ router.get("/kanban", async (c) => {
 
     return c.json({
       project_id: projectId,
+      project_aspect_ratio: project.aspectRatio || "9:16",
       total_shots: items.length,
       status_counts: statusCounts,
       shots: items.sort((a: any, b: any) => a.episode_number - b.episode_number || a.order - b.order),

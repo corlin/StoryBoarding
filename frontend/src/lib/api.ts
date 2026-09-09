@@ -548,6 +548,7 @@ export const api = {
   // Production Kanban: status overview for all shots
   async getProductionKanban(projectId: string): Promise<{
     project_id: string;
+    project_aspect_ratio: string;
     total_shots: number;
     status_counts: Record<string, number>;
     shots: Array<{
@@ -672,14 +673,15 @@ export const api = {
   // ============================================================
 
   // Submit a video generation task for a shot
-  async generateVideo(shotId: string): Promise<{
+  async generateVideo(shotId: string, options: { allow_landscape_fallback?: boolean } = {}): Promise<{
     status: string;
     job_id: string;
     external_task_id?: string;
     shot_id: string;
+    generation_mode?: "image_to_video" | "text_to_video";
     message: string;
   }> {
-    const { data } = await apiClient.post(`/generate/video/${shotId}`);
+    const { data } = await apiClient.post(`/generate/video/${shotId}`, options);
     return data;
   },
 

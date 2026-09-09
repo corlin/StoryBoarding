@@ -16,6 +16,18 @@ function normalizeMiniMaxConfig(apiBase: string, model: string) {
   return { apiBase: base, model: normalizedModel };
 }
 
+function normalizeFirstFrameUrl(value: string | null | undefined, requestUrl: string) {
+  const imageUrl = (value || "").trim();
+  if (!imageUrl) return "";
+  if (imageUrl.startsWith("https://") || imageUrl.startsWith("http://") || imageUrl.startsWith("data:image/")) {
+    return imageUrl;
+  }
+  if (imageUrl.startsWith("/api/assets/")) {
+    return new URL(imageUrl, new URL(requestUrl).origin).toString();
+  }
+  return "";
+}
+
 async function loadOwnedShotContext(db: any, shotId: string, userId: string) {
   const shot = await db.select().from(shots).where(eq(shots.id, shotId)).get();
   if (!shot) return { error: "镜头不存在", status: 404 as const };
@@ -40,6 +52,7 @@ router.post("/video/:shotId", async (c) => {
   const db = getDb(c.env.DB);
 
   try {
+    const body = await c.req.json().catch(() => ({}));
     // Load shot and its video prompt
     const context = await loadOwnedShotContext(db, shotId, authUser.userId);
     if ("error" in context) return c.json({ detail: context.error }, context.status);
@@ -83,6 +96,20 @@ router.post("/video/:shotId", async (c) => {
     const aspectRatio = project.aspectRatio === "16:9" ? "16:9" : "9:16";
     const videoDuration = (shot.duration || 0) > 6 ? 10 : 6;
     const providerConfig = normalizeMiniMaxConfig(userSettings.videoApiBase, userSettings.videoModel);
+    const firstFrameImage = normalizeFirstFrameUrl(shot.storyboardImageUrl, c.req.url);
+    const firstFrameReference = firstFrameImage.startsWith("data:image/") ? "inline_data_url" : firstFrameImage;
+    const generationMode = firstFrameImage ? "image_to_video" : "text_to_video";
+
+    // MiniMax T2V does not accept an aspect-ratio parameter. For vertical projects,
+    // require a vertical first frame unless the caller explicitly accepts fallback risk.
+    if (aspectRatio === "9:16" && !firstFrameImage && body.allow_landscape_fallback !== true) {
+      return c.json({
+        detail: "竖屏工程缺少首帧。请先生成或上传 9:16 分镜图，再使用图生视频；如确需文生视频，请明确接受横屏输出风险。",
+        error_code: "VERTICAL_FIRST_FRAME_REQUIRED",
+        shot_id: shotId,
+        project_aspect_ratio: aspectRatio,
+      }, 409);
+    }
 
     // Create GenerationJob record
     const jobId = crypto.randomUUID();
@@ -95,8 +122,14 @@ router.post("/video/:shotId", async (c) => {
       provider: userSettings.videoProvider || "minimax",
       model: providerConfig.model,
       inputRevision: videoPrompt.substring(0, 500),
-      referenceAssetVersion: "",
-      parameters: JSON.stringify({ aspect_ratio: aspectRatio, duration: videoDuration, fps: 24 }),
+      referenceAssetVersion: firstFrameReference,
+      parameters: JSON.stringify({
+        requested_aspect_ratio: aspectRatio,
+        duration: videoDuration,
+        fps: 24,
+        generation_mode: generationMode,
+        first_frame_image_url: firstFrameReference,
+      }),
       externalTaskId: "",
       status: "submitted",
       failureReason: "",
@@ -117,6 +150,7 @@ router.post("/video/:shotId", async (c) => {
       resolution: "768P",
       duration: videoDuration,
     };
+    if (firstFrameImage) reqBody.first_frame_image = firstFrameImage;
     const submitResp = await fetch(`${providerConfig.apiBase}/video_generation`, {
       method: "POST",
       headers: {
@@ -168,7 +202,10 @@ router.post("/video/:shotId", async (c) => {
       job_id: jobId,
       external_task_id: externalTaskId,
       shot_id: shotId,
-      message: "视频生成任务已提交，使用轮询接口查询结果",
+      generation_mode: generationMode,
+      message: generationMode === "image_to_video"
+        ? "图生视频任务已提交，将沿用当前分镜首帧的画幅"
+        : "文生视频任务已提交，供应商可能不保持工程画幅",
     });
   } catch (err: any) {
     console.error("[Video Submit Error]:", err);
@@ -305,7 +342,9 @@ router.post("/poll", async (c) => {
           file_id: fileId,
           model: job.model,
           resolution: "768P",
-          ratio: parameters.aspect_ratio,
+          requested_ratio: parameters.requested_aspect_ratio || parameters.aspect_ratio,
+          generation_mode: parameters.generation_mode || "text_to_video",
+          first_frame_image_url: parameters.first_frame_image_url || "",
           upstream_url: r2Url ? videoUrl : undefined,
           r2_persisted: Boolean(r2Url),
         }),

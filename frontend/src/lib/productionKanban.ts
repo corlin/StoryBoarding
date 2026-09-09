@@ -29,6 +29,17 @@ export function estimateVideoGeneration(duration: number) {
   };
 }
 
+export function planVideoGeneration(aspectRatio: string, hasFirstFrame: boolean, duration: number) {
+  const { billableDuration } = estimateVideoGeneration(duration);
+  const generationMode = hasFirstFrame ? "image_to_video" : "text_to_video";
+  return {
+    billableDuration,
+    generationMode,
+    preservesRequestedAspectRatio: hasFirstFrame,
+    requiresLandscapeFallbackConfirmation: aspectRatio === "9:16" && !hasFirstFrame,
+  };
+}
+
 export function deriveDialogueLineFromShot(shot: ProductionShotIdentity) {
   const dialogue = (shot.dialogue || "").trim();
   if (!dialogue) return null;

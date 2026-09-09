@@ -6,7 +6,7 @@ import { normalizeAssetUrl } from "@/lib/api";
 import {
   compareProductionShots,
   deriveDialogueLineFromShot,
-  estimateVideoGeneration,
+  planVideoGeneration,
   productionMediaFileBase,
   productionShotLabel,
 } from "@/lib/productionKanban";
@@ -113,6 +113,7 @@ function formatDbDate(s: string | null | undefined): string {
 export default function ProductionKanbanModal({ isOpen, onClose, projectId, projectTitle }: ProductionKanbanModalProps) {
   const [shots, setShots] = useState<KanbanShot[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [projectAspectRatio, setProjectAspectRatio] = useState("9:16");
   const [selectedShot, setSelectedShot] = useState<KanbanShot | null>(null);
   const [takes, setTakes] = useState<Take[]>([]);
   const [videoJobs, setVideoJobs] = useState<VideoJob[]>([]);
@@ -138,6 +139,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
       const res = await api.getProductionKanban(projectId);
       setShots((res.shots || []) as KanbanShot[]);
       setStatusCounts(res.status_counts || {});
+      setProjectAspectRatio(res.project_aspect_ratio || "9:16");
     } catch (e: any) {
       showToast(`看板加载失败: ${e?.response?.data?.detail || e.message}`, "error");
     } finally {
@@ -392,15 +394,25 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
 
   const handleGenerateVideo = async () => {
     if (!selectedShot) return;
-    const estimate = estimateVideoGeneration(selectedShot.duration);
+    const estimate = planVideoGeneration(projectAspectRatio, selectedShot.has_image, selectedShot.duration);
+    const modeDescription = estimate.generationMode === "image_to_video"
+      ? `图生视频 · 使用当前 ${projectAspectRatio} 分镜图作为首帧`
+      : "文生视频 · 没有首帧约束";
+    const aspectWarning = estimate.requiresLandscapeFallbackConfirmation
+      ? "\n\n⚠ 当前是 9:16 工程，但该镜头没有首帧。MiniMax 文生视频不接受画幅参数，可能返回横屏。建议取消并先生成或上传 9:16 分镜图。"
+      : "";
     const confirmed = window.confirm(
       `将调用已配置的视频供应商生成 ${productionShotLabel(selectedShot)}。\n` +
-      `当前将提交最低可用档：768P · ${estimate.billableDuration}s。具体扣费取决于供应商套餐或按量账单。\n\n确认提交付费任务？`
+      `${modeDescription}\n最低可用档：768P · ${estimate.billableDuration}s。具体扣费取决于供应商套餐或按量账单。` +
+      aspectWarning +
+      "\n\n确认提交付费任务？"
     );
     if (!confirmed) return;
     setGeneratingVideo(true);
     try {
-      const result = await api.generateVideo(selectedShot.shot_id);
+      const result = await api.generateVideo(selectedShot.shot_id, {
+        allow_landscape_fallback: estimate.requiresLandscapeFallbackConfirmation,
+      });
       showToast(result.status === "existing" ? result.message : "视频任务已提交");
       await loadVideoJobs(selectedShot.shot_id);
       loadKanban();
