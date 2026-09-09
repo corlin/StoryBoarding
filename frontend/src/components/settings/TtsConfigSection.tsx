@@ -45,9 +45,22 @@ export const TtsConfigSection: React.FC<TtsConfigSectionProps> = ({
    */
   const handleTestVoice = async (voiceKey: "female" | "male" | "narrator") => {
     const voiceId = voiceKey === "female" ? config.voiceFemale : voiceKey === "male" ? config.voiceMale : config.voiceNarrator;
+    const testText = "你好，世界";
     if (!voiceId.trim()) {
       setTestError("音色 ID 为空，请先填写音色");
       return;
+    }
+
+    const selectedModel = speechModels.find((model) => model.id === config.model);
+    if (!selectedModel?.is_free) {
+      const price = selectedModel?.price_per_character
+        ? `$${selectedModel.price_per_character}/字符`
+        : "价格未知";
+      const confirmed = window.confirm(
+        `将通过 ${config.model || "当前 Speech 模型"} 合成「${testText}」（${testText.length} 字符）。\n` +
+        `目录价格：${price}，费用由 OpenRouter 从你的账户结算。\n\n确认开始试听？`
+      );
+      if (!confirmed) return;
     }
 
     // 停止当前播放
@@ -70,7 +83,7 @@ export const TtsConfigSection: React.FC<TtsConfigSectionProps> = ({
         body: JSON.stringify({
           model: config.model,
           voice: voiceId,
-          text: "你好，世界",
+          text: testText,
         }),
       });
 

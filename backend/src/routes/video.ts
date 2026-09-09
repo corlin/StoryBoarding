@@ -129,7 +129,7 @@ router.post("/video/:shotId", async (c) => {
         failure_reason, result_url, result_metadata, cost_amount, cost_currency,
         cost_unit, submitted_at, created_at, updated_at
       )
-      SELECT ?, ?, ?, 'video', ?, ?, ?, ?, ?, '', 'submitted', '', '', '{}', 0, 'USD', 'video', ?, ?, ?
+      SELECT ?, ?, ?, 'video', ?, ?, ?, ?, ?, '', 'submitted', '', '', '{}', 0, 'unknown', 'video', ?, ?, ?
       WHERE NOT EXISTS (
         SELECT 1 FROM generation_jobs
         WHERE shot_id = ? AND job_type = 'video' AND status IN ('submitted', 'processing')

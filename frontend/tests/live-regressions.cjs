@@ -210,4 +210,23 @@ test('OpenRouter TTS strips screenplay attribution and selects traceable Chinese
   assert.deepEqual(buildOpenRouterTtsRequest('hexgrad/kokoro-82m', '你好', 'zf_xiaoxiao', 1), {
     model: 'hexgrad/kokoro-82m', input: '你好', voice: 'zf_xiaoxiao', response_format: 'mp3', speed: 1,
   });
+  const { DEFAULT_TTS_CONFIG } = require('../src/types/modelConfig.ts');
+  const { getTtsVoicePreset } = require('../src/data/modelCatalog.ts');
+  assert.deepEqual(DEFAULT_TTS_CONFIG, {
+    apiBase: 'https://openrouter.ai/api/v1', model: 'hexgrad/kokoro-82m',
+    voiceFemale: 'zf_xiaoxiao', voiceMale: 'zm_yunxi', voiceNarrator: 'zf_xiaobei',
+  });
+  assert.deepEqual(getTtsVoicePreset('hexgrad/kokoro-82m'), {
+    female: 'zf_xiaoxiao', male: 'zm_yunxi', narrator: 'zf_xiaobei',
+  });
+});
+
+test('generation jobs keep unknown provider charges out of recorded-cost totals', () => {
+  const ttsRoute = fs.readFileSync(path.join(__dirname, '../../backend/src/routes/tts.ts'), 'utf8');
+  const imageRoute = fs.readFileSync(path.join(__dirname, '../../backend/src/routes/generation.ts'), 'utf8');
+  const videoRoute = fs.readFileSync(path.join(__dirname, '../../backend/src/routes/video.ts'), 'utf8');
+  assert.match(ttsRoute, /costCurrency: "unknown"/);
+  assert.match(ttsRoute, /cost_recorded: false/);
+  assert.match(imageRoute, /costCurrency: "unknown"/);
+  assert.match(videoRoute, /0, 'unknown', 'video'/);
 });

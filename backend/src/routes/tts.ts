@@ -140,8 +140,9 @@ router.post("/tts/:dialogueId", async (c) => {
       inputRevision: `${dialogueId}:${spokenText}`.substring(0, 500),
       parameters: JSON.stringify({ dialogue_id: dialogueId, speaker: line.speaker, voice, speed, characters: spokenText.length }),
       status: "submitted",
-      costCurrency: "USD",
+      costCurrency: "unknown",
       costAmount: 0,
+      costUnit: "character",
       submittedAt: now,
       createdAt: now,
       updatedAt: now,
@@ -234,7 +235,7 @@ router.post("/tts/:dialogueId", async (c) => {
       model,
       voice,
       characters: spokenText.length,
-      cost_recorded: true,
+      cost_recorded: false,
     });
   } catch (error: any) {
     console.error("[TTS Generation Error]", error);

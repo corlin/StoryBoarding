@@ -161,9 +161,9 @@ export const DEFAULT_VIDEO_CONFIG: Omit<ModelChannelConfig, "apiKey" | "hasKey">
 export const DEFAULT_TTS_CONFIG: TtsConfig = {
   apiBase: "https://openrouter.ai/api/v1",
   model: "hexgrad/kokoro-82m",
-  voiceFemale: "af_heart",
-  voiceMale: "am_adam",
-  voiceNarrator: "bf_emma",
+  voiceFemale: "zf_xiaoxiao",
+  voiceMale: "zm_yunxi",
+  voiceNarrator: "zf_xiaobei",
 };
 
 /** 默认 Worker Endpoint (官方生产服务) */

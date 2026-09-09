@@ -204,9 +204,9 @@ export const OPENROUTER_RECOMMENDED_PRESET = {
   tts: {
     apiBase: "https://openrouter.ai/api/v1",
     model: "hexgrad/kokoro-82m",
-    voiceFemale: "af_heart",
-    voiceMale: "am_adam",
-    voiceNarrator: "bf_emma",
+    voiceFemale: "zf_xiaoxiao",
+    voiceMale: "zm_yunxi",
+    voiceNarrator: "zf_xiaobei",
   },
   syncImageKeyWithLlm: true,
 };
@@ -338,9 +338,9 @@ export const TTS_MODEL_VOICE_PRESETS: Record<string, TtsVoicePreset> = {
 
   // ===== Hexgrad Kokoro 82M (54 voices, af_/am_/bf_/bm_/zf_/zm_ 等) =====
   "hexgrad/kokoro-82m": {
-    female: "af_heart",
-    male: "am_adam",
-    narrator: "bf_emma",
+    female: "zf_xiaoxiao",
+    male: "zm_yunxi",
+    narrator: "zf_xiaobei",
   },
 
   // ===== Mistral Voxtral Mini TTS (30 voices, {lang}_{name}_{emotion}) =====

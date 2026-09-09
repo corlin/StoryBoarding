@@ -814,7 +814,7 @@ const handleGenerateSingleShotImage = async (c: any) => {
       resultUrl: "",
       resultMetadata: "{}",
       costAmount: 0,
-      costCurrency: "USD",
+      costCurrency: "unknown",
       costUnit: "image",
       submittedAt: new Date().toISOString(),
     }).catch((e) => console.warn("Failed to create generation job record:", e));

@@ -833,7 +833,11 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                           <div className="min-w-0 text-[10px] text-gray-500">
                             <p><span className={job.status === "succeeded" ? "text-green-400" : job.status === "failed" ? "text-red-400" : "text-blue-400"}>{job.status}</span> · {job.model || job.provider || "视频模型"}</p>
                             <p>{formatDbDate(job.updatedAt || job.createdAt)}</p>
-                            {job.costCurrency && <p>已记录费用：{job.costCurrency} {job.costAmount || 0}</p>}
+                            {job.costCurrency && job.costCurrency !== "unknown" ? (
+                              <p>已记录费用：{job.costCurrency} {job.costAmount || 0}</p>
+                            ) : (
+                              <p className="text-amber-500">费用待账单回填</p>
+                            )}
                             {job.failureReason && <p className="text-red-400">{job.failureReason}</p>}
                           </div>
                           {active && (
