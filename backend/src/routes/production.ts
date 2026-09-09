@@ -188,6 +188,19 @@ router.post("/takes/:id/adopt", async (c) => {
       // Audio uploaded before dialogue-scoped TTS has no dialogue_id metadata.
       // audioVersion is its durable association, so retire that legacy take too.
       if (dialogueLine?.audioVersion && !sameDialogueTakeIds.includes(dialogueLine.audioVersion)) {
+        const legacyTake = shotAudioTakes.find((candidate: any) => candidate.id === dialogueLine.audioVersion);
+        if (legacyTake) {
+          let legacyMetadata: Record<string, any> = {};
+          try {
+            legacyMetadata = JSON.parse(legacyTake.metadata || "{}");
+          } catch {
+            legacyMetadata = {};
+          }
+          await db.update(takes).set({
+            metadata: JSON.stringify({ ...legacyMetadata, dialogue_id: dialogueId }),
+            updatedAt: new Date().toISOString(),
+          }).where(eq(takes.id, legacyTake.id));
+        }
         sameDialogueTakeIds.push(dialogueLine.audioVersion);
       }
       if (sameDialogueTakeIds.length > 0) {
