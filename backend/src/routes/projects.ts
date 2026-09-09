@@ -55,6 +55,7 @@ router.get("/", async (c) => {
           title: p.title,
           story: p.story,
           target_duration: p.targetDuration,
+          aspect_ratio: p.aspectRatio || "9:16",
           shot_count: totalShots,
           cover_image_url: coverImageUrl,
           preview_images: previewImages,

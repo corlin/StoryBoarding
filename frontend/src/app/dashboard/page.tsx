@@ -362,10 +362,10 @@ export default function DashboardPage() {
 
     try {
       setExportingProjectId(proj.id);
-      notify.info("🎨 正在加载全量分镜数据并合成 16:9 打样单...");
+      notify.info("🎨 正在加载全量分镜数据并按工程画幅合成打样单...");
 
       const fullProject = await api.getProject(proj.id);
-      const shots = fullProject.sequences?.[0]?.shots || [];
+      const shots = fullProject.sequences?.flatMap((sequence) => sequence.shots || []) || [];
 
       if (shots.length === 0) {
         notify.error("该项目中暂无分镜头，请进入工作台先进行 AI 拆镜。");
@@ -704,7 +704,7 @@ export default function DashboardPage() {
                 </span>
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                累计已构建 {totalShotsCount} 个预演镜头 · 支持多租户数据隔离与 16:9 打样导出
+                累计已构建 {totalShotsCount} 个预演镜头 · 支持多租户数据隔离与 9:16 / 16:9 打样导出
               </p>
             </div>
 
