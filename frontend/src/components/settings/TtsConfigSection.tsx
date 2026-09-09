@@ -23,6 +23,7 @@ interface TtsConfigSectionProps {
 type PresetNotice =
   | { type: "applied"; modelId: string }
   | { type: "no_preset"; modelId: string }
+  | { type: "fish_audio"; modelId: string }
   | null;
 
 export const TtsConfigSection: React.FC<TtsConfigSectionProps> = ({
@@ -50,7 +51,12 @@ export const TtsConfigSection: React.FC<TtsConfigSectionProps> = ({
         voiceMale: preset.male,
         voiceNarrator: preset.narrator,
       });
-      setPresetNotice({ type: "applied", modelId: newModelId });
+      // Fish Audio 模型使用官方测试音色，需要特殊提示
+      if (newModelId.startsWith("fish-audio/")) {
+        setPresetNotice({ type: "fish_audio", modelId: newModelId });
+      } else {
+        setPresetNotice({ type: "applied", modelId: newModelId });
+      }
     } else {
       onChange({ model: newModelId });
       setPresetNotice({ type: "no_preset", modelId: newModelId });
@@ -133,6 +139,15 @@ export const TtsConfigSection: React.FC<TtsConfigSectionProps> = ({
             <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
             <span>
               模型 <code className="font-mono">{presetNotice.modelId}</code> 暂无内置音色预设，请在下方手动确认音色 ID 是否对应该模型有效，否则配音可能失败
+            </span>
+          </div>
+        )}
+        {presetNotice?.type === "fish_audio" && (
+          <div className="mt-2 flex items-start gap-1.5 px-2 py-1.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-[10px] text-cyan-400">
+            <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+            <span>
+              Fish Audio 模型无固定男女声音色，当前已填入官方公开测试音色。
+              请在 <a href="https://fish.audio" target="_blank" rel="noopener noreferrer" className="underline">fish.audio</a> 创建/克隆自己的音色后，将下方三个音色 ID 替换为你自己的音色 ID
             </span>
           </div>
         )}

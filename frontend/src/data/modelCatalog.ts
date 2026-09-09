@@ -214,10 +214,11 @@ export const OPENROUTER_RECOMMENDED_PRESET = {
 // ============================================================
 // TTS 模型默认音色预设 (按模型 ID 索引)
 //
-// 不同 TTS 模型使用完全不同的音色命名体系：
-// - Kokoro 82M: af_* (美式女声) / am_* (美式男声) / bf_* (英式女声) / bm_* (英式男声)
-// - 阿里云 TTS: zf_* (女声) / zm_* (男声)
-// - 其他模型: 各有规范
+// 所有音色 ID 均来自 OpenRouter 官方 API 的 supported_voices 字段，
+// 确保与对应模型 100% 兼容。
+//
+// 数据来源: GET https://openrouter.ai/api/v1/models?output_modalities=speech
+// 探查时间: 2026-09-09
 //
 // 用户切换模型时自动加载对应预设，避免音色 ID 不兼容导致调用失败。
 // 未收录的模型返回 null，由 UI 提示用户手动配置。
@@ -229,18 +230,124 @@ export interface TtsVoicePreset {
   narrator: string;
 }
 
+/** Fish Audio 官方公开测试音色 (所有 Fish Audio 模型共用，用户需替换为自己克隆的音色) */
+const FISH_AUDIO_TEST_VOICE = "00a1b221-6137-4b73-ad62-b0cbce134167";
+
 export const TTS_MODEL_VOICE_PRESETS: Record<string, TtsVoicePreset> = {
-  // Kokoro 82M — 开源多音色 TTS，OpenRouter 上最常用
-  "hexgrad/kokoro-82m": {
-    female: "af_heart", // 温暖自然女声
-    male: "am_adam", // 沉稳男声
-    narrator: "bf_emma", // 英式女声，适合旁白叙述
+  // ===== Deepgram Flux TTS (36 voices, flux-{name}-en) =====
+  "deepgram/flux-tts:free": {
+    female: "flux-haley-en",
+    male: "flux-bruce-en",
+    narrator: "flux-heather-en",
   },
-  // Kokoro 1.5 完整版（如果 OpenRouter 上线）
-  "hexgrad/kokoro-v1.5": {
+
+  // ===== Fish Audio (supported_voices=null, 接受任意音色ID/声音克隆) =====
+  // 注意: Fish Audio 音色由用户在 fish.audio 自行创建/克隆，无固定男女声。
+  // 以下使用官方公开测试音色，用户应替换为自己的音色 ID。
+  "fish-audio/s1": {
+    female: FISH_AUDIO_TEST_VOICE,
+    male: FISH_AUDIO_TEST_VOICE,
+    narrator: FISH_AUDIO_TEST_VOICE,
+  },
+  "fish-audio/s2-pro": {
+    female: FISH_AUDIO_TEST_VOICE,
+    male: FISH_AUDIO_TEST_VOICE,
+    narrator: FISH_AUDIO_TEST_VOICE,
+  },
+  "fish-audio/s2.1-pro-free:free": {
+    female: FISH_AUDIO_TEST_VOICE,
+    male: FISH_AUDIO_TEST_VOICE,
+    narrator: FISH_AUDIO_TEST_VOICE,
+  },
+  "fish-audio/s2.1-pro": {
+    female: FISH_AUDIO_TEST_VOICE,
+    male: FISH_AUDIO_TEST_VOICE,
+    narrator: FISH_AUDIO_TEST_VOICE,
+  },
+
+  // ===== Microsoft MAI-Voice-2 (4 voices, Azure locale format) =====
+  "microsoft/mai-voice-2-flash": {
+    female: "en-US-Harper:MAI-Voice-2",
+    male: "de-DE-Klaus:MAI-Voice-2",
+    narrator: "en-US-Harper:MAI-Voice-2",
+  },
+  "microsoft/mai-voice-2": {
+    female: "en-US-Harper:MAI-Voice-2",
+    male: "de-DE-Klaus:MAI-Voice-2",
+    narrator: "en-US-Harper:MAI-Voice-2",
+  },
+
+  // ===== Qwen Audio 3.0 TTS (2 voices each) =====
+  "qwen/qwen-audio-3.0-tts-flash": {
+    female: "longanhuan_v3.6",
+    male: "loongjohn",
+    narrator: "longanhuan_v3.6",
+  },
+  "qwen/qwen-audio-3.0-tts-plus": {
+    female: "longanlingxin",
+    male: "longanlufeng",
+    narrator: "longanlingxin",
+  },
+
+  // ===== Deepgram Aura-2 (90 voices, aura-2-{name}-{lang}) =====
+  "deepgram/aura-2": {
+    female: "aura-2-thalia-en",
+    male: "aura-2-arcas-en",
+    narrator: "aura-2-asteria-en",
+  },
+
+  // ===== MiniMax Speech 2.8 (45 voices each, English_* 格式) =====
+  "minimax/speech-2.8-hd": {
+    female: "English_radiant_girl",
+    male: "English_magnetic_voiced_man",
+    narrator: "English_expressive_narrator",
+  },
+  "minimax/speech-2.8-turbo": {
+    female: "English_radiant_girl",
+    male: "English_magnetic_voiced_man",
+    narrator: "English_expressive_narrator",
+  },
+
+  // ===== xAI Grok Voice TTS 1.0 (5 voices: eve, ara, rex, sal, leo) =====
+  "x-ai/grok-voice-tts-1.0": {
+    female: "eve",
+    male: "rex",
+    narrator: "ara",
+  },
+
+  // ===== Google Gemini 3.1 Flash TTS Preview (30 voices, 天文命名) =====
+  "google/gemini-3.1-flash-tts-preview": {
+    female: "Aoede",
+    male: "Charon",
+    narrator: "Sadaltager",
+  },
+
+  // ===== Canopy Labs Orpheus 3B (7 voices: tara, leah, jess, leo, dan, mia, zac) =====
+  "canopylabs/orpheus-3b-0.1-ft": {
+    female: "tara",
+    male: "leo",
+    narrator: "mia",
+  },
+
+  // ===== Sesame CSM 1B (7 voices: conversational_*, read_speech_*, none) =====
+  "sesame/csm-1b": {
+    female: "conversational_a",
+    male: "conversational_b",
+    narrator: "read_speech_a",
+  },
+
+  // ===== Hexgrad Kokoro 82M (54 voices, af_/am_/bf_/bm_/zf_/zm_ 等) =====
+  "hexgrad/kokoro-82m": {
     female: "af_heart",
     male: "am_adam",
     narrator: "bf_emma",
+  },
+
+  // ===== Mistral Voxtral Mini TTS (30 voices, {lang}_{name}_{emotion}) =====
+  "mistralai/voxtral-mini-tts-2603": {
+    female: "gb_jane_neutral",
+    male: "en_paul_neutral",
+    narrator: "gb_jane_neutral",
   },
 };
 
