@@ -1025,6 +1025,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         <DeliverStudioView
           project={displayProject}
           shots={shots}
+          onOpenProductionKanban={() => setIsProductionKanbanOpen(true)}
         />
       )}
 
