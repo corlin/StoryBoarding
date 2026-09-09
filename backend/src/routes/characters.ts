@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
-import { characters, shots } from "../db/schema";
+import { characters } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
-import { authorizeProjectOwner } from "../lib/projectAccess";
+import { authorizeProjectForUser, authorizeProjectOwner, authorizeShotForUser } from "../lib/projectAccess";
 import { saveImageToR2 } from "../lib/storage";
 
 const router = new Hono<{ Bindings: Bindings }>();
@@ -66,7 +66,7 @@ router.post("/:id/generate-avatar", async (c) => {
     if (!char) {
       return c.json({ detail: "角色不存在" }, 404);
     }
-    const access = await authorizeProjectOwner(db, authHeader, char.projectId);
+    const access = await authorizeProjectForUser(db, authUser, char.projectId);
     if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const body = await c.req.json().catch(() => ({}));
@@ -212,8 +212,12 @@ router.post("/:id/set-from-shot", async (c) => {
 
     let imageUrl = body.image_url;
     if (!imageUrl && body.shot_id) {
-      const shot = await db.select().from(shots).where(eq(shots.id, body.shot_id)).get();
-      imageUrl = shot?.storyboardImageUrl;
+      const shotAccess = await authorizeShotForUser(db, access.authUser, body.shot_id);
+      if (!shotAccess.ok) return c.json({ detail: shotAccess.detail }, shotAccess.status);
+      if (shotAccess.project.id !== char.projectId) {
+        return c.json({ detail: "该分镜与角色不属于同一工程" }, 403);
+      }
+      imageUrl = shotAccess.shot.storyboardImageUrl;
     }
 
     if (!imageUrl) {

@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ProjectModel, ShotModel } from "@/types/shot";
 import {
+  type LucideIcon,
   Sparkles,
   Download,
   Settings,
@@ -26,10 +27,57 @@ import {
 } from "lucide-react";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
-import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { type StudioStage, useWorkspaceStore } from "@/stores/workspaceStore";
 import { computeProjectQualityDiagnostics } from "@/components/modals/ProjectQualityRadarModal";
 import { notify } from "@/components/ui/ToastNotification";
 import { cn } from "@/lib/utils";
+
+const STUDIO_STAGES: ReadonlyArray<{
+  id: StudioStage;
+  hotkey: string;
+  desktopLabel: string;
+  mobileLabel: string;
+  title: string;
+  notification: string;
+  icon: LucideIcon;
+}> = [
+  {
+    id: "prep",
+    hotkey: "1",
+    desktopLabel: "01 设定与剧本",
+    mobileLabel: "01 设定",
+    title: "STAGE 01 · 剧本大纲、爽点雷达与视觉设定集 (快捷键 1)",
+    notification: "🎬 已切换至 Stage 01 · 设定与剧本工坊",
+    icon: BookOpen,
+  },
+  {
+    id: "storyboard",
+    hotkey: "2",
+    desktopLabel: "02 分镜工坊",
+    mobileLabel: "02 分镜",
+    title: "STAGE 02 · 核心镜头卡片流、AI 拆镜与渲染 (快捷键 2)",
+    notification: "🎬 已切换至 Stage 02 · 分镜工坊",
+    icon: LayoutGrid,
+  },
+  {
+    id: "review",
+    hotkey: "3",
+    desktopLabel: "03 放映与质检",
+    mobileLabel: "03 质检",
+    title: "STAGE 03 · 全屏影院动态预演与工程体检诊断 (快捷键 3)",
+    notification: "🎬 已切换至 Stage 03 · 动态放映与质检",
+    icon: Film,
+  },
+  {
+    id: "deliver",
+    hotkey: "4",
+    desktopLabel: "04 交付导出",
+    mobileLabel: "04 交付",
+    title: "STAGE 04 · 分镜长图、场记单与无损母盘交付 (快捷键 4)",
+    notification: "🎬 已切换至 Stage 04 · 工业交付看板",
+    icon: Download,
+  },
+];
 
 interface TopBarProps {
   project: ProjectModel | null;
@@ -129,23 +177,11 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       if (isInputFocused) return;
 
-      // 1-4 for stages
-      if (e.key === "1") {
+      const stage = STUDIO_STAGES.find(({ hotkey }) => hotkey === e.key);
+      if (stage) {
         e.preventDefault();
-        setActiveStudioStage("prep");
-        notify.info("🎬 已切换至 Stage 01 · 设定与剧本工坊");
-      } else if (e.key === "2") {
-        e.preventDefault();
-        setActiveStudioStage("storyboard");
-        notify.info("🎬 已切换至 Stage 02 · 分镜工坊");
-      } else if (e.key === "3") {
-        e.preventDefault();
-        setActiveStudioStage("review");
-        notify.info("🎬 已切换至 Stage 03 · 动态放映与质检");
-      } else if (e.key === "4") {
-        e.preventDefault();
-        setActiveStudioStage("deliver");
-        notify.info("🎬 已切换至 Stage 04 · 工业交付看板");
+        setActiveStudioStage(stage.id);
+        notify.info(stage.notification);
       } else if ((e.key === "m" || e.key === "M") && !e.metaKey && !e.ctrlKey && !e.altKey) {
         if (onOpenArchitectureMap) {
           e.preventDefault();
@@ -285,94 +321,43 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* 2. Middle: DaVinci Resolve 4-Stage Pipeline Switcher */}
       <nav className="hidden md:flex items-center p-1 rounded-xl bg-secondary/60 border border-border/80 shadow-2xs">
-        {/* Stage 01: 设定与剧本 */}
-        <button
-          type="button"
-          onClick={() => setActiveStudioStage("prep")}
-          className={cn(
-            "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-            activeStudioStage === "prep"
-              ? "bg-primary text-primary-foreground shadow-xs font-bold"
-              : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
-          )}
-          title="STAGE 01 · 剧本大纲、爽点雷达与视觉设定集 (快捷键 1)"
-        >
-          <BookOpen className="w-3.5 h-3.5" />
-          <span>01 设定与剧本</span>
-        </button>
-
-        {/* Stage 02: 分镜工坊 */}
-        <button
-          type="button"
-          onClick={() => setActiveStudioStage("storyboard")}
-          className={cn(
-            "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-            activeStudioStage === "storyboard"
-              ? "bg-primary text-primary-foreground shadow-xs font-bold"
-              : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
-          )}
-          title="STAGE 02 · 核心镜头卡片流、AI 拆镜与渲染 (快捷键 2)"
-        >
-          <LayoutGrid className="w-3.5 h-3.5" />
-          <span>02 分镜工坊</span>
-        </button>
-
-        {/* Stage 03: 放映与质检 */}
-        <button
-          type="button"
-          onClick={() => setActiveStudioStage("review")}
-          className={cn(
-            "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-            activeStudioStage === "review"
-              ? "bg-primary text-primary-foreground shadow-xs font-bold"
-              : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
-          )}
-          title="STAGE 03 · 全屏影院动态预演与工程体检诊断 (快捷键 3)"
-        >
-          <Film className="w-3.5 h-3.5" />
-          <span>03 放映与质检</span>
-          {radarScore < 85 && (
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-          )}
-        </button>
-
-        {/* Stage 04: 交付导出 */}
-        <button
-          type="button"
-          onClick={() => setActiveStudioStage("deliver")}
-          className={cn(
-            "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-            activeStudioStage === "deliver"
-              ? "bg-primary text-primary-foreground shadow-xs font-bold"
-              : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
-          )}
-          title="STAGE 04 · 分镜长图、场记单与无损母盘交付 (快捷键 4)"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>04 交付导出</span>
-        </button>
+        {STUDIO_STAGES.map(({ id, desktopLabel, title, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveStudioStage(id)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+              activeStudioStage === id
+                ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
+            )}
+            title={title}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            <span>{desktopLabel}</span>
+            {id === "review" && radarScore < 85 && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            )}
+          </button>
+        ))}
       </nav>
 
       <nav className="order-3 grid w-full grid-cols-4 gap-1 md:hidden" aria-label="制作阶段">
-        {([
-          ["prep", "01 设定"],
-          ["storyboard", "02 分镜"],
-          ["review", "03 质检"],
-          ["deliver", "04 交付"],
-        ] as const).map(([stage, label]) => (
+        {STUDIO_STAGES.map(({ id, mobileLabel }) => (
           <button
-            key={stage}
+            key={id}
             type="button"
-            onClick={() => setActiveStudioStage(stage)}
-            aria-current={activeStudioStage === stage ? "step" : undefined}
+            onClick={() => setActiveStudioStage(id)}
+            aria-current={activeStudioStage === id ? "step" : undefined}
             className={cn(
               "min-w-0 rounded-md px-1.5 py-1 text-[10px] font-semibold transition-colors",
-              activeStudioStage === stage
+              activeStudioStage === id
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary/60 text-muted-foreground hover:text-foreground"
             )}
           >
-            {label}
+            {mobileLabel}
           </button>
         ))}
       </nav>

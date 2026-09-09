@@ -7,6 +7,7 @@ import { scanLongformSeries } from "../agents/director/seriesScanner";
 import { generateCinematicStoryboardImage, runConcurrentTasks, getProjectBaseSeed } from "./generation";
 import { diagnoseAndRewriteScreenplay } from "../agents/director/hookDoctor";
 import { getAuthUser, getUserSettings } from "../lib/auth";
+import { authorizeProjectOwner, authorizeShotForUser } from "../lib/projectAccess";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -79,14 +80,9 @@ router.get("/:id", async (c) => {
     const db = getDb(c.env.DB);
     const id = c.req.param("id");
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
-
-    const proj = await db.select().from(projects).where(eq(projects.id, id)).get();
-    if (!proj) {
-      return c.json({ detail: "Project not found" }, 404);
-    }
-    if (proj.userId !== authUser.userId) return c.json({ detail: "无权访问该工程" }, 403);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
+    const proj = access.project;
 
     const charList = await db.select().from(characters).where(eq(characters.projectId, id)).all();
     const locList = await db.select().from(locations).where(eq(locations.projectId, id)).all();
@@ -602,13 +598,25 @@ router.put("/:id", async (c) => {
     const db = getDb(c.env.DB);
     const id = c.req.param("id");
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
-    const ownedProject = await db.select().from(projects).where(eq(projects.id, id)).get();
-    if (!ownedProject) return c.json({ detail: "Project not found" }, 404);
-    if (ownedProject.userId !== authUser.userId) return c.json({ detail: "无权修改该工程" }, 403);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const body = await c.req.json();
+
+    for (const [table, items] of [
+      [characters, body.characters],
+      [locations, body.locations],
+      [props, body.props],
+    ] as const) {
+      if (!Array.isArray(items)) continue;
+      for (const item of items) {
+        if (!item.id) continue;
+        const existing = await db.select().from(table).where(eq(table.id, item.id)).get();
+        if (existing && existing.projectId !== id) {
+          return c.json({ detail: "无权修改其他工程的资产" }, 403);
+        }
+      }
+    }
 
     const updates: any = {};
     if (body.title !== undefined) updates.title = body.title;
@@ -1548,6 +1556,9 @@ router.delete("/:id", async (c) => {
       return c.json({ detail: "官方演示项目不允许删除" }, 403);
     }
 
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
+
     const [deleted] = await db.delete(projects).where(eq(projects.id, id)).returning();
     if (!deleted) {
       return c.json({ detail: "Project not found" }, 404);
@@ -1567,8 +1578,9 @@ router.get("/:id/media-library", async (c) => {
     const db = getDb(c.env.DB);
     const projectId = c.req.param("id");
 
-    const proj = await db.select().from(projects).where(eq(projects.id, projectId)).get();
-    if (!proj) return c.json({ detail: "Project not found" }, 404);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
+    const proj = access.project;
 
     const charList = await db.select().from(characters).where(eq(characters.projectId, projectId)).all();
     const locList = await db.select().from(locations).where(eq(locations.projectId, projectId)).all();
@@ -1722,6 +1734,9 @@ router.post("/:id/media-library/restore-image", async (c) => {
   try {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
+    const projectId = c.req.param("id");
+    const projectAccess = await authorizeProjectOwner(db, c.req.header("Authorization"), projectId);
+    if (!projectAccess.ok) return c.json({ detail: projectAccess.detail }, projectAccess.status);
     const body = await c.req.json();
     const { shot_id, image_url } = body;
 
@@ -1729,8 +1744,10 @@ router.post("/:id/media-library/restore-image", async (c) => {
       return c.json({ detail: "缺少 shot_id 或 image_url" }, 400);
     }
 
-    const shot = await db.select().from(shots).where(eq(shots.id, shot_id)).get();
-    if (!shot) return c.json({ detail: "未找到对应分镜" }, 404);
+    const shotAccess = await authorizeShotForUser(db, projectAccess.authUser, shot_id);
+    if (!shotAccess.ok) return c.json({ detail: shotAccess.detail }, shotAccess.status);
+    if (shotAccess.project.id !== projectId) return c.json({ detail: "该分镜不属于当前工程" }, 403);
+    const shot = shotAccess.shot;
 
     let history: string[] = [];
     try {
@@ -1765,6 +1782,8 @@ router.post("/:id/media-library/clean-orphans", async (c) => {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
     const projectId = c.req.param("id");
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const seqList = await db.select().from(sequences).where(eq(sequences.projectId, projectId)).all();
     const seqIds = seqList.map((s) => s.id);

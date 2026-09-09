@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
-import { props, shots } from "../db/schema";
+import { props } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
-import { authorizeProjectOwner } from "../lib/projectAccess";
+import { authorizeProjectForUser, authorizeProjectOwner } from "../lib/projectAccess";
 import { saveImageToR2 } from "../lib/storage";
 
 const router = new Hono<{ Bindings: Bindings }>();
@@ -154,7 +154,7 @@ router.post("/:id/generate-concept", async (c) => {
     if (!prop) {
       return c.json({ detail: "道具不存在" }, 404);
     }
-    const access = await authorizeProjectOwner(db, authHeader, prop.projectId);
+    const access = await authorizeProjectForUser(db, authUser, prop.projectId);
     if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const settings = await getUserSettings(db, authUser.userId);

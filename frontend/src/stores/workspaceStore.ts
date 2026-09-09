@@ -132,13 +132,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         }));
 
         const enrichedProject: ProjectModel = {
-          ...project,
           id: project.id,
           user_id: project.user_id || "default",
           title: project.title,
           story: project.story || "",
           style_config: project.style_config || {},
           target_duration: Number(project.target_duration) || 30.0,
+          aspect_ratio: project.aspect_ratio || "9:16",
           shot_count: project.shot_count || enrichedSequences.reduce((acc, s) => acc + s.shots.length, 0),
           cover_image_url: project.cover_image_url || "",
           created_at: project.created_at || new Date().toISOString(),

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import { locations } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
-import { authorizeProjectOwner } from "../lib/projectAccess";
+import { authorizeProjectForUser } from "../lib/projectAccess";
 import { saveImageToR2 } from "../lib/storage";
 
 const router = new Hono<{ Bindings: Bindings }>();
@@ -25,7 +25,7 @@ router.post("/:id/generate-concept", async (c) => {
     if (!loc) {
       return c.json({ detail: "场景不存在" }, 404);
     }
-    const access = await authorizeProjectOwner(db, authHeader, loc.projectId);
+    const access = await authorizeProjectForUser(db, authUser, loc.projectId);
     if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const settings = await getUserSettings(db, authUser.userId);

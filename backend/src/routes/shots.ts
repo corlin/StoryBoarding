@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
-import { projects, sequences, shots } from "../db/schema";
-import { getAuthUser } from "../lib/auth";
+import { shots } from "../db/schema";
+import { authorizeSequenceOwner, authorizeShotOwner } from "../lib/projectAccess";
 
 import { formatDirectorImagePrompt, formatDirectorVideoPrompt } from "../agents/director/pipeline";
 
@@ -12,12 +12,8 @@ const router = new Hono<{ Bindings: Bindings }>();
 router.post("/", async (c) => {
   const db = getDb(c.env.DB);
   const body = await c.req.json();
-  const authUser = await getAuthUser(c.req.header("Authorization"));
-  if (!authUser) return c.json({ detail: "请先登录" }, 401);
-  const sequence = await db.select().from(sequences).where(eq(sequences.id, body.sequence_id)).get();
-  if (!sequence) return c.json({ detail: "Sequence not found" }, 404);
-  const project = await db.select().from(projects).where(eq(projects.id, sequence.projectId)).get();
-  if (!project || project.userId !== authUser.userId) return c.json({ detail: "无权修改该工程" }, 403);
+  const access = await authorizeSequenceOwner(db, c.req.header("Authorization"), body.sequence_id);
+  if (!access.ok) return c.json({ detail: access.detail }, access.status);
   const id = crypto.randomUUID();
 
   const action = body.action || "";
@@ -81,18 +77,9 @@ router.put("/:id", async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
 
-  const authUser = await getAuthUser(c.req.header("Authorization"));
-  if (!authUser) return c.json({ detail: "请先登录" }, 401);
-
-  const existingShot = await db.select().from(shots).where(eq(shots.id, id)).get();
-  if (!existingShot) {
-    return c.json({ detail: "Shot not found" }, 404);
-  }
-  const sequence = await db.select().from(sequences).where(eq(sequences.id, existingShot.sequenceId)).get();
-  const project = sequence
-    ? await db.select().from(projects).where(eq(projects.id, sequence.projectId)).get()
-    : null;
-  if (!project || project.userId !== authUser.userId) return c.json({ detail: "无权修改该工程" }, 403);
+  const access = await authorizeShotOwner(db, c.req.header("Authorization"), id);
+  if (!access.ok) return c.json({ detail: access.detail }, access.status);
+  const existingShot = access.shot;
 
   const updates: any = {};
   if (body.order !== undefined) updates.order = Number(body.order);
@@ -202,15 +189,8 @@ router.put("/:id", async (c) => {
 router.delete("/:id", async (c) => {
   const db = getDb(c.env.DB);
   const id = c.req.param("id");
-  const authUser = await getAuthUser(c.req.header("Authorization"));
-  if (!authUser) return c.json({ detail: "请先登录" }, 401);
-  const existingShot = await db.select().from(shots).where(eq(shots.id, id)).get();
-  if (!existingShot) return c.json({ detail: "Shot not found" }, 404);
-  const sequence = await db.select().from(sequences).where(eq(sequences.id, existingShot.sequenceId)).get();
-  const project = sequence
-    ? await db.select().from(projects).where(eq(projects.id, sequence.projectId)).get()
-    : null;
-  if (!project || project.userId !== authUser.userId) return c.json({ detail: "无权修改该工程" }, 403);
+  const access = await authorizeShotOwner(db, c.req.header("Authorization"), id);
+  if (!access.ok) return c.json({ detail: access.detail }, access.status);
   await db.delete(shots).where(eq(shots.id, id));
   return c.json({ success: true });
 });
