@@ -204,9 +204,67 @@ export const OPENROUTER_RECOMMENDED_PRESET = {
   tts: {
     apiBase: "https://openrouter.ai/api/v1",
     model: "hexgrad/kokoro-82m",
-    voiceFemale: "zf_xiaoxiao",
-    voiceMale: "zm_yunxi",
-    voiceNarrator: "zf_xiaobei",
+    voiceFemale: "af_heart",
+    voiceMale: "am_adam",
+    voiceNarrator: "bf_emma",
   },
   syncImageKeyWithLlm: true,
 };
+
+// ============================================================
+// TTS 模型默认音色预设 (按模型 ID 索引)
+//
+// 不同 TTS 模型使用完全不同的音色命名体系：
+// - Kokoro 82M: af_* (美式女声) / am_* (美式男声) / bf_* (英式女声) / bm_* (英式男声)
+// - 阿里云 TTS: zf_* (女声) / zm_* (男声)
+// - 其他模型: 各有规范
+//
+// 用户切换模型时自动加载对应预设，避免音色 ID 不兼容导致调用失败。
+// 未收录的模型返回 null，由 UI 提示用户手动配置。
+// ============================================================
+
+export interface TtsVoicePreset {
+  female: string;
+  male: string;
+  narrator: string;
+}
+
+export const TTS_MODEL_VOICE_PRESETS: Record<string, TtsVoicePreset> = {
+  // Kokoro 82M — 开源多音色 TTS，OpenRouter 上最常用
+  "hexgrad/kokoro-82m": {
+    female: "af_heart", // 温暖自然女声
+    male: "am_adam", // 沉稳男声
+    narrator: "bf_emma", // 英式女声，适合旁白叙述
+  },
+  // Kokoro 1.5 完整版（如果 OpenRouter 上线）
+  "hexgrad/kokoro-v1.5": {
+    female: "af_heart",
+    male: "am_adam",
+    narrator: "bf_emma",
+  },
+};
+
+/**
+ * 获取指定 TTS 模型的默认音色预设。
+ * @param modelId 模型 ID
+ * @returns 音色预设；未收录的模型返回 null
+ */
+export function getTtsVoicePreset(modelId: string): TtsVoicePreset | null {
+  return TTS_MODEL_VOICE_PRESETS[modelId] || null;
+}
+
+/**
+ * 判断当前音色是否为某个模型预设的默认值（用于判断用户是否手动修改过）。
+ */
+export function isDefaultVoiceForModel(
+  modelId: string,
+  voices: { female: string; male: string; narrator: string }
+): boolean {
+  const preset = TTS_MODEL_VOICE_PRESETS[modelId];
+  if (!preset) return false;
+  return (
+    voices.female === preset.female &&
+    voices.male === preset.male &&
+    voices.narrator === preset.narrator
+  );
+}

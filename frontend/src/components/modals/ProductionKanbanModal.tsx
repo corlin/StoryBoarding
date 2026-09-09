@@ -1127,10 +1127,13 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                               />
                               <datalist id={`tts-voices-${line.id || i}`}>
                                 <option value="">自动匹配角色声线</option>
-                                <option value="zf_xiaoxiao">晓晓 · 女声</option>
-                                <option value="zf_xiaobei">晓北 · 旁白女声</option>
-                                <option value="zm_yunxi">云希 · 男声</option>
-                                <option value="zm_yunjian">云健 · 旁白男声</option>
+                                <option value="af_heart">Heart · 温暖女声</option>
+                                <option value="af_bella">Bella · 甜美女声</option>
+                                <option value="af_sarah">Sarah · 清晰女声</option>
+                                <option value="am_adam">Adam · 沉稳男声</option>
+                                <option value="am_michael">Michael · 阳光男声</option>
+                                <option value="bf_emma">Emma · 英式女声(旁白)</option>
+                                <option value="bm_george">George · 英式男声(旁白)</option>
                               </datalist>
                               <button
                                 onClick={() => handleGenerateTts(line, i)}

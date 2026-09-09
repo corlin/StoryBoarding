@@ -196,8 +196,8 @@ export async function getUserSettings(db: any, userId?: string) {
     ttsApiKey: llmApiKey,
     ttsApiBase: userSettings.ttsApiBase || userSettings.llmApiBase || "https://openrouter.ai/api/v1",
     ttsModel: userSettings.ttsModel || "hexgrad/kokoro-82m",
-    ttsVoiceFemale: userSettings.ttsVoiceFemale || "zf_xiaoxiao",
-    ttsVoiceMale: userSettings.ttsVoiceMale || "zm_yunxi",
-    ttsVoiceNarrator: userSettings.ttsVoiceNarrator || "zf_xiaobei",
+    ttsVoiceFemale: userSettings.ttsVoiceFemale || "af_heart",
+    ttsVoiceMale: userSettings.ttsVoiceMale || "am_adam",
+    ttsVoiceNarrator: userSettings.ttsVoiceNarrator || "bf_emma",
   };
 }

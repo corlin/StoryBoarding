@@ -1,8 +1,8 @@
 export const DEFAULT_TTS_MODEL = "hexgrad/kokoro-82m";
 export const DEFAULT_TTS_VOICES = {
-  female: "zf_xiaoxiao",
-  male: "zm_yunxi",
-  narrator: "zf_xiaobei",
+  female: "af_heart",
+  male: "am_adam",
+  narrator: "bf_emma",
 } as const;
 
 export function spokenTextFromDialogue(text: string, speaker = "") {

@@ -153,9 +153,9 @@ const handleUpdateProviders = async (c: any) => {
     ttsProvider: "openrouter",
     ttsApiBase: (body.tts_api_base || existingUserSettings.ttsApiBase || body.llm_api_base || existingUserSettings.llmApiBase || "https://openrouter.ai/api/v1").trim(),
     ttsModel: (body.tts_model || existingUserSettings.ttsModel || "hexgrad/kokoro-82m").trim(),
-    ttsVoiceFemale: (body.tts_voice_female || existingUserSettings.ttsVoiceFemale || "zf_xiaoxiao").trim(),
-    ttsVoiceMale: (body.tts_voice_male || existingUserSettings.ttsVoiceMale || "zm_yunxi").trim(),
-    ttsVoiceNarrator: (body.tts_voice_narrator || existingUserSettings.ttsVoiceNarrator || "zf_xiaobei").trim(),
+    ttsVoiceFemale: (body.tts_voice_female || existingUserSettings.ttsVoiceFemale || "af_heart").trim(),
+    ttsVoiceMale: (body.tts_voice_male || existingUserSettings.ttsVoiceMale || "am_adam").trim(),
+    ttsVoiceNarrator: (body.tts_voice_narrator || existingUserSettings.ttsVoiceNarrator || "bf_emma").trim(),
     updatedAt: new Date().toISOString(),
   };
 
