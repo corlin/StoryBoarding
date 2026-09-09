@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import { characters, dialogueLines, generationJobs, projects, takes } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
-import { buildOpenRouterTtsRequest, chooseTtsVoice, spokenTextFromDialogue } from "../lib/tts";
+import { buildOpenRouterTtsRequest, chooseTtsVoice, spokenTextFromDialogue, DEFAULT_TTS_MODEL, DEFAULT_TTS_VOICES } from "../lib/tts";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -24,14 +24,20 @@ router.post("/tts/test", async (c) => {
     }
 
     const body = await c.req.json().catch(() => ({}));
-    const model = (typeof body.model === "string" && body.model.trim()) || settings.ttsModel;
-    const voice = (typeof body.voice === "string" && body.voice.trim()) || settings.ttsVoiceFemale;
+    const model = (typeof body.model === "string" && body.model.trim()) || settings.ttsModel || DEFAULT_TTS_MODEL;
+    const voice = (typeof body.voice === "string" && body.voice.trim()) || settings.ttsVoiceFemale || DEFAULT_TTS_VOICES.female;
     const text = (typeof body.text === "string" && body.text.trim()) || "你好，世界";
     const speedValue = Number(body.speed ?? 1);
     const speed = Number.isFinite(speedValue) ? Math.min(2, Math.max(0.5, speedValue)) : 1;
 
     if (text.length > 500) {
       return c.json({ detail: "测试文本超过 500 字符限制" }, 400);
+    }
+    if (!model.trim()) {
+      return c.json({ detail: "未配置 TTS 模型，请在设置中选择模型" }, 400);
+    }
+    if (!voice.trim()) {
+      return c.json({ detail: "未配置音色 ID，请在设置中填写音色" }, 400);
     }
 
     const apiBase = settings.ttsApiBase || "https://openrouter.ai/api/v1";
@@ -134,6 +140,8 @@ router.post("/tts/:dialogueId", async (c) => {
       inputRevision: `${dialogueId}:${spokenText}`.substring(0, 500),
       parameters: JSON.stringify({ dialogue_id: dialogueId, speaker: line.speaker, voice, speed, characters: spokenText.length }),
       status: "submitted",
+      costCurrency: "USD",
+      costAmount: 0,
       submittedAt: now,
       createdAt: now,
       updatedAt: now,
@@ -226,7 +234,7 @@ router.post("/tts/:dialogueId", async (c) => {
       model,
       voice,
       characters: spokenText.length,
-      cost_recorded: false,
+      cost_recorded: true,
     });
   } catch (error: any) {
     console.error("[TTS Generation Error]", error);
