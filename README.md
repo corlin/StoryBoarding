@@ -1,166 +1,137 @@
-# 🎬 StoryBoarding · AI Director & Narrative OS (AI 商业短剧导演工作站)
+# 🎬 StoryBoarding · 短剧 AIGC 导演与生产工作台
 
 [English](./README_EN.md) | 简体中文
 
-> **剧本即代码 (Executable Script) · 敏捷分镜编排 · 短剧制片规范体系 · 0ms 边缘冷启动**  
-> 
-> 面向影视导演、短剧编剧与 AI 创作者的一站式制片工作台，提供从「原著文学抽核、四象限结构取舍、爽点节拍雷达、剧组视听设定集、文学分镜双向联动」到「顺场表排期、沉浸式全屏预演与全套制片资产交付」的全链路能力。  
-> **基于 Cloudflare 全栈 Serverless 边缘架构构建 (Next.js + Hono + D1 + R2 + Pages)。**
+StoryBoarding 面向短剧编剧、导演和小型内容团队，把故事开发、分镜设计、AI 视频与配音生产、审片采用、字幕和成片交付放在同一个工程里。平台强调可追踪的制作闭环：每个镜头、任务、候选素材、采用版本和交付文件都有明确归属，而不是只生成一批无法继续制作的图片或提示词。
 
----
+**在线体验：[storyboarding.caifu.social](https://storyboarding.caifu.social/)**
 
-## 🏗️ 系统全景架构与工作流程导图 (System Architecture & Production Workflow)
+![StoryBoarding 系统架构图](./docs/assets/architecture.png)
 
-系统采用**“剧本即代码 (Executable Script)”**的工程设计思想，面向商业短剧建立**三大制片阶段 (Phases) · 7 大制片工序 (Stages) · 全链路 AI 导演协同中枢**。用户可在工作台随时按下键盘快捷键 <kbd>M</kbd> 或点击顶栏「🗺️ 功能全景」呼出交互式总控导图：
+## 当前可用能力
 
-![StoryBoarding Global Production Architecture Map](./docs/assets/architecture.png)
+### 01 · 设定与剧本
 
-> 💡 **高清矢量资产**：支持在工作台直接一键下载，或查阅 [docs/assets/system_architecture_map.svg](./docs/assets/system_architecture_map.svg)。
->
-> - **阶段一 · 前期筹备与视听基准 (Pre-Production)**：`STAGE 01 大纲改编与爽点雷达` ➔ `STAGE 02 剧组视觉设定集 (角色统一定妆 & 视听基准)`；
-> - **阶段二 · 中期创作与制片排期 (Production & Scheduling)**：`STAGE 03 文学/分镜双向自愈工作台` ➔ `STAGE 04 故事板网格与镜头HUD` ➔ `STAGE 05 顺场表制片管理 (Call Sheet & H3 提示词)`；
-> - **阶段三 · 预演审片与制片交付 (Post-Production & Delivery)**：`STAGE 06 全屏动态放映厅 (Cinema Theater Previz)` ➔ `STAGE 07 全套制片文件打包导出 (5大交付物)`；
-> - **全程贯穿 · 🧠 AI 导演协同中枢**：剧本商业矛盾抽核、跨镜角色定妆一致性防换脸、双向脏状态自愈、多模态连贯视频指令编译。
+- 从故事梗概或长文本建立短剧工程，组织多集结构、钩子、断点和爽点。
+- 维护文学母本、节拍和分镜之间的关联，支持局部修改与同步。
+- 建立角色视觉 DNA、声学 DNA、场景空间锚点和关键道具状态。
+- 以 9:16 竖屏短剧为主要场景，同时支持 16:9 等工程画幅。
 
----
+### 02 · 分镜工坊
 
-## 💎 核心能力模块 (Core Modules)
+- 按集管理镜头、景别、机位、运镜、时长、对白和画面提示词。
+- 为镜头绑定角色、场景和道具，减少跨镜、跨集的人物与物件漂移。
+- 支持镜头锁定、局部重绘、故事板网格、节拍流、时间轴和顺场表。
+- 可导出多模型视频提示词、导演分镜表和制片通告数据。
 
-### 1. ⚖️ STAGE 01 · 大纲改编与爽点雷达工作室
-- **商业短剧智能抽核**：从万字长篇或大纲中提炼核心戏剧矛盾与观众商业钩子；
-- **四象限结构取舍 (Adaptation Tradeoffs)**：
-  - **保留 (Keep)**：原著最具辨识度的核心高光与标志性视觉；
-  - **砍掉 (Cut)**：冗长支线与低效过渡；
-  - **合并 (Merge)**：角色合并与场景聚合；
-  - **风险 (Risk)**：逻辑漏洞与拍摄预算陷阱；
-- **Gate 2 爽点节拍门控 (Payoff Matrix Gatekeeper)**：
-  - 自动检测全剧爽点真空间隔，算法强制保证 `maxBeatGap ≤ 3` 集；
-  - 支持一键智能推演并补齐真空期爽点；
-- **剧本围读 Markdown 会审通告**：一键生成标准化会审文档，支持复制至剪贴板或下载 `.md` 文件。
+### 03 · 放映与质检
 
----
+- 以影院模式连续预演单集或多集分镜。
+- 检查镜头完整度、角色声学资料、场景、道具、时长与连续性风险。
+- 通过生产看板查看待生成、生成中、待审、退回和已采用状态。
+- 视频候选与音频候选分开统计，避免配音素材被误算为视频成片。
 
-### 2. 🎭 STAGE 02 · 剧组前期视觉设定集 (Unified Visual Bible)
-- **全剧统一定妆与设定基准**：彻底消除角色库与设定集割裂的冗余；
-- **角色定妆档案 (Character Anchor)**：
-  - 生成 16:9 三区定妆图（特写 / 全身 / 动态姿势）；
-  - 沉淀纯英文外貌特征提示词基准，解决多镜头跨集“换脸”漂移；
-  - 角色声学参数（音色、共鸣、语速与英文 TTS Acoustic Prompt）；
-- **场景空间锚点 (Environment Anchors)**：
-  - 固化全剧关键地理空间的建筑材质、自然光/顶光/夜戏光影变体，定义 3-5 处实物对齐锚点；
-- **道具特写档案 (Prop Specifications)**：
-  - 手持级、桌面级、家具级三级尺度规范与状态变体（开 / 合 / 破损）。
+### 04 · 交付导出
 
----
+- 导出分镜长图、CSV 场记表、多模型提示词和工程 ZIP。
+- 从生产看板提交视频任务、轮询状态、回收 R2 素材、审片并采用候选。
+- 创建和切换剪辑版本，交付完整 MP4、分集 MP4、完整/分集 SRT 和清单。
+- 移动端保留四阶段导航，生产看板采用上下分区，方便手机复核和采用素材。
 
-### 3. ✍️ STAGE 03 · 文学母本与分镜双向自愈
-- **双栏响应式工作台**：左侧文学剧本流与右侧故事板分镜毫秒级增量联动；
-- **短剧呼吸感监控**：单句台词超过 35 字符自动黄色预警，杜绝长篇说教；
-- **单节拍一键拆镜**：支持将单个戏剧节拍一分为二，切分为景别互补的双镜头组合；
-- **增量脏状态检测 (Dirty State)**：修改文学台词或动作后，右侧关联镜头自动标黄提示「待重绘」，支持原位增量冲印，保留未修改镜头。
+## AI 视频与配音
 
----
+平台将模型能力作为可配置的生产供应商，而不是写死在页面中的演示功能。
 
-### 4. 📋 STAGE 04 & 05 · 故事板网格与顺场表排期
-- **故事板网格工坊 (Storyboard Panel)**：
-  - 支持 4:3、16:9 电影横屏与 9:16 短剧竖屏画幅自适应切换；
-  - HUD 运镜参数、景别标签与镜头锁定（Lock）防护，支持一键全选锁定/解锁；
-- **顺场表制片管理 (Call Sheet View)**：
-  - 按「空间地点 + 光影氛围」聚类归并生产批次（B1, B2...），统计每批时长与镜数；
-  - 批次卡片支持独立折叠展开与全部收起；
-  - **MiniMax Hailuo H3 视频提示词**：一键生成并复制连贯的多镜头多模态生成指令；
-  - **CSV 顺场排期表**：一键导出标准 Excel / CSV 制片表格。
+- **视频**：支持 MiniMax/Hailuo 等任务提交、轮询、R2 回收、候选审片和采用；9:16 工程可要求先提供竖屏首帧，避免无意生成横屏素材。
+- **Speech/TTS**：设置页可配置 OpenRouter `speech` 模型、默认女声、男声和旁白声线；生产看板会继承这些配置，也允许单条对白覆盖。
+- **声音版本**：生成结果作为 Audio Take 保存，可试听、采用、退回和回切；采用后的版本可重新合入最终 MP4。
+- **成本**：只有供应商返回真实费用时才记录金额；缺少账单数据时显示“成本不完整”，不会把未知费用当成零成本。
 
----
+## 已部署三集样片
 
-### 5. 🎬 STAGE 06 · 全屏动态放映厅 (Cinema Theater)
-- **纯净黑场动态预演**：全屏自适应比例播放，搭载 Ken Burns 运镜动态视差；
-- **多模态对白呈现**：台词打字机字幕与画面精准同步；
-- **分镜头播放进度条 (Segmented Scrubber)**：直观指示当前镜号与单镜流逝进度；
-- **全套导演键盘快捷键**：
-  - `Space`：播放 / 暂停试映
-  - `←` / `→`：快速切镜跳转
-  - `C`：字幕打字机开关
-  - `B`：全剧连播模式开关 (Binge Previz)
-  - `ESC`：退出放映并精准高亮工作台当前镜头
+线上工程《第二把钥匙 · 三集制作验收版》用于验证真实生产链路：
 
----
+| 项目 | 当前结果 |
+| --- | --- |
+| 剧集结构 | 3 集，每集 8 镜、48 秒；全片 144 秒 |
+| 工程画幅 | 9:16，仪表盘、工作台与交付页一致 |
+| 结构化资产 | 2 个角色、2 个场景、5 个关键道具；24 镜均绑定角色与场景 |
+| 真实视频 | EP01 SHOT01 完成 MiniMax 生成、R2 回收和采用 |
+| 配音 | 生产看板中有 23 个 Audio Take；已验证 OpenRouter 中文 TTS 生成、R2 回收、试听和采用 |
+| 当前交付 | `v1.2-current-voice`：完整 MP4、3 个分集 MP4、4 个 SRT 和交付清单 |
+| 媒体规格 | 完整 MP4 为 720×1280、H.264 + AAC，并包含 `mov_text` 字幕轨 |
 
-### 6. 🛡️ 安全合规与多租户权限隔离
-- **公共体验账号零资源泄露红线**：
-  - 在 AI 智能拆镜、3步向导、剧组设定集、脚本导入、爆点重构等耗费模型资源的入口处全面接入 `checkAuthAndKey` 前置拦截；
-  - 拦截时弹出友好注册引导，**绝不关闭弹窗、绝不丢失用户当前已输入的故事内容**；
-- **AES-256-GCM 密文保险箱**：用户自填的 API Key 经独立 Salt 加密后入库，前端永不返回明文；
-- **零降级架构**：杜绝向前端暴露公共硬编码 API Key，保障服务稳定性与多租户隔离。
+这是一套**低成本技术样片**。只有 EP01 SHOT01 是真实 AI 视频，其余 23 镜使用明确标注的技术卡，用于验证剧集结构、配音、字幕、剪辑、版本和交付链路，不代表完整视觉成片质量。
 
----
+完整验收记录见 [真实站点完整闭环 QA](./.gstack/qa-reports/qa-report-storyboarding-caifu-social-2026-09-09.md) 和 [三集样片验收方案](./docs/short-drama-production-acceptance.md)。
 
-### 7. 📦 STAGE 07 · 全套制片文件打包导出
-- **全套 5 项制片交付文件**：
-  1. 🖼️ **16:9 故事板工作草图打样单 (PNG Draft)**（客户端 Canvas 秒级离线合成）；
-  2. 📝 **导演多集分卷分镜头台本 (Markdown)**（按 `## 🎬 EPISODE 01` 分卷排版，附带集尾卡点与片长汇总）；
-  3. 🎯 **Midjourney / DALL-E 3 导演全局总控提示词 (Global Prompt)**；
-  4. 🤖 **可灵 Kling / Runway Gen-3 视频生成清单 (AI Video Manifest)**；
-  5. 📦 **制片工程全量资产打包 (ZIP Archive)**（按集数子文件夹规范归档高清图）。
+## 数据、安全与媒体存储
 
----
+- 登录用户的工程存储在 Cloudflare D1，视频、音频、字幕和交付文件存储在 R2。
+- 项目、镜头、角色、场景和道具接口执行登录与工程所有权校验。
+- 用户模型密钥以 AES-256-GCM 加密保存，读取设置时仅返回掩码与是否已配置。
+- R2 媒体接口支持 HTTP Range，可用于浏览器播放、拖动和断点读取。
+- 生产任务记录供应商任务 ID、状态、模型、参数、候选 Take 和采用结果。
 
-## 🛠️ 技术栈与底层选型 (Technology Stack)
+## 技术架构
 
-| 架构层级 | 技术选型 | 核心职责 |
-| :--- | :--- | :--- |
-| **前端框架** | **Next.js 14 / React 18 / Tailwind CSS** | 现代化响应式双栏工作台，全组件类型安全 |
-| **状态管理** | **Zustand** | 轻量响应式管理分镜状态树、剧集索引与认证状态 |
-| **边缘运行时** | **Hono (TypeScript) on Cloudflare Workers** | 0ms 冷启动、高并发边缘 API 网关 |
-| **边缘数据库** | **Cloudflare D1 ➕ Drizzle ORM** | 分布式 Serverless SQLite，全自动类型迁移 |
-| **对象存储** | **Cloudflare R2** | S3 兼容海量媒体存储，零数据出口流量费 (Zero Egress) |
-| **多模态模型集成** | **OpenRouter / MiniMax H3 / Seedream** | 工业级提示词编译器与生图/视频引擎调度 |
+| 层级 | 技术 | 用途 |
+| --- | --- | --- |
+| Web | Next.js 14、React 18、Tailwind CSS | 响应式导演工作台与生产看板 |
+| 状态 | Zustand | 工程、剧集、镜头、认证和阶段状态 |
+| API | Hono on Cloudflare Workers | 认证、项目、生成任务、生产与交付接口 |
+| 数据 | Cloudflare D1、Drizzle ORM | 多租户工程数据、任务和版本记录 |
+| 媒体 | Cloudflare R2 | 分镜、视频、音频、字幕和交付文件 |
+| 模型 | OpenRouter、MiniMax、可配置图像/视频供应商 | 剧本分析、生图、视频和 Speech/TTS |
 
----
+## 本地开发
 
-## 🚀 本地开发与快速上手
-
-本项目摒弃了笨重复杂的本地环境依赖，基于纯 Node.js 与 Cloudflare `wrangler` 驱动。
-
-### 1. 安装依赖
+要求 Node.js 22+。
 
 ```bash
-# 安装后端依赖
+# 安装依赖
 cd backend && npm install
-
-# 安装前端依赖
 cd ../frontend && npm install
-```
 
-### 2. 启动本地开发服务
-
-```bash
-# 终端 1：启动边缘后端 Worker (默认端口: http://localhost:8787)
+# 终端 1：启动 Worker
 cd backend && npm run dev
 
-# 终端 2：启动前端应用 (默认端口: http://localhost:3000)
+# 终端 2：启动前端
 cd frontend && npm run dev
 ```
 
-### 3. 一键部署到 Cloudflare
+默认地址：
 
-#### 部署后端 Workers:
-```bash
-cd backend
-npx wrangler d1 create storyboard_db
-npx wrangler r2 bucket create storyboard-assets
-npm run deploy
-```
+- 前端：http://localhost:3000
+- Worker：http://localhost:8787
 
-#### 部署前端 Pages:
+## 验证
+
 ```bash
+# 前端回归测试与生产构建
 cd frontend
+npm test
 npm run build
-npx wrangler pages deploy .next
+
+# 后端类型检查
+cd ../backend
+npx tsc --noEmit
 ```
 
----
+当前回归套件覆盖多集顺序、镜头字段保留、说话者解析、Speech 声线继承、生成任务并发保护、成本语义和交付数据规范化。真实供应商可用性、生成质量和实际扣费仍需在部署环境中验收。
 
-## 📄 许可证 (License)
+## 部署
 
-本项目基于 [MIT License](LICENSE) 开源发布。
+仓库的 GitHub Actions 会按路径变化部署 Cloudflare Pages 和 Workers。手动部署可使用：
+
+```bash
+# 后端
+cd backend
+npm run deploy
+
+# 前端静态构建
+cd ../frontend
+npm run build
+```
+
+首次部署还需要创建并绑定 D1 数据库、R2 Bucket，并配置 Worker/Pages 环境变量和密钥。不要把模型 API Key、JWT 密钥或 Cloudflare 凭据提交到仓库。

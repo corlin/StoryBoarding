@@ -1,166 +1,135 @@
-# 🎬 StoryBoarding · AI Director & Narrative OS (Commercial Short Drama Workstation)
+# 🎬 StoryBoarding · Short-Drama AIGC Director and Production Workspace
 
 English | [简体中文](./README.md)
 
-> **Executable Script · Agile Storyboard Pipeline · Production Standards · 0ms Edge Cold Start**  
-> 
-> An all-in-one production studio for film directors, micro-drama screenwriters, and AI creators. Covers the entire production lifecycle: from literary core distillation, four-quadrant adaptation matrix, payoff beat radar, unified visual bible, and dual-pane synchronization to call sheet clustering, cinema previz theater, and production deliverables packaging.  
-> **Powered by Cloudflare Serverless Edge Stack (Next.js + Hono + D1 + R2 + Pages).**
+StoryBoarding is a production workspace for short-drama writers, directors, and small content teams. It keeps story development, storyboard design, AI video and speech generation, review decisions, subtitles, and final delivery in one traceable project. Every shot, generation job, candidate take, adopted version, and delivery artifact has an explicit place in the workflow.
 
----
+**Live site: [storyboarding.caifu.social](https://storyboarding.caifu.social/)**
 
-## 🏗️ System Architecture & Production Workflow Map
- 
-The system is built on the philosophy of **"Script as Code (Executable Script)"**, establishing **3 Production Phases · 7 Production Stages · AI Director Co-pilot** across commercial micro-drama lifecycles. Users can press <kbd>M</kbd> or click "🗺️ Feature Map" in the TopBar at any time to open the interactive command map:
- 
-![StoryBoarding Global Production Architecture Map](./docs/assets/architecture.png)
- 
-> 💡 **High-Resolution Vector Asset**: Downloadable directly in the workspace, or view [docs/assets/system_architecture_map.svg](./docs/assets/system_architecture_map.svg).
->
-> - **Phase 1 · Pre-Production & Visual Bible**: `STAGE 01 Adaptation Tradeoffs & Payoff Radar` ➔ `STAGE 02 Unified Visual Bible (Character Anchors & Visual Reference)`;
-> - **Phase 2 · Production & Scheduling**: `STAGE 03 Dual-Pane Self-Healing Studio` ➔ `STAGE 04 Storyboard Canvas & Camera HUD` ➔ `STAGE 05 Call Sheet Production & H3 Prompts`;
-> - **Phase 3 · Post-Production & Delivery**: `STAGE 06 Cinema Theater Previz (Full-Screen Darkroom)` ➔ `STAGE 07 5 Core Production Deliverables Package`;
-> - **Cross-Cutting · 🧠 AI Director Co-pilot**: Conflict distillation, face-consistency visual anchors, dirty-state incremental healing, and multi-modal video prompts compiler.
+![StoryBoarding system architecture](./docs/assets/architecture.png)
 
----
+## Production workflow
 
-## 💎 Core Capability Modules
+### 01 · Bible and Screenplay
 
-### 1. ⚖️ STAGE 01 · Adaptation Tradeoffs & Payoff Radar
-- **Dramatic Core Distillation**: Extracts key conflicts, stakes, and commercial hooks from long-form text or outlines;
-- **Four-Quadrant Matrix (Adaptation Tradeoffs)**:
-  - **Keep**: Core iconic visual moments and essential character traits;
-  - **Cut**: Redundant subplots and pacing drags;
-  - **Merge**: Secondary character and location aggregations;
-  - **Risk**: Logical vulnerabilities and high-cost CGI/production traps;
-- **Gate 2 Payoff Beat-Gap Gatekeeper**:
-  - Automatically audits payoff distribution to enforce `maxBeatGap ≤ 3` episodes;
-  - One-click AI synthesis to bridge dramatic vacuums;
-- **Table Read Markdown Summary**: One-click formatted markdown copy and `.md` file download for executive reviews and cast readings.
+- Build multi-episode projects from a premise, outline, or long-form source.
+- Manage hooks, cliffhangers, payoff beats, screenplay text, and linked shots.
+- Define character visual and acoustic DNA, location anchors, and prop states.
+- Use 9:16 as the primary vertical-drama format, with 16:9 and other project ratios supported.
 
----
+### 02 · Storyboard Workshop
 
-### 2. 🎭 STAGE 02 · Unified Visual Bible
-- **Single Source of Truth**: Eliminates inconsistencies between character banks and production bibles;
-- **Character DNA Specifications**:
-  - 16:9 triple-zone sheets (close-up / full body / dynamic action);
-  - Standardized English Visual DNA anchors to prevent facial and stylistic drift across shots;
-  - Acoustic DNA parameters (timbre, resonance, speech rate, and English TTS prompt);
-- **Environment Anchors**:
-  - Solidifies architectural materials, lighting state variants (day/top/night), and 3-5 verifiable entity anchors per set;
-- **Prop Specifications**:
-  - Handheld, tabletop, and furniture-scale tiering with operational states (open / closed / damaged).
+- Edit shots by episode, including framing, camera movement, duration, dialogue, and prompts.
+- Bind characters, locations, and props to shots for continuity across episodes.
+- Use shot locking, incremental redraw, storyboard grids, beat views, timelines, and call sheets.
+- Export storyboard sheets, production CSV files, and prompts for multiple video engines.
 
----
+### 03 · Theater and Review
 
-### 3. ✍️ STAGE 03 · Dual-Pane Screenplay & Dirty-State Self-Healing
-- **Dual-Pane Interactive Studio**: Millisecond-level synchronization between screenplay beats and storyboard cells;
-- **Pacing Breath Monitor**: Automatically flags dialogues over 35 characters to maintain tight pacing;
-- **Split-to-Dual-Shots**: Splits a single beat into complementary dual-angle camera shots in one click;
-- **Dirty State Detection**: Automatically highlights shots as `Needs Re-render` when underlying script text changes, enabling incremental re-rendering without disturbing intact shots.
+- Preview one episode or the full series in a cinema-style player.
+- Diagnose missing shot data, acoustic profiles, locations, props, timing, and continuity risks.
+- Track pending, generating, review, rejected, and adopted states in the Production Kanban.
+- Count visual and audio takes separately so speech assets never appear as finished video candidates.
 
----
+### 04 · Delivery
 
-### 4. 📋 STAGE 04 & 05 · Storyboard Workshop & Call Sheet Management
-- **Storyboard Workshop**:
-  - Seamless toggle across 4:3, 16:9 cinematic widescreen, and 9:16 vertical short drama viewports;
-  - HUD overlay with camera parameters, shot scale badges, and individual/batch lock protection;
-- **Call Sheet Production View**:
-  - Clusters shots into production units (B1, B2...) by `Location + Lighting State`, tracking unit runtimes;
-  - Independent batch collapse/expand with global toggle;
-  - **MiniMax Hailuo H3 Multi-Modal Prompts**: One-click generation and clipboard copy of coherent video prompts;
-  - **CSV Call Sheet Export**: Instant export to standard Excel / CSV call sheets.
+- Export storyboard sheets, call sheets, model prompts, and project archives.
+- Submit video jobs, poll providers, recover media to R2, review candidates, and adopt takes.
+- Create edit versions with full and per-episode MP4 files, SRT subtitles, and a delivery manifest.
+- Use all four stages on mobile; the Kanban stacks its shot list and take details for narrow screens.
 
----
+## AI video and speech
 
-### 5. 🎬 STAGE 06 · Cinema Theater Previz
-- **Darkroom Full-Screen Previz**: Adaptive fullscreen playback featuring Ken Burns motion parallax;
-- **Multi-Modal Captions**: Synchronized typewriter dialogue subtitles;
-- **Segmented Capsule Scrubber**: Clear visual indication of current shot index and shot duration progress;
-- **Full Director Keybindings**:
-  - `Space`: Play / Pause playback
-  - `←` / `→`: Step backward / forward across shots
-  - `C`: Toggle typewriter subtitles
-  - `B`: Toggle multi-episode Binge Previz mode
-  - `ESC`: Exit theater and focus on active shot in workspace
+- **Video:** Provider tasks support submission, polling, R2 recovery, review, and adoption. Vertical projects can require a 9:16 first frame before paid generation.
+- **Speech/TTS:** The Settings UI exposes configurable OpenRouter `speech` models plus default female, male, and narrator voices. Per-line overrides remain available in production.
+- **Audio versions:** TTS results are stored as Audio Takes and can be previewed, adopted, rejected, or restored. Adopted audio can be remixed into final MP4 deliveries.
+- **Cost integrity:** The ledger records a charge only when the provider supplies real billing data. Unknown charges remain explicitly incomplete.
 
----
+## Deployed three-episode acceptance sample
 
-### 6. 🛡️ Studio Security & Multi-Tenant Isolation
-- **Zero Resource Consumption for Public Demos**:
-  - Pre-flight `checkAuthAndKey` guards placed across AI Generate, Quick Start Wizard, Visual Bible, Script Import, and Hook Doctor;
-  - Friendly registration prompts that **never dismiss modals or lose user inputs**;
-- **AES-256-GCM Key Vault**: User-provided API keys are encrypted with individual salts before database storage; plaintext keys are never returned to client;
-- **Zero-Fallback Architecture**: Strict isolation preventing accidental key exposure or unauthorized resource consumption.
+The live project *The Second Key · Three-Episode Production Acceptance* validates the production path with realistic data:
 
----
+| Area | Verified result |
+| --- | --- |
+| Series | 3 episodes, 8 shots and 48 seconds each; 144 seconds total |
+| Aspect ratio | 9:16 across dashboard, workspace, and delivery views |
+| Structured assets | 2 characters, 2 locations, and 5 key props; every shot binds characters and a location |
+| Real video | EP01 SHOT01 completed MiniMax generation, R2 recovery, and adoption |
+| Speech | 23 Audio Takes in the Kanban; OpenRouter Chinese TTS generation, playback, R2 recovery, and adoption verified |
+| Current delivery | `v1.2-current-voice`: full MP4, 3 episode MP4 files, 4 SRT files, and a manifest |
+| Media | Full delivery is 720×1280 H.264 + AAC with an embedded `mov_text` subtitle track |
 
-### 7. 📦 STAGE 07 · Deliverables & Production Package Export
-- **5 Standardized Studio Deliverables**:
-  1. 🖼️ **16:9 Storyboard Work Draft (PNG Sheet)** (Instant client-side canvas offline export);
-  2. 📝 **Director Multi-Episode Screenplay (Markdown)** (Formatted by `## 🎬 EPISODE 01`, with cliffhanger notes and runtime metrics);
-  3. 🎯 **Midjourney / DALL-E 3 Global Control Prompts**;
-  4. 🤖 **Kling / Runway Gen-3 AI Video Manifest**;
-  5. 📦 **Complete Project Assets Archive (ZIP)** (Structured by episode folders).
+This is a **low-cost technical sample**. EP01 SHOT01 is real AI video; the remaining 23 shots use clearly labelled technical animatic cards. The project validates structure, speech, subtitles, editing, versioning, and delivery. It is not evidence of full-series visual quality.
 
----
+See the [deployed end-to-end QA report](./.gstack/qa-reports/qa-report-storyboarding-caifu-social-2026-09-09.md) and [three-episode acceptance plan](./docs/short-drama-production-acceptance.md).
 
-## 🛠️ Technology Stack
+## Data, security, and media
 
-| Layer | Technology | Primary Role |
-| :--- | :--- | :--- |
-| **Frontend** | **Next.js 14 / React 18 / Tailwind CSS** | Modern responsive dual-pane workspace, fully type-safe |
-| **State Management** | **Zustand** | Lightweight, reactive store for storyboard trees and auth |
-| **Edge Runtime** | **Hono (TypeScript) on Cloudflare Workers** | 0ms cold start, ultra-high concurrency edge API gateway |
-| **Edge Database** | **Cloudflare D1 ➕ Drizzle ORM** | Distributed Serverless SQLite with automated migrations |
-| **Object Storage** | **Cloudflare R2** | S3-compatible asset storage with zero egress fees |
-| **Model Integration** | **OpenRouter / MiniMax H3 / Seedream** | Multi-modal prompt compiler and image/video synthesis |
+- Cloudflare D1 stores authenticated project data; R2 stores images, video, audio, subtitles, and delivery artifacts.
+- Project, shot, character, location, and prop routes enforce authentication and project ownership.
+- User model keys are encrypted with AES-256-GCM and returned to the UI only as masked configuration state.
+- R2 media endpoints support HTTP Range requests for playback, seeking, and partial reads.
+- Production records retain provider task IDs, status, model, parameters, candidate takes, and adoption decisions.
 
----
+## Architecture
 
-## 🚀 Quick Start (Local Development)
+| Layer | Technology | Role |
+| --- | --- | --- |
+| Web | Next.js 14, React 18, Tailwind CSS | Responsive director workspace and production UI |
+| State | Zustand | Project, episode, shot, auth, and stage state |
+| API | Hono on Cloudflare Workers | Auth, projects, generation, production, and delivery APIs |
+| Data | Cloudflare D1, Drizzle ORM | Multi-tenant projects, jobs, and edit versions |
+| Media | Cloudflare R2 | Storyboards, video, audio, subtitles, and deliveries |
+| Models | OpenRouter, MiniMax, configurable image/video providers | Story analysis, image, video, and Speech/TTS |
 
-Zero heavy Docker dependencies. Powered purely by Node.js and Cloudflare `wrangler`.
+## Local development
 
-### 1. Install Dependencies
+Node.js 22+ is recommended.
 
 ```bash
-# Install backend worker dependencies
+# Install dependencies
 cd backend && npm install
-
-# Install frontend dependencies
 cd ../frontend && npm install
-```
 
-### 2. Start Local Development Servers
-
-```bash
-# Terminal 1: Start Hono Cloudflare Worker (http://localhost:8787)
+# Terminal 1: start the Worker
 cd backend && npm run dev
 
-# Terminal 2: Start Next.js frontend (http://localhost:3000)
+# Terminal 2: start the frontend
 cd frontend && npm run dev
 ```
 
-### 3. Deploy to Cloudflare
+Default local endpoints:
 
-#### Deploy Backend Workers:
-```bash
-cd backend
-npx wrangler d1 create storyboard_db
-npx wrangler r2 bucket create storyboard-assets
-npm run deploy
-```
+- Frontend: http://localhost:3000
+- Worker: http://localhost:8787
 
-#### Deploy Frontend Pages:
+## Validation
+
 ```bash
+# Frontend regression tests and production build
 cd frontend
+npm test
 npm run build
-npx wrangler pages deploy .next
+
+# Backend type checking
+cd ../backend
+npx tsc --noEmit
 ```
 
----
+The regression suite covers multi-episode ordering, shot-field preservation, speaker resolution, configured speech voices, concurrent generation protection, cost semantics, and delivery normalization. Provider availability, generation quality, and actual billing still require deployed-environment checks.
 
-## 📄 License
+## Deployment
 
-Distributed under the [MIT License](LICENSE).
+GitHub Actions deploy Cloudflare Pages and Workers based on changed paths. Manual deployment uses:
+
+```bash
+# Backend
+cd backend
+npm run deploy
+
+# Frontend build
+cd ../frontend
+npm run build
+```
+
+A first deployment also requires D1 and R2 bindings plus Worker/Pages environment variables and secrets. Never commit model API keys, JWT secrets, or Cloudflare credentials.
