@@ -96,6 +96,7 @@ test('project refresh preserves screenplay anchors and beat data for every episo
     title: '三集样片',
     style_config: {},
     target_duration: 180,
+    aspect_ratio: '9:16',
     sequences: [{
       id: 'ep-3',
       project_id: 'project-refresh',
@@ -121,6 +122,7 @@ test('project refresh preserves screenplay anchors and beat data for every episo
     assert.equal(episode.cliffhanger_summary, '欠款对象揭晓');
     assert.equal(episode.payoff_summary, '两人重新谈判');
     assert.equal(episode.beats_data[0].content, '这封信写给谁？');
+    assert.equal(useWorkspaceStore.getState().currentProject.aspect_ratio, '9:16');
   } finally {
     api.getProject = originalGetProject;
   }

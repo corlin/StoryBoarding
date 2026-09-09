@@ -808,7 +808,7 @@ export default function DashboardPage() {
                     href={`/workspace?id=${proj.id}`}
                     className="group rounded-2xl border border-border/80 bg-card/60 hover:bg-card hover:border-primary/50 transition-all duration-300 flex flex-col overflow-hidden shadow-xs hover:shadow-xl hover:-translate-y-1 relative"
                   >
-                    {/* 16:9 Widescreen Filmstrip Poster Header */}
+                    {/* Filmstrip Poster Header */}
                     <div className="w-full aspect-video bg-neutral-950 relative overflow-hidden border-b border-border/60 shrink-0">
                       {coverImg ? (
                         <>
@@ -829,7 +829,9 @@ export default function DashboardPage() {
                             故事板分镜工程
                           </span>
                           <span className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">
-                            16:9 宽银幕电影画幅
+                            {proj.aspect_ratio === "9:16"
+                              ? "9:16 竖屏短剧画幅"
+                              : "16:9 宽银幕电影画幅"}
                           </span>
                         </div>
                       )}

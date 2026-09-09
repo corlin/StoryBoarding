@@ -132,6 +132,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         }));
 
         const enrichedProject: ProjectModel = {
+          ...project,
           id: project.id,
           user_id: project.user_id || "default",
           title: project.title,
