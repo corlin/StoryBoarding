@@ -7,6 +7,68 @@ import { buildOpenRouterTtsRequest, chooseTtsVoice, spokenTextFromDialogue } fro
 
 const router = new Hono<{ Bindings: Bindings }>();
 
+/**
+ * 音色测试接口 — 用指定模型+音色合成短文本并直接返回音频，不存数据库。
+ * 用于设置页面中用户试听音色效果。
+ */
+router.post("/tts/test", async (c) => {
+  const authUser = await getAuthUser(c.req.header("Authorization"));
+  if (!authUser) return c.json({ detail: "请先登录" }, 401);
+
+  await ensureSchema(c.env.DB);
+  const db = getDb(c.env.DB);
+  const settings = await getUserSettings(db, authUser.userId);
+  if (!settings.ttsApiKey) {
+    return c.json({ detail: "未配置 OpenRouter API Key，请先在模型设置中保存密钥" }, 400);
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const model = (typeof body.model === "string" && body.model.trim()) || settings.ttsModel;
+  const voice = (typeof body.voice === "string" && body.voice.trim()) || settings.ttsVoiceFemale;
+  const text = (typeof body.text === "string" && body.text.trim()) || "你好，世界";
+  const speedValue = Number(body.speed ?? 1);
+  const speed = Number.isFinite(speedValue) ? Math.min(2, Math.max(0.5, speedValue)) : 1;
+
+  if (text.length > 500) {
+    return c.json({ detail: "测试文本超过 500 字符限制" }, 400);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${settings.ttsApiBase.replace(/\/+$/, "")}/audio/speech`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${settings.ttsApiKey}`,
+        "HTTP-Referer": "https://storyboarding.caifu.social",
+        "X-Title": "AI StoryBoarding TTS Test",
+      },
+      body: JSON.stringify(buildOpenRouterTtsRequest(model, text, voice, speed)),
+    });
+  } catch (error: any) {
+    return c.json({ detail: `OpenRouter TTS 连接失败：${error?.message || error}` }, 502);
+  }
+
+  if (!response.ok) {
+    const providerError = (await response.text()).substring(0, 1000);
+    return c.json({ detail: `OpenRouter TTS 返回 HTTP ${response.status}: ${providerError}` }, 502);
+  }
+
+  const audio = await response.arrayBuffer();
+  if (!audio.byteLength) {
+    return c.json({ detail: "OpenRouter TTS 返回了空音频" }, 502);
+  }
+
+  return new Response(audio, {
+    status: 200,
+    headers: {
+      "Content-Type": "audio/mpeg",
+      "Content-Length": String(audio.byteLength),
+      "Cache-Control": "no-store",
+    },
+  });
+});
+
 router.post("/tts/:dialogueId", async (c) => {
   const authUser = await getAuthUser(c.req.header("Authorization"));
   if (!authUser) return c.json({ detail: "请先登录" }, 401);

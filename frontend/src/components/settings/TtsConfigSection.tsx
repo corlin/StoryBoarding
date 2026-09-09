@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Volume2, RefreshCw, Check, AlertTriangle, Info } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Volume2, RefreshCw, Check, AlertTriangle, Info, Play, Loader2 } from "lucide-react";
 import type { TtsConfig } from "@/types/modelConfig";
 import { getTtsVoicePreset } from "@/data/modelCatalog";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,65 @@ export const TtsConfigSection: React.FC<TtsConfigSectionProps> = ({
   onRefreshModels,
 }) => {
   const [presetNotice, setPresetNotice] = useState<PresetNotice>(null);
+  const [testingVoice, setTestingVoice] = useState<string | null>(null);
+  const [testError, setTestError] = useState<string>("");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  /**
+   * 音色测试：调用后端 /api/tts/test，用当前模型+指定音色合成"你好，世界"并播放。
+   * @param voiceKey 音色类型: "female" | "male" | "narrator"
+   */
+  const handleTestVoice = async (voiceKey: "female" | "male" | "narrator") => {
+    const voiceId = voiceKey === "female" ? config.voiceFemale : voiceKey === "male" ? config.voiceMale : config.voiceNarrator;
+    if (!voiceId.trim()) {
+      setTestError("音色 ID 为空，请先填写音色");
+      return;
+    }
+
+    // 停止当前播放
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    setTestingVoice(voiceKey);
+    setTestError("");
+
+    try {
+      const token = localStorage.getItem("token") || "";
+      const response = await fetch("/api/generate/tts/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          model: config.model,
+          voice: voiceId,
+          text: "你好，世界",
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        if (audioRef.current === audio) audioRef.current = null;
+      };
+      await audio.play();
+    } catch (error: any) {
+      setTestError(`测试失败：${error?.message || error}`);
+    } finally {
+      setTestingVoice(null);
+    }
+  };
 
   /**
    * 切换模型时的核心逻辑：
@@ -190,29 +249,65 @@ export const TtsConfigSection: React.FC<TtsConfigSectionProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div>
             <label className="text-[10px] text-muted-foreground block mb-1">默认女声</label>
-            <input
-              value={config.voiceFemale}
-              onChange={(e) => handleVoiceManualChange({ voiceFemale: e.target.value })}
-              className="w-full text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5"
-            />
+            <div className="flex gap-1">
+              <input
+                value={config.voiceFemale}
+                onChange={(e) => handleVoiceManualChange({ voiceFemale: e.target.value })}
+                className="flex-1 min-w-0 text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5"
+              />
+              <button
+                type="button"
+                onClick={() => handleTestVoice("female")}
+                disabled={testingVoice !== null}
+                title="用当前女声播放「你好，世界」"
+                className="shrink-0 flex items-center justify-center w-7 h-7 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {testingVoice === "female" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="text-[10px] text-muted-foreground block mb-1">默认男声</label>
-            <input
-              value={config.voiceMale}
-              onChange={(e) => handleVoiceManualChange({ voiceMale: e.target.value })}
-              className="w-full text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5"
-            />
+            <div className="flex gap-1">
+              <input
+                value={config.voiceMale}
+                onChange={(e) => handleVoiceManualChange({ voiceMale: e.target.value })}
+                className="flex-1 min-w-0 text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5"
+              />
+              <button
+                type="button"
+                onClick={() => handleTestVoice("male")}
+                disabled={testingVoice !== null}
+                title="用当前男声播放「你好，世界」"
+                className="shrink-0 flex items-center justify-center w-7 h-7 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {testingVoice === "male" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="text-[10px] text-muted-foreground block mb-1">默认旁白</label>
-            <input
-              value={config.voiceNarrator}
-              onChange={(e) => handleVoiceManualChange({ voiceNarrator: e.target.value })}
-              className="w-full text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5"
-            />
+            <div className="flex gap-1">
+              <input
+                value={config.voiceNarrator}
+                onChange={(e) => handleVoiceManualChange({ voiceNarrator: e.target.value })}
+                className="flex-1 min-w-0 text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5"
+              />
+              <button
+                type="button"
+                onClick={() => handleTestVoice("narrator")}
+                disabled={testingVoice !== null}
+                title="用当前旁白播放「你好，世界」"
+                className="shrink-0 flex items-center justify-center w-7 h-7 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {testingVoice === "narrator" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+              </button>
+            </div>
           </div>
         </div>
+        {testError && (
+          <p className="mt-1.5 text-[10px] text-red-400">{testError}</p>
+        )}
       </div>
 
       {/* 底部说明 */}
