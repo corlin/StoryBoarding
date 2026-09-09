@@ -34,6 +34,13 @@ router.get("/providers", async (c) => {
     video_api_key: "",
     video_api_base: settings.videoApiBase || "https://api.minimax.cn/v1",
     video_model: settings.videoModel || "MiniMax-Hailuo-02",
+    tts_provider: "openrouter",
+    tts_uses_llm_key: true,
+    tts_api_base: settings.ttsApiBase,
+    tts_model: settings.ttsModel,
+    tts_voice_female: settings.ttsVoiceFemale,
+    tts_voice_male: settings.ttsVoiceMale,
+    tts_voice_narrator: settings.ttsVoiceNarrator,
   });
 });
 
@@ -99,6 +106,12 @@ const handleUpdateProviders = async (c: any) => {
     videoApiKey: finalEncryptedVideoKey,
     videoApiBase: (body.video_api_base || existingUserSettings.videoApiBase || "https://api.minimax.cn/v1").trim(),
     videoModel: (body.video_model || existingUserSettings.videoModel || "MiniMax-Hailuo-02").trim(),
+    ttsProvider: "openrouter",
+    ttsApiBase: (body.tts_api_base || existingUserSettings.ttsApiBase || body.llm_api_base || existingUserSettings.llmApiBase || "https://openrouter.ai/api/v1").trim(),
+    ttsModel: (body.tts_model || existingUserSettings.ttsModel || "hexgrad/kokoro-82m").trim(),
+    ttsVoiceFemale: (body.tts_voice_female || existingUserSettings.ttsVoiceFemale || "zf_xiaoxiao").trim(),
+    ttsVoiceMale: (body.tts_voice_male || existingUserSettings.ttsVoiceMale || "zm_yunxi").trim(),
+    ttsVoiceNarrator: (body.tts_voice_narrator || existingUserSettings.ttsVoiceNarrator || "zf_xiaobei").trim(),
     updatedAt: new Date().toISOString(),
   };
 

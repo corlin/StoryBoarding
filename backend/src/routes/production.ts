@@ -7,6 +7,7 @@ import {
 } from "../db/schema";
 import { getAuthUser } from "../lib/auth";
 import { saveImageToR2 } from "../lib/storage";
+import { dialogueIdFromTakeMetadata } from "../lib/tts";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -162,14 +163,30 @@ router.post("/takes/:id/adopt", async (c) => {
 
     const take = await db.select().from(takes).where(eq(takes.id, takeId)).get();
     if (!take) return c.json({ detail: "候选不存在" }, 404);
+    const takeProject = await db.select().from(projects).where(eq(projects.id, take.projectId)).get();
+    if (!takeProject || takeProject.userId !== authUser.userId) return c.json({ detail: "无权访问该候选" }, 403);
 
-    // Visual and audio selections are independent tracks. Adopting a voice take
-    // must not silently un-adopt the selected video/image for the same shot.
-    const sameTrack = take.takeType === "audio" ? eq(takes.takeType, "audio") : ne(takes.takeType, "audio");
-    await db.update(takes).set({ isAdopted: false, adoptedAt: null }).where(and(
-      eq(takes.shotId, take.shotId),
-      sameTrack,
-    ));
+    // Visual and audio selections are independent. Generated TTS is scoped to one
+    // dialogue line so multiple spoken lines in the same shot can each be adopted.
+    const dialogueId = take.takeType === "audio" ? dialogueIdFromTakeMetadata(take.metadata) : "";
+    if (dialogueId) {
+      const shotAudioTakes = await db.select().from(takes).where(and(
+        eq(takes.shotId, take.shotId),
+        eq(takes.takeType, "audio"),
+      )).all();
+      const sameDialogueTakeIds = shotAudioTakes
+        .filter((candidate: any) => dialogueIdFromTakeMetadata(candidate.metadata) === dialogueId)
+        .map((candidate: any) => candidate.id);
+      if (sameDialogueTakeIds.length > 0) {
+        await db.update(takes).set({ isAdopted: false, adoptedAt: null }).where(inArray(takes.id, sameDialogueTakeIds));
+      }
+    } else {
+      const sameTrack = take.takeType === "audio" ? eq(takes.takeType, "audio") : ne(takes.takeType, "audio");
+      await db.update(takes).set({ isAdopted: false, adoptedAt: null }).where(and(
+        eq(takes.shotId, take.shotId),
+        sameTrack,
+      ));
+    }
 
     // Adopt this take
     await db.update(takes).set({
@@ -185,6 +202,13 @@ router.post("/takes/:id/adopt", async (c) => {
         isDirty: false,
         updatedAt: new Date().toISOString(),
       }).where(eq(shots.id, take.shotId));
+    }
+    if (take.takeType === "audio" && dialogueId && take.mediaUrl) {
+      await db.update(dialogueLines).set({
+        audioVersion: take.id,
+        audioUrl: take.mediaUrl,
+        updatedAt: new Date().toISOString(),
+      }).where(eq(dialogueLines.id, dialogueId));
     }
 
     return c.json({ status: "success", take_id: takeId, adopted: true });
@@ -208,6 +232,8 @@ router.post("/takes/:id/reject", async (c) => {
 
     const take = await db.select().from(takes).where(eq(takes.id, takeId)).get();
     if (!take) return c.json({ detail: "候选不存在" }, 404);
+    const takeProject = await db.select().from(projects).where(eq(projects.id, take.projectId)).get();
+    if (!takeProject || takeProject.userId !== authUser.userId) return c.json({ detail: "无权访问该候选" }, 403);
 
     await db.update(takes).set({
       reviewStatus: "rejected",
@@ -215,6 +241,17 @@ router.post("/takes/:id/reject", async (c) => {
       isAdopted: false,
       adoptedAt: null,
     }).where(eq(takes.id, takeId));
+
+    if (take.takeType === "audio") {
+      const dialogueId = dialogueIdFromTakeMetadata(take.metadata);
+      if (dialogueId) {
+        const line = await db.select().from(dialogueLines).where(eq(dialogueLines.id, dialogueId)).get();
+        if (line?.audioVersion === take.id) {
+          await db.update(dialogueLines).set({ audioVersion: "", audioUrl: "", updatedAt: new Date().toISOString() })
+            .where(eq(dialogueLines.id, dialogueId));
+        }
+      }
+    }
 
     return c.json({ status: "success", take_id: takeId, rejected: true, reason });
   } catch (err: any) {

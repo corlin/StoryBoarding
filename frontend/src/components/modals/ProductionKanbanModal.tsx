@@ -173,6 +173,8 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
   const [dialogueLines, setDialogueLines] = useState<any[]>([]);
   const [dialogueLoading, setDialogueLoading] = useState(false);
   const [newLine, setNewLine] = useState({ speaker: "", text: "", performance: "", planned_duration: 0 });
+  const [generatingTtsKey, setGeneratingTtsKey] = useState<string | null>(null);
+  const [ttsVoiceOverrides, setTtsVoiceOverrides] = useState<Record<string, string>>({});
 
   // P0-6: Cost summary
   const [costData, setCostData] = useState<any>(null);
@@ -346,9 +348,9 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
         speaker: line.speaker,
         text: line.text,
         performance: line.performance,
-        planned_duration: line.planned_duration || 0,
-        actual_duration: line.actual_duration || 0,
-        order_index: line.order_index || dialogueLines.length,
+        planned_duration: line.planned_duration ?? line.plannedDuration ?? 0,
+        actual_duration: line.actual_duration ?? line.actualDuration ?? 0,
+        order_index: line.order_index ?? line.orderIndex ?? dialogueLines.length,
       });
       showToast("台词已保存");
       if (selectedShot) loadDialogue(selectedShot.shot_id);
@@ -364,6 +366,53 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
     }
     await handleSaveLine({ ...newLine, order_index: dialogueLines.length });
     setNewLine({ speaker: "", text: "", performance: "", planned_duration: 0 });
+  };
+
+  const handleGenerateTts = async (line: any, index: number) => {
+    if (!selectedShot) return;
+    const lineKey = line.id || `derived-${selectedShot.shot_id}-${index}`;
+    const spokenLength = (line.text || "").trim().length;
+    if (!spokenLength) {
+      showToast("台词内容为空", "error");
+      return;
+    }
+    const confirmed = window.confirm(
+      `将通过 OpenRouter 为 ${line.speaker || "旁白"} 生成配音（${spokenLength} 字符）。\n` +
+      "生成结果会保存到 R2 并进入音频候选，费用按 OpenRouter 实际账单结算。\n\n确认提交付费 TTS？"
+    );
+    if (!confirmed) return;
+
+    setGeneratingTtsKey(lineKey);
+    try {
+      let dialogueId = line.id;
+      if (!dialogueId) {
+        const saved = await api.saveDialogueLine({
+          project_id: projectId,
+          shot_id: selectedShot.shot_id,
+          speaker: line.speaker,
+          text: line.text,
+          performance: line.performance || "",
+          planned_duration: line.plannedDuration || selectedShot.duration || 0,
+          actual_duration: 0,
+          order_index: line.orderIndex || index,
+        });
+        dialogueId = saved.dialogue_id;
+      }
+      const voice = ttsVoiceOverrides[lineKey] || undefined;
+      const result = await api.generateTts(dialogueId, { voice, speed: 1 });
+      showToast(`配音已生成 · ${result.model} · ${result.voice}`);
+      await Promise.all([
+        loadTakes(selectedShot.shot_id),
+        loadDialogue(selectedShot.shot_id),
+        loadKanban(),
+        loadCosts(),
+      ]);
+      setActiveRightTab("takes");
+    } catch (e: any) {
+      showToast(`配音生成失败: ${e?.response?.data?.detail || e.message}`, "error");
+    } finally {
+      setGeneratingTtsKey(null);
+    }
   };
 
   useEffect(() => {
@@ -1040,7 +1089,32 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                             {line.derivedFromShot && (
                               <p className="mt-1 text-[10px] text-amber-400">来自分镜台词；录入实际时长后建立可追踪台词记录</p>
                             )}
-                            <div className="mt-2 flex gap-2">
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <input
+                                list={`tts-voices-${line.id || i}`}
+                                value={ttsVoiceOverrides[line.id || `derived-${selectedShot.shot_id}-${i}`] || ""}
+                                onChange={(e) => setTtsVoiceOverrides((current) => ({
+                                  ...current,
+                                  [line.id || `derived-${selectedShot.shot_id}-${i}`]: e.target.value,
+                                }))}
+                                className="rounded border border-[#30363d] bg-[#0d1117] px-2 py-1 text-[10px] text-white"
+                                aria-label={`${line.speaker || "旁白"} 配音音色`}
+                                placeholder="自动匹配角色声线"
+                              />
+                              <datalist id={`tts-voices-${line.id || i}`}>
+                                <option value="">自动匹配角色声线</option>
+                                <option value="zf_xiaoxiao">晓晓 · 女声</option>
+                                <option value="zf_xiaobei">晓北 · 旁白女声</option>
+                                <option value="zm_yunxi">云希 · 男声</option>
+                                <option value="zm_yunjian">云健 · 旁白男声</option>
+                              </datalist>
+                              <button
+                                onClick={() => handleGenerateTts(line, i)}
+                                disabled={generatingTtsKey !== null}
+                                className="rounded bg-emerald-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {generatingTtsKey === (line.id || `derived-${selectedShot.shot_id}-${i}`) ? "生成配音中..." : "OpenRouter 配音"}
+                              </button>
                               <input
                                 type="number"
                                 defaultValue={line.actualDuration || 0}
@@ -1048,7 +1122,7 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
                                 placeholder="实际时长(s)"
                                 className="w-24 rounded border border-[#30363d] bg-[#0d1117] px-2 py-1 text-[10px] text-white"
                               />
-                              <span className="text-[10px] text-gray-600 self-center">输入实际音频时长后自动保存</span>
+                              <span className="text-[10px] text-gray-600 self-center">实际音频时长</span>
                             </div>
                           </div>
                         ))}

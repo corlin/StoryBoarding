@@ -191,3 +191,23 @@ test('video jobs share one active slot and one stable review candidate', () => {
   assert.equal(generatedVideoTakeId('job-123'), 'video-job-123');
   assert.equal(generatedVideoTakeId('job-123'), generatedVideoTakeId('job-123'));
 });
+
+test('OpenRouter TTS strips screenplay attribution and selects traceable Chinese voices', () => {
+  const {
+    buildOpenRouterTtsRequest,
+    chooseTtsVoice,
+    dialogueIdFromTakeMetadata,
+    spokenTextFromDialogue,
+  } = require('../../backend/src/lib/tts.ts');
+  assert.equal(spokenTextFromDialogue('林夏：“打不开……”', '林夏'), '打不开……');
+  assert.equal(spokenTextFromDialogue('旁白：父亲只留下这一把钥匙。', '旁白'), '父亲只留下这一把钥匙。');
+  const configured = { female: 'zf_xiaoxiao', male: 'zm_yunxi', narrator: 'zf_xiaobei' };
+  assert.equal(chooseTtsVoice('旁白', '', configured), 'zf_xiaobei');
+  assert.equal(chooseTtsVoice('周明', 'calm male baritone', configured), 'zm_yunxi');
+  assert.equal(chooseTtsVoice('林夏', 'clear young female voice', configured), 'zf_xiaoxiao');
+  assert.equal(dialogueIdFromTakeMetadata('{"dialogue_id":"line-1"}'), 'line-1');
+  assert.equal(dialogueIdFromTakeMetadata('{bad json'), '');
+  assert.deepEqual(buildOpenRouterTtsRequest('hexgrad/kokoro-82m', '你好', 'zf_xiaoxiao', 1), {
+    model: 'hexgrad/kokoro-82m', input: '你好', voice: 'zf_xiaoxiao', response_format: 'mp3', speed: 1,
+  });
+});

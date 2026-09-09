@@ -193,5 +193,11 @@ export async function getUserSettings(db: any, userId?: string) {
     videoApiKey,
     videoApiBase: userSettings.videoApiBase || "https://api.minimax.cn/v1",
     videoModel: userSettings.videoModel || "MiniMax-Hailuo-02",
+    ttsApiKey: llmApiKey,
+    ttsApiBase: userSettings.ttsApiBase || userSettings.llmApiBase || "https://openrouter.ai/api/v1",
+    ttsModel: userSettings.ttsModel || "hexgrad/kokoro-82m",
+    ttsVoiceFemale: userSettings.ttsVoiceFemale || "zf_xiaoxiao",
+    ttsVoiceMale: userSettings.ttsVoiceMale || "zm_yunxi",
+    ttsVoiceNarrator: userSettings.ttsVoiceNarrator || "zf_xiaobei",
   };
 }

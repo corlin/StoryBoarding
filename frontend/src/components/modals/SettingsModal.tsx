@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap, Globe, AlertCircle, ChevronDown, Film } from "lucide-react";
+import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap, Globe, AlertCircle, ChevronDown, Film, Volume2 } from "lucide-react";
 import { api, getApiBaseUrl, setApiBaseUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -33,6 +33,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [videoApiKey, setVideoApiKey] = useState("");
   const [videoModel, setVideoModel] = useState("MiniMax-Hailuo-02");
   const [hasVideoKey, setHasVideoKey] = useState(false);
+
+  // OpenRouter TTS reuses the encrypted LLM key.
+  const [ttsApiBase, setTtsApiBase] = useState("https://openrouter.ai/api/v1");
+  const [ttsModel, setTtsModel] = useState("hexgrad/kokoro-82m");
+  const [ttsVoiceFemale, setTtsVoiceFemale] = useState("zf_xiaoxiao");
+  const [ttsVoiceMale, setTtsVoiceMale] = useState("zm_yunxi");
+  const [ttsVoiceNarrator, setTtsVoiceNarrator] = useState("zf_xiaobei");
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -70,10 +77,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             setImageModel(config.image_model || "bytedance-seed/seedream-5-0-lite");
             // Video provider settings
             setVideoProvider(config.video_provider || "minimax");
-        setVideoApiBase(config.video_api_base || "https://api.minimax.cn/v1");
+            setVideoApiBase(config.video_api_base || "https://api.minimax.cn/v1");
             setVideoApiKey("");
             setHasVideoKey(Boolean(config.has_video_key || config.video_api_key_masked));
-        setVideoModel(config.video_model || "MiniMax-Hailuo-02");
+            setVideoModel(config.video_model || "MiniMax-Hailuo-02");
+            setTtsApiBase(config.tts_api_base || config.llm_api_base || "https://openrouter.ai/api/v1");
+            setTtsModel(config.tts_model || "hexgrad/kokoro-82m");
+            setTtsVoiceFemale(config.tts_voice_female || "zf_xiaoxiao");
+            setTtsVoiceMale(config.tts_voice_male || "zm_yunxi");
+            setTtsVoiceNarrator(config.tts_voice_narrator || "zf_xiaobei");
           }
         })
         .catch(console.error);
@@ -161,6 +173,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     setImageApiBase("https://openrouter.ai/api/v1");
     setImageModel("x-ai/grok-imagine-image-2.0");
     setSyncApiKey(true);
+    setTtsApiBase("https://openrouter.ai/api/v1");
+    setTtsModel("hexgrad/kokoro-82m");
+    setTtsVoiceFemale("zf_xiaoxiao");
+    setTtsVoiceMale("zm_yunxi");
+    setTtsVoiceNarrator("zf_xiaobei");
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -182,6 +199,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         video_api_base: videoApiBase,
         video_api_key: videoApiKey.trim() || undefined,
         video_model: videoModel,
+        tts_api_base: ttsApiBase,
+        tts_model: ttsModel,
+        tts_voice_female: ttsVoiceFemale,
+        tts_voice_male: ttsVoiceMale,
+        tts_voice_narrator: ttsVoiceNarrator,
       });
       if (res?.has_llm_key !== undefined) setHasLlmKey(res.has_llm_key);
       if (res?.has_image_key !== undefined) setHasImageKey(res.has_image_key);
@@ -511,7 +533,68 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
           </div>
 
-          {/* Section 3: Video Model Settings (P0-2) */}
+          {/* Section 3: OpenRouter TTS */}
+          <div className="p-4 rounded-lg border border-border/70 bg-background/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <Volume2 className="w-4 h-4 text-emerald-400" />
+                <span>文字配音 / OpenRouter TTS</span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-400/90 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                复用 OpenRouter Key · R2 回收
+              </span>
+            </div>
+
+            <div>
+              <label className="text-[11px] text-muted-foreground block mb-1">TTS 模型</label>
+              <select
+                value={ttsModel}
+                onChange={(e) => setTtsModel(e.target.value)}
+                className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
+              >
+                <option value="hexgrad/kokoro-82m">hexgrad/kokoro-82m（中文 · 低成本首选）</option>
+              </select>
+              <input
+                type="text"
+                value={ttsModel}
+                onChange={(e) => setTtsModel(e.target.value)}
+                placeholder="OpenRouter Speech Model ID"
+                className="w-full text-[11px] font-mono bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] text-muted-foreground block mb-1">TTS API Base URL</label>
+              <input
+                type="text"
+                value={ttsApiBase}
+                onChange={(e) => setTtsApiBase(e.target.value)}
+                placeholder="https://openrouter.ai/api/v1"
+                className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <label className="text-[10px] text-muted-foreground block mb-1">默认女声</label>
+                <input value={ttsVoiceFemale} onChange={(e) => setTtsVoiceFemale(e.target.value)} className="w-full text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5" />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground block mb-1">默认男声</label>
+                <input value={ttsVoiceMale} onChange={(e) => setTtsVoiceMale(e.target.value)} className="w-full text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5" />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground block mb-1">默认旁白</label>
+                <input value={ttsVoiceNarrator} onChange={(e) => setTtsVoiceNarrator(e.target.value)} className="w-full text-[11px] font-mono bg-background border border-border rounded px-2 py-1.5" />
+              </div>
+            </div>
+
+            <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+              配音调用 OpenRouter 的 <code>/audio/speech</code> 接口并返回 MP3。角色声线包含男性特征时使用默认男声，旁白使用旁白音色，其余使用默认女声；生成后自动进入生产看板的音频候选，可试听、采用或退回。费用按模型实际账单结算。
+            </p>
+          </div>
+
+          {/* Section 4: Video Model Settings (P0-2) */}
           <div className="p-4 rounded-lg border border-border/70 bg-background/50 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-semibold text-foreground">

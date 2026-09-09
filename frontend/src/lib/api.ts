@@ -625,6 +625,21 @@ export const api = {
     return data;
   },
 
+  async generateTts(dialogueId: string, options: { voice?: string; speed?: number } = {}): Promise<{
+    status: string;
+    job_id: string;
+    take_id: string;
+    dialogue_id: string;
+    media_url: string;
+    model: string;
+    voice: string;
+    characters: number;
+    cost_recorded: boolean;
+  }> {
+    const { data } = await apiClient.post(`/generate/tts/${dialogueId}`, options);
+    return data;
+  },
+
   // Edit versions
   async getEditVersions(projectId: string): Promise<{ edit_versions: any[] }> {
     const { data } = await apiClient.get("/production/edit-versions", { params: { project_id: projectId } });

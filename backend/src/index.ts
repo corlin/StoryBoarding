@@ -15,6 +15,7 @@ import propsRouter from "./routes/props";
 import globalAssetsRouter from "./routes/globalAssets";
 import productionRouter from "./routes/production";
 import videoRouter from "./routes/video";
+import ttsRouter from "./routes/tts";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -64,6 +65,7 @@ app.route("/api/settings", settingsRouter);
 app.route("/api/assets", assetsRouter);
 app.route("/api/production", productionRouter);
 app.route("/api/generate", videoRouter);
+app.route("/api/generate", ttsRouter);
 
 // Global Exception & Error Handler with Friendly JSON
 app.onError((err, c) => {
