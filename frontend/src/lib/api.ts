@@ -303,6 +303,15 @@ export const api = {
     return data;
   },
 
+  async getSpeechModels(): Promise<{
+    provider: string;
+    models: Array<{ id: string; name: string; price_per_character: string | null; is_free: boolean }>;
+    fetched_at: string;
+  }> {
+    const { data } = await apiClient.get("/settings/speech-models");
+    return data;
+  },
+
   async updateProviderConfig(payload: any) {
     const { data } = await apiClient.post("/settings/providers", payload);
     return data;

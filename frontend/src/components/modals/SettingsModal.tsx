@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap, Globe, AlertCircle, ChevronDown, Film, Volume2 } from "lucide-react";
+import { Settings, Key, Sparkles, Check, Loader2, Image as ImageIcon, Zap, Globe, AlertCircle, ChevronDown, Film, Volume2, RefreshCw } from "lucide-react";
 import { api, getApiBaseUrl, setApiBaseUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -8,6 +8,13 @@ import { cn } from "@/lib/utils";
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface SpeechModelOption {
+  id: string;
+  name: string;
+  price_per_character: string | null;
+  is_free: boolean;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
@@ -40,6 +47,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [ttsVoiceFemale, setTtsVoiceFemale] = useState("zf_xiaoxiao");
   const [ttsVoiceMale, setTtsVoiceMale] = useState("zm_yunxi");
   const [ttsVoiceNarrator, setTtsVoiceNarrator] = useState("zf_xiaobei");
+  const [speechModels, setSpeechModels] = useState<SpeechModelOption[]>([]);
+  const [speechModelsLoading, setSpeechModelsLoading] = useState(false);
+  const [speechModelsError, setSpeechModelsError] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -54,6 +64,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [imageTestStatus, setImageTestStatus] = useState<"idle" | "testing" | "ok" | "err">("idle");
   const [imageTestMsg, setImageTestMsg] = useState("");
 
+  const loadSpeechModels = async () => {
+    setSpeechModelsLoading(true);
+    setSpeechModelsError("");
+    try {
+      const result = await api.getSpeechModels();
+      setSpeechModels(result.models || []);
+    } catch (error: any) {
+      setSpeechModelsError(error?.response?.data?.detail || error?.message || "无法读取 Speech 模型");
+    } finally {
+      setSpeechModelsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       setIsSaved(false);
@@ -61,6 +84,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       setApiStatus("idle");
       setLlmTestStatus("idle");
       setImageTestStatus("idle");
+      loadSpeechModels();
 
       api.getProviderConfig()
         .then((config: any) => {
@@ -546,21 +570,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
 
             <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">TTS 模型</label>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label className="text-[11px] text-muted-foreground">Speech 模型</label>
+                <button
+                  type="button"
+                  onClick={loadSpeechModels}
+                  disabled={speechModelsLoading}
+                  className="flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
+                >
+                  <RefreshCw className={cn("h-3 w-3", speechModelsLoading && "animate-spin")} />
+                  {speechModelsLoading ? "读取中" : "刷新 OpenRouter 模型"}
+                </button>
+              </div>
               <select
                 value={ttsModel}
                 onChange={(e) => setTtsModel(e.target.value)}
-                className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono mb-1.5"
+                disabled={speechModelsLoading && speechModels.length === 0}
+                className="w-full text-xs bg-background border border-border rounded px-2.5 py-1.5 focus:outline-none focus:border-primary font-mono"
               >
-                <option value="hexgrad/kokoro-82m">hexgrad/kokoro-82m（中文 · 低成本首选）</option>
+                {!speechModels.some((model) => model.id === ttsModel) && (
+                  <option value={ttsModel}>{ttsModel}（当前或自定义）</option>
+                )}
+                {speechModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name} · {model.id} · {model.is_free ? "免费" : `$${model.price_per_character || "未标价"}/字符`}
+                  </option>
+                ))}
               </select>
-              <input
-                type="text"
-                value={ttsModel}
-                onChange={(e) => setTtsModel(e.target.value)}
-                placeholder="OpenRouter Speech Model ID"
-                className="w-full text-[11px] font-mono bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary"
-              />
+              <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground/70">
+                <span>{speechModels.length > 0 ? `OpenRouter 当前返回 ${speechModels.length} 个 speech 模型` : "支持直接填写模型 ID"}</span>
+                {ttsModel === "hexgrad/kokoro-82m" && <span className="text-emerald-400">中文低成本已实测</span>}
+              </div>
+              {speechModelsError && <p className="mt-1 text-[10px] text-amber-400">{speechModelsError}；仍可使用当前模型。</p>}
+              <details className="mt-2 rounded border border-border/60 px-2 py-1.5">
+                <summary className="cursor-pointer text-[10px] text-muted-foreground">高级：手动指定 Speech 模型 ID</summary>
+                <input
+                  type="text"
+                  value={ttsModel}
+                  onChange={(e) => setTtsModel(e.target.value)}
+                  placeholder="例如 mistralai/voxtral-mini-tts-2603"
+                  className="mt-2 w-full text-[11px] font-mono bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary"
+                />
+              </details>
             </div>
 
             <div>

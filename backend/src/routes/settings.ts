@@ -7,6 +7,50 @@ import { encryptUserSecret, maskApiKey } from "../lib/crypto";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
+// GET /api/settings/speech-models — live OpenRouter catalog for the settings UI.
+router.get("/speech-models", async (c) => {
+  const db = getDb(c.env.DB);
+  const authUser = await getAuthUser(c.req.header("Authorization"));
+  if (!authUser) return c.json({ detail: "请先登录" }, 401);
+
+  const settings = await getUserSettings(db, authUser.userId);
+  const apiBase = (settings.ttsApiBase || "https://openrouter.ai/api/v1").replace(/\/+$/, "");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (settings.ttsApiKey) headers.Authorization = `Bearer ${settings.ttsApiKey}`;
+    const response = await fetch(`${apiBase}/models?output_modalities=speech`, {
+      headers,
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return c.json({ detail: `OpenRouter Speech 模型目录返回 HTTP ${response.status}` }, 502);
+    }
+    const payload: any = await response.json();
+    const models = (Array.isArray(payload?.data) ? payload.data : [])
+      .filter((model: any) => model?.id && model?.architecture?.output_modalities?.includes("speech"))
+      .map((model: any) => ({
+        id: String(model.id),
+        name: String(model.name || model.id),
+        price_per_character: String(model.pricing?.prompt || "0"),
+        is_free: Number(model.pricing?.prompt || 0) === 0 && Number(model.pricing?.completion || 0) === 0,
+      }))
+      .sort((a: any, b: any) => {
+        if (a.id === settings.ttsModel) return -1;
+        if (b.id === settings.ttsModel) return 1;
+        if (a.is_free !== b.is_free) return a.is_free ? -1 : 1;
+        return Number(a.price_per_character) - Number(b.price_per_character) || a.name.localeCompare(b.name);
+      });
+    return c.json({ provider: "openrouter", models, fetched_at: new Date().toISOString() });
+  } catch (error: any) {
+    const message = error?.name === "AbortError" ? "OpenRouter Speech 模型目录请求超时" : `模型目录加载失败: ${error?.message || error}`;
+    return c.json({ detail: message }, 502);
+  } finally {
+    clearTimeout(timeout);
+  }
+});
+
 // GET /api/settings/providers (Strictly User-Owned Settings with Secure Masked Output)
 router.get("/providers", async (c) => {
   const db = getDb(c.env.DB);
