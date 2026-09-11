@@ -54,7 +54,25 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   batchProgress,
   onAbortBatchRendering,
 }) => {
-  const [gridCols, setGridCols] = useState<2 | 3 | 4>(3);
+  const isVertical = aspectRatio === "9:16";
+  const [gridCols, setGridCols] = useState<2 | 3 | 4>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`storyboard_grid_cols_${aspectRatio}`);
+      if (saved && (saved === "2" || saved === "3" || saved === "4")) {
+        return parseInt(saved, 10) as 2 | 3 | 4;
+      }
+    }
+    // 9:16 竖屏手机卡片默认 2 列舒展大卡；16:9 横屏保持 3 列电影胶片排版
+    return isVertical ? 2 : 3;
+  });
+
+  const handleSetGridCols = (cols: 2 | 3 | 4) => {
+    setGridCols(cols);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`storyboard_grid_cols_${aspectRatio}`, String(cols));
+    }
+  };
+
   const [showHudGuide, setShowHudGuide] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("storyboard_show_ai_hud");
@@ -62,7 +80,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
         return saved === "true";
       }
     }
-    return true; // Default true so AI reference lines are immediately visible and controllable
+    return false; // 默认纯净视图，不遮挡画面，用户可随时一键点亮 AI 对齐 HUD
   });
   const [showRhythmBarcode, setShowRhythmBarcode] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
@@ -124,13 +142,12 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
     }
   }, [selectedShotId, viewMode]);
 
-  const isVertical = aspectRatio === "9:16";
   const gridClass = isVertical
     ? gridCols === 2
-      ? "grid-cols-2 md:grid-cols-3 gap-4"
+      ? "grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4"
       : gridCols === 3
-      ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
-      : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3"
+      ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+      : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3"
     : gridCols === 2
     ? "grid-cols-1 md:grid-cols-2 gap-4"
     : gridCols === 3
@@ -220,7 +237,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
           {/* Grid Layout Density Switcher */}
           <div className="flex items-center bg-secondary/50 p-0.5 rounded-lg border border-border/60 text-xs text-muted-foreground">
             <button
-              onClick={() => setGridCols(2)}
+              onClick={() => handleSetGridCols(2)}
               className={cn(
                 "px-2 py-0.5 rounded transition-colors cursor-pointer",
                 gridCols === 2 ? "bg-background text-foreground font-semibold shadow-xs" : "hover:text-foreground"
@@ -230,7 +247,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
               2列
             </button>
             <button
-              onClick={() => setGridCols(3)}
+              onClick={() => handleSetGridCols(3)}
               className={cn(
                 "px-2 py-0.5 rounded transition-colors cursor-pointer",
                 gridCols === 3 ? "bg-background text-foreground font-semibold shadow-xs" : "hover:text-foreground"
@@ -240,7 +257,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
               3列
             </button>
             <button
-              onClick={() => setGridCols(4)}
+              onClick={() => handleSetGridCols(4)}
               className={cn(
                 "px-2 py-0.5 rounded transition-colors hidden xl:block cursor-pointer",
                 gridCols === 4 ? "bg-background text-foreground font-semibold shadow-xs" : "hover:text-foreground"

@@ -70,67 +70,10 @@ export const CAMERA_MOVEMENT_GLOSSARY: Record<string, string> = {
   orbital: "环绕运镜 · 360度环顾人物，高光时刻",
 };
 
-function PrevizHudOverlay({ shot, index }: { shot: ShotModel; index: number }) {
-  const movType =
-    typeof shot.camera_movement === "object"
-      ? (shot.camera_movement as any)?.type || "static"
-      : shot.camera_movement || "static";
-
-  const renderMovementBadge = () => {
-    switch (movType) {
-      case "push_in":
-        return {
-          label: "PUSH IN ➔ (推进)",
-          color: "text-amber-300 border-amber-400/60 bg-amber-950/80",
-        };
-      case "pull_out":
-        return {
-          label: "PULL OUT ⤺ (拉远)",
-          color: "text-sky-300 border-sky-400/60 bg-sky-950/80",
-        };
-      case "tracking_right":
-      case "pan_right":
-        return {
-          label: "TRACK RIGHT ━━━━► (右移)",
-          color: "text-emerald-300 border-emerald-400/60 bg-emerald-950/80",
-        };
-      case "tracking_left":
-      case "pan_left":
-        return {
-          label: "◄━━━━ TRACK LEFT (左移)",
-          color: "text-emerald-300 border-emerald-400/60 bg-emerald-950/80",
-        };
-      case "crane":
-      case "tilt_up":
-        return {
-          label: "▲ CRANE / TILT UP (升机位)",
-          color: "text-purple-300 border-purple-400/60 bg-purple-950/80",
-        };
-      case "tilt_down":
-        return {
-          label: "▼ TILT DOWN (俯视降机位)",
-          color: "text-purple-300 border-purple-400/60 bg-purple-950/80",
-        };
-      case "arc_rotate":
-        return {
-          label: "⟳ 360° ARC (环绕旋转)",
-          color: "text-rose-300 border-rose-400/60 bg-rose-950/80",
-        };
-      default:
-        return {
-          label: "⊡ LOCKED STATIC (固定机位)",
-          color: "text-slate-300 border-slate-400/60 bg-slate-950/80",
-        };
-    }
-  };
-
-  const badge = renderMovementBadge();
-  const screenDir = shot.character_direction || (shot as any).continuity?.screen_direction || "L➔R";
-  const sizeAbbr = SHOT_SIZE_GLOSSARY[shot.shot_size]?.split(" · ")[0] || (shot.shot_size || "MS").toUpperCase();
-
+function PrevizHudOverlay() {
   return (
-    <div className="absolute inset-0 pointer-events-none z-15 select-none overflow-hidden flex flex-col justify-between p-2">
-      {/* 1. Rule-of-Thirds Grid (Semi-transparent for focal alignment) */}
+    <div className="absolute inset-0 pointer-events-none z-15 select-none overflow-hidden">
+      {/* Rule-of-Thirds Grid (Semi-transparent for focal alignment) */}
       <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
         <div className="border-r border-b border-white/[0.08]" />
         <div className="border-r border-b border-white/[0.08]" />
@@ -141,63 +84,6 @@ function PrevizHudOverlay({ shot, index }: { shot: ShotModel; index: number }) {
         <div className="border-r border-white/[0.08]" />
         <div className="border-r border-white/[0.08]" />
         <div />
-      </div>
-
-      {/* 2. Golden Power Points (+) */}
-      <div className="absolute top-[33.33%] left-[33.33%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/50 select-none">
-        ┼
-      </div>
-      <div className="absolute top-[33.33%] left-[66.67%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/50 select-none">
-        ┼
-      </div>
-      <div className="absolute top-[66.67%] left-[33.33%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/50 select-none">
-        ┼
-      </div>
-      <div className="absolute top-[66.67%] left-[66.67%] -translate-x-1/2 -translate-y-1/2 text-[10px] font-mono text-sky-400/50 select-none">
-        ┼
-      </div>
-
-      {/* 3. Top AI Control Rig Bar: Shot, Size, Duration & Camera Vector */}
-      <div className="relative z-10 flex items-center justify-between gap-1">
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-black/80 border border-sky-400/30 text-[10px] font-mono backdrop-blur-xs">
-          <span className="text-sky-300 font-bold">SHOT {String(index + 1).padStart(2, "0")}</span>
-          <span className="text-white/40">·</span>
-          <span className="text-slate-200">{sizeAbbr}</span>
-          <span className="text-white/40">·</span>
-          <span className="text-emerald-300">{(shot.duration || 2.5).toFixed(1)}s</span>
-        </div>
-
-        <div
-          className={cn(
-            "flex items-center gap-1 px-2 py-0.5 rounded border text-[9px] font-mono font-semibold shadow-xs backdrop-blur-xs",
-            badge.color
-          )}
-        >
-          <span>{badge.label}</span>
-        </div>
-      </div>
-
-      {/* 4. Bottom AI Semantic Prompt Strip: Action & Dialogue Context */}
-      <div className="relative z-10 space-y-1">
-        <div className="px-2 py-1 rounded bg-black/85 border border-white/15 backdrop-blur-xs text-[9.5px] leading-tight text-slate-200 space-y-0.5 max-w-full">
-          {shot.action && (
-            <p className="line-clamp-1 text-slate-200">
-              <span className="text-amber-300 font-mono font-medium">[动作] </span>
-              {shot.action}
-            </p>
-          )}
-          {shot.dialogue && (
-            <p className="line-clamp-1 text-sky-300 italic">
-              <span className="text-sky-400 font-mono font-medium not-italic">[台词] </span>
-              “{shot.dialogue}”
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between text-[8.5px] font-mono text-slate-400 px-0.5">
-          <span>AI REF CONTROL RIG</span>
-          <span>AXIS 180° · {screenDir}</span>
-        </div>
       </div>
     </div>
   );
@@ -380,7 +266,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
               className="w-full h-full object-cover transition-all duration-500 animate-in fade-in zoom-in-95 group-hover:scale-[1.02]"
             />
             {/* Director Previz HUD Visual Auxiliary Guide Overlay */}
-            {showHudGuide && <PrevizHudOverlay shot={shot} index={index} />}
+            {showHudGuide && <PrevizHudOverlay />}
           </>
         ) : isActivelyDeveloping ? (
           /* Active Developing Chamber with Stopwatch (Max 45s) */
@@ -648,10 +534,10 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
         </div>
 
         {/* Footer Info: Camera Movement & Detail Drawer Trigger */}
-        <div className="flex items-center justify-between pt-1.5 border-t border-border/30 text-[11px] text-muted-foreground">
+        <div className="flex items-center justify-between pt-1.5 border-t border-border/30 text-[11px] text-muted-foreground gap-1.5 min-w-0">
           {/* In-place Camera Movement Quick Edit */}
           <div
-            className="relative group/mov flex items-center gap-1.5 max-w-[150px]"
+            className="relative group/mov flex items-center gap-1 min-w-0 flex-1 max-w-[135px]"
             onClick={(e) => e.stopPropagation()}
           >
             <Camera className="w-3 h-3 shrink-0 text-muted-foreground group-hover/mov:text-primary transition-colors" />
@@ -668,19 +554,19 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
                 });
                 notify.success(`🎥 镜 ${index + 1} 运镜已调整为: ${newMov}`);
               }}
-              className="appearance-none bg-transparent font-mono text-[10px] text-foreground/80 hover:text-primary pr-3 focus:outline-none cursor-pointer disabled:cursor-not-allowed truncate"
+              className="appearance-none bg-transparent font-mono text-[10px] text-foreground/80 hover:text-primary pr-3 focus:outline-none cursor-pointer disabled:cursor-not-allowed truncate w-full"
               title={CAMERA_MOVEMENT_GLOSSARY[shot.camera_movement?.type || "static"] || `运镜: ${shot.camera_movement?.type || "固定镜头"} (点击就地切换)`}
             >
-              <option value="static" className="bg-popover text-foreground">static 固定</option>
-              <option value="push_in" className="bg-popover text-foreground">push_in 推进</option>
-              <option value="pull_out" className="bg-popover text-foreground">pull_out 拉远</option>
-              <option value="pan_left" className="bg-popover text-foreground">pan_left 左摇</option>
-              <option value="pan_right" className="bg-popover text-foreground">pan_right 右摇</option>
-              <option value="tilt_up" className="bg-popover text-foreground">tilt_up 仰角</option>
-              <option value="tilt_down" className="bg-popover text-foreground">tilt_down 俯角</option>
-              <option value="tracking" className="bg-popover text-foreground">tracking 跟随</option>
-              <option value="crane" className="bg-popover text-foreground">crane 升降</option>
-              <option value="orbital" className="bg-popover text-foreground">orbital 环绕</option>
+              <option value="static" className="bg-popover text-foreground">固定 static</option>
+              <option value="push_in" className="bg-popover text-foreground">推进 push_in</option>
+              <option value="pull_out" className="bg-popover text-foreground">拉远 pull_out</option>
+              <option value="pan_left" className="bg-popover text-foreground">左摇 pan_left</option>
+              <option value="pan_right" className="bg-popover text-foreground">右摇 pan_right</option>
+              <option value="tilt_up" className="bg-popover text-foreground">仰角 tilt_up</option>
+              <option value="tilt_down" className="bg-popover text-foreground">俯角 tilt_down</option>
+              <option value="tracking" className="bg-popover text-foreground">跟随 tracking</option>
+              <option value="crane" className="bg-popover text-foreground">升降 crane</option>
+              <option value="orbital" className="bg-popover text-foreground">环绕 orbital</option>
             </select>
             <ChevronDown className="w-2.5 h-2.5 text-muted-foreground absolute right-0 pointer-events-none group-hover/mov:text-primary transition-colors" />
           </div>
@@ -691,11 +577,11 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
                 e.stopPropagation();
                 onOpenDetail();
               }}
-              className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors font-medium ml-auto cursor-pointer"
+              className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors font-medium shrink-0 cursor-pointer px-1 py-0.5 rounded hover:bg-secondary/40"
               title="打开镜头详细参数抽屉"
             >
-              <span>精修</span>
-              <Info className="w-3 h-3" />
+              <span className="hidden min-[160px]:inline">精修</span>
+              <Info className="w-3 h-3 shrink-0" />
             </button>
           )}
         </div>
