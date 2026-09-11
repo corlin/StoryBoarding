@@ -136,7 +136,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
   const [isVersionMenuOpen, setIsVersionMenuOpen] = useState(false);
   const [isEpisodeDropdownOpen, setIsEpisodeDropdownOpen] = useState(false);
-  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const helpMenuRef = useRef<HTMLDivElement>(null);
@@ -160,7 +159,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Keyboard Shortcuts (1/2/3/4 for DaVinci Stages, M for Map, ? for Help)
+  // Keyboard Shortcuts (1/2/3/4 for DaVinci Stages, ? for Help)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = (document.activeElement?.tagName || "").toLowerCase();
@@ -178,7 +177,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         notify.info(stage.notification);
       } else if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
         e.preventDefault();
-        setIsShortcutsModalOpen((prev) => !prev);
+        setIsHelpMenuOpen((prev) => !prev);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -377,25 +376,35 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
 
           {isHelpMenuOpen && (
-            <div className="absolute right-0 mt-1.5 w-56 bg-card border border-border rounded-xl shadow-2xl p-1.5 z-50 text-xs space-y-1 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-2 py-1 text-[10px] font-mono text-muted-foreground uppercase border-b border-border/60 pb-1">
-                制片认知与操作支持
+            <div className="absolute right-0 mt-1.5 w-64 bg-card border border-border rounded-xl shadow-2xl p-2 z-50 text-xs space-y-2 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-1 py-0.5 text-[10px] font-mono text-muted-foreground uppercase border-b border-border/60 pb-1 flex items-center justify-between">
+                <span>工序与剪辑台快捷键</span>
+                <span className="text-[9px] text-muted-foreground/80">按键直达</span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setIsHelpMenuOpen(false);
-                  setIsShortcutsModalOpen(true);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-foreground hover:bg-muted transition-colors text-left cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span>剪辑台快捷键指南</span>
+              <div className="space-y-1.5 px-1 py-1">
+                <div className="flex items-center justify-between text-muted-foreground hover:text-foreground">
+                  <span>切换至 01 设定与剧本</span>
+                  <kbd className="font-mono text-[10px] bg-secondary px-1.5 py-0.5 rounded border border-border text-foreground">1</kbd>
                 </div>
-                <kbd className="font-mono text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border">?</kbd>
-              </button>
+                <div className="flex items-center justify-between text-muted-foreground hover:text-foreground">
+                  <span>切换至 02 分镜工坊</span>
+                  <kbd className="font-mono text-[10px] bg-secondary px-1.5 py-0.5 rounded border border-border text-foreground">2</kbd>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground hover:text-foreground">
+                  <span>切换至 03 放映与质检</span>
+                  <kbd className="font-mono text-[10px] bg-secondary px-1.5 py-0.5 rounded border border-border text-foreground">3</kbd>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground hover:text-foreground">
+                  <span>切换至 04 交付工坊</span>
+                  <kbd className="font-mono text-[10px] bg-secondary px-1.5 py-0.5 rounded border border-border text-foreground">4</kbd>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground hover:text-foreground">
+                  <span>打开此快捷键列表</span>
+                  <kbd className="font-mono text-[10px] bg-secondary px-1.5 py-0.5 rounded border border-border text-foreground">?</kbd>
+                </div>
+              </div>
+
               {onOpenDelete && (
                 <>
                   <div className="h-px bg-border/60 my-1" />
@@ -405,7 +414,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                       setIsHelpMenuOpen(false);
                       onOpenDelete();
                     }}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors text-left cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>删除此工程项目</span>
@@ -445,49 +454,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
       </div>
-
-      {/* Keyboard Shortcuts Modal */}
-      {isShortcutsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="w-full max-w-sm bg-card border border-border rounded-xl shadow-2xl p-4 text-xs space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <h3 className="font-bold text-foreground flex items-center gap-1.5">
-                <Keyboard className="w-4 h-4 text-primary" />
-                <span>工序切换与快捷键指南</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsShortcutsModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                ×
-              </button>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">切换至 01 设定与剧本</span>
-                <kbd className="font-mono bg-secondary px-1.5 py-0.5 rounded border border-border">1</kbd>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">切换至 02 分镜工坊</span>
-                <kbd className="font-mono bg-secondary px-1.5 py-0.5 rounded border border-border">2</kbd>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">切换至 03 放映与质检</span>
-                <kbd className="font-mono bg-secondary px-1.5 py-0.5 rounded border border-border">3</kbd>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">切换至 04 交付导出</span>
-                <kbd className="font-mono bg-secondary px-1.5 py-0.5 rounded border border-border">4</kbd>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">呼出全局功能全景导图</span>
-                <kbd className="font-mono bg-secondary px-1.5 py-0.5 rounded border border-border">M</kbd>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };
