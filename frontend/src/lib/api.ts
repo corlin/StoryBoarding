@@ -523,25 +523,6 @@ export const api = {
     return base ? `${base}/api/export/package-zip/${projectId}` : `/api/export/package-zip/${projectId}`;
   },
 
-  // Director Studio Project Media Library & Asset Recycle Bin
-  async getProjectMediaLibrary(projectId: string): Promise<any> {
-    const { data } = await apiClient.get(`/projects/${projectId}/media-library`);
-    return data;
-  },
-
-  async restoreLibraryImage(projectId: string, shotId: string, imageUrl: string): Promise<any> {
-    const { data } = await apiClient.post(`/projects/${projectId}/media-library/restore-image`, {
-      shot_id: shotId,
-      image_url: imageUrl,
-    });
-    return data;
-  },
-
-  async cleanProjectOrphanAssets(projectId: string): Promise<any> {
-    const { data } = await apiClient.post(`/projects/${projectId}/media-library/clean-orphans`);
-    return data;
-  },
-
   // Adaptation Tradeoffs & Payoff Radar Studio
   async updateProjectAdaptationTradeoffs(projectId: string, tradeoffs: any): Promise<any> {
     const { data } = await apiClient.put(`/projects/${projectId}`, {
