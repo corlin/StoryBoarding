@@ -14,13 +14,10 @@ import { VersionHistoryDrawer } from "@/components/drawers/VersionHistoryDrawer"
 import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
 import { EpisodePillTrack } from "@/components/workspace/EpisodePillTrack";
 import { CharacterProfileDrawer } from "@/components/drawers/CharacterProfileDrawer";
-import { BibleModal } from "@/components/modals/BibleModal";
 import { AIGenerateModal } from "@/components/modals/AIGenerateModal";
 import { ExportDeliverablesModal } from "@/components/modals/ExportDeliverablesModal";
 import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
-import { AdaptationTradeoffModal } from "@/components/modals/AdaptationTradeoffModal";
-import { ProjectQualityRadarModal } from "@/components/modals/ProjectQualityRadarModal";
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
 import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibraryModal";
 import { QuickStartWizardModal } from "@/components/modals/QuickStartWizardModal";
@@ -32,7 +29,7 @@ import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { ProjectVersion, ProjectModel } from "@/types/shot";
+import { ProjectVersion, ProjectModel, CharacterModel } from "@/types/shot";
 import { History, Clock, RotateCcw, GitBranch, X, Lock, ChevronLeft, ChevronRight, FileText, Film, SlidersHorizontal } from "lucide-react";
 import { PrepBibleStudioView } from "@/components/workspace/views/PrepBibleStudioView";
 import { TheaterReviewStudioView } from "@/components/workspace/views/TheaterReviewStudioView";
@@ -66,12 +63,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [isOpenAIGenerateModal, setIsOpenAIGenerateModal] = useState(false);
   const [isOpenExportModal, setIsOpenExportModal] = useState(false);
   const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
-  const [isOpenBibleModal, setIsOpenBibleModal] = useState(false);
-  const [bibleMode, setBibleMode] = useState<"bible" | "style" | "characters" | "locations" | "props">("bible");
   const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
-  const [isOpenTradeoffModal, setIsOpenTradeoffModal] = useState(false);
-  const [isOpenRadarModal, setIsOpenRadarModal] = useState(false);
-  const [returnToRadarOnModalClose, setReturnToRadarOnModalClose] = useState(false);
   const [isGlobalAssetOpen, setIsGlobalAssetOpen] = useState(false);
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true);
@@ -263,14 +255,13 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           setIsTheaterOpen(true);
           break;
         case "bible":
-          setBibleMode("bible");
-          setIsOpenBibleModal(true);
+          setActiveStudioStage("prep");
           break;
         case "radar":
-          setIsOpenRadarModal(true);
+          setActiveStudioStage("review");
           break;
         case "tradeoff":
-          setIsOpenTradeoffModal(true);
+          setActiveStudioStage("prep");
           break;
         case "generate":
           setIsOpenAIGenerateModal(true);
@@ -693,28 +684,16 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   };
 
   const handleRadarNavigate = (section: string) => {
-    if (section === "tradeoffs") {
-      setReturnToRadarOnModalClose(true);
-      setIsOpenTradeoffModal(true);
-    } else if (section === "bible_characters") {
-      setReturnToRadarOnModalClose(true);
-      setBibleMode("characters");
-      setIsOpenBibleModal(true);
-    } else if (section === "bible_scenes") {
-      setReturnToRadarOnModalClose(true);
-      setBibleMode("locations");
-      setIsOpenBibleModal(true);
-    } else if (section === "bible_props") {
-      setReturnToRadarOnModalClose(true);
-      setBibleMode("bible");
-      setIsOpenBibleModal(true);
+    if (section === "tradeoffs" || section === "bible_characters" || section === "bible_scenes" || section === "bible_props") {
+      setActiveStudioStage("prep");
+      notify.info("🎬 已无缝跳转至 Stage 01 · 设定与剧本工坊");
     } else if (section === "script") {
-      setReturnToRadarOnModalClose(false);
+      setActiveStudioStage("storyboard");
       if (isLeftPanelCollapsed) setIsLeftPanelCollapsed(false);
       setMobileActiveTab("script");
       notify.info("已切换并聚焦至剧本节拍面板，请微调单句台词或冷开场");
     } else if (section === "storyboard") {
-      setReturnToRadarOnModalClose(false);
+      setActiveStudioStage("storyboard");
       setMobileActiveTab("storyboard");
       notify.info("已切换至分镜面板，请检查单镜时长与首帧提示词");
     }
@@ -744,13 +723,19 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         isLeftPanelCollapsed={isLeftPanelCollapsed}
         onToggleLeftPanel={() => setIsLeftPanelCollapsed((prev) => !prev)}
         onOpenAIGenerate={() => setIsOpenAIGenerateModal(true)}
-        onOpenRadar={() => setIsOpenRadarModal(true)}
-        onOpenExport={() => setIsOpenExportModal(true)}
-        onOpenBible={(mode) => {
-          setBibleMode(mode || "bible");
-          setIsOpenBibleModal(true);
+        onOpenRadar={() => {
+          setActiveStudioStage("review");
+          notify.info("🛡️ 已切换至 Stage 03 · 动态放映与工程体检工坊");
         }}
-        onOpenTradeoff={() => setIsOpenTradeoffModal(true)}
+        onOpenExport={() => setIsOpenExportModal(true)}
+        onOpenBible={() => {
+          setActiveStudioStage("prep");
+          notify.info("🎬 已切换至 Stage 01 · 前期筹备与视听基准工坊");
+        }}
+        onOpenTradeoff={() => {
+          setActiveStudioStage("prep");
+          notify.info("🎬 已切换至 Stage 01 · 剧情大纲与爽点雷达工坊");
+        }}
         onOpenImportScript={() => setIsOpenScriptModal(true)}
         onOpenTheater={() => {
           setTheaterShotId(selectedShotId || shots[0]?.id || null);
@@ -817,8 +802,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             project={displayProject}
             compact={true}
             onOpenCharacterHub={() => {
-              setBibleMode("bible");
-              setIsOpenBibleModal(true);
+              setActiveStudioStage("prep");
+              notify.info("🎬 已切换至 Stage 01 · 设定与剧本工坊");
             }}
             onRefreshProject={async () => {
               await fetchProject(effectiveProjectId);
@@ -840,16 +825,23 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             setSelectedProfileChar(char);
           }}
           onOpenCharacterBible={() => {
-            setBibleMode("characters");
-            setIsOpenBibleModal(true);
+            const newChar: CharacterModel = {
+              id: crypto.randomUUID(),
+              project_id: effectiveProjectId,
+              name: "新角色",
+              role: "supporting",
+              visual_anchor: "",
+              turnaround_prompt: "",
+              personality: "出场角色",
+            };
+            setSelectedProfileChar(newChar);
+            notify.info("🎭 已呼出角色小传抽屉，请输入角色信息并冲印定妆照");
           }}
           onOpenLocationBible={() => {
-            setBibleMode("locations");
-            setIsOpenBibleModal(true);
+            notify.info("🏛️ 场景空间可在下方场景卡片中直接查看与编辑");
           }}
           onOpenPropBible={() => {
-            setBibleMode("props");
-            setIsOpenBibleModal(true);
+            notify.info("📦 剧情道具物料可在下方道具卡片中直接查看与编辑");
           }}
         />
       )}
@@ -1112,20 +1104,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onConfirm={handleCreateSnapshot}
       />
 
-      {/* Unified Visual Bible & Character DNA Central Registry (Single Instance) */}
-      <BibleModal
-        isOpen={isOpenBibleModal}
-        onClose={() => {
-          setIsOpenBibleModal(false);
-          if (returnToRadarOnModalClose) {
-            setReturnToRadarOnModalClose(false);
-            setIsOpenRadarModal(true);
-            notify.info("🛡️ 已返回工程体检雷达，数据已实时重新评估");
-          }
-        }}
-        project={displayProject}
-        mode={bibleMode}
-      />
+
 
       <AIGenerateModal
         isOpen={isOpenAIGenerateModal}
@@ -1151,27 +1130,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         isOpen={isOpenScriptModal}
         onClose={() => setIsOpenScriptModal(false)}
         onImportScript={handleImportScript}
-      />
-
-      <AdaptationTradeoffModal
-        isOpen={isOpenTradeoffModal}
-        onClose={() => {
-          setIsOpenTradeoffModal(false);
-          if (returnToRadarOnModalClose) {
-            setReturnToRadarOnModalClose(false);
-            setIsOpenRadarModal(true);
-            notify.info("🛡️ 已返回工程体检雷达，数据已实时重新评估");
-          }
-        }}
-        project={displayProject}
-      />
-
-      <ProjectQualityRadarModal
-        isOpen={isOpenRadarModal}
-        onClose={() => setIsOpenRadarModal(false)}
-        project={displayProject}
-        shots={shots}
-        onNavigateToSection={handleRadarNavigate}
       />
 
       <GlobalAssetLibraryModal
@@ -1222,12 +1180,21 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       <SystemArchitectureMapModal
         isOpen={isArchitectureMapOpen}
         onClose={() => setIsArchitectureMapOpen(false)}
-        onOpenRadar={() => setIsOpenRadarModal(true)}
-        onOpenBible={(mode) => {
-          setBibleMode(mode || "bible");
-          setIsOpenBibleModal(true);
+        onOpenRadar={() => {
+          setIsArchitectureMapOpen(false);
+          setActiveStudioStage("review");
+          notify.info("🛡️ 已切换至 Stage 03 · 动态放映与工程体检工坊");
         }}
-        onOpenTradeoff={() => setIsOpenTradeoffModal(true)}
+        onOpenBible={() => {
+          setIsArchitectureMapOpen(false);
+          setActiveStudioStage("prep");
+          notify.info("🎬 已切换至 Stage 01 · 设定与剧本工坊");
+        }}
+        onOpenTradeoff={() => {
+          setIsArchitectureMapOpen(false);
+          setActiveStudioStage("prep");
+          notify.info("🎬 已切换至 Stage 01 · 剧情大纲与爽点雷达工坊");
+        }}
         onOpenImportScript={() => setIsOpenScriptModal(true)}
         onOpenAIGenerate={() => setIsOpenAIGenerateModal(true)}
         onOpenTheater={() => {

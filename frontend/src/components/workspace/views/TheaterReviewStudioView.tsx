@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { ProjectModel, ShotModel, SequenceModel } from "@/types/shot";
 import { normalizeAssetUrl } from "@/lib/api";
-import { computeProjectQualityDiagnostics, DiagnosticItem } from "@/components/modals/ProjectQualityRadarModal";
+import { computeProjectQualityDiagnostics, DiagnosticItem } from "@/lib/diagnostics";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import {
   Film,

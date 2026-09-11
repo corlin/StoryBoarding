@@ -28,7 +28,7 @@ import {
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
 import { type StudioStage, useWorkspaceStore } from "@/stores/workspaceStore";
-import { computeProjectQualityDiagnostics } from "@/components/modals/ProjectQualityRadarModal";
+import { computeProjectQualityDiagnostics } from "@/lib/diagnostics";
 import { notify } from "@/components/ui/ToastNotification";
 import { cn } from "@/lib/utils";
 

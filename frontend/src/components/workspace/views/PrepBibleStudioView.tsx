@@ -38,7 +38,7 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { STYLE_PRESETS } from "@/components/modals/BibleModal";
+import { STYLE_PRESETS } from "@/lib/biblePresets";
 
 interface PrepBibleStudioViewProps {
   project: ProjectModel | null;
