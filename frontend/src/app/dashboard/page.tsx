@@ -31,7 +31,6 @@ import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelinePr
 import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
 import { PitchIdeaGeneratorModal } from "@/components/modals/PitchIdeaGeneratorModal";
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
-import { SystemArchitectureMapModal } from "@/components/modals/SystemArchitectureMapModal";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
@@ -138,7 +137,6 @@ export default function DashboardPage() {
   const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
   const [isGlobalAssetModalOpen, setIsGlobalAssetModalOpen] = useState(false);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
-  const [isArchitectureMapOpen, setIsArchitectureMapOpen] = useState(false);
   const toolsMenuRef = useRef<HTMLDivElement>(null);
 
   // Close tools menu on outside click
@@ -234,7 +232,6 @@ export default function DashboardPage() {
   };
 
   const navigateToWorkspaceWithAction = (action: string) => {
-    setIsArchitectureMapOpen(false);
     const targetId = projects[0]?.id || "6f01c422-48ea-4796-afc7-09cc6447f764";
     notify.info("🎬 正在进入工程工作台并自动为您呼出对应模块...");
     router.push(`/workspace?id=${targetId}&open=${action}`);
@@ -446,6 +443,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => {
+                const { isAuthenticated, openAuthModal } = useAuthStore.getState();
                 if (!isAuthenticated) {
                   notify.info("请先登录查看全局资产库");
                   openAuthModal("login");
@@ -457,16 +455,6 @@ export default function DashboardPage() {
               title="用户级全局资产库：跨项目沉淀复用角色、场景与道具"
             >
               <span>◇ 全局资产库</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsArchitectureMapOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
-              title="全局功能引导地图 · 商业短剧制片工作流全景"
-            >
-              <Workflow className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">系统全景导图</span>
             </button>
           </div>
 
@@ -1138,21 +1126,6 @@ export default function DashboardPage() {
       <GlobalAssetLibraryModal
         isOpen={isGlobalAssetModalOpen}
         onClose={() => setIsGlobalAssetModalOpen(false)}
-      />
-
-      {/* Global Feature & System Architecture Map Modal */}
-      <SystemArchitectureMapModal
-        isOpen={isArchitectureMapOpen}
-        onClose={() => setIsArchitectureMapOpen(false)}
-        onOpenRadar={() => navigateToWorkspaceWithAction("radar")}
-        onOpenBible={() => navigateToWorkspaceWithAction("bible")}
-        onOpenTradeoff={() => navigateToWorkspaceWithAction("tradeoff")}
-        onOpenImportScript={() => navigateToWorkspaceWithAction("import")}
-        onOpenAIGenerate={() => navigateToWorkspaceWithAction("generate")}
-        onOpenTheater={() => navigateToWorkspaceWithAction("theater")}
-        onOpenExport={() => navigateToWorkspaceWithAction("export")}
-        onSelectViewMode={(mode) => navigateToWorkspaceWithAction(mode)}
-        onOpenTour={() => navigateToWorkspaceWithAction("tour")}
       />
     </div>
   );

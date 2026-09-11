@@ -15,14 +15,11 @@ import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
 import { EpisodePillTrack } from "@/components/workspace/EpisodePillTrack";
 import { CharacterProfileDrawer } from "@/components/drawers/CharacterProfileDrawer";
 import { AIGenerateModal } from "@/components/modals/AIGenerateModal";
-import { ExportDeliverablesModal } from "@/components/modals/ExportDeliverablesModal";
 import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
 import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibraryModal";
 import { QuickStartWizardModal } from "@/components/modals/QuickStartWizardModal";
-import { OnboardingTourModal } from "@/components/modals/OnboardingTourModal";
-import { SystemArchitectureMapModal } from "@/components/modals/SystemArchitectureMapModal";
 import ProductionKanbanModal from "@/components/modals/ProductionKanbanModal";
 import { WorkspaceLoadingScreen } from "@/components/workspace/WorkspaceLoadingScreen";
 import { notify } from "@/components/ui/ToastNotification";
@@ -61,34 +58,15 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
   // Delegated Modal States (Centralized from TopBar)
   const [isOpenAIGenerateModal, setIsOpenAIGenerateModal] = useState(false);
-  const [isOpenExportModal, setIsOpenExportModal] = useState(false);
   const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
   const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
   const [isGlobalAssetOpen, setIsGlobalAssetOpen] = useState(false);
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
-  const [isArchitectureMapOpen, setIsArchitectureMapOpen] = useState(false);
   const [isProductionKanbanOpen, setIsProductionKanbanOpen] = useState(false);
   const hasAutoOpenedWizardRef = useRef(false);
   const abortBatchRenderRef = useRef(false);
-
-  // Auto-trigger onboarding tour for first-time visitors once project is mounted
-  useEffect(() => {
-    if (!effectiveProjectId) return;
-    try {
-      const isCompleted = localStorage.getItem("storyboarding_tour_completed");
-      if (!isCompleted) {
-        const timer = setTimeout(() => {
-          setIsOnboardingTourOpen(true);
-        }, 700);
-        return () => clearTimeout(timer);
-      }
-    } catch {
-      // ignore
-    }
-  }, [effectiveProjectId]);
 
   const {
     activeEpisodeIndex,
@@ -248,7 +226,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     const timer = setTimeout(() => {
       switch (openAction) {
         case "export":
-          setIsOpenExportModal(true);
+          setActiveStudioStage("deliver");
+          notify.info("📦 已切换至 Stage 04 · 工业级交付与导出工坊");
           break;
         case "theater":
           setTheaterShotId(selectedShotId || shots[0]?.id || null);
@@ -268,9 +247,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           break;
         case "import":
           setIsOpenScriptModal(true);
-          break;
-        case "tour":
-          setIsOnboardingTourOpen(true);
           break;
       }
       try {
@@ -727,7 +703,10 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           setActiveStudioStage("review");
           notify.info("🛡️ 已切换至 Stage 03 · 动态放映与工程体检工坊");
         }}
-        onOpenExport={() => setIsOpenExportModal(true)}
+        onOpenExport={() => {
+          setActiveStudioStage("deliver");
+          notify.info("📦 已切换至 Stage 04 · 工业级交付与导出工坊");
+        }}
         onOpenBible={() => {
           setActiveStudioStage("prep");
           notify.info("🎬 已切换至 Stage 01 · 前期筹备与视听基准工坊");
@@ -748,9 +727,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onOpenDelete={() => setIsOpenDeleteModal(true)}
         onOpenWizard={() => setIsWizardOpen(true)}
         onBatchRender={handleRegenerateDirty}
-        onOpenTour={() => setIsOnboardingTourOpen(true)}
-        onOpenArchitectureMap={() => setIsArchitectureMapOpen(true)}
-        onOpenProductionKanban={() => setIsProductionKanbanOpen(true)}
       />
 
       {/* Time Travel Read-Only Banner */}
@@ -1042,7 +1018,11 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         initialShotId={theaterShotId}
         onSelectShot={selectShot}
         onClose={() => setIsTheaterOpen(false)}
-        onOpenExport={() => setIsOpenExportModal(true)}
+        onOpenExport={() => {
+          setIsTheaterOpen(false);
+          setActiveStudioStage("deliver");
+          notify.info("📦 已切换至 Stage 04 · 工业级交付与导出工坊");
+        }}
         onOpenDetail={(shot) => handleOpenDrawer(shot.id)}
         onRegenerateShotImage={handleRegenerateSingleShot}
       />
@@ -1112,13 +1092,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onGenerate={handleGenerateFromStory}
       />
 
-      <ExportDeliverablesModal
-        isOpen={isOpenExportModal}
-        onClose={() => setIsOpenExportModal(false)}
-        project={displayProject}
-        shots={shots}
-      />
-
       <DeleteProjectModal
         isOpen={isOpenDeleteModal}
         onClose={() => setIsOpenDeleteModal(false)}
@@ -1170,39 +1143,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             narrative_center: "character",
           });
         }}
-      />
-
-      <OnboardingTourModal
-        isOpen={isOnboardingTourOpen}
-        onClose={() => setIsOnboardingTourOpen(false)}
-      />
-
-      <SystemArchitectureMapModal
-        isOpen={isArchitectureMapOpen}
-        onClose={() => setIsArchitectureMapOpen(false)}
-        onOpenRadar={() => {
-          setIsArchitectureMapOpen(false);
-          setActiveStudioStage("review");
-          notify.info("🛡️ 已切换至 Stage 03 · 动态放映与工程体检工坊");
-        }}
-        onOpenBible={() => {
-          setIsArchitectureMapOpen(false);
-          setActiveStudioStage("prep");
-          notify.info("🎬 已切换至 Stage 01 · 设定与剧本工坊");
-        }}
-        onOpenTradeoff={() => {
-          setIsArchitectureMapOpen(false);
-          setActiveStudioStage("prep");
-          notify.info("🎬 已切换至 Stage 01 · 剧情大纲与爽点雷达工坊");
-        }}
-        onOpenImportScript={() => setIsOpenScriptModal(true)}
-        onOpenAIGenerate={() => setIsOpenAIGenerateModal(true)}
-        onOpenTheater={() => {
-          setTheaterShotId(selectedShotId || shots[0]?.id || null);
-          setIsTheaterOpen(true);
-        }}
-        onOpenExport={() => setIsOpenExportModal(true)}
-        onOpenTour={() => setIsOnboardingTourOpen(true)}
       />
 
       {/* P0-1: Production Kanban Modal */}

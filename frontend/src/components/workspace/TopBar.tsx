@@ -101,9 +101,6 @@ interface TopBarProps {
   onOpenDelete?: () => void;
   onOpenWizard?: () => void;
   onBatchRender?: () => void;
-  onOpenTour?: () => void;
-  onOpenArchitectureMap?: () => void;
-  onOpenProductionKanban?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -127,9 +124,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenDelete,
   onOpenWizard,
   onBatchRender,
-  onOpenTour,
-  onOpenArchitectureMap,
-  onOpenProductionKanban,
 }) => {
   const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
   const {
@@ -182,11 +176,6 @@ export const TopBar: React.FC<TopBarProps> = ({
         e.preventDefault();
         setActiveStudioStage(stage.id);
         notify.info(stage.notification);
-      } else if ((e.key === "m" || e.key === "M") && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        if (onOpenArchitectureMap) {
-          e.preventDefault();
-          onOpenArchitectureMap();
-        }
       } else if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
         e.preventDefault();
         setIsShortcutsModalOpen((prev) => !prev);
@@ -194,7 +183,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onOpenArchitectureMap, setActiveStudioStage]);
+  }, [setActiveStudioStage]);
 
   const sequences = project?.sequences || [];
   const currentSeq = sequences[activeEpisodeIndex] || sequences[0];
@@ -376,19 +365,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
 
-        {/* Production Kanban (P0-1) */}
-        {onOpenProductionKanban && (
-          <button
-            type="button"
-            onClick={onOpenProductionKanban}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors cursor-pointer border border-blue-500/30"
-            title="生产看板：镜头状态、候选素材采用/退回、外部上传、任务与成本追踪"
-          >
-            <ClipboardList className="w-3.5 h-3.5" />
-            <span>生产看板</span>
-          </button>
-        )}
-
         {/* Consolidated Help & Guidance Dropdown */}
         <div className="relative shrink-0" ref={helpMenuRef}>
           <button
@@ -406,23 +382,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                 制片认知与操作支持
               </div>
 
-              {onOpenArchitectureMap && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsHelpMenuOpen(false);
-                    onOpenArchitectureMap();
-                  }}
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-amber-300 hover:bg-amber-500/10 transition-colors text-left font-medium cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <Workflow className="w-3.5 h-3.5 text-amber-400" />
-                    <span>系统全景导图</span>
-                  </div>
-                  <kbd className="font-mono text-[10px] text-amber-400/80 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30">M</kbd>
-                </button>
-              )}
-
               <button
                 type="button"
                 onClick={() => {
@@ -437,21 +396,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                 </div>
                 <kbd className="font-mono text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border">?</kbd>
               </button>
-
-              {onOpenTour && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsHelpMenuOpen(false);
-                    onOpenTour();
-                  }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-foreground hover:bg-muted transition-colors text-left cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>重新开启新手向导</span>
-                </button>
-              )}
-
               {onOpenDelete && (
                 <>
                   <div className="h-px bg-border/60 my-1" />
