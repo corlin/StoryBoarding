@@ -26,6 +26,8 @@ import {
   MessageSquare,
   MessageSquareOff,
   Key,
+  Smartphone,
+  Monitor,
 } from "lucide-react";
 import { normalizeAssetUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,7 @@ interface CinemaTheaterModalProps {
   onClose: () => void;
   shots: ShotModel[];
   sequences?: SequenceModel[];
+  aspectRatio?: string;
   initialShotId?: string | null;
   targetDuration?: number;
   onSelectShot?: (shotId: string) => void;
@@ -62,6 +65,7 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   onClose,
   shots,
   sequences = [],
+  aspectRatio = "9:16",
   initialShotId,
   targetDuration = 30,
   onSelectShot,
@@ -69,6 +73,16 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
   onOpenDetail,
   onRegenerateShotImage,
 }) => {
+  const [activeAspectRatio, setActiveAspectRatio] = useState<"9:16" | "16:9">(
+    (aspectRatio === "16:9" ? "16:9" : "9:16")
+  );
+
+  useEffect(() => {
+    if (aspectRatio === "16:9" || aspectRatio === "9:16") {
+      setActiveAspectRatio(aspectRatio);
+    }
+  }, [aspectRatio]);
+
   const [isBingeMode, setIsBingeMode] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -405,6 +419,27 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
               <span>{isBingeMode ? `🎬 全剧连续试映 (${activeShots.length}镜)` : `🔍 当前单场试映 (${activeShots.length}镜)`}</span>
             </button>
           )}
+
+          {/* Dynamic 9:16 Vertical / 16:9 Landscape Aspect Ratio Toggle Button */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = activeAspectRatio === "9:16" ? "16:9" : "9:16";
+              setActiveAspectRatio(next);
+              notify.info(next === "9:16" ? "📱 已切换至 9:16 竖屏微短剧沉浸放映画幅" : "🖥️ 已切换至 16:9 宽银幕横屏放映画幅");
+            }}
+            className={cn(
+              "px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer border shadow-sm",
+              activeAspectRatio === "9:16"
+                ? "bg-sky-500/20 text-sky-300 border-sky-400/40 hover:bg-sky-500/30"
+                : "bg-amber-500/20 text-amber-300 border-amber-400/40 hover:bg-amber-500/30"
+            )}
+            title="点击在 9:16 竖屏短剧 与 16:9 宽屏放映 之间切换"
+          >
+            {activeAspectRatio === "9:16" ? <Smartphone className="w-3.5 h-3.5 text-sky-400" /> : <Monitor className="w-3.5 h-3.5 text-amber-400" />}
+            <span className="font-mono font-bold">{activeAspectRatio}</span>
+            <span className="hidden md:inline text-[10px] text-white/70">{activeAspectRatio === "9:16" ? "竖屏短剧" : "横屏宽幕"}</span>
+          </button>
         </div>
 
         {/* Keyboard shortcut hints in center */}
@@ -460,7 +495,12 @@ export const CinemaTheaterModal: React.FC<CinemaTheaterModalProps> = ({
 
         <div
           ref={containerRef}
-          className="relative w-full max-w-4xl aspect-video max-h-[75vh] rounded-2xl overflow-hidden shadow-2xl border border-white/15 bg-gradient-to-b from-slate-900 via-slate-950 to-black flex items-center justify-center group"
+          className={cn(
+            "relative rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 border bg-gradient-to-b from-slate-900 via-slate-950 to-black flex items-center justify-center group",
+            activeAspectRatio === "9:16"
+              ? "aspect-[9/16] h-[76vh] max-h-[76vh] w-auto max-w-[440px] mx-auto border-white/25 ring-1 ring-white/10 shadow-sky-500/10"
+              : "w-full max-w-4xl aspect-video max-h-[75vh] border-white/15"
+          )}
         >
           {currentShot?.storyboard_image_url ? (
             <img

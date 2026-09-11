@@ -1,0 +1,202 @@
+{
+  "title": "暗流协议 · 三集真实测试版",
+  "aspect_ratio": "9:16",
+  "target_duration": 36,
+  "story": "都市商战悬疑反转微短剧。暴雨之夜，女总裁顾清在顶层办公室质问合伙人沈默是泄露商业机密的内鬼，沈默却拿出染血U盘以当年车祸真相为筹码威逼盖章。生死抉择间，两人以假公章与假决裂布下天罗地网，最终引出真正的幕后真凶。",
+  "characters": [
+    {
+      "name": "顾清",
+      "role": "protagonist",
+      "personality": "冷静、凌厉、戒备心强、重情义的女总裁",
+      "visual_anchor": "冷峻年轻女性，深黑修身职业西服套装，干练利落及肩黑发，眼神清冷锐利，耳戴简约银色几何耳钉，职场气场强大",
+      "voice_preset": "female_cold"
+    },
+    {
+      "name": "沈默",
+      "role": "antagonist",
+      "personality": "深沉、隐忍、步步为营、心思缜密的商界精英合伙人",
+      "visual_anchor": "三十岁左右沉稳男性，深灰色双排扣羊毛西装，佩戴一副精致金丝半框眼镜，微卷短发，神情高深莫测，指间带有微小银戒",
+      "voice_preset": "male_deep"
+    }
+  ],
+  "locations": [
+    {
+      "name": "顶层总裁办公室·对峙桌",
+      "environment_type": "interior",
+      "visual_anchor": "极简奢华顶层高管办公室核心办公区，深色意大利大理石办公长桌，高背皮质办公椅，头顶极简线性冷光灯，窗外暴雨狂风",
+      "lighting_style": "暴雨夜冷调室内顶光与窗外偶现的刺目电闪雷鸣"
+    },
+    {
+      "name": "顶层总裁办公室·落地窗",
+      "environment_type": "interior",
+      "visual_anchor": "通透全景落地玻璃幕墙，雨水顺着玻璃狂暴冲刷滑落，窗外是雾霭沉沉的赛博摩天大楼天际线与闪烁红蓝警灯光晕",
+      "lighting_style": "窗外微弱城市霓虹夜光与室内暗部轮廓光"
+    }
+  ],
+  "props": [
+    {
+      "name": "《股权转让协议》",
+      "category": "document",
+      "visual_anchor": "高档象牙白加厚A4纸质合同文本，右上角盖有红印，第7页右下角带有醒目的红色印鉴与附件折角",
+      "description": "初始状态为带红印未签署，中间被火机引燃一角，最终被假公章盖下。"
+    },
+    {
+      "name": "《加密U盘》",
+      "category": "electronic",
+      "visual_anchor": "哑光黑色棱角微型金属U盘，边缘有三道微不可见的暗红血渍干涸痕迹，尾部有一颗微小的幽蓝指示灯孔",
+      "description": "初始夹在协议第7页，随后被沈默右手扣住威逼，最后推还给顾清。"
+    }
+  ],
+  "episodes": [
+    {
+      "episode_number": 1,
+      "title": "EP01 破局的缺口",
+      "target_duration": 12,
+      "hook_summary": "黄金前3秒协议拍桌雷鸣，女总裁直接当面摊牌指控内鬼",
+      "cliffhanger_hook": "翻开附件赫然出现染血的加密U盘，尘封三年的秘密暴露",
+      "payoff_summary": "打破平静表面，将内部合作瞬间推入生死博弈局",
+      "synopsis": "雷雨交加的顶层办公室，顾清当面质问沈默泄密，沈默反唇相讥让其查验协议附件，顾清意外翻出染血U盘陷入巨大震惊。",
+      "shots": [
+        {
+          "order": 1,
+          "duration": 4,
+          "shot_size": "close_up",
+          "camera_angle": "low_angle",
+          "camera_movement": { "type": "push_in", "speed": "fast" },
+          "subject": "顾清",
+          "action": "顾清将一份盖有鲜红印鉴的《股权转让协议》重重拍在黑色大理石桌面上，眼神凌厉如刀，窗外惊雷照亮她冷冽的侧脸。",
+          "dialogue": "沈默，董事会里的内鬼，果然是你。",
+          "speaker": "顾清",
+          "narrative_function": "核心破局钩子",
+          "lighting": "冷色高反差雷电闪光"
+        },
+        {
+          "order": 2,
+          "duration": 4,
+          "shot_size": "medium_shot",
+          "camera_angle": "eye_level",
+          "camera_movement": { "type": "pan_right", "speed": "normal" },
+          "subject": "沈默",
+          "action": "沈默慢条斯理地单手摘下金丝半框眼镜，折叠镜腿放在桌上，嘴角浮起一抹轻蔑而从容的冷笑。",
+          "dialogue": "顾总，签字盖章前，奉劝你先看看第7条附件。",
+          "speaker": "沈默",
+          "narrative_function": "矛盾升级与对抗",
+          "lighting": "冷峻漫射轮廓光"
+        },
+        {
+          "order": 3,
+          "duration": 4,
+          "shot_size": "extreme_close_up",
+          "camera_angle": "high_angle",
+          "camera_movement": { "type": "tilt_down", "speed": "slow" },
+          "subject": "顾清与染血U盘",
+          "action": "顾清手指颤抖地翻开协议第7页，一枚染着斑驳血迹的黑色金属U盘滑落出来，顾清面色剧变，呼吸一窒。",
+          "dialogue": "这串编码……怎么会在你手里？！",
+          "speaker": "顾清",
+          "narrative_function": "集尾强悬念卡点",
+          "lighting": "桌上台灯聚光聚焦点"
+        }
+      ]
+    },
+    {
+      "episode_number": 2,
+      "title": "EP02 焦灼的筹码",
+      "target_duration": 12,
+      "hook_summary": "右手下压染血U盘，以车祸底件相胁迫，压迫感拉满",
+      "cliffhanger_hook": "打火机点燃协议边缘，倒计时逼迫在公章与真相间抉择",
+      "payoff_summary": "利益威逼与情感防线双重崩溃，将情绪推至顶点",
+      "synopsis": "沈默扣住U盘揭露当年车祸真相，顾清试图动用公章反击，沈默直接点火引燃协议威逼盖章。",
+      "shots": [
+        {
+          "order": 1,
+          "duration": 4,
+          "shot_size": "close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": { "type": "zoom_in", "speed": "fast" },
+          "subject": "沈默的右手与U盘",
+          "action": "沈默右掌骤然按在桌上的染血U盘上，身体前倾，金丝眼镜下目光如鹰隼般死死盯住顾清。",
+          "dialogue": "三年前你父亲那场车祸的原始行车数据，全在里面。",
+          "speaker": "沈默",
+          "narrative_function": "承接前集悬念并加码筹码",
+          "lighting": "暗调硬光"
+        },
+        {
+          "order": 2,
+          "duration": 4,
+          "shot_size": "medium_shot",
+          "camera_angle": "low_angle",
+          "camera_movement": { "type": "dolly_in", "speed": "normal" },
+          "subject": "顾清",
+          "action": "顾清右手拉开抽屉握紧冰冷的硬质公章，指节泛白，牙关紧咬，胸口剧烈起伏。",
+          "dialogue": "你敢拿我父亲的命来做局逼我交权？！",
+          "speaker": "顾清",
+          "narrative_function": "主角情绪激化与反击挣扎",
+          "lighting": "阴沉雷光映衬"
+        },
+        {
+          "order": 3,
+          "duration": 4,
+          "shot_size": "close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": { "type": "static", "speed": "normal" },
+          "subject": "沈默手持打火机",
+          "action": "沈默冷酷地按动金属打火机，幽蓝火苗升起，直接凑近协议一角，纸张开始卷边发黑冒烟。",
+          "dialogue": "立刻盖章交出股权，或者，看着真相烧成灰烬。",
+          "speaker": "沈默",
+          "narrative_function": "集尾生死抉择卡点",
+          "lighting": "打火机幽蓝火光局部特写照明"
+        }
+      ]
+    },
+    {
+      "episode_number": 3,
+      "title": "EP03 深渊的回响",
+      "target_duration": 12,
+      "hook_summary": "绝境中公章决然按下，红印鲜明，生死尘埃落定",
+      "cliffhanger_hook": "楼下警笛撕裂暴雨夜，打火机吹灭迎来全面反转",
+      "payoff_summary": "假反目引蛇出洞，双雄联手收网，圆满闭环全剧",
+      "synopsis": "顾清在倒计时中决然盖章，沈默随后吹灭火苗推还U盘，道破假章引蛇出洞的默契配合，警笛长鸣真凶落网。",
+      "shots": [
+        {
+          "order": 1,
+          "duration": 4,
+          "shot_size": "wide_shot",
+          "camera_angle": "high_angle",
+          "camera_movement": { "type": "truck_left", "speed": "normal" },
+          "subject": "顾清盖章全景",
+          "action": "暴雨撞击着落地窗幕墙，顾清面无表情，高高举起公章轰然在协议签名栏上盖下鲜红印泥印记。",
+          "dialogue": "沈默，如你所愿，股权给你。",
+          "speaker": "顾清",
+          "narrative_function": "高潮行动落地",
+          "lighting": "宽阔冷灰环境光"
+        },
+        {
+          "order": 2,
+          "duration": 4,
+          "shot_size": "medium_close_up",
+          "camera_angle": "eye_level",
+          "camera_movement": { "type": "pull_back", "speed": "slow" },
+          "subject": "沈默灭火推U盘",
+          "action": "沈默轻轻一口气吹熄打火机火苗，将协议与染血U盘一起推回顾清面前，嘴角露出卸下重担的释然微笑。",
+          "dialogue": "精彩。顾总，潜逃的真内鬼，刚刚已经被你的假公章彻底引出来了。",
+          "speaker": "沈默",
+          "narrative_function": "核心高智商反转",
+          "lighting": "温和侧逆光"
+        },
+        {
+          "order": 3,
+          "duration": 4,
+          "shot_size": "long_shot",
+          "camera_angle": "low_angle",
+          "camera_movement": { "type": "crane_up", "speed": "slow" },
+          "subject": "双人落地窗剪影与警笛",
+          "action": "大厦楼下骤然爆发出凄厉刺耳的警笛轰鸣，闪烁的红蓝警灯光斑掠过落地窗，映照在并肩而立相视一笑的两人身上，镜头渐远定格。",
+          "dialogue": "（警笛与暴雨交织的沉重轰鸣渐弱收尾）",
+          "speaker": "旁白",
+          "narrative_function": "胜利终局定格",
+          "lighting": "红蓝警灯交替闪烁光晕"
+        }
+      ]
+    }
+  ]
+}

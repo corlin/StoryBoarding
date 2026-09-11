@@ -1042,6 +1042,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         isOpen={isTheaterOpen}
         shots={shots}
         sequences={displayProject?.sequences || []}
+        aspectRatio={displayProject?.aspect_ratio || "9:16"}
         initialShotId={theaterShotId}
         onSelectShot={selectShot}
         onClose={() => setIsTheaterOpen(false)}
