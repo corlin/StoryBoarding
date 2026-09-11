@@ -492,36 +492,6 @@ export const api = {
     return data;
   },
 
-  // Export URLs
-  getExportScriptUrl(projectId: string): string {
-    const base = getApiBaseUrl();
-    return base ? `${base}/api/export/script-markdown/${projectId}` : `/api/export/script-markdown/${projectId}`;
-  },
-
-  getExportBibleUrl(projectId: string): string {
-    const base = getApiBaseUrl();
-    return base ? `${base}/api/export/bible-markdown/${projectId}` : `/api/export/bible-markdown/${projectId}`;
-  },
-
-  getExportDirectorGlobalPromptUrl(projectId: string): string {
-    const base = getApiBaseUrl();
-    return base ? `${base}/api/export/director-global-prompt/${projectId}` : `/api/export/director-global-prompt/${projectId}`;
-  },
-
-  async fetchDirectorGlobalPrompt(projectId: string): Promise<string> {
-    const { data } = await apiClient.get(`/export/director-global-prompt/${projectId}`);
-    return data;
-  },
-
-  getExportImagesZipUrl(projectId: string): string {
-    const base = getApiBaseUrl();
-    return base ? `${base}/api/export/images-zip/${projectId}` : `/api/export/images-zip/${projectId}`;
-  },
-
-  getExportPackageUrl(projectId: string): string {
-    const base = getApiBaseUrl();
-    return base ? `${base}/api/export/package-zip/${projectId}` : `/api/export/package-zip/${projectId}`;
-  },
 
   // Adaptation Tradeoffs & Payoff Radar Studio
   async updateProjectAdaptationTradeoffs(projectId: string, tradeoffs: any): Promise<any> {
