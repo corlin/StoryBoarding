@@ -142,17 +142,13 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
     }
   }, [selectedShotId, viewMode]);
 
-  const gridClass = isVertical
-    ? gridCols === 2
-      ? "grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4"
+  // 严格所选即所得：选择几列在桌面工作台即严格呈现几列，仅在移动极窄视口兜底保底
+  const gridClass =
+    gridCols === 2
+      ? "grid-cols-1 sm:grid-cols-2 gap-4"
       : gridCols === 3
-      ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-      : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3"
-    : gridCols === 2
-    ? "grid-cols-1 md:grid-cols-2 gap-4"
-    : gridCols === 3
-    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-    : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3";
+      ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
+      : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3";
 
   return (
     <section className="flex flex-col h-full bg-background/50 select-none relative">
@@ -259,7 +255,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
             <button
               onClick={() => handleSetGridCols(4)}
               className={cn(
-                "px-2 py-0.5 rounded transition-colors hidden xl:block cursor-pointer",
+                "px-2 py-0.5 rounded transition-colors hidden md:block cursor-pointer",
                 gridCols === 4 ? "bg-background text-foreground font-semibold shadow-xs" : "hover:text-foreground"
               )}
               title="4列高密预览"
