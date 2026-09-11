@@ -5,7 +5,6 @@ import { projects, sequences, shots, characters, locations } from "../db/schema"
 import {
   generateShotScriptMarkdown,
   generateDirectorGlobalPrompt,
-  generateGenerationPackageZip,
   generateCharacterAndLocationBibleMarkdown,
 } from "../services/export";
 
@@ -75,28 +74,5 @@ router.get("/director-global-prompt/:projectId", async (c) => {
     "Content-Disposition": `attachment; filename="director_global_prompt_${projectId}.md"`,
   });
 });
-
-async function handleZipExport(c: any, filenamePrefix: string) {
-  const db = getDb(c.env.DB);
-  const projectId = c.req.param("projectId");
-  const { proj, shotList, charList, locList } = await getProjectAssets(db, projectId);
-
-  if (!proj) return c.text("Project not found", 404);
-
-  const zipBytes = await generateGenerationPackageZip(proj, shotList, charList, locList);
-  return new Response(zipBytes, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="${filenamePrefix}_${projectId}.zip"`,
-    },
-  });
-}
-
-// GET /api/export/package-zip/:projectId
-router.get("/package-zip/:projectId", (c) => handleZipExport(c, "generation_package"));
-
-// GET /api/export/images-zip/:projectId
-router.get("/images-zip/:projectId", (c) => handleZipExport(c, "storyboard_images"));
 
 export default router;
