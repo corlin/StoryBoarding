@@ -453,9 +453,9 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
               ) : filteredAssets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 border border-dashed border-border rounded-xl text-muted-foreground p-6 text-center space-y-2">
                   <Layers className="w-8 h-8 opacity-40 text-muted-foreground" />
-                  <p className="text-xs font-medium">全局资产库暂无此类资产</p>
+                  <p className="text-xs font-medium">常驻班底与资产库暂无此类资产</p>
                   <p className="text-[11px] text-muted-foreground/70 max-w-sm">
-                    在任意项目的【设定集 · 角色/场景/道具】面板中，点击「存入全局资产库」，即可在这里沉淀跨项目资产。
+                    在任意剧本的【Stage 01 设定工坊】中打开角色档案抽屉，点击「🌟 收录至常驻班底」，即可将精心打造的演员主角沉淀在此，供所有剧目随调随演。
                   </p>
                 </div>
               ) : (
