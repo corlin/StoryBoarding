@@ -780,6 +780,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           }}
           onOpenImportScript={() => setIsOpenScriptModal(true)}
           onOpenWizard={() => setIsWizardOpen(true)}
+          onOpenGlobalAssetLibrary={() => setIsGlobalAssetOpen(true)}
           onOpenCharacterProfile={(char) => {
             setSelectedProfileChar(char);
           }}
@@ -1090,6 +1091,12 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       <GlobalAssetLibraryModal
         isOpen={isGlobalAssetOpen}
         onClose={() => setIsGlobalAssetOpen(false)}
+        currentProjectId={effectiveProjectId}
+        onImportSuccess={async () => {
+          if (effectiveProjectId) {
+            await fetchProject(effectiveProjectId);
+          }
+        }}
       />
 
       <QuickStartWizardModal

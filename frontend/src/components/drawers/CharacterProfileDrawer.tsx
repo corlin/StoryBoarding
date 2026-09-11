@@ -1007,13 +1007,43 @@ ${genderStr === "female" ? "女性" : "男性"}，${ageStr}岁，身材匀称偏
 
           {/* Drawer Footer Actions */}
           <div className="px-6 py-4 border-t border-border bg-background/80 flex items-center justify-between shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-            >
-              取消
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await api.collectGlobalAsset({
+                      asset_type: "character",
+                      name: character.name,
+                      visual_anchor: character.visual_anchor || profile.appearance || profile.tags?.join("，") || "",
+                      reference_image_url: currentAvatarUrl || character.avatar_url || "",
+                      metadata: {
+                        personality: character.personality,
+                        voice_dna: profile.voice_traits?.tts_prompt || character.voice_dna,
+                        turnaround_prompt: profile.sheet_prompt || character.turnaround_prompt,
+                        profile_json: profile,
+                      },
+                    });
+                    notify.success(`🌟 已成功将「${character.name}」收录为您的常驻签约主角班底！在任何新剧本中均可直接选用。`);
+                  } catch (e: any) {
+                    console.error(e);
+                    notify.error(e?.message || "收录至班底失败");
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 transition-all cursor-pointer"
+                title="将此角色升格为导演的常驻演员班底，日后可在所有项目中直接指派出演"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span>收录至常驻班底</span>
+              </button>
+            </div>
             <button
               type="button"
               onClick={handleSaveAll}

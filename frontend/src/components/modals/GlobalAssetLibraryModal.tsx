@@ -165,9 +165,9 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
                   </>
                 ) : (
                   <>
-                    <span>用户级 · 跨项目全局资产库</span>
+                    <span>导演专属资产中心 · 常驻演员班底与影棚</span>
                     <span className="text-xs px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/25 font-mono">
-                      GLOBAL ASSET LIBRARY
+                      DIRECTOR TALENT & ASSET ROSTER
                     </span>
                   </>
                 )}
@@ -175,7 +175,9 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
               <p className="text-xs text-muted-foreground mt-0.5">
                 {selectedAsset
                   ? "查看该资产的定妆基准、外貌特征提示词、配音音色与跨工程复用配置"
-                  : "独立于单一项目保存。沉淀您的主角班底、经典场景与传世道具，随时一键跨项目导入复用。"}
+                  : currentProjectId
+                  ? "沉淀您的签约主角班底、经典场景与传世道具。点击「✨ 选用入剧」即可直接指派出演当前剧目。"
+                  : "独立于单一项目保存。沉淀您的主角班底、经典场景与传世道具，随时跨剧指派选用。"}
               </p>
             </div>
           </div>
@@ -262,13 +264,19 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
                       {importingId === selectedAsset.id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <Download className="w-4 h-4" />
+                        <Sparkles className="w-4 h-4" />
                       )}
-                      <span>导入至当前项目</span>
+                      <span>
+                        {selectedAsset.asset_type === "character"
+                          ? "指派出演当前剧本 (选用)"
+                          : selectedAsset.asset_type === "location"
+                          ? "选为当前剧本场景"
+                          : "选为当前剧本道具"}
+                      </span>
                     </button>
                   ) : (
-                    <span className="text-[11px] text-muted-foreground">
-                      💡 在工程工作台内打开可直接导入此资产
+                    <span className="text-xs text-muted-foreground italic">
+                      在项目工作台打开即可一键选用入剧
                     </span>
                   )}
                 </div>
@@ -531,7 +539,7 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
 
-                          {currentProjectId && (
+                          {currentProjectId ? (
                             <button
                               type="button"
                               disabled={isImporting}
@@ -544,10 +552,20 @@ export const GlobalAssetLibraryModal: React.FC<GlobalAssetLibraryModalProps> = (
                               {isImporting ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               ) : (
-                                <Download className="w-3.5 h-3.5" />
+                                <Sparkles className="w-3.5 h-3.5" />
                               )}
-                              <span>导入至当前项目</span>
+                              <span>
+                                {asset.asset_type === "character"
+                                  ? "选用入剧"
+                                  : asset.asset_type === "location"
+                                  ? "选为场景"
+                                  : "选为道具"}
+                              </span>
                             </button>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground italic">
+                              打开工程后可选用
+                            </span>
                           )}
                         </div>
                       </div>

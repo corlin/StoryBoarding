@@ -49,6 +49,7 @@ interface PrepBibleStudioViewProps {
   onOpenCharacterBible?: () => void;
   onOpenLocationBible?: () => void;
   onOpenPropBible?: () => void;
+  onOpenGlobalAssetLibrary?: () => void;
 }
 
 export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
@@ -60,6 +61,7 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
   onOpenCharacterBible,
   onOpenLocationBible,
   onOpenPropBible,
+  onOpenGlobalAssetLibrary,
 }) => {
   const [leftActiveTab, setLeftActiveTab] = useState<"outline" | "style">("outline");
   const [rightActiveTab, setRightActiveTab] = useState<"characters" | "locations" | "props">("characters");
@@ -507,15 +509,34 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
                 {rightActiveTab === "props" && "关键叙事与道具锚点"}
               </div>
 
+              {/* Talent Pool & Asset Roster Picker */}
+              {onOpenGlobalAssetLibrary && (
+                <button
+                  type="button"
+                  onClick={onOpenGlobalAssetLibrary}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 transition-all cursor-pointer shadow-xs"
+                  title="从导演专属资产中心挑选常驻主角班底、经典影棚场景或传世道具"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                  <span>
+                    {rightActiveTab === "characters"
+                      ? "从班底选角"
+                      : rightActiveTab === "locations"
+                      ? "从影棚选用"
+                      : "从资产库选用"}
+                  </span>
+                </button>
+              )}
+
               {rightActiveTab === "characters" && (
                 <button
                   type="button"
                   onClick={onOpenCharacterBible}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 transition-all cursor-pointer shadow-xs"
-                  title="添加新角色、管理演员定妆照或调整视觉锚点"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-secondary hover:bg-secondary/80 border border-border text-foreground transition-all cursor-pointer shadow-xs"
+                  title="新建试镜角色或调整角色档案"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>管理/新建角色定妆</span>
+                  <span>新建试镜角色</span>
                 </button>
               )}
 
@@ -523,11 +544,11 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
                 <button
                   type="button"
                   onClick={onOpenLocationBible}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 transition-all cursor-pointer shadow-xs"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-secondary hover:bg-secondary/80 border border-border text-foreground transition-all cursor-pointer shadow-xs"
                   title="添加新场景或调整场景光影锚点"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>管理/新建场景</span>
+                  <span>新建剧本场景</span>
                 </button>
               )}
 
@@ -535,11 +556,11 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
                 <button
                   type="button"
                   onClick={onOpenPropBible}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 transition-all cursor-pointer shadow-xs"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-secondary hover:bg-secondary/80 border border-border text-foreground transition-all cursor-pointer shadow-xs"
                   title="添加剧情信物或调整道具特征"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>管理/新建道具</span>
+                  <span>新建道具物料</span>
                 </button>
               )}
             </div>
