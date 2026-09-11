@@ -839,6 +839,10 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           onOpenCharacterProfile={(char) => {
             setSelectedProfileChar(char);
           }}
+          onOpenCharacterBible={() => {
+            setBibleMode("characters");
+            setIsOpenBibleModal(true);
+          }}
           onOpenLocationBible={() => {
             setBibleMode("locations");
             setIsOpenBibleModal(true);

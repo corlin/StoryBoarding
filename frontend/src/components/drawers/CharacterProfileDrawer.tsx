@@ -18,10 +18,15 @@ import {
   Camera,
   Layers,
   Wand2,
+  Loader2,
+  Maximize2,
+  ExternalLink,
+  Smartphone,
 } from "lucide-react";
 import { CharacterModel, CharacterProfile } from "@/types/shot";
 import { notify } from "@/components/ui/ToastNotification";
 import { cn } from "@/lib/utils";
+import { api, normalizeAssetUrl } from "@/lib/api";
 
 interface CharacterProfileDrawerProps {
   isOpen: boolean;
@@ -43,6 +48,9 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
   // Local state for profile_json
   const [profile, setProfile] = useState<CharacterProfile>({});
   const [tagInput, setTagInput] = useState("");
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string>("");
+  const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
 
   // New relation input
   const [newRelTarget, setNewRelTarget] = useState("");
@@ -85,10 +93,40 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
           tts_prompt: character.voice_dna || "",
         },
       });
+      setCurrentAvatarUrl(character.avatar_url || "");
     }
   }, [character]);
 
   if (!isOpen || !character) return null;
+
+  const handleGenerateAvatar = async () => {
+    if (!character.id) return;
+    try {
+      setIsGeneratingAvatar(true);
+      const promptToUse = profile.sheet_prompt || character.turnaround_prompt;
+      const res = await api.generateCharacterAvatar(character.id, {
+        prompt: promptToUse,
+      });
+      if (res.success && res.character?.avatar_url) {
+        setCurrentAvatarUrl(res.character.avatar_url);
+        const updatedChar: CharacterModel = {
+          ...character,
+          avatar_url: res.character.avatar_url,
+          turnaround_prompt: res.character.turnaround_prompt || promptToUse,
+          profile_json: profile,
+        };
+        onSave(updatedChar);
+        notify.success(`✨ 已为「${character.name}」成功冲印最新基准定妆照并自动存档！`);
+      } else {
+        notify.error("生成定妆照未返回有效图片地址");
+      }
+    } catch (err: any) {
+      console.error("生成定妆照异常:", err);
+      notify.error(err?.response?.data?.detail || err?.message || "生成定妆照失败，请检查网络或 API Key 设置");
+    } finally {
+      setIsGeneratingAvatar(false);
+    }
+  };
 
   const handleAddTag = () => {
     if (!tagInput.trim()) return;
@@ -270,6 +308,90 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
             {/* TAB 1: Profile & Evidences */}
             {activeTab === "profile" && (
               <div className="space-y-6 animate-in fade-in duration-150">
+                {/* Visual Anchor: Character Model Sheet Preview Card (Industry Standard) */}
+                <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-950/40 via-background to-purple-950/30 border border-indigo-500/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Camera className="w-4 h-4 text-indigo-400" />
+                      <h3 className="text-xs font-bold text-foreground">基准定妆卡监看 (Character Turnaround / Model Sheet)</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {currentAvatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setLightboxImage({ url: normalizeAssetUrl(currentAvatarUrl), title: `${character.name} · 定妆大图` })}
+                          className="text-[11px] text-indigo-300 hover:text-indigo-200 inline-flex items-center gap-1 font-mono hover:underline cursor-pointer"
+                        >
+                          <Maximize2 className="w-3 h-3" />
+                          <span>查看大图</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={isGeneratingAvatar}
+                        onClick={handleGenerateAvatar}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer",
+                          isGeneratingAvatar
+                            ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 opacity-60 cursor-not-allowed"
+                            : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-950/50"
+                        )}
+                        title="使用下方定妆指令一键调用 AI 冲印模型生成最新定妆照"
+                      >
+                        {isGeneratingAvatar ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>定妆冲印中...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-3.5 h-3.5" />
+                            <span>🎨 立即 AI 冲印定妆卡</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Image Display Canvas: 16:9 / Full View */}
+                  <div
+                    onClick={() => {
+                      if (currentAvatarUrl) {
+                        setLightboxImage({ url: normalizeAssetUrl(currentAvatarUrl), title: `${character.name} · 定妆卡` });
+                      }
+                    }}
+                    className={cn(
+                      "w-full h-44 sm:h-52 rounded-xl bg-black/50 border border-border/80 flex items-center justify-center overflow-hidden relative group/canvas",
+                      currentAvatarUrl ? "cursor-zoom-in" : "cursor-default"
+                    )}
+                  >
+                    {currentAvatarUrl ? (
+                      <>
+                        <img
+                          src={normalizeAssetUrl(currentAvatarUrl)}
+                          alt={character.name}
+                          className="w-full h-full object-contain group-hover/canvas:scale-[1.01] transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/canvas:opacity-100 transition-opacity flex items-center justify-center text-xs text-white font-mono gap-1">
+                          <Maximize2 className="w-4 h-4" />
+                          <span>点击全屏查看高清定妆图</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center p-4 space-y-2 text-muted-foreground">
+                        <Camera className="w-8 h-8 mx-auto opacity-30 text-indigo-400" />
+                        <p className="text-xs">暂无定妆照，可在下方选择模版指令后点击右上角「🎨 立即 AI 冲印定妆卡」</p>
+                      </div>
+                    )}
+                    {isGeneratingAvatar && (
+                      <div className="absolute inset-0 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center text-center p-4 space-y-2">
+                        <Loader2 className="w-7 h-7 text-indigo-400 animate-spin" />
+                        <p className="text-xs font-semibold text-indigo-200">暗房显影中 · 正在生成角色三区定妆卡...</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* 6D Dimension Attributes */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
@@ -343,7 +465,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-[10px] text-muted-foreground block mb-1">视觉造型基准 (Appearance Anchor)</label>
+                    <label className="text-[10px] text-muted-foreground block mb-1">外貌与服化道视觉锚点 (Appearance / Visual DNA)</label>
                     <textarea
                       rows={2}
                       value={profile.appearance || ""}
@@ -354,12 +476,12 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                   </div>
                 </div>
 
-                {/* Director Studio & industry-standard 16:9 Model Sheet Generator */}
+                {/* Director Studio & industry-standard 16:9 / 9:16 Model Sheet Generator */}
                 <div className="space-y-3 pt-2 border-t border-border">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                       <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>16:9 黄金三区定妆卡指令 (Character Model Sheet)</span>
+                      <span>定妆卡生成指令 (Character Model Sheet Prompt)</span>
                     </label>
                     <div className="flex items-center gap-2">
                       <select
@@ -370,8 +492,9 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                         }}
                         className="text-[10px] bg-secondary/80 border border-border rounded px-2 py-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
                       >
-                        <option value="realistic">半写实厚涂 (Realistic · 推荐)</option>
-                        <option value="ghibli">吉卜力手绘 (Ghibli Cel)</option>
+                        <option value="realistic">16:9 半写实厚涂 (Realistic · 推荐)</option>
+                        <option value="ghibli">16:9 吉卜力手绘 (Ghibli Cel)</option>
+                        <option value="vertical_drama">9:16 竖屏短剧全身立绘卡 (Mobile Drama)</option>
                       </select>
                       <button
                         type="button"
@@ -383,16 +506,18 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                           let prompt = "";
                           if (style === "realistic") {
                             prompt = `Single character model sheet on ONE 16:9 landscape canvas. The canvas is divided into three zones by thin hairline rules. LEFT ZONE — vertical column occupying about 34% width: one bust portrait, head and shoulders, front-facing, centred, like an ID photograph, BOTH SHOULDERS FULLY VISIBLE, ending in a clean straight horizontal cut. Face rendered in sharpest focus: ${desc}. Young/adult skin with visible pores, wet specular eye highlight, natural asymmetry. LIGHTING IN LEFT ZONE ONLY: soft directional key light from upper left with gentle falloff, subtle ambient occlusion under chin. RIGHT-TOP ZONE — remaining 66%: three FULL-BODY views of SAME character standing side by side (front view, side profile, back view) on shared ground line. PROPORTIONS ARE CRITICAL: identical height, ratio, correct anatomy, relaxed posture. LIGHTING IN RIGHT ZONES: flat even orthographic lighting with no directional key and no cast shadows. RIGHT-BOTTOM ZONE: detail strip of 4-5 small isolated close-up studies (${tags}), detail studies give way, not the figures. Pure white background (#FFFFFF). Semi-realistic character illustration, painterly rendering, soft blended edges, anatomically grounded, 8k uhd --no plastic waxy skin, over-smoothed doll face, perfectly symmetrical face`;
-                          } else {
+                          } else if (style === "ghibli") {
                             prompt = `Single character model sheet on ONE 16:9 landscape canvas divided into three zones by thin hairline rules. Hand-painted anime cel illustration in the manner of classic Studio Ghibli feature animation: clean confident ink linework, simple flat cel shading, warm naturalistic palette. LEFT ZONE (~34% width): bust portrait front-facing, centred ID framing: ${desc}. Clean flat skin tone with single soft shadow shape and warm blush, clear expressive eyes with round highlight. RIGHT-TOP ZONE: three FULL-BODY views of SAME character standing side by side (front, side, back) on shared ground line, identical height and proportions. LIGHTING: even gentle daylight across whole sheet with single soft shadow tone. RIGHT-BOTTOM ZONE: 4-5 small isolated close-up studies of key props (${tags}). Pure white background (#FFFFFF). Clean lineart, masterpiece --no photorealistic, 3d render, hyperrealistic skin texture, visible pores, subsurface scattering, harsh contrast`;
+                          } else {
+                            prompt = `Vertical 9:16 mobile drama character turnaround sheet, clean solid white background (#FFFFFF). Dual-angle full-body view of SAME protagonist character standing side by side: standing front-facing relaxed pose on left, and 3/4 dynamic profile on right, plus one upper-chest portrait study at bottom: ${desc}, authentic facial features, modern urban wardrobe, tailored silhouette, 8k uhd, cinematic studio lighting, photorealistic textures --no deformed limbs, plastic skin, cropped head`;
                           }
                           setProfile({ ...profile, sheet_prompt: prompt });
-                          notify.success(`✨ 已生成 16:9 ${style === "realistic" ? "半写实厚涂" : "吉卜力"} 标准三区定妆提示词！`);
+                          notify.success(`✨ 已生成符合规范的定妆提示词！`);
                         }}
                         className="inline-flex items-center gap-1 text-[10px] font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 rounded px-2 py-0.5 transition-colors cursor-pointer"
                       >
                         <Wand2 className="w-3 h-3" />
-                        <span>自动合成 16:9 提示词</span>
+                        <span>自动合成提示词</span>
                       </button>
                     </div>
                   </div>
@@ -400,12 +525,21 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                     rows={3}
                     value={profile.sheet_prompt || ""}
                     onChange={(e) => setProfile({ ...profile, sheet_prompt: e.target.value })}
-                    placeholder="点击右上角「自动合成 16:9 提示词」生成符合黄金三区分区的完整英文指令..."
+                    placeholder="点击右上角「自动合成提示词」生成符合黄金三区分区或 9:16 竖屏立绘的完整英文指令..."
                     className="w-full bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-2.5 text-xs text-indigo-200 focus:outline-none focus:border-indigo-500 font-mono leading-relaxed"
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    📐 <strong>影视工业规范：</strong>左区 34% 头像定面部骨骼（带方向柔光）+ 右上三视图（正交平光无投影）+ 右下细节条。
-                  </p>
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>📐 <strong>影视工业规范：</strong>左区 34% 定骨骼 + 右上三视图（平光量体）+ 右下细节条；或 9:16 竖屏短剧立绘。</span>
+                    <button
+                      type="button"
+                      disabled={isGeneratingAvatar}
+                      onClick={handleGenerateAvatar}
+                      className="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Wand2 className="w-3 h-3" />
+                      <span>冲印定妆卡 ➔</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Character Tags / Pills */}
@@ -859,6 +993,32 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Fullscreen HD Lightbox Preview Modal */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="relative max-w-5xl max-h-[90vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full flex items-center justify-between text-white/90 mb-2 px-1">
+              <span className="text-xs font-bold font-mono tracking-wide">{lightboxImage.title}</span>
+              <button
+                type="button"
+                onClick={() => setLightboxImage(null)}
+                className="p-1 rounded bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <img
+              src={lightboxImage.url}
+              alt={lightboxImage.title}
+              className="max-w-full max-h-[82vh] object-contain rounded-lg border border-white/20 shadow-2xl bg-black/40"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

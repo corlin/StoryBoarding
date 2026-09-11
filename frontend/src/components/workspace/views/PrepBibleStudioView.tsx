@@ -46,6 +46,7 @@ interface PrepBibleStudioViewProps {
   onOpenImportScript?: () => void;
   onOpenWizard?: () => void;
   onOpenCharacterProfile?: (character: CharacterModel) => void;
+  onOpenCharacterBible?: () => void;
   onOpenLocationBible?: () => void;
   onOpenPropBible?: () => void;
 }
@@ -56,6 +57,7 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
   onOpenImportScript,
   onOpenWizard,
   onOpenCharacterProfile,
+  onOpenCharacterBible,
   onOpenLocationBible,
   onOpenPropBible,
 }) => {
@@ -505,6 +507,18 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
                 {rightActiveTab === "props" && "关键叙事与道具锚点"}
               </div>
 
+              {rightActiveTab === "characters" && (
+                <button
+                  type="button"
+                  onClick={onOpenCharacterBible}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 transition-all cursor-pointer shadow-xs"
+                  title="添加新角色、管理演员定妆照或调整视觉锚点"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>管理/新建角色定妆</span>
+                </button>
+              )}
+
               {rightActiveTab === "locations" && (
                 <button
                   type="button"
@@ -550,23 +564,42 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
                         className="p-3 rounded-xl bg-card border border-border/70 hover:border-primary/50 transition-all cursor-pointer group shadow-2xs space-y-2 flex flex-col justify-between"
                       >
                         <div className="flex items-start gap-2.5">
-                          <div className="w-12 h-12 rounded-lg bg-secondary/80 border border-border overflow-hidden shrink-0 flex items-center justify-center relative">
+                          <div className="w-24 h-14 rounded-lg bg-secondary/80 border border-border overflow-hidden shrink-0 flex items-center justify-center relative group/pic">
                             {avatarUrl ? (
-                              <img
-                                src={normalizeAssetUrl(avatarUrl)}
-                                alt={char.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                              />
+                              <>
+                                <img
+                                  src={normalizeAssetUrl(avatarUrl)}
+                                  alt={char.name}
+                                  className="w-full h-full object-cover group-hover/pic:scale-105 transition-transform"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/pic:opacity-100 transition-opacity flex items-center justify-center text-[9px] text-white font-mono">
+                                  定妆大图
+                                </div>
+                              </>
                             ) : (
-                              <Users className="w-5 h-5 text-muted-foreground/60" />
+                              <div className="flex flex-col items-center justify-center text-muted-foreground gap-0.5">
+                                <Users className="w-4 h-4 opacity-50" />
+                                <span className="text-[9px] font-mono">待定妆</span>
+                              </div>
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-1">
                               <h4 className="text-xs font-bold text-foreground truncate">{char.name}</h4>
-                              <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-secondary text-muted-foreground">
-                                {char.role === "protagonist" ? "主角" : char.role === "antagonist" ? "反派" : "配角"}
-                              </span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-secondary text-muted-foreground">
+                                  {char.role === "protagonist" ? "主角" : char.role === "antagonist" ? "反派" : "配角"}
+                                </span>
+                                {avatarUrl ? (
+                                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    已定妆
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                                    待冲印
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
                               {char.personality || char.visual_anchor || "暂无外貌描述"}
@@ -575,9 +608,9 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
                         </div>
 
                         <div className="flex items-center justify-between pt-1 border-t border-border/50 text-[10px] text-muted-foreground font-mono">
-                          <span>{char.voice_dna ? `🎙️ ${char.voice_dna}` : "未指定音色"}</span>
-                          <span className="text-primary group-hover:underline flex items-center gap-0.5">
-                            详情设定 <ChevronRight className="w-3 h-3" />
+                          <span className="truncate max-w-[150px]">{char.voice_dna ? `🎙️ ${char.voice_dna}` : "未指定音色"}</span>
+                          <span className="text-primary group-hover:underline flex items-center gap-0.5 shrink-0">
+                            定妆与人设 <ChevronRight className="w-3 h-3" />
                           </span>
                         </div>
                       </div>
