@@ -485,26 +485,58 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                     </label>
                     <div className="flex items-center gap-2">
                       <select
-                        value={profile.sheet_style || "realistic"}
+                        value={profile.sheet_style || "live_action_casting"}
                         onChange={(e: any) => {
                           const newStyle = e.target.value;
                           setProfile({ ...profile, sheet_style: newStyle });
                         }}
                         className="text-[10px] bg-secondary/80 border border-border rounded px-2 py-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
                       >
-                        <option value="realistic">16:9 半写实厚涂 (Realistic · 推荐)</option>
-                        <option value="ghibli">16:9 吉卜力手绘 (Ghibli Cel)</option>
-                        <option value="vertical_drama">9:16 竖屏短剧全身立绘卡 (Mobile Drama)</option>
+                        <option value="live_action_casting">🏆 16:9 影视实拍选角定妆卡 (Live-Action Casting · 推荐)</option>
+                        <option value="chinese_casting_spec">📜 中文专业角色设定卡 (导演台本规范)</option>
+                        <option value="realistic">🎬 16:9 黄金三区半写实厚涂 (Realistic)</option>
+                        <option value="ghibli">🎨 16:9 吉卜力手绘 (Ghibli Cel)</option>
+                        <option value="vertical_drama">📱 9:16 竖屏短剧全身立绘卡 (Mobile Drama)</option>
                       </select>
                       <button
                         type="button"
                         onClick={() => {
-                          const style = profile.sheet_style || "realistic";
-                          const desc = profile.appearance || character.visual_anchor || "East Asian features, realistic clothing";
+                          const style = profile.sheet_style || "live_action_casting";
+                          const desc = profile.appearance || character.visual_anchor || "28-year-old male, narrow oval face, sharp jawline, textured short black hair, clean facial features";
                           const tags = (profile.tags || []).join(", ") || "character details";
-                          
+                          const genderStr = profile.gender === "女" ? "female" : profile.gender === "男" ? "male" : "person";
+                          const ageStr = profile.age || "28";
+
                           let prompt = "";
-                          if (style === "realistic") {
+                          if (style === "live_action_casting") {
+                            prompt = `A professional real-life live-action character casting sheet on ONE 16:9 landscape canvas, seamless clean light grey-white studio photography background. The canvas is strictly divided into two sections by composition: LEFT ZONE (strictly 1/3 of total width): one ultra-sharp high-definition front-facing bust portrait ID photo taken with an 85mm portrait lens, head and shoulders fully in frame, body and face perfectly squared to camera, horizontal eye-level gaze, neutral restrained expression, lips gently closed without smiling, soft even frontal studio beauty lighting, sharp authentic skin texture with visible pores and natural micro-details (${desc}), absolutely no plastic waxy skin, no excessive airbrushing. RIGHT ZONE (strictly 2/3 of total width): exactly THREE full-body orthographic turnaround views of the EXACT SAME character standing side by side from left to right on a shared horizontal baseline: 1) Full frontal view facing camera directly in relaxed neutral posture; 2) Strict 90-degree profile side view showing precise head-to-toe silhouette; 3) Full back view facing away completely showing rear hairstyle and back of wardrobe. All three figures must be captured head-to-toe without cropping, identical height, identical anatomical proportions, standing relaxed with arms resting naturally at sides, zero perspective distortion, standard focal length. Matching consistent modern wardrobe across all views. High-end cinematic casting call portfolio, 8k uhd, photorealistic, master cinematography --no cartoon, anime, 3D render, plastic waxy skin, distorted limbs, mutated fingers, text, watermark, rulers, arrows`;
+                          } else if (style === "chinese_casting_spec") {
+                            prompt = `请根据提供的人物参考照片，提取并严格保留参考人物的真实外貌特征，为他制作一张专业的真人角色设定卡。参考照片仅用于确定人物身份、面部五官、脸型、肤色、发型及耳饰，不要照搬原照片的拍摄角度、背景和服装。
+
+【人物设定】
+${genderStr === "female" ? "女性" : "男性"}，${ageStr}岁，身材匀称偏瘦。
+外貌特征：${profile.appearance || character.visual_anchor || "偏长的窄椭圆脸型、清晰利落的下颌线、略尖的下巴；浓密自然的平直眉；细长的深色杏仁眼，轻微内双；鼻梁直而偏窄；嘴唇偏薄轮廓清晰；黑色蓬松短发"}。整体气质冷静、利落。
+必须严格保留参考人物的身份辨识度，不得将其生成成另一个人，不得擅自改变脸型、五官比例、年龄、肤色、发型及配饰。
+
+【画面规格】
+生成一整张横向16:9角色卡，所有内容整合在同一画幅内，采用干净的浅灰白色无缝摄影棚背景。
+画面左侧严格占据总宽度的1/3，放置一张高清正面证件照：
+* 人物头部与肩部完整入镜；身体和面部完全正对镜头；双眼保持水平，头部端正不歪头；
+* 神情自然克制，嘴唇闭合不微笑；采用柔和均匀的正面摄影棚光线；
+* 面部清晰锐利，保留真实皮肤纹理和毛孔；不得磨皮过度，不得产生蜡像感或塑料感。
+
+画面右侧严格占据总宽度的2/3，依次排列同一人物的三张全身三视图：
+1. 正面全身照：身体完全正对镜头；
+2. 侧面全身照：严格90度侧身，呈现标准人物侧面轮廓；
+3. 背面全身照：人物完全背对镜头，清楚呈现后脑发型与服装背面。
+三个人物必须从头到脚完整入镜，保持相同高度、相同人体比例和相同站立基线。人物自然直立，双脚平行，双臂自然垂放在身体两侧，不摆姿势，不做动作。三视图之间间距均匀，不重叠，不产生近大远小或广角透视畸变。
+
+【风格与画质】
+真人实拍摄影质感，专业演员选角照和影视角色资产卡风格。自然真实的人体比例，真实皮肤、真实头发丝、真实布料材质，柔和均匀的摄影棚光线，高清8K细节。左侧证件照接近85mm人像镜头效果，右侧三视图采用无明显透视畸变的标准人物摄影效果。
+
+【强制限制】
+整张图只能出现同一个人物的四个形象：左侧一张证件照，右侧三张全身照。不得增加其他人物或额外视图。四个形象必须保持完全相同的五官、年龄、肤色、发型、身材比例和服装，不得出现换脸、发型变化、服装变化或年龄变化。禁止卡通、动漫、插画、游戏CG、3D建模感、塑料皮肤、过度磨皮、透视畸变、肢体异常、头脚裁切。画面中不要出现文字、姓名、数字、身高标尺、箭头、边框、装饰图形、品牌标志、字幕或水印。`;
+                          } else if (style === "realistic") {
                             prompt = `Single character model sheet on ONE 16:9 landscape canvas. The canvas is divided into three zones by thin hairline rules. LEFT ZONE — vertical column occupying about 34% width: one bust portrait, head and shoulders, front-facing, centred, like an ID photograph, BOTH SHOULDERS FULLY VISIBLE, ending in a clean straight horizontal cut. Face rendered in sharpest focus: ${desc}. Young/adult skin with visible pores, wet specular eye highlight, natural asymmetry. LIGHTING IN LEFT ZONE ONLY: soft directional key light from upper left with gentle falloff, subtle ambient occlusion under chin. RIGHT-TOP ZONE — remaining 66%: three FULL-BODY views of SAME character standing side by side (front view, side profile, back view) on shared ground line. PROPORTIONS ARE CRITICAL: identical height, ratio, correct anatomy, relaxed posture. LIGHTING IN RIGHT ZONES: flat even orthographic lighting with no directional key and no cast shadows. RIGHT-BOTTOM ZONE: detail strip of 4-5 small isolated close-up studies (${tags}), detail studies give way, not the figures. Pure white background (#FFFFFF). Semi-realistic character illustration, painterly rendering, soft blended edges, anatomically grounded, 8k uhd --no plastic waxy skin, over-smoothed doll face, perfectly symmetrical face`;
                           } else if (style === "ghibli") {
                             prompt = `Single character model sheet on ONE 16:9 landscape canvas divided into three zones by thin hairline rules. Hand-painted anime cel illustration in the manner of classic Studio Ghibli feature animation: clean confident ink linework, simple flat cel shading, warm naturalistic palette. LEFT ZONE (~34% width): bust portrait front-facing, centred ID framing: ${desc}. Clean flat skin tone with single soft shadow shape and warm blush, clear expressive eyes with round highlight. RIGHT-TOP ZONE: three FULL-BODY views of SAME character standing side by side (front, side, back) on shared ground line, identical height and proportions. LIGHTING: even gentle daylight across whole sheet with single soft shadow tone. RIGHT-BOTTOM ZONE: 4-5 small isolated close-up studies of key props (${tags}). Pure white background (#FFFFFF). Clean lineart, masterpiece --no photorealistic, 3d render, hyperrealistic skin texture, visible pores, subsurface scattering, harsh contrast`;
@@ -512,7 +544,7 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                             prompt = `Vertical 9:16 mobile drama character turnaround sheet, clean solid white background (#FFFFFF). Dual-angle full-body view of SAME protagonist character standing side by side: standing front-facing relaxed pose on left, and 3/4 dynamic profile on right, plus one upper-chest portrait study at bottom: ${desc}, authentic facial features, modern urban wardrobe, tailored silhouette, 8k uhd, cinematic studio lighting, photorealistic textures --no deformed limbs, plastic skin, cropped head`;
                           }
                           setProfile({ ...profile, sheet_prompt: prompt });
-                          notify.success(`✨ 已生成符合规范的定妆提示词！`);
+                          notify.success(`✨ 已生成「${style === "live_action_casting" ? "16:9 实拍选角定妆卡" : style === "chinese_casting_spec" ? "中文专业角色设定卡" : "标准定妆卡"}」提示词！`);
                         }}
                         className="inline-flex items-center gap-1 text-[10px] font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 rounded px-2 py-0.5 transition-colors cursor-pointer"
                       >
@@ -522,14 +554,14 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
                     </div>
                   </div>
                   <textarea
-                    rows={3}
+                    rows={4}
                     value={profile.sheet_prompt || ""}
                     onChange={(e) => setProfile({ ...profile, sheet_prompt: e.target.value })}
-                    placeholder="点击右上角「自动合成提示词」生成符合黄金三区分区或 9:16 竖屏立绘的完整英文指令..."
+                    placeholder="选择上方模版类型并点击「自动合成提示词」..."
                     className="w-full bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-2.5 text-xs text-indigo-200 focus:outline-none focus:border-indigo-500 font-mono leading-relaxed"
                   />
                   <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>📐 <strong>影视工业规范：</strong>左区 34% 定骨骼 + 右上三视图（平光量体）+ 右下细节条；或 9:16 竖屏短剧立绘。</span>
+                    <span>📐 <strong>影视工业规范：</strong>左区 1/3 真实 85mm 正面证件照 + 右区 2/3 同基线全身正/侧(90°)/背三视图，浅灰白无缝棚光。</span>
                     <button
                       type="button"
                       disabled={isGeneratingAvatar}

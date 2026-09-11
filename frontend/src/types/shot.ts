@@ -104,7 +104,7 @@ export interface CharacterProfile {
   disposition?: string;
   motivation?: string;
   tags?: string[]; // e.g. ['拘谨', '警觉', '倔强']
-  sheet_style?: "realistic" | "ghibli";
+  sheet_style?: "realistic" | "ghibli" | "live_action_casting" | "chinese_casting_spec" | "vertical_drama" | string;
   sheet_prompt?: string; // 16:9 三区设定图出图指令
   arc_static?: string; // CAST 中的静态人物设定
   arc_dynamic?: string; // OUTLINE 中的戏剧转变弧光

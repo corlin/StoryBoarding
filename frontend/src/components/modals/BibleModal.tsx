@@ -42,8 +42,15 @@ interface BibleModalProps {
 
 const TURNAROUND_PRESETS = [
   {
+    id: "studio_16x9_live_action_casting",
+    name: "🏆 16:9 影视实拍选角定妆卡 (Live-Action Casting Sheet · 工业严选)",
+    desc: "左侧1/3正面高清85mm证件照(真实皮肤纹理与毛孔) + 右侧2/3等高正/侧90°/背三视图，无缝灰白棚背景，零透视畸变，严格防换脸",
+    template:
+      "A professional real-life live-action character model casting sheet on ONE 16:9 landscape canvas, seamless clean light grey-white studio photography background. The canvas is strictly divided into two sections: LEFT ZONE (strictly 1/3 of total width): one ultra-sharp high-definition front-facing bust portrait ID photo taken with an 85mm portrait lens, head and shoulders fully in frame, body and face perfectly squared to camera, horizontal eye-level gaze, neutral restrained expression, lips gently closed without smiling, soft even frontal studio beauty lighting, sharp authentic skin texture with visible pores and natural micro-details, absolutely no plastic waxy skin, no excessive airbrushing. RIGHT ZONE (strictly 2/3 of total width): exactly THREE full-body orthographic turnaround views of the EXACT SAME character arranged side by side from left to right on a shared horizontal baseline: 1) Full frontal view facing camera directly in relaxed neutral posture; 2) Strict 90-degree profile side view showing precise head-to-toe silhouette; 3) Full back view facing away completely showing rear hairstyle and back of wardrobe. All three figures must be captured head-to-toe without cropping, identical height, identical anatomical proportions, standing relaxed with arms resting naturally at sides, zero perspective distortion, standard focal length. Matching consistent modern wardrobe across all views. High-end cinematic casting call portfolio, 8k uhd, photorealistic, master cinematography --no cartoon, anime, 3D render, plastic waxy skin, distorted limbs, mutated fingers, text, watermark, rulers, arrows",
+  },
+  {
     id: "studio_16x9_realistic",
-    name: "🏆 16:9 黄金三区定妆卡 · 半写实厚涂 (标准短剧基准 · 推荐)",
+    name: "🎬 16:9 黄金三区定妆卡 · 半写实厚涂 (标准短剧基准)",
     desc: "左区34%半身像面部基准 + 右上全身正/侧/背三视图平光量体 + 右下4-5个细节条，纯白底",
     template:
       "Single character model sheet on ONE 16:9 landscape canvas. The canvas is divided into three zones by thin hairline rules. LEFT ZONE — about 34% width: one bust portrait, head and shoulders, front-facing, centred, like an ID photograph, BOTH SHOULDERS FULLY VISIBLE, ending in a clean straight cut. LIGHTING IN LEFT ZONE ONLY: soft directional key light from upper left with gentle falloff, subtle ambient occlusion under chin and neck. RIGHT-TOP ZONE — remaining 66%: three FULL-BODY views of SAME character standing side by side (front view, side profile, back view) on shared ground line. PROPORTIONS ARE CRITICAL: identical height, ratio, relaxed posture. LIGHTING IN RIGHT ZONES: flat even orthographic lighting with no directional key and no cast shadows. RIGHT-BOTTOM ZONE: detail strip of 4-5 small isolated close-up studies of key costume/props/accessories, detail studies give way, not the figures. Pure white background (#FFFFFF). Semi-realistic character illustration, painterly rendering, soft blended edges, anatomically grounded, 8k uhd --no plastic waxy skin, over-smoothed doll face, perfectly symmetrical face",
