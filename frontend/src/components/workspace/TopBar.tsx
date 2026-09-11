@@ -97,7 +97,6 @@ interface TopBarProps {
   onOpenCreateSnapshot?: () => void;
   onOpenVersions?: () => void;
   onOpenAssetLibrary?: () => void;
-  onOpenMediaLibrary?: () => void;
   onOpenDelete?: () => void;
   onOpenWizard?: () => void;
   onBatchRender?: () => void;
@@ -120,7 +119,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenCreateSnapshot,
   onOpenVersions,
   onOpenAssetLibrary,
-  onOpenMediaLibrary,
   onOpenDelete,
   onOpenWizard,
   onBatchRender,

@@ -13,11 +13,10 @@ import {
 } from "@/lib/productionKanban";
 import type { ProviderConfigApiResponse } from "@/types/modelConfig";
 
-interface ProductionKanbanModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+interface ProductionKanbanViewProps {
   projectId: string;
   projectTitle: string;
+  onBackToDeliverables?: () => void;
 }
 
 type ShotStatus = "待生成" | "生成中" | "失败" | "待审" | "退回" | "已采用";
@@ -121,7 +120,7 @@ function takeMetadata(take: Take): Record<string, any> {
   }
 }
 
-export default function ProductionKanbanModal({ isOpen, onClose, projectId, projectTitle }: ProductionKanbanModalProps) {
+export default function ProductionKanbanView({ projectId, projectTitle, onBackToDeliverables }: ProductionKanbanViewProps) {
   const [shots, setShots] = useState<KanbanShot[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [projectAspectRatio, setProjectAspectRatio] = useState("9:16");
@@ -449,14 +448,14 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
   };
 
   useEffect(() => {
-    if (isOpen) {
+    if (projectId) {
       loadKanban();
       loadCosts();
       loadEditVersions();
       loadTtsConfig();
       setTtsVoiceOverrides({});
     }
-  }, [isOpen, loadKanban, loadCosts, loadEditVersions, loadTtsConfig]);
+  }, [projectId, loadKanban, loadCosts, loadEditVersions, loadTtsConfig]);
 
   useEffect(() => {
     if (selectedShot) {
@@ -583,8 +582,6 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
     }
   };
 
-  if (!isOpen) return null;
-
   const filteredShots = activeFilter === "全部" ? shots : shots.filter((s) => s.status === activeFilter);
   const statuses: (ShotStatus | "全部")[] = ["全部", "待生成", "生成中", "失败", "待审", "退回", "已采用"];
   const visualTakes = takes.filter((take) => take.take_type !== "audio");
@@ -597,38 +594,44 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
   const currentExport = currentEditVersion?.export_result || {};
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-0 sm:p-4">
-      <div className="relative flex h-full w-full max-w-7xl flex-col rounded-none bg-[#0d1117] border border-[#21262d] shadow-2xl sm:h-[90vh] sm:rounded-xl">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#21262d] px-3 py-3 sm:px-6 sm:py-4">
-          <div>
-            <h2 className="text-lg font-bold text-white">生产看板 · Production Kanban</h2>
-            <p className="text-xs text-gray-400">{projectTitle} · 共 {shots.length} 镜</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <button
-              onClick={() => setShowExport(!showExport)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium ${
-                showExport ? "bg-green-600 text-white" : "bg-[#21262d] text-gray-300 hover:bg-[#30363d]"
-              }`}
-            >
-              导出整集
-            </button>
-            <button
-              onClick={() => {
-                loadKanban();
-                loadCosts();
-                loadEditVersions();
-              }}
-              className="rounded-md bg-[#21262d] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#30363d]"
-            >
-              刷新
-            </button>
-            <button onClick={onClose} className="rounded-md bg-[#21262d] px-3 py-1.5 text-sm text-gray-300 hover:bg-[#30363d]">
-              关闭
-            </button>
-          </div>
+    <div className="relative flex-1 flex flex-col h-full w-full bg-[#0d1117] overflow-hidden">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#21262d] px-4 py-3 sm:px-6 shrink-0 bg-[#161b22]/50">
+        <div>
+          <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <span>实拍镜头与成片生产看板 (Production Kanban)</span>
+          </h2>
+          <p className="text-xs text-gray-400">{projectTitle} · 共 {shots.length} 镜流水状态与候选 Take 采用</p>
         </div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => setShowExport(!showExport)}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
+              showExport ? "bg-green-600 text-white" : "bg-[#21262d] text-gray-300 hover:bg-[#30363d]"
+            }`}
+          >
+            导出整集与字幕
+          </button>
+          <button
+            onClick={() => {
+              loadKanban();
+              loadCosts();
+              loadEditVersions();
+            }}
+            className="rounded-md bg-[#21262d] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#30363d] cursor-pointer"
+          >
+            刷新数据
+          </button>
+          {onBackToDeliverables && (
+            <button
+              onClick={onBackToDeliverables}
+              className="rounded-md bg-primary/20 border border-primary/40 px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/30 cursor-pointer"
+            >
+              返回母盘清单
+            </button>
+          )}
+        </div>
+      </div>
 
         {/* Cost summary bar (P0-6) */}
         {costData && (
@@ -1247,6 +1250,5 @@ export default function ProductionKanbanModal({ isOpen, onClose, projectId, proj
           </div>
         )}
       </div>
-    </div>
   );
 }

@@ -18,9 +18,7 @@ import { AIGenerateModal } from "@/components/modals/AIGenerateModal";
 import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
-import { ProjectMediaLibraryModal } from "@/components/modals/ProjectMediaLibraryModal";
 import { QuickStartWizardModal } from "@/components/modals/QuickStartWizardModal";
-import ProductionKanbanModal from "@/components/modals/ProductionKanbanModal";
 import { WorkspaceLoadingScreen } from "@/components/workspace/WorkspaceLoadingScreen";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -61,11 +59,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
   const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
   const [isGlobalAssetOpen, setIsGlobalAssetOpen] = useState(false);
-  const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [isProductionKanbanOpen, setIsProductionKanbanOpen] = useState(false);
-  const hasAutoOpenedWizardRef = useRef(false);
   const abortBatchRenderRef = useRef(false);
 
   const {
@@ -287,17 +282,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
 
     return () => clearInterval(timer);
   }, [currentProject, shots, previewVersion, effectiveProjectId, fetchProject, isBatchRendering]);
-
-  // If newly created blank project (0 shots), automatically launch the 3-step Quick Wizard
-  useEffect(() => {
-    if (currentProject && !previewVersion && !hasAutoOpenedWizardRef.current) {
-      const allShots = currentProject.sequences?.flatMap((seq) => seq.shots || []) || [];
-      if (allShots.length === 0) {
-        hasAutoOpenedWizardRef.current = true;
-        setIsWizardOpen(true);
-      }
-    }
-  }, [currentProject, previewVersion]);
 
   // Handle episode switching: auto-close drawers, reset drawer selection, and select first shot of new episode
   const prevEpisodeIndexRef = useRef<number>(activeEpisodeIndex);
@@ -723,7 +707,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onOpenCreateSnapshot={() => setIsCreateSnapshotModalOpen(true)}
         onOpenVersions={() => setIsVersionsDrawerOpen(true)}
         onOpenAssetLibrary={() => setIsGlobalAssetOpen(true)}
-        onOpenMediaLibrary={() => setIsMediaLibraryOpen(true)}
         onOpenDelete={() => setIsOpenDeleteModal(true)}
         onOpenWizard={() => setIsWizardOpen(true)}
         onBatchRender={handleRegenerateDirty}
@@ -997,7 +980,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         <DeliverStudioView
           project={displayProject}
           shots={shots}
-          onOpenProductionKanban={() => setIsProductionKanbanOpen(true)}
         />
       )}
 
@@ -1110,12 +1092,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onClose={() => setIsGlobalAssetOpen(false)}
       />
 
-      <ProjectMediaLibraryModal
-        isOpen={isMediaLibraryOpen}
-        onClose={() => setIsMediaLibraryOpen(false)}
-        projectId={effectiveProjectId}
-      />
-
       <QuickStartWizardModal
         isOpen={isWizardOpen}
         onClose={() => setIsWizardOpen(false)}
@@ -1143,14 +1119,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
             narrative_center: "character",
           });
         }}
-      />
-
-      {/* P0-1: Production Kanban Modal */}
-      <ProductionKanbanModal
-        isOpen={isProductionKanbanOpen}
-        onClose={() => setIsProductionKanbanOpen(false)}
-        projectId={effectiveProjectId}
-        projectTitle={displayProject?.title || ""}
       />
     </div>
   );
