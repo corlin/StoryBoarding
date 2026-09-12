@@ -582,14 +582,73 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* Section: 经典短剧与电影题材工坊 (Interactive Sample Workshop) */}
+        {/* Section 1: 电影级生产力三大支柱 (FeaturedBentoGrid 立威) */}
+        <FeaturedBentoGrid />
+
+        {/* Section 2: 经典短剧与电影题材工坊 (InteractiveSampleWorkshop 海报诱导试玩) */}
         <InteractiveSampleWorkshop
           onApplyPrompt={handleApplyPreset}
           onExploreSample={handleExploreSample}
         />
 
-        {/* Section: 电影级生产力三大支柱 (FeaturedBentoGrid) */}
-        <FeaturedBentoGrid />
+        {/* Section 3: 底部收口行动号召 (Final CTA Banner) */}
+        <section className="w-full max-w-5xl mx-auto rounded-3xl p-8 sm:p-10 bg-gradient-to-r from-primary/20 via-purple-500/15 to-amber-500/20 border border-primary/30 text-center space-y-5 relative overflow-hidden shadow-2xl">
+          <div className="space-y-2 relative z-10">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 text-primary-foreground border border-primary/30 text-xs font-mono font-bold">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>开启你的下一部影视大作</span>
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+              准备好开启你的第一部 AI 故事板画卷了吗？
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
+              无需从零搭建拍摄团队。输入你的核心剧情，AI 导演即刻完成剧本拆解、镜头排期与全套视觉生成。
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 relative z-10 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (textareaRef.current) {
+                  textareaRef.current.focus();
+                  textareaRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+              }}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] cursor-pointer"
+            >
+              <span>立即输入灵感创作</span>
+              <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleExploreSample({
+                id: "contract-lover",
+                title: "合约恋人",
+                tag: "9:16 短剧",
+                author: "官方",
+                desc: "",
+                aspectRatio: "9:16",
+                duration: 180,
+                shotCount: 18,
+                coverImage: "",
+                presetStory: "",
+                sampleProjectId: "6f01c422-48ea-4796-afc7-09cc6447f764",
+                gradient: "",
+                borderHover: "",
+              })}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-secondary/90 hover:bg-secondary text-foreground text-xs font-bold border border-border transition-all hover:scale-[1.02] cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+              <span>0秒漫游官方样板房</span>
+            </button>
+          </div>
+
+          {/* Background ambient glow */}
+          <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -left-12 -top-12 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+        </section>
       </main>
 
       {/* Footer */}
