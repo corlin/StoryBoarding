@@ -27,90 +27,16 @@ import {
 } from "lucide-react";
 import { api, ProjectListItem, normalizeAssetUrl } from "@/lib/api";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
-import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelineProgress";
+import { CreateProjectModal, CreateProjectInitialValues } from "@/components/modals/CreateProjectModal";
 import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
 import { PitchIdeaGeneratorModal } from "@/components/modals/PitchIdeaGeneratorModal";
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
-import { NarrativeStyleSelector } from "@/components/director/NarrativeStyleSelector";
-import { NarrativeMode, NarrativeCenter } from "@/types/narrative";
+import { STARTER_TEMPLATES, OFFICIAL_SAMPLE_PROJECTS, StarterTemplate } from "@/data/dashboardPresets";
 import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
-
-const STARTER_TEMPLATES = [
-  {
-    id: "fantasy_creature",
-    title: "⚡ 8s 奇幻生物探索",
-    badge: "3 镜 · 尺度反差",
-    duration: 8,
-    storyTitle: "特立独行的小飞猪",
-    desc: "一只特立独行飞行的粉色小猪，戴着红色小围巾在晚霞中的哥特魔法古堡群尖顶间翱翔探索。",
-    gradient: "from-sky-500/20 via-sky-500/5 to-transparent border-sky-500/30 text-sky-300",
-  },
-  {
-    id: "cyber_glider",
-    title: "🎥 20s 未来机械预告",
-    badge: "6 镜 · 起承转合",
-    duration: 20,
-    storyTitle: "赛博滑翔鼠",
-    desc: "一只机灵活泼的小松鼠驾驶着复古机械滑翔翼，在未来赛博都市摩天大楼与发光全息广告牌间穿梭避障。",
-    gradient: "from-purple-500/20 via-purple-500/5 to-transparent border-purple-500/30 text-purple-300",
-  },
-  {
-    id: "matrix_combat",
-    title: "🥋 30s 终极动作大片",
-    badge: "12 镜 · 子弹时间",
-    duration: 30,
-    storyTitle: "黑客帝国：雨夜茶馆决战",
-    desc: "雨夜赛博朋克茶馆前，黑客墨客遭遇矩阵特工银狐，展开一场咏春拳与360度子弹时间的终极对决。",
-    gradient: "from-emerald-500/20 via-emerald-500/5 to-transparent border-emerald-500/30 text-emerald-300",
-  },
-  {
-    id: "classical_garden",
-    title: "🏮 15s 东方古典国风",
-    badge: "6 镜 · 诗意水墨",
-    duration: 15,
-    storyTitle: "大观园雪景寻梅",
-    desc: "冬日大观园雪景，古典亭台楼阁与荷塘残雪，身穿朱红云锦斗篷的人物缓步踏过石桥，回眸凝望落雪。",
-    gradient: "from-amber-500/20 via-amber-500/5 to-transparent border-amber-500/30 text-amber-300",
-  },
-];
-
-const OFFICIAL_SAMPLE_PROJECTS: ProjectListItem[] = [
-  {
-    id: "6f01c422-48ea-4796-afc7-09cc6447f764",
-    user_id: "demo",
-    title: "合约恋人",
-    story: "苏晓为治疗母亲病情放弃学业时，室友宋知远亮出资助人身份并拿出当年暗藏条款的合约。两人从对抗到发现彼此伤痕——宋知远妹妹曾因放弃梦想自杀，而苏晓母亲实则希望女儿继续学业。当医院催款单与录取通知书同时送达，宋知远变卖收藏替她缴费，苏晓终于看懂这份偏执守护。最终她带着两人的期待重返校园。",
-    target_duration: 180,
-    shot_count: 18,
-    cover_image_url: "https://storyboarding-api.caifu.social/api/assets/shots/6434ca0b-737e-4a72-96e6-0e64c587958e.jpg",
-    preview_images: ["https://storyboarding-api.caifu.social/api/assets/shots/6434ca0b-737e-4a72-96e6-0e64c587958e.jpg"],
-    style_config: {},
-    sequences: [],
-    created_at: "2026-09-04 15:59:37",
-    updated_at: "2026-09-04T16:00:20.989Z",
-  },
-  {
-    id: "2792deae-5f60-4246-850a-56b93eaf790a",
-    user_id: "demo",
-    title: "本草劫",
-    story: "为治疗怪病被献祭的阿蘅逃进深山，发现所谓瘟疫竟是权贵投毒。她救下追捕她的盲将军裴回，用百草汁液缓解他的蚀目之痛。当发现刺史要焚烧所有患病女子时，裴回教她兵法布阵，她教他听药辨症。最终阿蘅将计就计喝下毒酒，借脉搏变化传递刺史府地图；裴回则带兵杀入火场，用她调制的药烟让敌军自相残杀。",
-    target_duration: 180,
-    shot_count: 18,
-    cover_image_url: "https://storyboarding-api.caifu.social/api/assets/shots/23dd000d-4b9d-4349-b005-4305a7bd8a6d.jpg",
-    preview_images: [
-      "https://storyboarding-api.caifu.social/api/assets/shots/23dd000d-4b9d-4349-b005-4305a7bd8a6d.jpg",
-      "https://storyboarding-api.caifu.social/api/assets/shots/324ded61-56d4-4275-a38d-76fdfd285644.jpg",
-    ],
-    style_config: {},
-    sequences: [],
-    created_at: "2026-09-04 01:22:36",
-    updated_at: "2026-09-04 01:22:36",
-  },
-];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -120,19 +46,13 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [createInitialValues, setCreateInitialValues] = useState<CreateProjectInitialValues>({});
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<ProjectListItem | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [exportingProjectId, setExportingProjectId] = useState<string | null>(null);
 
-  const [newTitle, setNewTitle] = useState("");
-  const [newStory, setNewStory] = useState("");
-  const [targetDuration, setTargetDuration] = useState(30);
-  const [aspectRatio, setAspectRatio] = useState<"9:16" | "16:9">("9:16");
-  const [narrativeMode, setNarrativeMode] = useState<NarrativeMode>("hollywood");
-  const [structuralArchetype, setStructuralArchetype] = useState<string>("single_space_standoff");
-  const [narrativeCenter, setNarrativeCenter] = useState<NarrativeCenter>("plot");
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
   const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
   const [isGlobalAssetModalOpen, setIsGlobalAssetModalOpen] = useState(false);
@@ -153,16 +73,6 @@ export default function DashboardPage() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isToolsMenuOpen]);
-
-  // Creation progress states
-  const [isSubmittingProject, setIsSubmittingProject] = useState(false);
-  const [creationElapsed, setCreationElapsed] = useState(0);
-  const [creationProgress, setCreationProgress] = useState(0);
-  const [creationStage, setCreationStage] = useState(0);
-  const [creationComplete, setCreationComplete] = useState(false);
-  const [creationError, setCreationError] = useState<string | null>(null);
-
-  const progressIntervalRef = useRef<any>(null);
 
   const loadProjects = async () => {
     try {
@@ -194,11 +104,11 @@ export default function DashboardPage() {
 
   const handleOpenCreateModal = () => {
     if (!checkAuthAndKey("新建分镜工程")) return;
-    setNewTitle("");
-    setNewStory("");
-    setTargetDuration(30);
-    setIsSubmittingProject(false);
-    setCreationError(null);
+    setCreateInitialValues({
+      title: "",
+      story: "",
+      targetDuration: 30,
+    });
     setIsCreating(true);
   };
 
@@ -220,7 +130,7 @@ export default function DashboardPage() {
     router.push(`/workspace?id=${targetId}&open=${action}`);
   };
 
-  const handleApplyTemplate = async (tmpl: typeof STARTER_TEMPLATES[0]) => {
+  const handleApplyTemplate = async (tmpl: StarterTemplate) => {
     // 零 Token 成本样板房策略：未登录用户点击直接以官方 Demo 账号免密进入体验现成工程，无需调用 LLM 与生图接口
     if (!isAuthenticated) {
       try {
@@ -241,97 +151,12 @@ export default function DashboardPage() {
       notify.info("🎬 已为您填入模板故事！若要使用 AI 重新规划新镜头，请在「设置 ⚙️」中配置您的专属 OpenRouter API Key");
     }
 
-    setNewTitle(tmpl.storyTitle);
-    setNewStory(tmpl.desc);
-    setTargetDuration(tmpl.duration);
-    setIsSubmittingProject(false);
-    setCreationError(null);
+    setCreateInitialValues({
+      title: tmpl.storyTitle,
+      story: tmpl.desc,
+      targetDuration: tmpl.duration,
+    });
     setIsCreating(true);
-  };
-
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-
-    if (!isAuthenticated) {
-      notify.info("🎬 请先注册或登录专属导演账号后再创建工程");
-      openAuthModal("register");
-      return;
-    }
-
-    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
-    if (isDemoUser) {
-      notify.info("🎬 当前为公共体验账号！如需创建私有工程并生成 AI 分镜，请注册专属导演账号并在设置中填入 Key");
-      openAuthModal("register");
-      return;
-    }
-
-    // Pre-flight check: ensure user has configured an OpenRouter Key
-    const hasKey = Boolean(
-      user?.custom_settings?.has_llm_key ||
-      user?.custom_settings?.llmApiKey ||
-      user?.custom_settings?.llm_api_key
-    );
-
-    if (!hasKey) {
-      notify.info("🔑 请先在「设置」中配置您的专属 OpenRouter API Key，即可开启 AI 故事板创作");
-      openSettingsModal();
-      return;
-    }
-
-    setIsSubmittingProject(true);
-    setCreationElapsed(0);
-    setCreationProgress(5);
-    setCreationStage(0);
-    setCreationComplete(false);
-    setCreationError(null);
-
-    const startTime = Date.now();
-    progressIntervalRef.current = setInterval(() => {
-      const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
-      setCreationElapsed(elapsedSec);
-
-      if (elapsedSec < 3) {
-        setCreationStage(0);
-        setCreationProgress(Math.min(25, elapsedSec * 8 + 5));
-      } else if (elapsedSec < 8) {
-        setCreationStage(1);
-        setCreationProgress(Math.min(60, 25 + (elapsedSec - 3) * 7));
-      } else if (elapsedSec < 14) {
-        setCreationStage(2);
-        setCreationProgress(Math.min(90, 60 + (elapsedSec - 8) * 5));
-      } else {
-        setCreationStage(3);
-        setCreationProgress(95);
-      }
-    }, 500);
-
-    try {
-      const created = await api.createProject({
-        title: newTitle.trim(),
-        story: newStory.trim() || undefined,
-        target_duration: targetDuration,
-        aspect_ratio: aspectRatio,
-        narrative_mode: narrativeMode,
-        structural_archetype: narrativeMode === "drama_5min" ? structuralArchetype : undefined,
-        narrative_center: narrativeMode === "drama_5min" ? narrativeCenter : undefined,
-      });
-
-      clearInterval(progressIntervalRef.current);
-      setCreationProgress(100);
-      setCreationStage(3);
-      setCreationComplete(true);
-
-      setTimeout(() => {
-        setIsCreating(false);
-        setIsSubmittingProject(false);
-        router.push(`/workspace?id=${created.id}`);
-      }, 800);
-    } catch (err: any) {
-      clearInterval(progressIntervalRef.current);
-      console.error("Failed to create project:", err);
-      setCreationError(err?.response?.data?.detail || err?.message || "创建工程失败，请重试");
-    }
   };
 
   const handleQuickExport = async (e: React.MouseEvent, proj: ProjectListItem) => {
@@ -365,12 +190,6 @@ export default function DashboardPage() {
   const handleConfirmDelete = async (projectId: string) => {
     await api.deleteProject(projectId);
     await loadProjects();
-  };
-
-  const handleCancelCreate = () => {
-    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    setIsSubmittingProject(false);
-    setCreationError(null);
   };
 
   const filteredProjects = projects.filter((p) => {
@@ -916,164 +735,11 @@ export default function DashboardPage() {
       </footer>
 
       {/* Create Project Modal */}
-      {isCreating && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            {isSubmittingProject ? (
-              <DirectorPipelineProgress
-                title={newTitle}
-                story={newStory}
-                targetDuration={targetDuration}
-                progressPercent={creationProgress}
-                activeStageIndex={creationStage}
-                elapsedSeconds={creationElapsed}
-                isComplete={creationComplete}
-                errorMessage={creationError}
-                onRetry={() => {
-                  const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
-                  handleCreateProject(fakeEvent);
-                }}
-                onOpenSettings={() => {
-                  setIsSubmittingProject(false);
-                  setIsCreating(false);
-                  openSettingsModal();
-                }}
-                onCancel={handleCancelCreate}
-                onClose={handleCancelCreate}
-              />
-            ) : (
-              <form onSubmit={handleCreateProject} className="space-y-4">
-                <div className="flex items-center gap-2.5 pb-2 border-b border-border">
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-base">新建分镜工程</h3>
-                    <p className="text-xs text-muted-foreground">输入灵感梗概，AI 导演将自动完成剧情拆镜与视觉预演</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-foreground/90 block mb-1">
-                      工程标题 <span className="text-primary">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="例如：《黑客帝国：雨夜茶馆决战》"
-                      value={newTitle}
-                      onChange={(e) => setNewTitle(e.target.value)}
-                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-foreground/90">
-                        故事剧本 / 场景设定 (可选)
-                      </label>
-                      <span className="text-[11px] text-muted-foreground font-mono">
-                        {newStory.length}/500 字
-                      </span>
-                    </div>
-                    <textarea
-                      rows={4}
-                      placeholder="描述主角身份、核心冲突、环境氛围与关键动作... (留空将基于标题自动构思)"
-                      value={newStory}
-                      onChange={(e) => setNewStory(e.target.value)}
-                      className="w-full bg-background border border-border rounded-lg p-3 text-xs leading-relaxed focus:outline-none focus:border-primary resize-none font-medium"
-                    />
-                  </div>
-
-                  <NarrativeStyleSelector
-                    mode={narrativeMode}
-                    onModeChange={setNarrativeMode}
-                    archetype={structuralArchetype}
-                    onArchetypeChange={setStructuralArchetype}
-                    center={narrativeCenter}
-                    onCenterChange={setNarrativeCenter}
-                  />
-
-                  <div>
-                    <label className="text-xs font-medium text-foreground/90 block mb-1">
-                      画幅视听规格
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setAspectRatio("9:16")}
-                        className={cn(
-                          "flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium border transition-all cursor-pointer",
-                          aspectRatio === "9:16"
-                            ? "bg-primary/20 text-primary border-primary font-bold shadow-xs"
-                            : "bg-secondary/60 text-muted-foreground border-border hover:text-foreground"
-                        )}
-                      >
-                        <Smartphone className="w-3.5 h-3.5" />
-                        <span>9:16 竖屏微短剧 (推荐)</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAspectRatio("16:9")}
-                        className={cn(
-                          "flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium border transition-all cursor-pointer",
-                          aspectRatio === "16:9"
-                            ? "bg-primary/20 text-primary border-primary font-bold shadow-xs"
-                            : "bg-secondary/60 text-muted-foreground border-border hover:text-foreground"
-                        )}
-                      >
-                        <Film className="w-3.5 h-3.5" />
-                        <span>16:9 横屏电影级</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-foreground/90 block mb-1">
-                      目标成片时长 (秒)
-                    </label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[8, 15, 20, 30].map((dur) => (
-                        <button
-                          key={dur}
-                          type="button"
-                          onClick={() => setTargetDuration(dur)}
-                          className={cn(
-                            "py-2 rounded-lg text-xs font-mono font-medium border transition-all",
-                            targetDuration === dur
-                              ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                              : "bg-secondary/60 text-muted-foreground border-border hover:text-foreground"
-                          )}
-                        >
-                          {dur}s ({dur <= 8 ? "3 镜" : dur <= 20 ? "6 镜" : "12 镜"})
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreating(false)}
-                    className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                  >
-                    取消
-                  </button>
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>立即开始 AI 智能拆镜</span>
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+      <CreateProjectModal
+        isOpen={isCreating}
+        onClose={() => setIsCreating(false)}
+        initialValues={createInitialValues}
+      />
 
       {/* Delete Project Confirmation Modal */}
       <DeleteProjectModal

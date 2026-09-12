@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import { normalizeAssetUrl } from "@/lib/api";
+import { notify } from "@/components/ui/ToastNotification";
 import {
   compareProductionShots,
   configuredTtsVoiceOptions,
@@ -120,6 +121,162 @@ function takeMetadata(take: Take): Record<string, any> {
   }
 }
 
+interface ProductionTakeCardProps {
+  take: Take;
+  isRejecting: boolean;
+  rejectReason: string;
+  onRejectReasonChange: (val: string) => void;
+  onAdopt: (id: string) => void;
+  onStartReject: (id: string) => void;
+  onConfirmReject: (id: string) => void;
+  onCancelReject: () => void;
+}
+
+function ProductionTakeCard({
+  take,
+  isRejecting,
+  rejectReason,
+  onRejectReasonChange,
+  onAdopt,
+  onStartReject,
+  onConfirmReject,
+  onCancelReject,
+}: ProductionTakeCardProps) {
+  return (
+    <div
+      className={`rounded-lg border p-3 ${
+        take.is_adopted ? "border-green-500 bg-green-500/5" : "border-[#21262d] bg-[#161b22]"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        {/* Media preview */}
+        <div className="h-20 w-32 flex-shrink-0 overflow-hidden rounded bg-[#0d1117]">
+          {take.take_type === "image" && take.media_url ? (
+            <img
+              src={normalizeAssetUrl(take.media_url)}
+              alt="take"
+              className="h-full w-full object-cover"
+            />
+          ) : take.take_type === "video" && take.media_url ? (
+            <video
+              src={normalizeAssetUrl(take.media_url)}
+              className="h-full w-full object-cover"
+              controls
+              muted
+              playsInline
+            />
+          ) : take.take_type === "video" ? (
+            <div className="flex h-full items-center justify-center text-gray-500">
+              <span className="text-2xl">🎬</span>
+            </div>
+          ) : take.take_type === "audio" && take.media_url ? (
+            <audio
+              src={normalizeAssetUrl(take.media_url)}
+              className="h-full w-full"
+              controls
+            />
+          ) : take.take_type === "audio" ? (
+            <div className="flex h-full items-center justify-center text-gray-500">
+              <span className="text-2xl">🎵</span>
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center text-gray-600">无预览</div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-bold uppercase text-gray-400">
+              {take.take_type}
+            </span>
+            <span className="text-[10px] text-gray-500">
+              {take.source === "external_upload" ? "外部上传" : "AI生成"}
+            </span>
+            {take.is_adopted && (
+              <span className="rounded bg-green-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                已采用
+              </span>
+            )}
+            {take.review_status === "rejected" && (
+              <span className="rounded bg-purple-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                已退回
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-gray-500 mb-2">
+            {formatDbDate(take.created_at)}
+            {take.duration > 0 && ` · ${take.duration.toFixed(1)}s`}
+          </p>
+          {take.rejection_reason && (
+            <p className="text-[10px] text-purple-400 mb-2">退回原因: {take.rejection_reason}</p>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            {!take.is_adopted && take.review_status !== "rejected" && (
+              <>
+                <button
+                  onClick={() => onAdopt(take.id)}
+                  className="rounded bg-green-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-green-700"
+                >
+                  采用
+                </button>
+                <button
+                  onClick={() => onStartReject(take.id)}
+                  className="rounded bg-purple-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-purple-700"
+                >
+                  退回
+                </button>
+              </>
+            )}
+            {take.is_adopted && (
+              <span className="rounded bg-[#21262d] px-2 py-1 text-[10px] text-gray-400">
+                当前采用版本
+              </span>
+            )}
+            {take.media_url && (
+              <a
+                href={normalizeAssetUrl(take.media_url)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded bg-[#21262d] px-2 py-1 text-[10px] text-gray-400 hover:bg-[#30363d]"
+              >
+                查看
+              </a>
+            )}
+          </div>
+
+          {/* Reject reason input */}
+          {isRejecting && (
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="text"
+                value={rejectReason}
+                onChange={(e) => onRejectReasonChange(e.target.value)}
+                placeholder="退回原因..."
+                className="flex-1 rounded border border-[#30363d] bg-[#0d1117] px-2 py-1 text-[10px] text-white placeholder-gray-600"
+              />
+              <button
+                onClick={() => onConfirmReject(take.id)}
+                className="rounded bg-purple-600 px-2 py-1 text-[10px] font-bold text-white"
+              >
+                确认
+              </button>
+              <button
+                onClick={onCancelReject}
+                className="rounded bg-[#21262d] px-2 py-1 text-[10px] text-gray-400"
+              >
+                取消
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProductionKanbanView({ projectId, projectTitle, onBackToDeliverables }: ProductionKanbanViewProps) {
   const [shots, setShots] = useState<KanbanShot[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
@@ -135,11 +292,13 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
   const [rejectingTakeId, setRejectingTakeId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [uploadingShotId, setUploadingShotId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    if (type === "error") {
+      notify.error(msg);
+    } else {
+      notify.success(msg);
+    }
   };
 
   const loadKanban = useCallback(async () => {
@@ -895,144 +1054,20 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
                 ) : (
                   <div className="space-y-3">
                     {visualTakes.map((take) => (
-                      <div
+                      <ProductionTakeCard
                         key={take.id}
-                        className={`rounded-lg border p-3 ${
-                          take.is_adopted ? "border-green-500 bg-green-500/5" : "border-[#21262d] bg-[#161b22]"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          {/* Media preview */}
-                          <div className="h-20 w-32 flex-shrink-0 overflow-hidden rounded bg-[#0d1117]">
-                            {take.take_type === "image" && take.media_url ? (
-                              <img
-                                src={normalizeAssetUrl(take.media_url)}
-                                alt="take"
-                                className="h-full w-full object-cover"
-                              />
-                            ) : take.take_type === "video" && take.media_url ? (
-                              <video
-                                src={normalizeAssetUrl(take.media_url)}
-                                className="h-full w-full object-cover"
-                                controls
-                                muted
-                                playsInline
-                              />
-                            ) : take.take_type === "video" ? (
-                              <div className="flex h-full items-center justify-center text-gray-500">
-                                <span className="text-2xl">🎬</span>
-                              </div>
-                            ) : take.take_type === "audio" && take.media_url ? (
-                              <audio
-                                src={normalizeAssetUrl(take.media_url)}
-                                className="h-full w-full"
-                                controls
-                              />
-                            ) : take.take_type === "audio" ? (
-                              <div className="flex h-full items-center justify-center text-gray-500">
-                                <span className="text-2xl">🎵</span>
-                              </div>
-                            ) : (
-                              <div className="flex h-full items-center justify-center text-gray-600">无预览</div>
-                            )}
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[10px] font-bold uppercase text-gray-400">
-                                {take.take_type}
-                              </span>
-                              <span className="text-[10px] text-gray-500">
-                                {take.source === "external_upload" ? "外部上传" : "AI生成"}
-                              </span>
-                              {take.is_adopted && (
-                                <span className="rounded bg-green-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                                  已采用
-                                </span>
-                              )}
-                              {take.review_status === "rejected" && (
-                                <span className="rounded bg-purple-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                                  已退回
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-gray-500 mb-2">
-                              {formatDbDate(take.created_at)}
-                              {take.duration > 0 && ` · ${take.duration.toFixed(1)}s`}
-                            </p>
-                            {take.rejection_reason && (
-                              <p className="text-[10px] text-purple-400 mb-2">退回原因: {take.rejection_reason}</p>
-                            )}
-
-                            {/* Actions */}
-                            <div className="flex items-center gap-2">
-                              {!take.is_adopted && take.review_status !== "rejected" && (
-                                <>
-                                  <button
-                                    onClick={() => handleAdopt(take.id)}
-                                    className="rounded bg-green-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-green-700"
-                                  >
-                                    采用
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setRejectingTakeId(take.id);
-                                      setRejectReason("");
-                                    }}
-                                    className="rounded bg-purple-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-purple-700"
-                                  >
-                                    退回
-                                  </button>
-                                </>
-                              )}
-                              {take.is_adopted && (
-                                <button
-                                  onClick={() => setSelectedShot(selectedShot)}
-                                  className="rounded bg-[#21262d] px-2 py-1 text-[10px] text-gray-400 hover:bg-[#30363d]"
-                                >
-                                  当前采用版本
-                                </button>
-                              )}
-                              {take.media_url && (
-                                <a
-                                  href={normalizeAssetUrl(take.media_url)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="rounded bg-[#21262d] px-2 py-1 text-[10px] text-gray-400 hover:bg-[#30363d]"
-                                >
-                                  查看
-                                </a>
-                              )}
-                            </div>
-
-                            {/* Reject reason input */}
-                            {rejectingTakeId === take.id && (
-                              <div className="mt-2 flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={rejectReason}
-                                  onChange={(e) => setRejectReason(e.target.value)}
-                                  placeholder="退回原因..."
-                                  className="flex-1 rounded border border-[#30363d] bg-[#0d1117] px-2 py-1 text-[10px] text-white placeholder-gray-600"
-                                />
-                                <button
-                                  onClick={() => handleReject(take.id)}
-                                  className="rounded bg-purple-600 px-2 py-1 text-[10px] font-bold text-white"
-                                >
-                                  确认
-                                </button>
-                                <button
-                                  onClick={() => setRejectingTakeId(null)}
-                                  className="rounded bg-[#21262d] px-2 py-1 text-[10px] text-gray-400"
-                                >
-                                  取消
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                        take={take}
+                        isRejecting={rejectingTakeId === take.id}
+                        rejectReason={rejectReason}
+                        onRejectReasonChange={setRejectReason}
+                        onAdopt={handleAdopt}
+                        onStartReject={(id) => {
+                          setRejectingTakeId(id);
+                          setRejectReason("");
+                        }}
+                        onConfirmReject={handleReject}
+                        onCancelReject={() => setRejectingTakeId(null)}
+                      />
                     ))}
                   </div>
                 )}
@@ -1238,17 +1273,6 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
             )}
           </div>
         </div>
-
-        {/* Toast */}
-        {toast && (
-          <div
-            className={`absolute bottom-4 left-1/2 -translate-x-1/2 rounded-lg px-4 py-2 text-sm text-white shadow-lg ${
-              toast.type === "success" ? "bg-green-600" : "bg-red-600"
-            }`}
-          >
-            {toast.msg}
-          </div>
-        )}
       </div>
   );
 }

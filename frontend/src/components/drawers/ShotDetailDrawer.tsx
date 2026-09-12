@@ -4,14 +4,10 @@ import {
   Sparkles,
   Camera,
   Film,
-  Music,
-  SunMedium,
-  Layers,
   RefreshCw,
   Loader2,
   Copy,
   Check,
-  Eye,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -71,6 +67,81 @@ const CAMERA_MOVEMENT_OPTIONS = [
   { value: "orbital", label: "环绕运镜 (Orbital 360°)" },
 ];
 
+const compileShotH3 = (shot: ShotModel, formData: Partial<ShotModel>, promptLang: "en" | "zh") => {
+  const mergedShot: ShotModel = {
+    ...shot,
+    ...formData,
+    order: formData.order || shot.order || 1,
+    duration: formData.duration || shot.duration || 2.5,
+    shot_size: formData.shot_size || shot.shot_size,
+    camera_angle: formData.camera_angle || shot.camera_angle,
+    camera_movement: formData.camera_movement || shot.camera_movement || { type: "static" },
+    action: formData.action || shot.action || "",
+    dialogue: formData.dialogue || shot.dialogue || "",
+    dialogue_emotion: formData.dialogue_emotion || shot.dialogue_emotion,
+    subject: formData.subject || shot.subject,
+  } as ShotModel;
+  return generateH3Prompt([buildH3CutItem(mergedShot, 1)], { lang: promptLang });
+};
+
+interface MetadataSelectFieldProps {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+}
+
+const MetadataSelectField: React.FC<MetadataSelectFieldProps> = ({
+  label,
+  value,
+  options,
+  onChange,
+}) => (
+  <div>
+    <label className="text-xs font-medium text-muted-foreground block mb-1.5">{label}</label>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-primary cursor-pointer"
+    >
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+interface VisualInspectorItemProps {
+  badgeText: string;
+  badgeClass: string;
+  title: string;
+  subTitle?: string;
+  children: React.ReactNode;
+}
+
+const VisualInspectorItem: React.FC<VisualInspectorItemProps> = ({
+  badgeText,
+  badgeClass,
+  title,
+  subTitle,
+  children,
+}) => (
+  <div className="flex items-start gap-2.5">
+    <div className={cn("p-1 rounded text-xs font-mono shrink-0 mt-0.5", badgeClass)}>
+      {badgeText}
+    </div>
+    <div className="flex-1">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-foreground">{title}</span>
+        {subTitle && <span className="text-[10px] text-muted-foreground">{subTitle}</span>}
+      </div>
+      {children}
+    </div>
+  </div>
+);
+
 export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   isOpen,
   onClose,
@@ -86,14 +157,12 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   const [formData, setFormData] = useState<Partial<ShotModel>>({});
   const [promptLang, setPromptLang] = useState<"en" | "zh">("en");
   const [activeTab, setActiveTab] = useState<"script" | "camera" | "ai">("script");
-  const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isAdvancedVisualOpen, setIsAdvancedVisualOpen] = useState(false);
 
   // Auth & Key state perception
   const user = useAuthStore((s) => s.user);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
   const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
 
@@ -198,21 +267,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
     if (!onRegenerateImage || isRegenerating) return;
     setIsRegenerating(true);
     try {
-      const mergedShot: ShotModel = {
-        ...shot,
-        ...formData,
-        order: formData.order || shot.order || 1,
-        duration: formData.duration || shot.duration || 2.5,
-        shot_size: formData.shot_size || shot.shot_size,
-        camera_angle: formData.camera_angle || shot.camera_angle,
-        camera_movement: formData.camera_movement || shot.camera_movement || { type: "static" },
-        action: formData.action || shot.action || "",
-        dialogue: formData.dialogue || shot.dialogue || "",
-        dialogue_emotion: formData.dialogue_emotion || shot.dialogue_emotion,
-        subject: formData.subject || shot.subject,
-      } as ShotModel;
-
-      const compiledH3 = generateH3Prompt([buildH3CutItem(mergedShot, 1)], { lang: promptLang });
+      const compiledH3 = compileShotH3(shot, formData, promptLang);
 
       // Save updated prompt and fields
       await onUpdateShot(shot.id, {
@@ -826,89 +881,63 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
             <span>摄影机位与运镜设计</span>
           </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground block mb-1.5">景别 (Shot Size)</label>
-                <select
-                  value={formData.shot_size}
-                  onChange={(e) => handleChange("shot_size", e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-primary"
-                >
-                  {SHOT_SIZE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <MetadataSelectField
+              label="景别 (Shot Size)"
+              value={formData.shot_size || "medium_shot"}
+              options={SHOT_SIZE_OPTIONS}
+              onChange={(val) => handleChange("shot_size", val)}
+            />
+            <MetadataSelectField
+              label="机位视角 (Angle)"
+              value={formData.camera_angle || "eye_level"}
+              options={CAMERA_ANGLE_OPTIONS}
+              onChange={(val) => handleChange("camera_angle", val)}
+            />
+            <MetadataSelectField
+              label="运镜方式 (Movement)"
+              value={movType}
+              options={CAMERA_MOVEMENT_OPTIONS}
+              onChange={(val) =>
+                handleChange("camera_movement", {
+                  ...(formData.camera_movement as any),
+                  type: val,
+                })
+              }
+            />
+          </div>
 
-              <div>
-                <label className="text-xs font-medium text-muted-foreground block mb-1.5">机位视角 (Angle)</label>
-                <select
-                  value={formData.camera_angle}
-                  onChange={(e) => handleChange("camera_angle", e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-primary"
-                >
-                  {CAMERA_ANGLE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-muted-foreground block mb-1.5">运镜方式 (Movement)</label>
-                <select
-                  value={movType}
-                  onChange={(e) =>
-                    handleChange("camera_movement", {
-                      ...(formData.camera_movement as any),
-                      type: e.target.value,
-                    })
-                  }
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-primary"
-                >
-                  {CAMERA_MOVEMENT_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                预估时长（秒）
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0.5"
+                max="60"
+                value={formData.duration || 2.5}
+                onChange={(e) => handleChange("duration", parseFloat(e.target.value) || 2.5)}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary font-mono"
+              />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                  预估时长（秒）
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0.5"
-                  max="60"
-                  value={formData.duration || 2.5}
-                  onChange={(e) => handleChange("duration", parseFloat(e.target.value) || 2.5)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                  叙事功能 (Narrative Role)
-                </label>
-                <input
-                  type="text"
-                  value={formData.narrative_function || ""}
-                  onChange={(e) => handleChange("narrative_function", e.target.value)}
-                  placeholder="例如：环境建立 / 冲突爆发 / 反应特写"
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
-                />
-              </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                叙事功能 (Narrative Role)
+              </label>
+              <input
+                type="text"
+                value={formData.narrative_function || ""}
+                onChange={(e) => handleChange("narrative_function", e.target.value)}
+                placeholder="例如：环境建立 / 冲突爆发 / 反应特写"
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+              />
             </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Section 4: Layered Visual Inspector & AI Generation Prompts */}
       {activeTab === "ai" && (
@@ -918,82 +947,68 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
               <Sparkles className="w-4 h-4 text-emerald-400" />
               <span>分层视听检查器 (Layered Visual Inspector)</span>
             </div>
-              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                5 维分镜解构
-              </span>
-            </div>
+            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+              5 维分镜解构
+            </span>
+          </div>
 
-            {/* 5 Layered Visual Modules */}
-            <div className="space-y-3 bg-muted/20 p-3.5 rounded-xl border border-border/60">
-              {/* Module 1: Hero & Appearance */}
-              <div className="flex items-start gap-2.5">
-                <div className="p-1 rounded bg-amber-500/10 text-amber-400 text-xs font-mono shrink-0 mt-0.5">
-                  👤 人物
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-foreground">主角实体与定妆特征 (Hero Identity)</span>
-                    <span className="text-[10px] text-muted-foreground">全片连续性基石</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-                    {formData.subject || "默认主角实体 (由项目全局视觉基石锁定)"}
-                  </p>
-                </div>
+          {/* 5 Layered Visual Modules */}
+          <div className="space-y-3 bg-muted/20 p-3.5 rounded-xl border border-border/60">
+            <VisualInspectorItem
+              badgeText="👤 人物"
+              badgeClass="bg-amber-500/10 text-amber-400"
+              title="主角实体与定妆特征 (Hero Identity)"
+              subTitle="全片连续性基石"
+            >
+              <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                {formData.subject || "默认主角实体 (由项目全局视觉基石锁定)"}
+              </p>
+            </VisualInspectorItem>
+
+            <div className="h-[1px] bg-border/40" />
+
+            <VisualInspectorItem
+              badgeText="🏰 场景"
+              badgeClass="bg-sky-500/10 text-sky-400"
+              title="世界观与环境空间 (Environment)"
+            >
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {shot.lighting || "电影级通透环境光影，三层景深视差构图"}
+              </p>
+            </VisualInspectorItem>
+
+            <div className="h-[1px] bg-border/40" />
+
+            <VisualInspectorItem
+              badgeText="📐 构图"
+              badgeClass="bg-purple-500/10 text-purple-400"
+              title="景别构图与摄影机视角"
+            >
+              <div className="flex items-center gap-2 mt-1">
+                <span className="px-2 py-0.5 rounded bg-background border border-border text-xs font-mono text-sky-400 font-semibold">
+                  {formData.shot_size?.toUpperCase()}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-background border border-border text-xs font-mono text-purple-400">
+                  {formData.camera_angle}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-background border border-border text-xs font-mono text-emerald-400">
+                  {movType}
+                </span>
               </div>
+            </VisualInspectorItem>
 
-              <div className="h-[1px] bg-border/40" />
+            <div className="h-[1px] bg-border/40" />
 
-              {/* Module 2: Worldview & Environment */}
-              <div className="flex items-start gap-2.5">
-                <div className="p-1 rounded bg-sky-500/10 text-sky-400 text-xs font-mono shrink-0 mt-0.5">
-                  🏰 场景
-                </div>
-                <div className="flex-1">
-                  <span className="text-xs font-medium text-foreground">世界观与环境空间 (Environment)</span>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {shot.lighting || "电影级通透环境光影，三层景深视差构图"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="h-[1px] bg-border/40" />
-
-              {/* Module 3: Framing & Vantage */}
-              <div className="flex items-start gap-2.5">
-                <div className="p-1 rounded bg-purple-500/10 text-purple-400 text-xs font-mono shrink-0 mt-0.5">
-                  📐 构图
-                </div>
-                <div className="flex-1">
-                  <span className="text-xs font-medium text-foreground">景别构图与摄影机视角</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="px-2 py-0.5 rounded bg-background border border-border text-xs font-mono text-sky-400 font-semibold">
-                      {formData.shot_size?.toUpperCase()}
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-background border border-border text-xs font-mono text-purple-400">
-                      {formData.camera_angle}
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-background border border-border text-xs font-mono text-emerald-400">
-                      {movType}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="h-[1px] bg-border/40" />
-
-              {/* Module 4: Visual Action */}
-              <div className="flex items-start gap-2.5">
-                <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 text-xs font-mono shrink-0 mt-0.5">
-                  ⚡ 动作
-                </div>
-                <div className="flex-1">
-                  <span className="text-xs font-medium text-foreground">具象动态台本 (Visual Action)</span>
-                  <p className="text-xs text-foreground/90 mt-0.5 leading-relaxed font-medium">
-                    {formData.action || "主角展开具体动态调度..."}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <VisualInspectorItem
+              badgeText="⚡ 动作"
+              badgeClass="bg-emerald-500/10 text-emerald-400"
+              title="具象动态台本 (Visual Action)"
+            >
+              <p className="text-xs text-foreground/90 mt-0.5 leading-relaxed font-medium">
+                {formData.action || "主角展开具体动态调度..."}
+              </p>
+            </VisualInspectorItem>
+          </div>
 
             {/* Generated Pure Image Prompt Textarea */}
             <div className="space-y-4 pt-1">
@@ -1075,20 +1090,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        const mergedShot = {
-                          ...shot,
-                          ...formData,
-                          order: formData.order || shot.order || 1,
-                          duration: formData.duration || shot.duration || 2.5,
-                          shot_size: formData.shot_size || shot.shot_size,
-                          camera_movement: formData.camera_movement || shot.camera_movement,
-                          action: formData.action || shot.action || "",
-                          dialogue: formData.dialogue || shot.dialogue || "",
-                          dialogue_emotion: formData.dialogue_emotion || shot.dialogue_emotion,
-                          subject: formData.subject || shot.subject,
-                        };
-                        const cut = buildH3CutItem(mergedShot as ShotModel, 1);
-                        const h3 = generateH3Prompt([cut], { lang: promptLang });
+                        const h3 = compileShotH3(shot, formData, promptLang);
                         handleChange("h3_prompt", h3);
                         notify.success("已基于当前分镜参数重新编译 H3 视频生成提示词");
                       }}
@@ -1102,19 +1104,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        const mergedShot = {
-                          ...shot,
-                          ...formData,
-                          order: formData.order || shot.order || 1,
-                          duration: formData.duration || shot.duration || 2.5,
-                          shot_size: formData.shot_size || shot.shot_size,
-                          camera_movement: formData.camera_movement || shot.camera_movement,
-                          action: formData.action || shot.action || "",
-                          dialogue: formData.dialogue || shot.dialogue || "",
-                          dialogue_emotion: formData.dialogue_emotion || shot.dialogue_emotion,
-                          subject: formData.subject || shot.subject,
-                        };
-                        const content = formData.h3_prompt || generateH3Prompt([buildH3CutItem(mergedShot as ShotModel, 1)], { lang: promptLang });
+                        const content = formData.h3_prompt || compileShotH3(shot, formData, promptLang);
                         handleCopy(content, "h3");
                       }}
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-secondary hover:bg-muted text-foreground border border-border text-xs font-medium cursor-pointer transition-colors"
