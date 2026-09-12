@@ -15,10 +15,8 @@ import { CreateSnapshotModal } from "@/components/modals/CreateSnapshotModal";
 import { EpisodePillTrack } from "@/components/workspace/EpisodePillTrack";
 import { CharacterProfileDrawer } from "@/components/drawers/CharacterProfileDrawer";
 import { AIGenerateModal } from "@/components/modals/AIGenerateModal";
-import { ImportScriptModal } from "@/components/modals/ImportScriptModal";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
-import { QuickStartWizardModal } from "@/components/modals/QuickStartWizardModal";
 import { WorkspaceLoadingScreen } from "@/components/workspace/WorkspaceLoadingScreen";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -57,10 +55,8 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
   // Delegated Modal States (Centralized from TopBar)
   const [isOpenAIGenerateModal, setIsOpenAIGenerateModal] = useState(false);
   const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
-  const [isOpenScriptModal, setIsOpenScriptModal] = useState(false);
   const [isGlobalAssetOpen, setIsGlobalAssetOpen] = useState(false);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true);
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const abortBatchRenderRef = useRef(false);
 
   const {
@@ -241,7 +237,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           setIsOpenAIGenerateModal(true);
           break;
         case "import":
-          setIsOpenScriptModal(true);
+          setActiveStudioStage("storyboard");
           break;
       }
       try {
@@ -509,60 +505,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     }
   };
 
-  const handleImportScript = async (scriptText: string) => {
-    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
-    if (!isAuthenticated) {
-      notify.info("🎬 请先注册或登录导演账号");
-      openAuthModal("register");
-      return;
-    }
-    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
-    if (isDemoUser) {
-      notify.info("🎬 当前为公共体验账号！如需导入私有剧本进行解析，请注册专属导演账号并在个人设置中填入 Key");
-      openAuthModal("register");
-      return;
-    }
-    const hasKey = !!user?.custom_settings?.llmApiKey;
-    if (!hasKey) {
-      notify.info("🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启剧本解析服务");
-      openSettingsModal();
-      return;
-    }
-
-    if (previewVersion) {
-      setPreviewVersion(null);
-    }
-
-    setIsGenerating(true);
-    setGenerationStory(scriptText.slice(0, 80));
-    try {
-      let targetProjectId = effectiveProjectId;
-      if (targetProjectId === "demo" || targetProjectId === "demo-matrix-cyber-master") {
-        const newProj = await api.createProject({
-          title: "导入剧本工程",
-          story: scriptText.slice(0, 100),
-          target_duration: currentProject?.target_duration || 30.0,
-        });
-        targetProjectId = newProj.id;
-        router.push(`/workspace?id=${targetProjectId}`);
-      }
-
-      await api.generateFromScript({
-        project_id: targetProjectId,
-        script_text: scriptText,
-      });
-      await fetchProject(targetProjectId);
-      await loadVersions();
-      notify.success("📜 剧本逆向解析拆镜完成！正在启动保活冲印队列显影全部画面...");
-      startClientRenderQueue(targetProjectId);
-    } catch (err: any) {
-      console.error("导入剧本解析失败:", err);
-      notify.error(err?.response?.data?.detail || err?.message || "剧本逆向解析失败，请检查网络或在右上角头像「个人设置」中配置 OpenRouter API Key");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const handleRegenerateDirty = async () => {
     if (previewVersion) {
       notify.info("当前处于历史版本只读预览模式，无法重绘");
@@ -695,11 +637,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           setActiveStudioStage("prep");
           notify.info("🎬 已切换至 Stage 01 · 前期筹备与视听基准工坊");
         }}
-        onOpenTradeoff={() => {
-          setActiveStudioStage("prep");
-          notify.info("🎬 已切换至 Stage 01 · 剧情大纲与爽点雷达工坊");
-        }}
-        onOpenImportScript={() => setIsOpenScriptModal(true)}
         onOpenTheater={() => {
           setTheaterShotId(selectedShotId || shots[0]?.id || null);
           setIsTheaterOpen(true);
@@ -708,7 +645,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onOpenVersions={() => setIsVersionsDrawerOpen(true)}
         onOpenAssetLibrary={() => setIsGlobalAssetOpen(true)}
         onOpenDelete={() => setIsOpenDeleteModal(true)}
-        onOpenWizard={() => setIsWizardOpen(true)}
         onBatchRender={handleRegenerateDirty}
       />
 
@@ -778,8 +714,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           onRefreshProject={async () => {
             if (effectiveProjectId) await fetchProject(effectiveProjectId);
           }}
-          onOpenImportScript={() => setIsOpenScriptModal(true)}
-          onOpenWizard={() => setIsWizardOpen(true)}
           onOpenGlobalAssetLibrary={() => setIsGlobalAssetOpen(true)}
           onOpenCharacterProfile={(char) => {
             setSelectedProfileChar(char);
@@ -926,7 +860,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
                 onRegenerateShotImage={handleRegenerateSingleShot}
                 onToggleLock={handleToggleLockShot}
                 onOpenGenerateModal={() => setIsOpenAIGenerateModal(true)}
-                onOpenImportScript={() => setIsOpenScriptModal(true)}
                 onInsertShot={(afterIndex) => activeSequence && insertShot(activeSequence.id, afterIndex)}
                 onUpdateShot={saveShotRemote}
                 isBatchRendering={isBatchRendering}
@@ -1082,12 +1015,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onConfirmDelete={handleConfirmDelete}
       />
 
-      <ImportScriptModal
-        isOpen={isOpenScriptModal}
-        onClose={() => setIsOpenScriptModal(false)}
-        onImportScript={handleImportScript}
-      />
-
       <GlobalAssetLibraryModal
         isOpen={isGlobalAssetOpen}
         onClose={() => setIsGlobalAssetOpen(false)}
@@ -1096,35 +1023,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
           if (effectiveProjectId) {
             await fetchProject(effectiveProjectId);
           }
-        }}
-      />
-
-      <QuickStartWizardModal
-        isOpen={isWizardOpen}
-        onClose={() => setIsWizardOpen(false)}
-        onSwitchToPro={() => setIsWizardOpen(false)}
-        onComplete={async (story, options) => {
-          setIsWizardOpen(false);
-          // 1. Update project visual style preset
-          if (options?.styleId) {
-            try {
-              await api.updateProject(effectiveProjectId, {
-                style_config: {
-                  preset_id: options.styleId,
-                  style_name: options.styleName,
-                  positive_prompt: options.stylePrompt,
-                },
-              });
-            } catch (e) {
-              console.warn("Failed to persist wizard style preset:", e);
-            }
-          }
-          // 2. Trigger generation with chosen story in commercial/micro-drama mode
-          await handleGenerateFromStory(story, {
-            narrative_mode: "commercial",
-            structural_archetype: "three_act",
-            narrative_center: "character",
-          });
         }}
       />
     </div>

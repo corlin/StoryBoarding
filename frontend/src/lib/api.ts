@@ -493,13 +493,7 @@ export const api = {
   },
 
 
-  // Adaptation Tradeoffs & Payoff Radar Studio
-  async updateProjectAdaptationTradeoffs(projectId: string, tradeoffs: any): Promise<any> {
-    const { data } = await apiClient.put(`/projects/${projectId}`, {
-      adaptation_tradeoffs: tradeoffs,
-    });
-    return data;
-  },
+
 
   // ============================================================
   // P0-1: Short Drama Production Pipeline APIs

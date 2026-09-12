@@ -24,7 +24,6 @@ interface StoryboardPanelProps {
   onOpenTheater?: (shotId: string) => void;
   onOpenDrawer?: (shotId: string) => void;
   onOpenGenerateModal?: () => void;
-  onOpenImportScript?: () => void;
   onInsertShot?: (afterIndex: number) => void;
   onUpdateShot?: (shotId: string, updates: Partial<ShotModel>) => Promise<void> | void;
   isBatchRendering?: boolean;
@@ -47,7 +46,6 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
   onOpenTheater,
   onOpenDrawer,
   onOpenGenerateModal,
-  onOpenImportScript,
   onInsertShot,
   onUpdateShot,
   isBatchRendering = false,
@@ -521,36 +519,6 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>🎬 开启 AI 导演智能拆镜</span>
-                </button>
-              )}
-              {onOpenImportScript && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
-                    if (!isAuthenticated) {
-                      notify.info("🎬 请先注册或登录专属导演账号");
-                      openAuthModal("login");
-                      return;
-                    }
-                    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
-                    if (isDemoUser) {
-                      notify.info("🎬 当前为公共体验账号！如需导入私有剧本进行解析，请注册专属导演账号并在设置中填入 Key");
-                      openAuthModal("register");
-                      return;
-                    }
-                    const hasKey = !!user?.custom_settings?.llmApiKey;
-                    if (!hasKey) {
-                      notify.info("🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启剧本解析服务");
-                      openSettingsModal();
-                      return;
-                    }
-                    onOpenImportScript();
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors cursor-pointer"
-                >
-                  <FileText className="w-3.5 h-3.5 text-sky-400" />
-                  <span>导入场次剧本</span>
                 </button>
               )}
             </div>

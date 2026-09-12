@@ -232,16 +232,6 @@ export interface PropModel {
   created_at?: string;
 }
 
-export interface ClipModel {
-  id: string;
-  sequence_id: string;
-  order: number;
-  duration: number; // <= 15s
-  location_id?: string;
-  lighting_state?: string;
-  shots: ShotModel[];
-  h3_prompt?: string; // MiniMax Hailuo H3 multi-modal prompt with timestamps
-}
 
 export interface SequenceModel {
   id: string;

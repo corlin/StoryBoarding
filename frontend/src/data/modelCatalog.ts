@@ -360,18 +360,3 @@ export function getTtsVoicePreset(modelId: string): TtsVoicePreset | null {
   return TTS_MODEL_VOICE_PRESETS[modelId] || null;
 }
 
-/**
- * 判断当前音色是否为某个模型预设的默认值（用于判断用户是否手动修改过）。
- */
-export function isDefaultVoiceForModel(
-  modelId: string,
-  voices: { female: string; male: string; narrator: string }
-): boolean {
-  const preset = TTS_MODEL_VOICE_PRESETS[modelId];
-  if (!preset) return false;
-  return (
-    voices.female === preset.female &&
-    voices.male === preset.male &&
-    voices.narrator === preset.narrator
-  );
-}

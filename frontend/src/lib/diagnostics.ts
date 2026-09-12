@@ -160,6 +160,20 @@ export function computeProjectQualityDiagnostics(
     });
   }
 
+  // An image URL is a reference, not proof of successful loading or content review.
+  const referencedCount = shots.filter((s) => s.storyboard_image_url?.trim()).length;
+  const dirtyCount = shots.filter((s) => s.is_dirty).length;
+  items.push({
+    id: "storyboard_visual_readiness",
+    stage: "storyboard",
+    stageLabel: "当前镜头范围",
+    ruleName: "图片引用与内容审片（未审）",
+    status: "warn",
+    detail: `当前范围 ${shots.length} 镜，${referencedCount} 镜有图片引用，${dirtyCount} 镜待更新。画面加载、图文匹配、角色连续性及提示词可用性待人工审片。`,
+    suggestion: "逐镜核对画面与剧本后再交付；图片地址存在不代表内容已通过。",
+    jumpTarget: "storyboard",
+  });
+
   // Calculate score (pass = 100%, warn = -10%, fail = -25%)
   const total = items.length || 1;
   const fails = items.filter((i) => i.status === "fail").length;

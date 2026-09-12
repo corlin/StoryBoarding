@@ -91,14 +91,11 @@ interface TopBarProps {
   onOpenRadar?: () => void;
   onOpenExport?: () => void;
   onOpenBible?: (mode?: "bible" | "style") => void;
-  onOpenTradeoff?: () => void;
-  onOpenImportScript?: () => void;
   onOpenTheater?: () => void;
   onOpenCreateSnapshot?: () => void;
   onOpenVersions?: () => void;
   onOpenAssetLibrary?: () => void;
   onOpenDelete?: () => void;
-  onOpenWizard?: () => void;
   onBatchRender?: () => void;
 }
 
@@ -113,14 +110,11 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenRadar,
   onOpenExport,
   onOpenBible,
-  onOpenTradeoff,
-  onOpenImportScript,
   onOpenTheater,
   onOpenCreateSnapshot,
   onOpenVersions,
   onOpenAssetLibrary,
   onOpenDelete,
-  onOpenWizard,
   onBatchRender,
 }) => {
   const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();

@@ -24,8 +24,6 @@ import {
   Activity,
   Zap,
   Target,
-  FileCode2,
-  Wand2,
   ExternalLink,
   ChevronRight,
   ShieldCheck,
@@ -43,8 +41,6 @@ import { STYLE_PRESETS } from "@/lib/biblePresets";
 interface PrepBibleStudioViewProps {
   project: ProjectModel | null;
   onRefreshProject?: () => Promise<void>;
-  onOpenImportScript?: () => void;
-  onOpenWizard?: () => void;
   onOpenCharacterProfile?: (character: CharacterModel) => void;
   onOpenCharacterBible?: () => void;
   onOpenLocationBible?: () => void;
@@ -55,8 +51,6 @@ interface PrepBibleStudioViewProps {
 export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
   project,
   onRefreshProject,
-  onOpenImportScript,
-  onOpenWizard,
   onOpenCharacterProfile,
   onOpenCharacterBible,
   onOpenLocationBible,
@@ -181,30 +175,6 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {onOpenImportScript && (
-            <button
-              type="button"
-              onClick={onOpenImportScript}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-secondary text-foreground hover:bg-secondary/80 border border-border transition-colors cursor-pointer"
-              title="导入外部剧本文本进行 AI 拆解"
-            >
-              <FileCode2 className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="hidden md:inline">导入外部剧本</span>
-            </button>
-          )}
-
-          {onOpenWizard && (
-            <button
-              type="button"
-              onClick={onOpenWizard}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 transition-all cursor-pointer shadow-2xs"
-              title="一键呼出 3 步 AI 起步向导重新起草故事"
-            >
-              <Wand2 className="w-3.5 h-3.5 text-amber-400" />
-              <span>3步AI起草</span>
-            </button>
-          )}
-
           <button
             type="button"
             onClick={handleSaveTradeoffs}
