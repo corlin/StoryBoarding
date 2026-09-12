@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { ProjectModel, ShotModel, SequenceModel } from "@/types/shot";
 import { api } from "@/lib/api";
+import { useAuthStore } from "./authStore";
 
 export type StudioStage = "prep" | "storyboard" | "review" | "deliver";
 
@@ -153,6 +154,54 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         }
         break;
       }
+    }
+
+    // 若属于官方精选样片工程但遇权限拦截(401/403)，自动以官方演示身份自愈并重新载入
+    const isSampleId =
+      projectId === "6f01c422-48ea-4796-afc7-09cc6447f764" ||
+      projectId === "2792deae-5f60-4246-850a-56b93eaf790a" ||
+      projectId === "demo" ||
+      projectId === "demo-matrix-cyber-master";
+
+    if (
+      isSampleId &&
+      (lastError?.response?.status === 401 || lastError?.response?.status === 403)
+    ) {
+      try {
+        await useAuthStore.getState().login("demo@caifu.social", "demo123");
+        const retryProj = await api.getProject(projectId);
+        if (retryProj) {
+          const enrichedSeqs: SequenceModel[] = (retryProj.sequences || []).map((seq: any) => ({
+            id: seq.id,
+            project_id: seq.project_id || retryProj.id,
+            name: seq.title || seq.name || "主场次",
+            order: Number(seq.order) || 1,
+            episode_number: Number(seq.episode_number) || 1,
+            hook_summary: seq.hook_summary || "",
+            cliffhanger_summary: seq.cliffhanger_summary || "",
+            payoff_summary: seq.payoff_summary || "",
+            target_duration: Number(seq.target_duration) || 60.0,
+            screenplay_text: seq.screenplay_text || "",
+            beats_data: Array.isArray(seq.beats_data) ? seq.beats_data : [],
+            shots: (seq.shots || []).map((shot: any): ShotModel => ({
+              ...shot,
+              camera_movement: typeof shot.camera_movement === "object" ? shot.camera_movement : { type: "static" },
+              composition: typeof shot.composition === "object" ? shot.composition : {},
+              audio: typeof shot.audio === "object" ? shot.audio : {},
+            })),
+          }));
+
+          const enrichedProj: ProjectModel = {
+            ...retryProj,
+            sequences: enrichedSeqs,
+          };
+
+          set({ currentProject: enrichedProj, isLoading: false, error: null });
+          const firstShot = enrichedSeqs[0]?.shots[0];
+          set({ selectedShotId: firstShot ? firstShot.id : null });
+          return;
+        }
+      } catch (_) {}
     }
 
     // 重试耗尽，确实无法加载时呈现清晰错误

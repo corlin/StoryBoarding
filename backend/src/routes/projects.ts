@@ -80,7 +80,7 @@ router.get("/:id", async (c) => {
     const db = getDb(c.env.DB);
     const id = c.req.param("id");
 
-    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id, true);
     if (!access.ok) return c.json({ detail: access.detail }, access.status);
     const proj = access.project;
 

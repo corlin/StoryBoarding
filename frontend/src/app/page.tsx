@@ -99,16 +99,12 @@ export default function HomePage() {
   }, [isAuthenticated]);
 
   const handleRoamSample = async (projectId: string, title: string) => {
-    if (!isAuthenticated) {
+    const isDemo = user?.email === "demo@caifu.social" || user?.id === "demo";
+    if (!isAuthenticated || !isDemo) {
       try {
         await login("demo@caifu.social", "demo123");
-        notify.success(`🎬 已免密载入${title}工作台（免等待·0消耗 Token）！`);
-        router.push(`/workspace?id=${projectId}`);
-        return;
-      } catch {
-        router.push(`/workspace?id=${projectId}`);
-        return;
-      }
+        notify.success(`🎬 已免密载入${title}官方样板工程！`);
+      } catch (_) {}
     }
     router.push(`/workspace?id=${projectId}`);
   };
