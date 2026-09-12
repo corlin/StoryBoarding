@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ProjectModel, ShotModel, LocationModel, BeatModel, CharacterModel } from "@/types/shot";
+import { ProjectModel, ShotModel, BeatModel } from "@/types/shot";
 
 export type ProjectListItem = ProjectModel;
 
@@ -284,14 +284,6 @@ export const api = {
     return data;
   },
 
-  async generateFromScript(payload: { project_id: string; script_text: string }): Promise<GenerationResponse> {
-    const { data } = await apiClient.post(`/generate/storyboard`, {
-      project_id: payload.project_id,
-      story: payload.script_text,
-    });
-    return data;
-  },
-
   async generateShotImage(shotId: string): Promise<ShotImageResponse> {
     const { data } = await apiClient.post(`/generate/shot-image/${shotId}`);
     return data;
@@ -405,62 +397,9 @@ export const api = {
     return data;
   },
 
-  // Characters & Locations & Props
-  async getTurnaroundPresets(): Promise<{ presets: any[] }> {
-    const { data } = await apiClient.get("/characters/turnaround-presets");
-    return data;
-  },
-
+  // Characters & Locations Concept Generation
   async generateCharacterAvatar(charId: string, payload?: { prompt?: string; preset_id?: string }): Promise<{ success: boolean; character: any }> {
     const { data } = await apiClient.post(`/characters/${charId}/generate-avatar`, payload || {});
-    return data;
-  },
-
-  async setCharacterAvatarFromShot(charId: string, payload: { shot_id?: string; image_url?: string }): Promise<{ success: boolean; character: any }> {
-    const { data } = await apiClient.post(`/characters/${charId}/set-from-shot`, payload);
-    return data;
-  },
-
-  async updateCharacter(charId: string, payload: Partial<CharacterModel>): Promise<{ success: boolean; character: CharacterModel }> {
-    const { data } = await apiClient.put(`/characters/${charId}`, payload);
-    return data;
-  },
-
-  async generateLocationConcept(locId: string): Promise<{ success: boolean; location: any }> {
-    const { data } = await apiClient.post(`/locations/${locId}/generate-concept`);
-    return data;
-  },
-
-  // Narrative Props Library (Industry Standard)
-  async getProps(projectId: string): Promise<{ props: any[] }> {
-    const { data } = await apiClient.get(`/props/project/${projectId}`);
-    return data;
-  },
-
-  async createProp(payload: {
-    project_id: string;
-    name: string;
-    category?: "weapon" | "token" | "document" | "general";
-    visual_anchor?: string;
-    reference_image_url?: string;
-    description?: string;
-  }): Promise<{ success: boolean; prop: any }> {
-    const { data } = await apiClient.post("/props", payload);
-    return data;
-  },
-
-  async updateProp(propId: string, payload: any): Promise<{ success: boolean; prop: any }> {
-    const { data } = await apiClient.put(`/props/${propId}`, payload);
-    return data;
-  },
-
-  async deleteProp(propId: string): Promise<{ success: boolean }> {
-    const { data } = await apiClient.delete(`/props/${propId}`);
-    return data;
-  },
-
-  async generatePropConcept(propId: string): Promise<{ success: boolean; prop: any }> {
-    const { data } = await apiClient.post(`/props/${propId}/generate-concept`);
     return data;
   },
 
@@ -562,12 +501,6 @@ export const api = {
     return data;
   },
 
-  // Generation jobs: list all jobs for a project
-  async getGenerationJobs(projectId: string, limit: number = 50): Promise<{ jobs: any[]; count: number }> {
-    const { data } = await apiClient.get("/production/jobs", { params: { project_id: projectId, limit } });
-    return data;
-  },
-
   // Dialogue lines
   async getDialogueLines(projectId: string): Promise<{ dialogue_lines: any[] }> {
     const { data } = await apiClient.get("/production/dialogue", { params: { project_id: projectId } });
@@ -626,14 +559,6 @@ export const api = {
     jobs: any[];
   }> {
     const { data } = await apiClient.get("/production/costs", { params: { project_id: projectId } });
-    return data;
-  },
-
-  // Asset versions
-  async getAssetVersions(projectId: string, assetType?: string): Promise<{ asset_versions: any[] }> {
-    const params: any = { project_id: projectId };
-    if (assetType) params.asset_type = assetType;
-    const { data } = await apiClient.get("/production/asset-versions", { params });
     return data;
   },
 

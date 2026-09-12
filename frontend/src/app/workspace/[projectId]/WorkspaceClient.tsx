@@ -133,7 +133,6 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
     deleteShot,
     regenerateShotImage,
     updateShotLocal,
-    setProject,
   } = useWorkspaceStore();
 
   const loadVersions = useCallback(async () => {
@@ -445,22 +444,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       narrative_center?: "character" | "creative" | "plot";
     }
   ) => {
-    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
-    if (!isAuthenticated) {
-      notify.info("🎬 请先注册或登录导演账号");
-      openAuthModal("register");
-      return;
-    }
-    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
-    if (isDemoUser) {
-      notify.info("🎬 当前为公共体验账号！如需使用 AI 导演重新拆镜与规划，请注册专属导演账号并在个人设置中填入 Key");
-      openAuthModal("register");
-      return;
-    }
-    const hasKey = !!user?.custom_settings?.llmApiKey;
-    if (!hasKey) {
-      notify.info("🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI 智能拆镜服务");
-      openSettingsModal();
+    if (!useAuthStore.getState().checkAuthAndKey("使用 AI 导演拆镜")) {
       return;
     }
 
@@ -510,23 +494,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       notify.info("当前处于历史版本只读预览模式，无法重绘");
       return;
     }
-    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
-    if (!isAuthenticated) {
-      notify.info("🎬 请先登录或注册导演账号");
-      openAuthModal("login");
-      return;
-    }
-    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
-    if (isDemoUser) {
-      notify.info("🎬 当前为公共体验账号，样片画面已全部就绪！如需自主生成与冲印分镜，请注册并登录专属导演账号");
-      openAuthModal("register");
-      return;
-    }
-
-    const hasKey = !!user?.custom_settings?.llmApiKey;
-    if (!hasKey) {
-      notify.info("🎬 请在「设置」中配置您个人专属的 OpenRouter / 生图 API Key，开启 AI 画面生成服务");
-      openSettingsModal();
+    if (!useAuthStore.getState().checkAuthAndKey("批量冲印未显影镜头")) {
       return;
     }
     if (!currentProject) return;
@@ -538,24 +506,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       notify.info("当前处于历史版本只读预览模式，无法重绘");
       return;
     }
-    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
-    if (!isAuthenticated) {
-      notify.info("🎬 请先注册或登录专属导演账号");
-      openAuthModal("register");
-      return;
-    }
-
-    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
-    if (isDemoUser) {
-      notify.info("🎬 当前为公共体验账号，样板画面已就绪！如需自主重新生成分镜，请注册并登录专属导演账号");
-      openAuthModal("register");
-      return;
-    }
-
-    const hasKey = !!user?.custom_settings?.llmApiKey;
-    if (!hasKey) {
-      notify.info("🎬 请在「设置」中配置您个人专属的 OpenRouter / 生图 API Key，开启 AI 画面生成服务");
-      openSettingsModal();
+    if (!useAuthStore.getState().checkAuthAndKey("单镜头视觉冲印")) {
       return;
     }
 

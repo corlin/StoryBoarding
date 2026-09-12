@@ -17,7 +17,6 @@ interface WorkspaceState {
   selectShot: (shotId: string | null) => void;
   setActiveEpisodeIndex: (index: number) => void;
   setActiveStudioStage: (stage: StudioStage) => void;
-  toggleShotLock: (shotId: string) => void;
   fetchProject: (projectId: string) => Promise<void>;
   updateShotLocal: (shotId: string, updates: Partial<ShotModel>) => void;
   saveShotRemote: (shotId: string, updates: Partial<ShotModel>) => Promise<void>;
@@ -40,18 +39,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   selectShot: (shotId) => set({ selectedShotId: shotId }),
 
   setActiveStudioStage: (stage) => set({ activeStudioStage: stage }),
-
-  toggleShotLock: (shotId) => {
-    const { currentProject, activeEpisodeIndex } = get();
-    if (!currentProject) return;
-    const targetSeq = currentProject.sequences[activeEpisodeIndex];
-    if (!targetSeq) return;
-    const shot = targetSeq.shots.find((s) => s.id === shotId);
-    if (!shot) return;
-    const nextLocked = !shot.is_locked;
-    get().updateShotLocal(shotId, { is_locked: nextLocked });
-    get().saveShotRemote(shotId, { is_locked: nextLocked });
-  },
 
   setActiveEpisodeIndex: (index) => {
     const { currentProject } = get();
