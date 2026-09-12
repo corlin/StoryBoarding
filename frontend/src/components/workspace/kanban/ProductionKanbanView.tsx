@@ -5,13 +5,16 @@ import { api } from "@/lib/api";
 import { normalizeAssetUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import {
+  buildPreviewAssemblyPlan,
   compareProductionShots,
   configuredTtsVoiceOptions,
   deriveDialogueLineFromShot,
   planVideoGeneration,
   productionMediaFileBase,
   productionShotLabel,
+  previewSubtitlesToSrt,
 } from "@/lib/productionKanban";
+import { assemblePreviewMp4 } from "@/lib/browserPreviewAssembler";
 import type { ProviderConfigApiResponse } from "@/types/modelConfig";
 
 interface ProductionKanbanViewProps {
@@ -85,6 +88,7 @@ interface EditVersion {
     manifest_url?: string;
     episode_mp4_urls?: string[];
     episode_srt_urls?: string[];
+    episode_outputs?: Array<{ episode_number: number; mp4_url: string; srt_url: string }>;
     subtitle_mode?: string;
   };
 }
@@ -110,6 +114,29 @@ function parseDbDate(s: string | null | undefined): Date | null {
 function formatDbDate(s: string | null | undefined): string {
   const d = parseDbDate(s);
   return d ? d.toLocaleString() : "—";
+}
+
+function measureAudioDuration(url: string, timeoutMs = 12000): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    const timer = window.setTimeout(() => finish(new Error("读取音频时长超时")), timeoutMs);
+    const finish = (error?: Error) => {
+      const duration = audio.duration;
+      window.clearTimeout(timer);
+      audio.onloadedmetadata = null;
+      audio.onerror = null;
+      audio.removeAttribute("src");
+      audio.load();
+      if (error) reject(error);
+      else if (Number.isFinite(duration) && duration > 0) resolve(duration);
+      else reject(new Error("音频时长无效"));
+    };
+    audio.preload = "metadata";
+    audio.crossOrigin = "anonymous";
+    audio.onloadedmetadata = () => finish();
+    audio.onerror = () => finish(new Error("无法读取音频元数据"));
+    audio.src = normalizeAssetUrl(url);
+  });
 }
 
 function takeMetadata(take: Take): Record<string, any> {
@@ -358,6 +385,8 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
   // P0-5: Export panel
   const [showExport, setShowExport] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [assembling, setAssembling] = useState(false);
+  const [assemblyProgress, setAssemblyProgress] = useState("");
   const [playerShotIndex, setPlayerShotIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -509,6 +538,93 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
     showToast("素材清单 JSON 已下载");
   };
 
+  const handleAssemblePreview = async () => {
+    if (!window.confirm("将在浏览器中加载约 31MB 的合成引擎，并读取已采用素材生成完整及分集 MP4。合成期间请保持页面打开，是否继续？")) return;
+    setAssembling(true);
+    setAssemblyProgress("正在整理已采用素材...");
+    try {
+      const takeResponses = await Promise.all(shots.map((shot) => api.getShotTakes(shot.shot_id)));
+      const allTakes = takeResponses.flatMap((response) => response.takes || []).map((take: any) => ({
+        ...take,
+        media_url: normalizeAssetUrl(take.media_url),
+      }));
+      const dialogueResponse = await api.getDialogueLines(projectId);
+      const dialogue = dialogueResponse.dialogue_lines || [];
+      const fullPlan = buildPreviewAssemblyPlan(shots, allTakes, dialogue);
+      const episodeNumbers = Array.from(new Set(shots.map((shot) => shot.episode_number || 1))).sort((a, b) => a - b);
+      const episodePlans = episodeNumbers.map((episodeNumber) => ({
+        episodeNumber,
+        plan: buildPreviewAssemblyPlan(shots.filter((shot) => (shot.episode_number || 1) === episodeNumber), allTakes, dialogue),
+      }));
+      const updateProgress = (label: string) => (progress: { message: string; percent: number }) => {
+        setAssemblyProgress(`${label} · ${progress.message} · ${progress.percent}%`);
+      };
+
+      const episodeMp4Urls: string[] = [];
+      const episodeSrtUrls: string[] = [];
+      const episodeOutputs: Array<{ episode_number: number; mp4_url: string; srt_url: string }> = [];
+      for (const { episodeNumber, plan } of episodePlans) {
+        const label = `EP${String(episodeNumber).padStart(2, "0")}`;
+        const mp4 = await assemblePreviewMp4(plan, projectAspectRatio, updateProgress(label));
+        setAssemblyProgress(`${label} · 正在上传 MP4 与字幕`);
+        const mp4Upload = await api.uploadDelivery(projectId, new File([mp4], `${label}_preview.mp4`, { type: "video/mp4" }), `episode_${episodeNumber}_mp4`);
+        const srtBlob = new Blob([previewSubtitlesToSrt(plan.subtitles)], { type: "application/x-subrip;charset=utf-8" });
+        const srtUpload = await api.uploadDelivery(projectId, new File([srtBlob], `${label}.srt`, { type: "application/x-subrip" }), `episode_${episodeNumber}_srt`);
+        episodeMp4Urls.push(mp4Upload.media_url);
+        episodeSrtUrls.push(srtUpload.media_url);
+        episodeOutputs.push({ episode_number: episodeNumber, mp4_url: mp4Upload.media_url, srt_url: srtUpload.media_url });
+      }
+
+      const fullMp4 = await assemblePreviewMp4(fullPlan, projectAspectRatio, updateProgress("全片"));
+      setAssemblyProgress("全片 · 正在上传 MP4、字幕与清单");
+      const fullMp4Upload = await api.uploadDelivery(projectId, new File([fullMp4], `${projectTitle}_preview.mp4`, { type: "video/mp4" }), "full_preview_mp4");
+      const fullSrt = previewSubtitlesToSrt(fullPlan.subtitles);
+      const fullSrtUpload = await api.uploadDelivery(projectId, new File([new Blob([fullSrt], { type: "application/x-subrip;charset=utf-8" })], `${projectTitle}.srt`, { type: "application/x-subrip" }), "full_preview_srt");
+      const manifest = {
+        project_id: projectId,
+        project_title: projectTitle,
+        generated_at: new Date().toISOString(),
+        aspect_ratio: projectAspectRatio,
+        total_duration: fullPlan.totalDuration,
+        clips: fullPlan.clips,
+        subtitles: fullPlan.subtitles,
+        episode_mp4_urls: episodeMp4Urls,
+        episode_srt_urls: episodeSrtUrls,
+        episode_outputs: episodeOutputs,
+        mp4_url: fullMp4Upload.media_url,
+        srt_url: fullSrtUpload.media_url,
+      };
+      const manifestFile = new File([JSON.stringify(manifest, null, 2)], `${projectTitle}_manifest.json`, { type: "application/json" });
+      const manifestUpload = await api.uploadDelivery(projectId, manifestFile, "preview_manifest");
+      await api.createEditVersion({
+        project_id: projectId,
+        version_tag: `preview-${Date.now()}`,
+        version_name: `自动预演片 ${new Date().toLocaleString()}`,
+        assembly_data: { shots: fullPlan.clips },
+        subtitle_data: fullPlan.subtitles,
+        export_result: {
+          mp4_url: fullMp4Upload.media_url,
+          srt_url: fullSrtUpload.media_url,
+          manifest_url: manifestUpload.media_url,
+          episode_mp4_urls: episodeMp4Urls,
+          episode_srt_urls: episodeSrtUrls,
+          episode_outputs: episodeOutputs,
+          subtitle_mode: "mov_text+sidecar_srt",
+        },
+        total_duration: fullPlan.totalDuration,
+        is_current: true,
+      });
+      await loadEditVersions();
+      setAssemblyProgress("");
+      showToast(`预演片已合成：${episodePlans.length} 集 + 完整版`);
+    } catch (error: any) {
+      setAssemblyProgress("");
+      showToast(`合成失败: ${error?.response?.data?.detail || error?.message || error}`, "error");
+    } finally {
+      setAssembling(false);
+    }
+  };
+
   const loadDialogue = useCallback(async (shotId: string) => {
     setDialogueLoading(true);
     try {
@@ -591,6 +707,17 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
       }
       const voice = selectedVoice || undefined;
       const result = await api.generateTts(dialogueId, { voice, speed: 1 });
+      try {
+        const actualDuration = await measureAudioDuration(result.media_url);
+        await api.saveDialogueLine({
+          id: dialogueId,
+          project_id: projectId,
+          shot_id: selectedShot.shot_id,
+          actual_duration: actualDuration,
+        });
+      } catch (durationError) {
+        console.warn("TTS duration probe failed:", durationError);
+      }
       showToast(`配音已生成 · ${result.model} · ${result.voice}`);
       await Promise.all([
         loadTakes(selectedShot.shot_id),
@@ -629,10 +756,17 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
   }, [selectedShot, loadTakes, loadVideoJobs, loadDialogue]);
 
   useEffect(() => {
-    if (!selectedShot || !videoJobs.some((job) => job.status === "submitted" || job.status === "processing")) return;
-    const timer = window.setInterval(() => loadVideoJobs(selectedShot.shot_id), 8000);
+    if (!selectedShot) return;
+    const activeJobs = videoJobs.filter((job) => job.status === "submitted" || job.status === "processing");
+    if (!activeJobs.length) return;
+    const reconcile = async () => {
+      await Promise.allSettled(activeJobs.map((job) => api.pollVideo(job.id)));
+      await Promise.all([loadVideoJobs(selectedShot.shot_id), loadTakes(selectedShot.shot_id)]);
+      loadKanban();
+    };
+    const timer = window.setInterval(reconcile, 8000);
     return () => window.clearInterval(timer);
-  }, [selectedShot, videoJobs, loadVideoJobs]);
+  }, [selectedShot, videoJobs, loadVideoJobs, loadTakes, loadKanban]);
 
   const handleGenerateVideo = async () => {
     if (!selectedShot) return;
@@ -751,6 +885,11 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
   });
   const currentEditVersion = editVersions.find((version) => version.is_current) || editVersions[0];
   const currentExport = currentEditVersion?.export_result || {};
+  const currentEpisodeOutputs = currentExport.episode_outputs || (currentExport.episode_mp4_urls || []).map((mp4Url, index) => ({
+    episode_number: index + 1,
+    mp4_url: mp4Url,
+    srt_url: currentExport.episode_srt_urls?.[index] || "",
+  }));
 
   return (
     <div className="relative flex-1 flex flex-col h-full w-full bg-[#0d1117] overflow-hidden">
@@ -837,10 +976,17 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handleCreateEditVersion}
-                disabled={exporting}
+                disabled={exporting || assembling}
                 className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
               >
                 {exporting ? "创建中..." : "创建剪辑版本"}
+              </button>
+              <button
+                onClick={handleAssemblePreview}
+                disabled={assembling || exporting}
+                className="rounded bg-amber-500 px-3 py-1.5 text-xs font-semibold text-black hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {assembling ? "正在合成..." : "一键合成预演片"}
               </button>
               <button
                 onClick={downloadFfmpegScript}
@@ -854,8 +1000,8 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
               >
                 下载素材清单 JSON
               </button>
-              <span className="text-[10px] text-gray-600">
-                {currentExport.mp4_url ? "当前完整成片已回收到 R2，可直接下载" : "提示：完整 MP4 合成需本地 FFmpeg 或浏览器端 ffmpeg.wasm"}
+              <span className="text-[10px] text-gray-500">
+                {assemblyProgress || (currentExport.mp4_url ? "当前预演片已保存到 R2，可直接下载" : "站内合成使用已采用画面、配音与字幕")}
               </span>
             </div>
             {currentEditVersion && (
@@ -874,11 +1020,11 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
                   )}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-[10px]">
-                  {(currentExport.episode_mp4_urls || []).map((url, index) => (
-                    <a key={url} href={normalizeAssetUrl(url)} target="_blank" rel="noopener noreferrer" className="rounded bg-[#21262d] px-2 py-1 text-blue-300 hover:text-white">EP{String(index + 1).padStart(2, "0")} MP4</a>
-                  ))}
-                  {(currentExport.episode_srt_urls || []).map((url, index) => (
-                    <a key={url} href={normalizeAssetUrl(url)} target="_blank" rel="noopener noreferrer" className="rounded bg-[#21262d] px-2 py-1 text-blue-300 hover:text-white">EP{String(index + 1).padStart(2, "0")} SRT</a>
+                  {currentEpisodeOutputs.map((output) => (
+                    <React.Fragment key={output.episode_number}>
+                      <a href={normalizeAssetUrl(output.mp4_url)} target="_blank" rel="noopener noreferrer" className="rounded bg-[#21262d] px-2 py-1 text-blue-300 hover:text-white">EP{String(output.episode_number).padStart(2, "0")} MP4</a>
+                      {output.srt_url && <a href={normalizeAssetUrl(output.srt_url)} target="_blank" rel="noopener noreferrer" className="rounded bg-[#21262d] px-2 py-1 text-blue-300 hover:text-white">EP{String(output.episode_number).padStart(2, "0")} SRT</a>}
+                    </React.Fragment>
                   ))}
                   {currentExport.srt_url && <a href={normalizeAssetUrl(currentExport.srt_url)} target="_blank" rel="noopener noreferrer" className="rounded bg-[#21262d] px-2 py-1 text-blue-300 hover:text-white">完整 SRT</a>}
                   {currentExport.manifest_url && <a href={normalizeAssetUrl(currentExport.manifest_url)} target="_blank" rel="noopener noreferrer" className="rounded bg-[#21262d] px-2 py-1 text-blue-300 hover:text-white">交付清单</a>}

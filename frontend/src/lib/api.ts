@@ -501,6 +501,24 @@ export const api = {
     return data;
   },
 
+  async uploadDelivery(projectId: string, file: File, artifactType: string): Promise<{
+    status: string;
+    project_id: string;
+    artifact_type: string;
+    filename: string;
+    size: number;
+    media_url: string;
+  }> {
+    const formData = new FormData();
+    formData.append("project_id", projectId);
+    formData.append("artifact_type", artifactType);
+    formData.append("file", file);
+    const { data } = await apiClient.post("/production/deliveries/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
+  },
+
   // Dialogue lines
   async getDialogueLines(projectId: string): Promise<{ dialogue_lines: any[] }> {
     const { data } = await apiClient.get("/production/dialogue", { params: { project_id: projectId } });

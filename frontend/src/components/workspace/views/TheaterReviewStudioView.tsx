@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { ProjectModel, ShotModel, SequenceModel } from "@/types/shot";
-import { normalizeAssetUrl } from "@/lib/api";
+import { api, normalizeAssetUrl } from "@/lib/api";
 import { computeProjectQualityDiagnostics, DiagnosticItem } from "@/lib/diagnostics";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import {
@@ -47,10 +47,31 @@ export const TheaterReviewStudioView: React.FC<TheaterReviewStudioViewProps> = (
   const [isMuted, setIsMuted] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentPreviewUrl, setCurrentPreviewUrl] = useState("");
+  const [showStoryboard, setShowStoryboard] = useState(false);
   const playTimerRef = useRef<NodeJS.Timeout | null>(null);
   const screeningRoomRef = useRef<HTMLDivElement>(null);
 
   const activeShot = shots[currentShotIndex] || shots[0];
+
+  useEffect(() => {
+    let cancelled = false;
+    const projectId = project?.id;
+    if (!projectId) {
+      setCurrentPreviewUrl("");
+      return;
+    }
+    api.getEditVersions(projectId).then((response) => {
+      if (cancelled) return;
+      const versions = response.edit_versions || [];
+      const current = versions.find((version: any) => version.is_current) || versions[0];
+      setCurrentPreviewUrl(normalizeAssetUrl(current?.export_result?.mp4_url || ""));
+      setShowStoryboard(false);
+    }).catch(() => {
+      if (!cancelled) setCurrentPreviewUrl("");
+    });
+    return () => { cancelled = true; };
+  }, [project?.id]);
 
   // Quality Diagnostics
   const { diagnostics, score: radarScore } = useMemo(() => {
@@ -161,6 +182,15 @@ export const TheaterReviewStudioView: React.FC<TheaterReviewStudioViewProps> = (
         </div>
 
         <div className="flex items-center gap-2">
+          {currentPreviewUrl && (
+            <button
+              type="button"
+              onClick={() => setShowStoryboard((value) => !value)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 transition-colors cursor-pointer"
+            >
+              {showStoryboard ? "播放当前预演片" : "查看逐镜分镜"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setActiveStudioStage("deliver")}
@@ -178,7 +208,19 @@ export const TheaterReviewStudioView: React.FC<TheaterReviewStudioViewProps> = (
         <div ref={screeningRoomRef} className="flex-1 lg:w-3/4 flex flex-col bg-black/95 relative overflow-hidden">
           {/* Main Visual Display Area */}
           <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
-            {shots.length === 0 ? (
+            {currentPreviewUrl && !showStoryboard ? (
+              <div className="relative flex h-full w-full items-center justify-center rounded-lg bg-black">
+                <video
+                  src={currentPreviewUrl}
+                  controls
+                  playsInline
+                  className="max-h-[calc(100vh-220px)] max-w-full rounded-lg bg-black shadow-2xl"
+                />
+                <span className="absolute left-3 top-3 rounded-md border border-emerald-400/30 bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 backdrop-blur-md">
+                  当前剪辑版本 · 完整预演片
+                </span>
+              </div>
+            ) : shots.length === 0 ? (
               <div className="text-center space-y-2 text-muted-foreground">
                 <Film className="w-10 h-10 mx-auto text-muted-foreground/40" />
                 <p className="text-xs">暂无镜头数据，请先在 Stage 02 分镜工坊生成分镜</p>

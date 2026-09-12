@@ -74,6 +74,91 @@ test('multiple speakers require confirmation; parenthetical and English labels w
   assert.equal(resolveDialogueSpeaker({...shot,dialogue:'Narrator: One day'},characters).speakerName,'旁白');
 });
 const { generateCallSheetCsvContent } = require('../src/lib/callSheetExporter.ts');
+const productionKanban = require('../src/lib/productionKanban.ts');
+test('preview assembly planner exists for adopted visual and dialogue takes', () => {
+  assert.equal(typeof productionKanban.buildPreviewAssemblyPlan, 'function');
+});
+test('preview assembly plan orders episodes and maps adopted audio with subtitles', () => {
+  const plan = productionKanban.buildPreviewAssemblyPlan(
+    [
+      { shot_id: 's2', sequence_id: 'ep2', episode_number: 2, order: 1, duration: 4, dialogue: '周明：好。', adopted_take_id: 'v2' },
+      { shot_id: 's1', sequence_id: 'ep1', episode_number: 1, order: 1, duration: 3, dialogue: '林夏：走。', adopted_take_id: 'v1' },
+    ],
+    [
+      { id: 'v2', shot_id: 's2', take_type: 'video', media_url: '/v2.mp4', is_adopted: true, duration: 4 },
+      { id: 'a1', shot_id: 's1', take_type: 'audio', media_url: '/a1.mp3', is_adopted: true, duration: 2, metadata: JSON.stringify({ dialogue_id: 'd1' }) },
+      { id: 'v1', shot_id: 's1', take_type: 'image', media_url: '/v1.jpg', is_adopted: true, duration: 0 },
+    ],
+    [{ id: 'd1', shotId: 's1', text: '走。', speaker: '林夏', audioVersion: 'a1', actualDuration: 2, orderIndex: 0 }],
+  );
+  assert.deepEqual(plan.clips.map((clip) => clip.shotId), ['s1', 's2']);
+  assert.equal(plan.clips[0].duration, 3);
+  assert.equal(plan.clips[0].visualKind, 'image');
+  assert.deepEqual(plan.clips[0].audioUrls, ['/a1.mp3']);
+  assert.deepEqual(plan.clips[0].audioTakeIds, ['a1']);
+  assert.deepEqual(plan.subtitles.map((cue) => [cue.start, cue.end, cue.text]), [[0, 2, '林夏：走。'], [3, 7, '周明：好。']]);
+});
+test('preview assembly plan rejects missing adopted visuals', () => {
+  assert.throws(
+    () => productionKanban.buildPreviewAssemblyPlan(
+      [{ shot_id: 's1', episode_number: 1, order: 1, duration: 3, adopted_take_id: null }],
+      [],
+      [],
+    ),
+    /1 个镜头缺少已采用画面/,
+  );
+});
+test('preview subtitles serialize to valid SRT timestamps', () => {
+  assert.equal(typeof productionKanban.previewSubtitlesToSrt, 'function');
+  assert.equal(
+    productionKanban.previewSubtitlesToSrt([{ start: 1.25, end: 3.5, text: '林夏：走。' }]),
+    '1\n00:00:01,250 --> 00:00:03,500\n林夏：走。\n',
+  );
+});
+test('preview clip commands normalize image and audio into a concat-safe MP4', () => {
+  assert.equal(typeof productionKanban.buildPreviewClipCommands, 'function');
+  const commands = productionKanban.buildPreviewClipCommands({
+    shotId: 's1', duration: 3, visualKind: 'image', visualUrl: '/frame.jpg', audioUrls: ['/voice.mp3'],
+  }, 0, '9:16');
+  assert.deepEqual(commands.visual.slice(0, 3), ['-loop', '1', '-i']);
+  assert.ok(commands.visual.includes('scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:black,fps=24,format=yuv420p'));
+  assert.ok(commands.audio.some((arg) => arg.includes('concat=n=1:v=0:a=1')));
+  assert.ok(commands.mux.includes('-c:v'));
+  assert.equal(commands.output, 'clip_000.mp4');
+});
+test('preview clip commands hold a short video frame through the planned shot duration', () => {
+  const commands = productionKanban.buildPreviewClipCommands({
+    shotId: 's1', duration: 5, visualKind: 'video', visualUrl: '/short.mp4', audioUrls: [],
+  }, 0, '16:9');
+  assert.ok(commands.visual.some((arg) => arg.includes('tpad=stop_mode=clone:stop_duration=5')));
+});
+test('production API exposes durable preview delivery upload', () => {
+  const { api } = require('../src/lib/api.ts');
+  assert.equal(typeof api.uploadDelivery, 'function');
+});
+test('production kanban exposes one-click preview assembly instead of only an FFmpeg script', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/components/workspace/kanban/ProductionKanbanView.tsx'), 'utf8');
+  assert.match(source, /一键合成预演片/);
+  assert.match(source, /assemblePreviewMp4/);
+  assert.match(source, /episode_outputs/);
+  const releaseNotes = fs.readFileSync(path.join(__dirname, '../src/data/releaseNotes.ts'), 'utf8');
+  assert.match(releaseNotes, /一键生成分集与全片预演/);
+});
+test('theater review loads and plays the current assembled preview', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/components/workspace/views/TheaterReviewStudioView.tsx'), 'utf8');
+  assert.match(source, /getEditVersions/);
+  assert.match(source, /currentPreviewUrl/);
+  assert.match(source, /<video/);
+});
+test('active video jobs are reconciled with the provider automatically', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/components/workspace/kanban/ProductionKanbanView.tsx'), 'utf8');
+  assert.match(source, /Promise\.allSettled\(activeJobs\.map\(\(job\) => api\.pollVideo\(job\.id\)\)\)/);
+});
+test('generated TTS duration is measured and saved back to the dialogue timeline', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/components/workspace/kanban/ProductionKanbanView.tsx'), 'utf8');
+  assert.match(source, /measureAudioDuration/);
+  assert.match(source, /actual_duration: actualDuration/);
+});
 test('call sheet keeps missing bindings unknown and respects valid cast/location bindings', () => {
   const csv = generateCallSheetCsvContent(null,[{...shot,character_ids:[],location_id:''}]);
   assert.ok(csv.includes('"待确认场景"'));

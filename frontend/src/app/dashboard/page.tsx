@@ -305,7 +305,7 @@ export default function DashboardPage() {
             href="/releases"
             className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-secondary/60"
           >
-            <span>v2.1 更新</span>
+            <span>v2.2 更新</span>
           </Link>
 
           {isAuthenticated && user ? (

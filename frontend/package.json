@@ -10,6 +10,8 @@
     "test": "node --test tests/*.cjs"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "axios": "^1.7.2",
     "clsx": "^2.1.1",
     "jszip": "^3.10.1",

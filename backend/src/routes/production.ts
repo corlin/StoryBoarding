@@ -8,6 +8,7 @@ import {
 import { getAuthUser } from "../lib/auth";
 import { saveImageToR2 } from "../lib/storage";
 import { dialogueIdFromTakeMetadata } from "../lib/tts";
+import { authorizeProjectOwner, authorizeSequenceOwner, authorizeShotOwner } from "../lib/projectAccess";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -29,11 +30,9 @@ router.get("/kanban", async (c) => {
     const projectId = c.req.query("project_id");
     if (!projectId) return c.json({ detail: "project_id required" }, 400);
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
-    const project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
-    if (!project) return c.json({ detail: "工程不存在" }, 404);
-    if (project.userId !== authUser.userId) return c.json({ detail: "无权访问该工程" }, 403);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
+    const project = access.project;
 
     // Get all sequences for project
     const seqs = await db.select().from(sequences).where(eq(sequences.projectId, projectId)).all();
@@ -134,8 +133,10 @@ router.get("/takes", async (c) => {
 
     if (!shotId && !projectId) return c.json({ detail: "shot_id or project_id required" }, 400);
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
+    const access = shotId
+      ? await authorizeShotOwner(db, c.req.header("Authorization"), shotId)
+      : await authorizeProjectOwner(db, c.req.header("Authorization"), projectId!);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     let results;
     if (shotId) {
@@ -298,9 +299,6 @@ router.post("/takes/upload", async (c) => {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
-
     const formData = await c.req.formData();
     const shotId = formData.get("shot_id") as string;
     const takeType = (formData.get("take_type") as string) || "video";
@@ -309,8 +307,9 @@ router.post("/takes/upload", async (c) => {
     if (!shotId) return c.json({ detail: "shot_id required" }, 400);
     if (!file) return c.json({ detail: "file required" }, 400);
 
-    const projectId = await getProjectIdFromShot(db, shotId);
-    if (!projectId) return c.json({ detail: "Shot not found" }, 404);
+    const access = await authorizeShotOwner(db, c.req.header("Authorization"), shotId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
+    const projectId = access.project.id;
 
     // Upload to R2
     const ext = file.name.split(".").pop() || "mp4";
@@ -358,8 +357,6 @@ router.post("/deliveries/upload", async (c) => {
   try {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
 
     const formData = await c.req.formData();
     const projectId = formData.get("project_id") as string;
@@ -367,9 +364,8 @@ router.post("/deliveries/upload", async (c) => {
     const file = formData.get("file") as File;
     if (!projectId || !file) return c.json({ detail: "project_id and file required" }, 400);
 
-    const project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
-    if (!project) return c.json({ detail: "Project not found" }, 404);
-    if (project.userId !== authUser.userId) return c.json({ detail: "无权访问该工程" }, 403);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
     if (!c.env.STORAGE) return c.json({ detail: "R2 storage is not configured" }, 503);
 
     const safeType = artifactType.replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -405,14 +401,15 @@ router.get("/jobs", async (c) => {
     const shotId = c.req.query("shot_id");
     const limit = Math.min(parseInt(c.req.query("limit") || "50"), 200);
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
-
     let jobs;
     if (shotId) {
+      const access = await authorizeShotOwner(db, c.req.header("Authorization"), shotId);
+      if (!access.ok) return c.json({ detail: access.detail }, access.status);
       jobs = await db.select().from(generationJobs).where(eq(generationJobs.shotId, shotId))
         .orderBy(desc(generationJobs.createdAt)).limit(limit).all();
     } else if (projectId) {
+      const access = await authorizeProjectOwner(db, c.req.header("Authorization"), projectId);
+      if (!access.ok) return c.json({ detail: access.detail }, access.status);
       jobs = await db.select().from(generationJobs).where(eq(generationJobs.projectId, projectId!))
         .orderBy(desc(generationJobs.createdAt)).limit(limit).all();
     } else {
@@ -436,14 +433,15 @@ router.get("/dialogue", async (c) => {
     const projectId = c.req.query("project_id");
     const shotId = c.req.query("shot_id");
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
-
     let lines;
     if (shotId) {
+      const access = await authorizeShotOwner(db, c.req.header("Authorization"), shotId);
+      if (!access.ok) return c.json({ detail: access.detail }, access.status);
       lines = await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, shotId))
         .orderBy(dialogueLines.orderIndex).all();
     } else if (projectId) {
+      const access = await authorizeProjectOwner(db, c.req.header("Authorization"), projectId);
+      if (!access.ok) return c.json({ detail: access.detail }, access.status);
       lines = await db.select().from(dialogueLines).where(eq(dialogueLines.projectId, projectId!))
         .orderBy(dialogueLines.orderIndex).all();
     } else {
@@ -464,15 +462,27 @@ router.post("/dialogue", async (c) => {
     const db = getDb(c.env.DB);
     const body = await c.req.json();
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
-
     const { id, project_id, shot_id, sequence_id, speaker, text, performance, emotion,
       audio_version, audio_url, actual_duration, planned_duration, is_voiceover, order_index } = body;
 
     if (!project_id) return c.json({ detail: "project_id required" }, 400);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), project_id);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
+    if (shot_id) {
+      const shotAccess = await authorizeShotOwner(db, c.req.header("Authorization"), shot_id);
+      if (!shotAccess.ok) return c.json({ detail: shotAccess.detail }, shotAccess.status);
+      if (shotAccess.project.id !== project_id) return c.json({ detail: "镜头不属于该工程" }, 409);
+      if (sequence_id && shotAccess.sequence.id !== sequence_id) return c.json({ detail: "镜头不属于该场次" }, 409);
+    }
+    if (sequence_id) {
+      const sequenceAccess = await authorizeSequenceOwner(db, c.req.header("Authorization"), sequence_id);
+      if (!sequenceAccess.ok) return c.json({ detail: sequenceAccess.detail }, sequenceAccess.status);
+      if (sequenceAccess.project.id !== project_id) return c.json({ detail: "场次不属于该工程" }, 409);
+    }
 
     if (id) {
+      const existing = await db.select().from(dialogueLines).where(eq(dialogueLines.id, id)).get();
+      if (!existing || existing.projectId !== project_id) return c.json({ detail: "台词记录不存在" }, 404);
       // Update existing
       const updateData: any = { updatedAt: new Date().toISOString() };
       if (speaker !== undefined) updateData.speaker = speaker;
@@ -523,9 +533,10 @@ router.get("/edit-versions", async (c) => {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
     const projectId = c.req.query("project_id");
+    if (!projectId) return c.json({ detail: "project_id required" }, 400);
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const versions = await db.select().from(editVersions)
       .where(eq(editVersions.projectId, projectId!))
@@ -544,13 +555,17 @@ router.post("/edit-versions", async (c) => {
     const db = getDb(c.env.DB);
     const body = await c.req.json();
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
-
     const { project_id, sequence_id, version_tag, version_name, assembly_data,
       subtitle_data, export_result, total_duration, is_current } = body;
 
     if (!project_id || !version_tag) return c.json({ detail: "project_id and version_tag required" }, 400);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), project_id);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
+    if (sequence_id) {
+      const sequenceAccess = await authorizeSequenceOwner(db, c.req.header("Authorization"), sequence_id);
+      if (!sequenceAccess.ok) return c.json({ detail: sequenceAccess.detail }, sequenceAccess.status);
+      if (sequenceAccess.project.id !== project_id) return c.json({ detail: "场次不属于该工程" }, 409);
+    }
 
     // If marking as current, un-mark others
     if (is_current) {
@@ -586,9 +601,10 @@ router.get("/costs", async (c) => {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
     const projectId = c.req.query("project_id");
+    if (!projectId) return c.json({ detail: "project_id required" }, 400);
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const jobs = await db.select().from(generationJobs).where(eq(generationJobs.projectId, projectId!)).all();
 
@@ -664,9 +680,10 @@ router.get("/asset-versions", async (c) => {
     const db = getDb(c.env.DB);
     const projectId = c.req.query("project_id");
     const assetType = c.req.query("asset_type");
+    if (!projectId) return c.json({ detail: "project_id required" }, 400);
 
-    const authUser = await getAuthUser(c.req.header("Authorization"));
-    if (!authUser) return c.json({ detail: "请先登录" }, 401);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), projectId);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     let query = db.select().from(assetVersions).where(eq(assetVersions.projectId, projectId!));
     if (assetType) {
