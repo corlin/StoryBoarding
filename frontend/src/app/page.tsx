@@ -11,22 +11,12 @@ import {
   ArrowUp,
   Clock,
   Palette,
-  FileText,
-  Flame,
-  Zap,
-  Check,
   X,
-  User,
-  Sliders,
-  ChevronRight,
   Loader2,
   BookOpen,
   Key,
   CheckCircle2,
-  Workflow,
   Play,
-  Smartphone,
-  Monitor,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api, ProjectListItem } from "@/lib/api";
@@ -36,11 +26,6 @@ import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelineProgress";
 import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
 import { CinematicFilmstripHero } from "@/components/home/CinematicFilmstripHero";
-import { FeaturedBentoGrid } from "@/components/home/FeaturedBentoGrid";
-import {
-  InteractiveSampleWorkshop,
-  SamplePreset,
-} from "@/components/home/InteractiveSampleWorkshop";
 import { DramaticBeatPreviewModal } from "@/components/modals/DramaticBeatPreviewModal";
 
 export default function HomePage() {
@@ -56,7 +41,6 @@ export default function HomePage() {
   const [promptText, setPromptText] = useState("");
   const [targetDuration, setTargetDuration] = useState<number>(30);
   const [selectedStyle, setSelectedStyle] = useState<string>("电影级写实");
-  const [showBanner, setShowBanner] = useState<boolean>(true);
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
   const [isBeatModalOpen, setIsBeatModalOpen] = useState(false);
 
@@ -81,7 +65,7 @@ export default function HomePage() {
     user?.custom_settings?.llm_api_key
   );
 
-  // Load recent project for authenticated users
+  // Load recent project for returning users
   useEffect(() => {
     if (isAuthenticated && !isDemoUser) {
       api.getProjects()
@@ -114,30 +98,19 @@ export default function HomePage() {
     }
   }, [isAuthenticated]);
 
-  const handleApplyPreset = (preset: SamplePreset) => {
-    setPromptText(preset.presetStory);
-    setTargetDuration(preset.duration);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-    notify.success(`✨ 已填入「${preset.title}」故事预设，点击 ↑ 即可直接生成！`);
-  };
-
-  const handleExploreSample = async (preset: SamplePreset) => {
-    const targetId = preset.sampleProjectId || "6f01c422-48ea-4796-afc7-09cc6447f764";
+  const handleRoamSample = async (projectId: string, title: string) => {
     if (!isAuthenticated) {
       try {
         await login("demo@caifu.social", "demo123");
-        notify.success(`🎬 已免密载入「${preset.title}」现成 18 镜工作台（0消耗 Token）！`);
-        router.push(`/workspace?id=${targetId}`);
+        notify.success(`🎬 已免密载入${title}工作台（免等待·0消耗 Token）！`);
+        router.push(`/workspace?id=${projectId}`);
         return;
       } catch {
-        router.push(`/workspace?id=${targetId}`);
+        router.push(`/workspace?id=${projectId}`);
         return;
       }
     }
-    router.push(`/workspace?id=${targetId}`);
+    router.push(`/workspace?id=${projectId}`);
   };
 
   const handleStartCreation = async () => {
@@ -246,36 +219,11 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#0b0b0e] text-foreground selection:bg-primary/30 relative overflow-x-hidden">
       {/* Background Cinematic Radial Ambient Glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(99,102,241,0.14),rgba(0,0,0,0)_65%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(#1c1c28_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
-
-      {/* Top Banner */}
-      {showBanner && (
-        <div className="bg-gradient-to-r from-primary/20 via-purple-500/20 to-amber-500/20 border-b border-primary/20 text-xs py-2 px-4 text-center flex items-center justify-center gap-3 relative z-50 backdrop-blur-md">
-          <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold text-[10px] uppercase tracking-wider">
-            导演级 2.0
-          </span>
-          <span className="text-foreground/90 font-medium">
-            🎬 分镜头脚本与视觉故事板双向协同引擎现已就绪 · 支持 16:9 宽银幕与 9:16 竖屏微短剧
-          </span>
-          <Link
-            href="/dashboard"
-            className="underline text-primary hover:text-primary/80 font-bold ml-1"
-          >
-            探索工程看板 →
-          </Link>
-          <button
-            onClick={() => setShowBanner(false)}
-            className="absolute right-4 text-muted-foreground hover:text-foreground p-1 cursor-pointer"
-            title="关闭通知"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(99,102,241,0.12),rgba(0,0,0,0)_65%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#1c1c28_1px,transparent_1px)] [background-size:24px_24px] opacity-35 pointer-events-none" />
 
       {/* Header Navigation */}
-      <header className="border-b border-border/50 backdrop-blur-md bg-[#0b0b0e]/85 sticky top-0 z-40 shadow-xs">
+      <header className="border-b border-border/40 backdrop-blur-md bg-[#0b0b0e]/85 sticky top-0 z-40 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20 group-hover:scale-105 group-hover:bg-primary/20 transition-all shadow-inner">
@@ -342,26 +290,17 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pt-10 pb-24 max-w-6xl mx-auto w-full space-y-12 relative z-10">
-        {/* Returning User Quick Resume Banner (if authenticated and has recent project) */}
+      {/* Main Hero Container */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pt-8 pb-16 max-w-5xl mx-auto w-full space-y-8 relative z-10">
+        {/* Returning User Quick Resume Banner */}
         {recentProject && (
-          <div className="w-full max-w-3xl flex items-center justify-between px-4 py-3 rounded-2xl bg-gradient-to-r from-primary/15 via-sky-500/10 to-transparent border border-primary/30 text-xs text-foreground/90 shadow-lg backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center gap-2.5">
-              <span className="text-lg">🎬</span>
+          <div className="w-full max-w-3xl flex items-center justify-between px-4 py-2.5 rounded-2xl bg-gradient-to-r from-primary/15 via-sky-500/10 to-transparent border border-primary/30 text-xs text-foreground/90 shadow-md backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-2">
+              <span className="text-base">👋</span>
               <div>
-                <span className="font-semibold text-foreground">
-                  欢迎回来，导演！
-                </span>
-                <span className="text-muted-foreground ml-1.5 hidden sm:inline">
-                  继续上次创作：
-                </span>
-                <strong className="text-primary font-bold ml-1">
-                  《{recentProject.title}》
-                </strong>
-                <span className="text-muted-foreground font-mono ml-1 text-[11px]">
-                  ({recentProject.shot_count || 0} 镜)
-                </span>
+                <span className="font-semibold text-foreground">欢迎回来！继续上次创作：</span>
+                <strong className="text-primary font-bold ml-1">《{recentProject.title}》</strong>
+                <span className="text-muted-foreground font-mono ml-1 text-[11px]">({recentProject.shot_count || 0} 镜)</span>
               </div>
             </div>
 
@@ -376,32 +315,29 @@ export default function HomePage() {
         )}
 
         {/* Hero Title & Subtitle */}
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-2.5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/80 border border-border/80 text-muted-foreground text-xs font-mono font-medium">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>AI Director Studio 2.0 · 双向协同故事板</span>
+            <span>AI Director Studio 2.0 · 双向协同分镜系统</span>
           </div>
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground">
             让每一个文字剧本，秒变院线级分镜画卷
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            输入一句话脑洞或粘贴长篇文学剧本，AI 导演即刻为你生成全套 16:9 / 9:16 分镜视听台本与角色一致性画卷
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
+            输入一句话脑洞或剧本剧情，AI 导演即刻完成剧本拆镜、时码排期与全套视觉画卷
           </p>
         </div>
 
-        {/* Dynamic Filmstrip Ribbon Preview */}
-        <CinematicFilmstripHero />
-
-        {/* Central Updream-Style Prompt Box */}
-        <div className="w-full max-w-3xl rounded-2xl border border-border/80 bg-[#121218]/80 backdrop-blur-xl p-4 shadow-2xl focus-within:border-primary/70 focus-within:ring-4 focus-within:ring-primary/10 transition-all space-y-3 relative group">
+        {/* Central Pure Updream-Style Prompt Box */}
+        <div className="w-full max-w-3xl rounded-2xl border border-border/80 bg-[#121218]/90 backdrop-blur-xl p-4 shadow-2xl focus-within:border-primary/70 focus-within:ring-4 focus-within:ring-primary/10 transition-all space-y-3 relative group">
           {/* Textarea Input */}
           <textarea
             ref={textareaRef}
-            rows={4}
+            rows={3}
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="描述你想创作的短剧剧情、电影镜头或脑洞灵感... (例如：暴雨夜新东京，青瓦飞檐，仿生特工右眼机械光圈锁定暗影，拔刀斩出白色音爆激波，0.1x 极限子弹时间避开超音速弹道)"
+            placeholder="描述你想创作的短剧剧情、影视镜头或脑洞灵感... (点击下方灵感可快速填入)"
             className="w-full bg-transparent border-0 resize-none text-foreground placeholder:text-muted-foreground/60 text-sm sm:text-base focus:outline-hidden leading-relaxed px-1"
           />
 
@@ -455,15 +391,6 @@ export default function HomePage() {
                     ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
                     : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 pointer-events-none"
                 )}
-                title={
-                  !isAuthenticated
-                    ? "未登录：点击注册专属账号"
-                    : isDemoUser
-                    ? "当前为体验账号：点击注册专属账号并配置 Key"
-                    : !hasCustomKey
-                    ? "未配置 Key：点击进入设置页面配置 OpenRouter Key"
-                    : "专属 OpenRouter Key 已就绪"
-                }
               >
                 {!isAuthenticated ? (
                   <>
@@ -530,130 +457,71 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Quick Sample Project Jump Ribbon */}
-        <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
-          <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
-            <Film className="w-3.5 h-3.5 text-amber-400" />
-            <span>新手 0 等待样板房：</span>
+        {/* 4 Clean Lightweight Inspiration Capsules */}
+        <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+          <span className="text-muted-foreground font-mono text-[11px] mr-1 select-none">
+            ✨ 灵感范本：
           </span>
           <button
             type="button"
-            onClick={() => handleExploreSample({
-              id: "contract-lover",
-              title: "合约恋人",
-              tag: "9:16 短剧",
-              author: "官方",
-              desc: "",
-              aspectRatio: "9:16",
-              duration: 180,
-              shotCount: 18,
-              coverImage: "",
-              presetStory: "",
-              sampleProjectId: "6f01c422-48ea-4796-afc7-09cc6447f764",
-              gradient: "",
-              borderHover: "",
-            })}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-foreground border border-border/80 hover:border-primary/50 transition-all font-medium shadow-2xs group cursor-pointer"
+            onClick={() => {
+              setPromptText("苏晓为治疗母亲病情放弃学业时，室友宋知远亮出资助人身份并拿出当年暗藏条款的合约。两人从对抗到发现彼此伤痕，当医院催款单与录取通知书同时送达，宋知远变卖收藏替她缴费，苏晓终于看懂偏执守护。最终她带着两人的期待重返校园。");
+              setTargetDuration(30);
+              notify.success("✨ 已填入都市短剧《合约恋人》设定！");
+            }}
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary/80 hover:bg-secondary text-foreground text-xs border border-border/80 hover:border-primary/50 transition-colors cursor-pointer"
           >
-            <span>🎬 体验都市短剧《合约恋人》（3集·18镜全套分镜台本）</span>
-            <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+            <span>⚡ 都市短剧《合约恋人》</span>
           </button>
           <button
             type="button"
-            onClick={() => handleExploreSample({
-              id: "bencao-jie",
-              title: "本草劫",
-              tag: "9:16 短剧",
-              author: "官方",
-              desc: "",
-              aspectRatio: "9:16",
-              duration: 180,
-              shotCount: 18,
-              coverImage: "",
-              presetStory: "",
-              sampleProjectId: "2792deae-5f60-4246-850a-56b93eaf790a",
-              gradient: "",
-              borderHover: "",
-            })}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-foreground border border-border/80 hover:border-primary/50 transition-all font-medium shadow-2xs group cursor-pointer"
+            onClick={() => {
+              setPromptText("为治疗怪病被献祭的阿蘅逃进深山，发现所谓瘟疫竟是权贵投毒。她救下追捕她的盲将军裴回，用百草汁液缓解他的蚀目之痛。阿蘅将计就计喝下毒酒借脉搏变化传递刺史府地图，裴回带兵杀入火场用药烟破敌。");
+              setTargetDuration(30);
+              notify.success("✨ 已填入古装短剧《本草劫》设定！");
+            }}
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary/80 hover:bg-secondary text-foreground text-xs border border-border/80 hover:border-primary/50 transition-colors cursor-pointer"
           >
-            <span>📜 体验古装短剧《本草劫》（18镜视听完整工程）</span>
-            <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+            <span>📜 古装权谋《本草劫》</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPromptText("暴雨夜新东京，青瓦飞檐古楼悬挂赤红发光灯笼。仿生特工右眼机械光圈收缩至 F1.2 锁定暗影，拔出高频武士刀斩出白色音爆激波。0.1x 极限子弹时间，侧身仰避超音速弹道，万千悬浮水滴与电火花静止悬停。");
+              setTargetDuration(30);
+              notify.success("✨ 已填入赛博动作《雨夜对决》设定！");
+            }}
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary/80 hover:bg-secondary text-foreground text-xs border border-border/80 hover:border-primary/50 transition-colors cursor-pointer"
+          >
+            <span>🥋 赛博动作《雨夜对决》</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPromptText("雨夜老旧暗房内，红光微弱暗淡。老刑警手指夹着燃尽的香烟，凝视墙上密密麻麻的照片连线。突然台灯无故闪烁，门轴发出刺耳吱呀声，地上投射出拉长的风衣黑影。");
+              setTargetDuration(30);
+              notify.success("✨ 已填入悬疑推理《暗房密室》设定！");
+            }}
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary/80 hover:bg-secondary text-foreground text-xs border border-border/80 hover:border-primary/50 transition-colors cursor-pointer"
+          >
+            <span>🏮 芬奇悬疑《暗房密室》</span>
           </button>
         </div>
 
-        {/* Section 1: 电影级生产力三大支柱 (FeaturedBentoGrid 立威) */}
-        <FeaturedBentoGrid />
-
-        {/* Section 2: 经典短剧与电影题材工坊 (InteractiveSampleWorkshop 海报诱导试玩) */}
-        <InteractiveSampleWorkshop
-          onApplyPrompt={handleApplyPreset}
-          onExploreSample={handleExploreSample}
+        {/* Single Aesthetic Interactive Filmstrip Hero (承接成片画卷与直达漫游) */}
+        <CinematicFilmstripHero
+          onRoamSample={handleRoamSample}
+          onApplyStory={(story) => {
+            setPromptText(story);
+            notify.success("✨ 已将此镜头故事填入上方输入框！");
+            if (textareaRef.current) textareaRef.current.focus();
+          }}
         />
-
-        {/* Section 3: 底部收口行动号召 (Final CTA Banner) */}
-        <section className="w-full max-w-5xl mx-auto rounded-3xl p-8 sm:p-10 bg-gradient-to-r from-primary/20 via-purple-500/15 to-amber-500/20 border border-primary/30 text-center space-y-5 relative overflow-hidden shadow-2xl">
-          <div className="space-y-2 relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 text-primary-foreground border border-primary/30 text-xs font-mono font-bold">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>开启你的下一部影视大作</span>
-            </div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-              准备好开启你的第一部 AI 故事板画卷了吗？
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              无需从零搭建拍摄团队。输入你的核心剧情，AI 导演即刻完成剧本拆解、镜头排期与全套视觉生成。
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-4 relative z-10 pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (textareaRef.current) {
-                  textareaRef.current.focus();
-                  textareaRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-                }
-              }}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] cursor-pointer"
-            >
-              <span>立即输入灵感创作</span>
-              <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleExploreSample({
-                id: "contract-lover",
-                title: "合约恋人",
-                tag: "9:16 短剧",
-                author: "官方",
-                desc: "",
-                aspectRatio: "9:16",
-                duration: 180,
-                shotCount: 18,
-                coverImage: "",
-                presetStory: "",
-                sampleProjectId: "6f01c422-48ea-4796-afc7-09cc6447f764",
-                gradient: "",
-                borderHover: "",
-              })}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-secondary/90 hover:bg-secondary text-foreground text-xs font-bold border border-border transition-all hover:scale-[1.02] cursor-pointer"
-            >
-              <Play className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
-              <span>0秒漫游官方样板房</span>
-            </button>
-          </div>
-
-          {/* Background ambient glow */}
-          <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -left-12 -top-12 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border/40 py-8 px-6 text-center text-xs text-muted-foreground bg-[#0a0a0d]">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Minimal Footer */}
+      <footer className="border-t border-border/40 py-6 px-6 text-center text-xs text-muted-foreground bg-[#0a0a0d] mt-auto">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Clapperboard className="w-4 h-4 text-primary" />
             <span className="font-semibold text-foreground">AI Director Studio</span>
@@ -661,7 +529,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-4 text-muted-foreground">
             <Link href="/dashboard" className="hover:text-foreground transition-colors">
-              工程看板
+              工程驾驶舱
             </Link>
             <Link href="/releases" className="hover:text-foreground transition-colors">
               更新日志
