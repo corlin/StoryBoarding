@@ -1143,7 +1143,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-sky-600/20 text-sky-300 hover:bg-sky-600/30 border border-sky-500/30 transition-colors shadow-2xs"
                   >
                     {copiedKey === "vid" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedKey === "vid" ? "已复制视频词" : "一键复制生动词"}</span>
+                    <span>{copiedKey === "vid" ? "已复制视频词" : "复制视频提示词"}</span>
                   </button>
                 </div>
                 <textarea
@@ -1154,7 +1154,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                   className="w-full bg-background border border-border/80 rounded-lg p-3 text-xs font-mono leading-relaxed focus:outline-none focus:border-sky-500 resize-none text-foreground/90"
                 />
                 <p className="text-[11px] text-muted-foreground/80">
-                  💡 搭配上方首帧图片作为第一帧垫图，直接粘贴至可灵/Runway/海螺即可生成连贯电影级镜头。
+                  💡 搭配上方关键帧作为首帧垫图，粘贴至可灵、Runway 或海螺等视频生成模型中可保持机位与动态连续。
                 </p>
               </div>
             </div>

@@ -49,7 +49,7 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
   };
 
   const handleOpenExpandModal = () => {
-    if (!checkAuthAndKey("升维扩写短剧")) return;
+    if (!checkAuthAndKey("扩写连载短剧大纲")) return;
     setIsExpandModalOpen(true);
   };
 
@@ -177,9 +177,9 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
               className={`flex items-center gap-1 ${
                 compact ? "px-2 py-0.5 text-[11px]" : "px-3 py-1.5 text-xs"
               } bg-secondary hover:bg-muted border border-border text-foreground font-medium rounded-md transition shrink-0 shadow-2xs`}
-              title="将当前单场次戏固化为首集（Pilot），一键升维扩写为 3~5 集连载商业短剧"
+              title="将当前场次固化为首集，智能延展为 3~5 集连贯短剧大纲"
             >
-              <Rocket className="w-3 h-3 text-muted-foreground animate-pulse" />
+              <Rocket className="w-3 h-3 text-muted-foreground" />
               <span className="hidden sm:inline">扩写短剧</span>
             </button>
           )}
@@ -340,13 +340,13 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                    单场次升维扩写为连载短剧
+                    基于当前集扩展为连载短剧大纲
                     <span className="text-[10px] font-mono bg-purple-500/15 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded">
-                      势能接力
+                      剧情延续
                     </span>
                   </h3>
                   <p className="text-[11px] text-muted-foreground">
-                    固化当前场次为「EP 1 · 首播集」，AI 编剧自动推演后续连载全集大纲
+                    保留当前镜头为「EP 1 · 首播集」，AI 辅助推演后续各集剧情大纲与分镜
                   </p>
                 </div>
               </div>
@@ -364,7 +364,7 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
                   <span>✨ 自动继承首集设定</span>
                 </p>
                 <p className="text-[11px] leading-relaxed text-purple-300/80">
-                  当前工程原有的 12 镜台本、角色定妆描述与场景空间将作为不可变基准。AI 导演将紧抓第 1 集结尾悬念，顺延创作连载大纲与各集卡点。
+                  当前工程原有的镜头台本、角色定妆与场景设定将作为连续基准。AI 编剧将延续首集结尾剧情，推演连载大纲与各集卡点。
                 </p>
               </div>
 
@@ -425,12 +425,12 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
                     {isExpanding ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>AI 编剧正在并发推演各集大纲与分镜...</span>
+                        <span>AI 编剧正在推演各集大纲与分镜...</span>
                       </>
                     ) : (
                       <>
                         <Rocket className="w-3.5 h-3.5" />
-                        <span>立即升维扩写短剧</span>
+                        <span>生成连载短剧大纲</span>
                       </>
                     )}
                   </button>

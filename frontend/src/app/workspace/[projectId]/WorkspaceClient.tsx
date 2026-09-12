@@ -217,7 +217,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
       switch (openAction) {
         case "export":
           setActiveStudioStage("deliver");
-          notify.info("📦 已切换至 Stage 04 · 工业级交付与导出工坊");
+          notify.info("📦 已切换至 Stage 04 · 导出与生产协作工坊");
           break;
         case "theater":
           setTheaterShotId(selectedShotId || shots[0]?.id || null);
@@ -582,7 +582,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         }}
         onOpenExport={() => {
           setActiveStudioStage("deliver");
-          notify.info("📦 已切换至 Stage 04 · 工业级交付与导出工坊");
+          notify.info("📦 已切换至 Stage 04 · 导出与生产协作工坊");
         }}
         onOpenBible={() => {
           setActiveStudioStage("prep");
@@ -888,7 +888,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
         onOpenExport={() => {
           setIsTheaterOpen(false);
           setActiveStudioStage("deliver");
-          notify.info("📦 已切换至 Stage 04 · 工业级交付与导出工坊");
+          notify.info("📦 已切换至 Stage 04 · 导出与生产协作工坊");
         }}
         onOpenDetail={(shot) => handleOpenDrawer(shot.id)}
         onRegenerateShotImage={handleRegenerateSingleShot}

@@ -167,7 +167,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
     }
     if (sec < 35.0) {
       return {
-        text: "电影级概念画面渲染中 (最长45s)",
+        text: "正在生成分镜画面...",
         icon: Palette,
         color: "text-amber-400",
       };
@@ -294,7 +294,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
                   🎨 点击生成分镜画面
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  单镜 45s 电影级渲染
+                  调用生图模型绘制参考图
                 </p>
               </div>
             </button>
@@ -362,7 +362,7 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
               <span className="text-muted-foreground">·</span>
               <span
                 className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.2 rounded shadow-2xs"
-                title="🔒 该镜头已定稿锁定：受工业级只读保护，全片批量生图或AI重构时自动跳过"
+                title="🔒 该镜头已锁定：批量重绘或重新拆镜时将保留此镜头画面"
               >
                 <Lock className="w-3 h-3 text-amber-400" />
                 <span>定稿</span>

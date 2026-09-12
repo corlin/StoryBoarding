@@ -144,7 +144,7 @@ export function DramaticBeatPreviewModal({
             onClick={onConfirmAuth}
             className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
           >
-            <span>一键注册保存并启动生成</span>
+            <span>注册并开始生成分镜</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

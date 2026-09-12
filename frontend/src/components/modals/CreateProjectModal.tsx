@@ -232,7 +232,7 @@ export function CreateProjectModal({ isOpen, onClose, initialValues }: CreatePro
                     )}
                   >
                     <Film className="w-3.5 h-3.5" />
-                    <span>16:9 横屏电影级</span>
+                    <span>16:9 横屏画幅</span>
                   </button>
                 </div>
               </div>

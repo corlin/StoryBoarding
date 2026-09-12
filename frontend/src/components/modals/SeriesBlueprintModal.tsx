@@ -131,13 +131,13 @@ export function SeriesBlueprintModal({ isOpen, onClose }: SeriesBlueprintModalPr
             </div>
             <div>
               <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                长篇小说 / 剧本一键成剧 · 架构编译器
+                长篇故事分集拆解与大纲策划
                 <span className="text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded">
-                  Multi-Episode Narrative OS
+                  多集短剧策划
                 </span>
               </h2>
               <p className="text-xs text-muted-foreground">
-                万字小说导入 ➔ 自动提取全剧角色 DNA ➔ 智能切分 3~5 集生死悬念卡点
+                长篇文本导入 ➔ 提取核心角色设定 ➔ 规划 3~5 集故事大纲与悬念卡点
               </p>
             </div>
           </div>
@@ -190,7 +190,7 @@ export function SeriesBlueprintModal({ isOpen, onClose }: SeriesBlueprintModalPr
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}
                 disabled={step === "analyzing"}
-                placeholder="在此粘贴万字长文、小说章节或短剧企划案……AI 将为您智能抽取主角/反派人物卡与视觉 DNA，并切分为多集连贯短剧。"
+                placeholder="在此粘贴长篇小说章节、故事梗概或策划案……AI 将提炼主要角色设定，并按集拆解剧本大纲与卡点。"
                 className="w-full h-64 bg-background border border-border/70 rounded-lg p-4 text-xs font-mono text-foreground leading-relaxed focus:outline-none focus:border-amber-500/60 resize-none"
               />
 
@@ -404,24 +404,24 @@ export function SeriesBlueprintModal({ isOpen, onClose }: SeriesBlueprintModalPr
                 {step === "compiling" ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    各集微观并发拆拍中 (约 5~8 秒)...
+                    各集分镜规划中 (约 5~8 秒)...
                   </>
                 ) : isDemoUser ? (
                   <>
                     <Key className="w-4 h-4" />
-                    🔑 注册账号一键建构整部短剧
+                    🔑 注册账号生成整部短剧
                     <ArrowRight className="w-4 h-4" />
                   </>
                 ) : !hasCustomKey ? (
                   <>
                     <Key className="w-4 h-4" />
-                    🔑 填Key一键建构整部短剧
+                    🔑 填Key生成整部短剧
                     <ArrowRight className="w-4 h-4" />
                   </>
                 ) : (
                   <>
                     <Film className="w-4 h-4" />
-                    立即一键建构整部短剧
+                    立即创建多集短剧工程
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

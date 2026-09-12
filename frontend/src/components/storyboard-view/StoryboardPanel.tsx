@@ -203,8 +203,8 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
               )}
               title={
                 shots.some((s) => s.is_locked)
-                  ? `批量补齐 ${missingImageCount} 镜待冲印画面（已自动保护跳过定稿锁定镜头）`
-                  : `一键冲印本集未生成及已改写的 ${missingImageCount} 镜画面`
+                  ? `批量补齐 ${missingImageCount} 镜画面（已自动跳过锁定镜头）`
+                  : `批量生成本集未生成及已改写的 ${missingImageCount} 镜画面`
               }
             >
               {isBatchRendering ? (
@@ -353,10 +353,10 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                         setIsDisplaySettingsOpen(false);
                       }}
                       className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-amber-400 hover:bg-amber-500/15 transition-colors cursor-pointer"
-                      title="一键将本集所有镜头打上锁定保护"
+                      title="锁定本集所有镜头画面"
                     >
                       <Lock className="w-3.5 h-3.5" />
-                      <span>一键锁定全部镜头</span>
+                      <span>锁定全部镜头</span>
                     </button>
                     <button
                       type="button"
@@ -364,14 +364,14 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                         shots.forEach((s) => {
                           if (s.is_locked) onToggleLock(s.id, false);
                         });
-                        notify.info(`🔓 已解除全片 ${shots.length} 个镜头的锁定保护`);
+                        notify.info(`🔓 已解除全片 ${shots.length} 个镜头的锁定状态`);
                         setIsDisplaySettingsOpen(false);
                       }}
                       className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                      title="一键解除本集所有镜头的锁定保护"
+                      title="解除本集所有镜头的锁定状态"
                     >
                       <Unlock className="w-3.5 h-3.5" />
-                      <span>一键解锁全部镜头</span>
+                      <span>解锁全部镜头</span>
                     </button>
                   </>
                 )}

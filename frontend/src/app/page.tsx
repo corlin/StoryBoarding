@@ -257,14 +257,14 @@ export default function HomePage() {
                   onClick={async () => {
                     try {
                       await login("demo@caifu.social", "demo123");
-                      notify.success("🎬 已一键免密登入官方演示 Demo 账号！");
+                      notify.success("🎬 已载入官方演示 Demo 账号！");
                       router.push("/dashboard");
                     } catch {
                       openAuthModal("login");
                     }
                   }}
                   className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition-all shadow-xs shrink-0 cursor-pointer"
-                  title="免注册免输密码，一键以官方演示账号身份体验全套功能"
+                  title="免注册免输密码，以官方演示账号身份快速体验功能"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span>0秒漫游 Demo</span>
@@ -309,13 +309,13 @@ export default function HomePage() {
         <div className="text-center space-y-2.5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/80 border border-border/80 text-muted-foreground text-xs font-mono font-medium">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>AI Director Studio 2.0 · 双向协同分镜系统</span>
+            <span>AI Director Studio · 剧本分镜与视觉预演系统</span>
           </div>
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground">
-            让每一个文字剧本，秒变院线级分镜画卷
+            让文字故事高效转化为专业分镜与视觉预演
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            输入一句话脑洞或剧本剧情，AI 导演即刻完成剧本拆镜、时码排期与全套视觉画卷
+            输入剧情设定或剧本文本，AI 导演即刻完成场景拆镜、时码排期与参考视觉生成
           </p>
         </div>
 
@@ -328,7 +328,7 @@ export default function HomePage() {
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="描述你想创作的短剧剧情、影视镜头或脑洞灵感... (点击下方灵感可快速填入)"
+            placeholder="描述你想创作的短剧剧情、影视镜头或故事设定... (点击下方成片画卷可直接带入)"
             className="w-full bg-transparent border-0 resize-none text-foreground placeholder:text-muted-foreground/60 text-sm sm:text-base focus:outline-hidden leading-relaxed px-1"
           />
 

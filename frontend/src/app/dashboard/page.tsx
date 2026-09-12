@@ -126,7 +126,7 @@ export default function DashboardPage() {
     if (!isAuthenticated) {
       try {
         await login("demo@caifu.social", "demo123");
-        notify.success("🎬 已为您一键载入官方精品样板工程（免等待、零消耗 Token）！");
+        notify.success("🎬 已为您载入官方示例分镜工程！");
         router.push("/workspace?id=6f01c422-48ea-4796-afc7-09cc6447f764");
         return;
       } catch {
@@ -274,7 +274,7 @@ export default function DashboardPage() {
               AI Director Studio
             </span>
             <p className="text-[11px] text-muted-foreground hidden sm:block">
-              影视级双向协同分镜与短剧创作驾驶舱
+              分镜工程与影视预演工作台
             </p>
           </div>
         </Link>
@@ -299,24 +299,15 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {/* Action Controls */}
         <div className="flex items-center gap-3">
-          {/* Settings button */}
-          <button
-            onClick={() => {
-              if (isDemoUser) {
-                notify.info("🎬 当前为公共体验账号，API Key 配置仅对专属导演账号生效！请先注册专属账号");
-                openAuthModal("register");
-                return;
-              }
-              openSettingsModal();
-            }}
-            className="p-2 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-            title="后端连接与 AI 大模型设置"
+          <Link
+            href="/releases"
+            className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-secondary/60"
           >
-            <Settings className="w-4 h-4" />
-          </button>
+            <span>v2.1 更新</span>
+          </Link>
 
-          {/* User auth state */}
           {isAuthenticated && user ? (
             <UserMenuDropdown />
           ) : (
@@ -326,7 +317,7 @@ export default function DashboardPage() {
                 onClick={async () => {
                   try {
                     await login("demo@caifu.social", "demo123");
-                    notify.success("🎬 已一键登入官方演示 Demo 账号！");
+                    notify.success("🎬 已载入官方演示 Demo 账号！");
                   } catch {
                     openAuthModal("login");
                   }
@@ -338,23 +329,20 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={() => openAuthModal("login")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary hover:bg-secondary/80 border border-border text-foreground transition-colors cursor-pointer"
               >
-                <User className="w-3.5 h-3.5" />
-                <span>登录</span>
+                登录
               </button>
             </div>
           )}
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-6">
-        {/* Compact Director Command Strip (高效导演工坊命令栏) */}
-        <div className="rounded-2xl border border-border/80 bg-[#121218]/90 backdrop-blur-md p-3 sm:p-4 shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Left: Primary Action + Creative Tools */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-            {/* Primary: Create Project */}
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
+        {/* Compact Command Strip */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-2xl bg-[#121218]/90 border border-border/70 backdrop-blur-md shadow-xs">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={handleOpenCreateModal}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
@@ -368,27 +356,27 @@ export default function DashboardPage() {
             {/* Tool 1: Pitch to Series */}
             <button
               onClick={() => {
-                if (!checkAuthAndKey("一句话点子成剧")) return;
+                if (!checkAuthAndKey("灵感点子生成剧本")) return;
                 setIsPitchModalOpen(true);
               }}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors cursor-pointer"
-              title="输入一句话脑洞，AI 自动生成 3 款短剧与文学剧本"
+              title="输入一句话脑洞或梗概，AI 辅助生成故事设定与文学剧本"
             >
               <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-              <span>一句话点子成剧</span>
+              <span>灵感生成剧本</span>
             </button>
 
             {/* Tool 2: Novel to Series */}
             <button
               onClick={() => {
-                if (!checkAuthAndKey("长篇小说成剧")) return;
+                if (!checkAuthAndKey("长篇小说分集策划")) return;
                 setIsSeriesModalOpen(true);
               }}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 transition-colors cursor-pointer"
-              title="导入万字长篇小说，一键切分多集剧本与全局角色库"
+              title="导入长篇小说或长剧本，智能拆解分集大纲与角色设定"
             >
               <BookOpen className="w-3.5 h-3.5 text-sky-400" />
-              <span>长篇小说成剧</span>
+              <span>长篇小说分集策划</span>
             </button>
 
             {/* Tool 3: Global Asset Library */}
@@ -438,7 +426,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-400" />
                 <h3 className="text-xs font-bold text-foreground">
-                  经典起步模板 · 点击一键载入创作工作台
+                  经典分镜模板 · 点击载入创作工作台
                 </h3>
               </div>
               <button

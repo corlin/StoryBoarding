@@ -365,12 +365,12 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
               {isApplying ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>正在应用并差量反推分镜...</span>
+                  <span>正在采纳建议并更新分镜...</span>
                 </>
               ) : (
                 <>
                   <Zap className="w-3.5 h-3.5" />
-                  <span>一键全量采纳并差量反推分镜</span>
+                  <span>采纳建议并同步更新分镜</span>
                 </>
               )}
             </button>

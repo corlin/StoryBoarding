@@ -136,7 +136,7 @@ export const AuthModal: React.FC = () => {
             onClick={handleQuickDemoLogin}
             className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black shadow-sm shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-50"
           >
-            {isSubmitting ? "登入中..." : "一键登入"}
+            {isSubmitting ? "登入中..." : "体验 Demo"}
           </button>
         </div>
 
