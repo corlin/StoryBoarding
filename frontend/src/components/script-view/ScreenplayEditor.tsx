@@ -51,27 +51,7 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
   const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
   const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
 
-  const checkAuthAndKey = (actionName: string): boolean => {
-    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
-    if (!currAuth) {
-      notify.info(`🎬 请先注册或登录专属导演账号`);
-      openAuthModal("register");
-      return false;
-    }
-    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
-    if (currIsDemo) {
-      notify.info(`🎬 当前为公共体验账号，样板剧本已就绪！如需自主${actionName}，请注册专属导演账号并绑定专属 Key`);
-      openAuthModal("register");
-      return false;
-    }
-    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
-    if (!currHasKey) {
-      notify.info(`🎬 请在右上角「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
-      openSettingsModal();
-      return false;
-    }
-    return true;
-  };
+  const checkAuthAndKey = (actionName: string) => useAuthStore.getState().checkAuthAndKey(actionName);
 
   // Sync initial screenplay text when sequence changes
   useEffect(() => {

@@ -37,28 +37,7 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
   const characters = activeProject.characters || [];
   const nextEpNum = sequences.length + 1;
 
-  // Validation helper for AI generation operations
-  const checkAuthAndKey = (actionName: string): boolean => {
-    const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore.getState();
-    if (!isAuthenticated) {
-      notify.info(`🎬 请先注册或登录导演账号`);
-      openAuthModal("register");
-      return false;
-    }
-    const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
-    if (isDemoUser) {
-      notify.info(`🎬 当前为公共体验账号！如需使用 AI 导演${actionName}，请注册专属导演账号并在设置中填入 Key`);
-      openAuthModal("register");
-      return false;
-    }
-    const hasKey = !!user?.custom_settings?.llmApiKey;
-    if (!hasKey) {
-      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
-      openSettingsModal();
-      return false;
-    }
-    return true;
-  };
+  const checkAuthAndKey = (actionName: string) => useAuthStore.getState().checkAuthAndKey(actionName);
 
   const handleOpenModal = () => {
     if (!checkAuthAndKey("追加短剧新集数")) return;

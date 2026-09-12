@@ -28,8 +28,6 @@ import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
-import { AuthModal } from "@/components/modals/AuthModal";
-import { SettingsModal } from "@/components/modals/SettingsModal";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelineProgress";
 import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
@@ -114,9 +112,7 @@ export default function HomePage() {
     user,
     openAuthModal,
     login,
-    isSettingsModalOpen,
     openSettingsModal,
-    closeSettingsModal,
   } = useAuthStore();
 
   const [promptText, setPromptText] = useState("");
@@ -650,9 +646,7 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {/* Global Modals for Auth, Settings, and Creation Progress */}
-      <AuthModal />
-      <SettingsModal isOpen={isSettingsModalOpen} onClose={closeSettingsModal} />
+      {/* Creation Progress */}
       <DirectorPipelineProgress
         isOpen={isCreating}
         title={promptText.slice(0, 18).trim() || "新电影分镜预演"}
@@ -672,11 +666,9 @@ export default function HomePage() {
         onClose={() => setIsCreating(false)}
       />
 
-      {/* Multi-Episode Series Blueprint Modal */}
       <SeriesBlueprintModal
         isOpen={isSeriesModalOpen}
         onClose={() => setIsSeriesModalOpen(false)}
-        onOpenSettings={openSettingsModal}
       />
     </div>
   );

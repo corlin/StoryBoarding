@@ -76,27 +76,7 @@ export const PitchIdeaGeneratorModal: React.FC<PitchIdeaGeneratorModalProps> = (
   const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
   const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
 
-  const checkAuthAndKey = (actionName: string): boolean => {
-    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = useAuthStore.getState();
-    if (!currAuth) {
-      notify.info(`🎬 请先注册或登录专属导演账号，即可使用 ${actionName}`);
-      openAuthModal("register");
-      return false;
-    }
-    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
-    if (currIsDemo) {
-      notify.info(`🎬 当前为公共体验账号，不可创建新工程！如需自主${actionName}，请注册专属导演账号并在个人设置中填入专属 Key`);
-      openAuthModal("register");
-      return false;
-    }
-    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
-    if (!currHasKey) {
-      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
-      openSettingsModal();
-      return false;
-    }
-    return true;
-  };
+  const checkAuthAndKey = (actionName: string) => useAuthStore.getState().checkAuthAndKey(actionName);
 
   if (!isOpen) return null;
 

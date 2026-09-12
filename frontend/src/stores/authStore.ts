@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api } from "@/lib/api";
+import { notify } from "@/components/ui/ToastNotification";
 
 export interface UserProfile {
   id: string;
@@ -34,6 +35,7 @@ interface AuthState {
   closeAuthModal: () => void;
   openSettingsModal: () => void;
   closeSettingsModal: () => void;
+  checkAuthAndKey: (actionName: string) => boolean;
 
   initAuth: () => Promise<void>;
   login: (account: string, pass: string) => Promise<void>;
@@ -55,6 +57,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   closeAuthModal: () => set({ isAuthModalOpen: false }),
   openSettingsModal: () => set({ isSettingsModalOpen: true }),
   closeSettingsModal: () => set({ isSettingsModalOpen: false }),
+
+  checkAuthAndKey: (actionName: string): boolean => {
+    const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = get();
+    if (!currAuth) {
+      notify.info(`🎬 请先注册或登录专属导演账号，即可使用 ${actionName}`);
+      openAuthModal("login");
+      return false;
+    }
+    const currIsDemo = !currUser || currUser.id === "demo" || currUser.email === "demo@caifu.social";
+    if (currIsDemo) {
+      notify.info(`🎬 当前为公共体验账号！如需${actionName}，请注册专属导演账号并在个人设置中填入专属 Key`);
+      openAuthModal("register");
+      return false;
+    }
+    const currHasKey = !!currUser?.custom_settings?.llmApiKey;
+    if (!currHasKey) {
+      notify.info(`🎬 请在「设置」中配置您专属的 OpenRouter API Key，开启 AI ${actionName}服务`);
+      openSettingsModal();
+      return false;
+    }
+    return true;
+  },
 
   initAuth: async () => {
     if (typeof window === "undefined") {

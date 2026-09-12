@@ -190,24 +190,7 @@ export default function DashboardPage() {
   const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
   const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
 
-  const checkAuthAndKey = (actionName: string): boolean => {
-    if (!isAuthenticated) {
-      notify.info(`🎬 请先注册或登录专属导演账号，即可使用 ${actionName}`);
-      openAuthModal("register");
-      return false;
-    }
-    if (isDemoUser) {
-      notify.info(`🎬 当前为公共体验账号，不可创建新工程！如需使用 ${actionName}，请注册专属导演账号并在个人设置中填入专属 Key`);
-      openAuthModal("register");
-      return false;
-    }
-    if (!hasCustomKey) {
-      notify.info(`🎬 请先在「设置」中填入您的专属 OpenRouter API Key，开启 ${actionName}`);
-      openSettingsModal();
-      return false;
-    }
-    return true;
-  };
+  const checkAuthAndKey = (actionName: string) => useAuthStore.getState().checkAuthAndKey(actionName);
 
   const handleOpenCreateModal = () => {
     if (!checkAuthAndKey("新建分镜工程")) return;
@@ -1110,7 +1093,6 @@ export default function DashboardPage() {
           setIsSeriesModalOpen(false);
           loadProjects();
         }}
-        onOpenSettings={openSettingsModal}
       />
 
       {/* One-Line Pitch Idea Generator Modal */}
