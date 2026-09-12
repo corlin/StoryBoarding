@@ -338,92 +338,30 @@ export default function HomePage() {
           />
 
           {/* Bottom Action Ribbon */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2.5 border-t border-border/50">
-            {/* Left Quick Config Chips */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-              {/* Duration Chip */}
+          <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/40">
+            {/* Left Quick Config: Duration Toggle */}
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setTargetDuration(targetDuration === 30 ? 60 : 30)}
-                className="inline-flex items-center gap-1.5 px-3 h-9 rounded-xl bg-secondary/70 hover:bg-secondary border border-border/80 text-foreground/90 font-mono text-xs transition-colors shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-secondary/60 hover:bg-secondary border border-border/70 text-foreground/90 font-mono text-xs transition-colors shadow-2xs cursor-pointer select-none"
                 title="点击切换目标片长 (30s 12镜 / 60s 24镜)"
               >
                 <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                 <span>{targetDuration}s · {targetDuration === 30 ? "12镜" : "24镜"}</span>
               </button>
-
-              {/* Style Chip */}
-              <div className="inline-flex items-center gap-1.5 px-3 h-9 rounded-xl bg-secondary/70 border border-border/80 text-foreground/90 text-xs transition-colors shadow-2xs whitespace-nowrap shrink-0">
-                <Palette className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>{selectedStyle}</span>
-              </div>
-
-              {/* Novel / Long-form Series Button */}
-              <button
-                type="button"
-                onClick={() => setIsSeriesModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 h-9 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-medium transition-colors shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
-                title="导入万字长篇小说，一键切分 3~5 集短剧与全局角色库"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>小说成剧</span>
-              </button>
             </div>
 
-            {/* Right Submit Button & Key Status */}
-            <div className="flex items-center justify-end gap-2 shrink-0">
-              {/* Real-time Key Status Pill */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (!isAuthenticated || isDemoUser) openAuthModal("register");
-                  else if (!hasCustomKey) openSettingsModal();
-                }}
-                className={cn(
-                  "hidden sm:inline-flex items-center gap-1.5 px-2.5 h-9 rounded-xl text-xs font-mono select-none transition-all border shadow-2xs whitespace-nowrap shrink-0 cursor-pointer",
-                  !isAuthenticated || isDemoUser
-                    ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
-                    : !hasCustomKey
-                    ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
-                    : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 pointer-events-none"
-                )}
-              >
-                {!isAuthenticated ? (
-                  <>
-                    <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>免密初拆</span>
-                  </>
-                ) : isDemoUser ? (
-                  <>
-                    <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>体验账号</span>
-                  </>
-                ) : !hasCustomKey ? (
-                  <>
-                    <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>未配 Key</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Key 已就绪</span>
-                  </>
-                )}
-              </button>
-
-              <span className="text-[11px] text-muted-foreground hidden lg:inline font-mono whitespace-nowrap select-none px-0.5">
-                Enter ↵
-              </span>
-
-              {/* Submit CTA */}
+            {/* Right Submit CTA */}
+            <div className="flex items-center justify-end shrink-0">
               <button
                 type="button"
                 onClick={handleStartCreation}
                 disabled={isCreating}
                 className={cn(
-                  "h-9 px-4 rounded-xl flex items-center gap-1.5 text-xs font-semibold transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer whitespace-nowrap shrink-0",
+                  "h-8 px-4 rounded-lg flex items-center gap-1.5 text-xs font-medium transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer whitespace-nowrap shrink-0",
                   !isAuthenticated || isDemoUser || !hasCustomKey
-                    ? "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20 font-bold"
+                    ? "bg-amber-500 hover:bg-amber-400 text-black font-semibold shadow-amber-500/10"
                     : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20"
                 )}
               >
@@ -451,57 +389,6 @@ export default function HomePage() {
               </button>
             </div>
           </div>
-        </div>
-
-        {/* 4 Clean Lightweight Inspiration Capsules */}
-        <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
-          <span className="text-muted-foreground font-mono text-[11px] mr-1 select-none">
-            ✨ 灵感范本：
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              setPromptText("苏晓为治疗母亲病情放弃学业时，室友宋知远亮出资助人身份并拿出当年暗藏条款的合约。两人从对抗到发现彼此伤痕，当医院催款单与录取通知书同时送达，宋知远变卖收藏替她缴费，苏晓终于看懂偏执守护。最终她带着两人的期待重返校园。");
-              setTargetDuration(30);
-              notify.success("✨ 已填入都市短剧《合约恋人》设定！");
-            }}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary/80 hover:bg-secondary text-foreground text-xs border border-border/80 hover:border-primary/50 transition-colors cursor-pointer"
-          >
-            <span>⚡ 都市短剧《合约恋人》</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setPromptText("为治疗怪病被献祭的阿蘅逃进深山，发现所谓瘟疫竟是权贵投毒。她救下追捕她的盲将军裴回，用百草汁液缓解他的蚀目之痛。阿蘅将计就计喝下毒酒借脉搏变化传递刺史府地图，裴回带兵杀入火场用药烟破敌。");
-              setTargetDuration(30);
-              notify.success("✨ 已填入古装短剧《本草劫》设定！");
-            }}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary/80 hover:bg-secondary text-foreground text-xs border border-border/80 hover:border-primary/50 transition-colors cursor-pointer"
-          >
-            <span>📜 古装权谋《本草劫》</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setPromptText("暴雨夜新东京，青瓦飞檐古楼悬挂赤红发光灯笼。仿生特工右眼机械光圈收缩至 F1.2 锁定暗影，拔出高频武士刀斩出白色音爆激波。0.1x 极限子弹时间，侧身仰避超音速弹道，万千悬浮水滴与电火花静止悬停。");
-              setTargetDuration(30);
-              notify.success("✨ 已填入赛博动作《雨夜对决》设定！");
-            }}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary/80 hover:bg-secondary text-foreground text-xs border border-border/80 hover:border-primary/50 transition-colors cursor-pointer"
-          >
-            <span>🥋 赛博动作《雨夜对决》</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setPromptText("雨夜老旧暗房内，红光微弱暗淡。老刑警手指夹着燃尽的香烟，凝视墙上密密麻麻的照片连线。突然台灯无故闪烁，门轴发出刺耳吱呀声，地上投射出拉长的风衣黑影。");
-              setTargetDuration(30);
-              notify.success("✨ 已填入悬疑推理《暗房密室》设定！");
-            }}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary/80 hover:bg-secondary text-foreground text-xs border border-border/80 hover:border-primary/50 transition-colors cursor-pointer"
-          >
-            <span>🏮 芬奇悬疑《暗房密室》</span>
-          </button>
         </div>
 
         {/* Single Aesthetic Interactive Filmstrip Hero (承接成片画卷与直达漫游) */}
