@@ -236,7 +236,7 @@ export default function HomePage() {
               className="text-muted-foreground hover:text-foreground transition-colors hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-secondary/60"
             >
               <Film className="w-3.5 h-3.5 text-sky-400" />
-              <span>工程驾驶舱</span>
+              <span>工程</span>
             </Link>
 
             {isAuthenticated ? (
@@ -267,7 +267,7 @@ export default function HomePage() {
                   title="免注册免输密码，以官方演示账号身份快速体验功能"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>0秒漫游 Demo</span>
+                  <span>体验 Demo</span>
                 </button>
                 <button
                   onClick={() => openAuthModal("login")}
@@ -309,13 +309,13 @@ export default function HomePage() {
         <div className="text-center space-y-2.5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/80 border border-border/80 text-muted-foreground text-xs font-mono font-medium">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>AI Director Studio · 剧本分镜与视觉预演系统</span>
+            <span>AI 分镜与视觉预演</span>
           </div>
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground">
-            让文字故事高效转化为专业分镜与视觉预演
+            把故事变成分镜与预演
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            输入剧情设定或剧本文本，AI 导演即刻完成场景拆镜、时码排期与参考视觉生成
+            输入剧情或剧本，生成镜头、时码与参考画面
           </p>
         </div>
 
@@ -328,7 +328,7 @@ export default function HomePage() {
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="描述你想创作的短剧剧情、影视镜头或故事设定... (点击下方成片画卷可直接带入)"
+            placeholder="输入剧情、剧本片段或镜头想法…"
             className="w-full bg-transparent border-0 resize-none text-foreground placeholder:text-muted-foreground/60 text-sm sm:text-base focus:outline-hidden leading-relaxed px-1"
           />
 
