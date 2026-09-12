@@ -108,6 +108,34 @@ test('preview assembly plan rejects missing adopted visuals', () => {
     /1 个镜头缺少已采用画面/,
   );
 });
+test('final video assembly accepts only adopted video segments', () => {
+  const shots = [
+    { shot_id: 's1', episode_number: 1, order: 1, duration: 3, adopted_take_id: 'image-1' },
+    { shot_id: 's2', episode_number: 1, order: 2, duration: 4, adopted_take_id: 'video-2' },
+  ];
+  const takes = [
+    { id: 'image-1', shot_id: 's1', take_type: 'image', media_url: '/frame.jpg', is_adopted: true },
+    { id: 'video-1', shot_id: 's1', take_type: 'video', media_url: '/segment-1.mp4', is_adopted: false, duration: 6 },
+    { id: 'video-2', shot_id: 's2', take_type: 'video', media_url: '/segment-2.mp4', is_adopted: true, duration: 6 },
+  ];
+  assert.throws(
+    () => productionKanban.buildVideoAssemblyPlan(shots, takes, []),
+    /1 个镜头缺少已采用视频片段/,
+  );
+  assert.throws(
+    () => productionKanban.buildVideoAssemblyPlan([{ ...shots[0], adopted_take_id: 'video-1' }], takes, []),
+    /1 个镜头缺少已采用视频片段/,
+  );
+
+  const plan = productionKanban.buildVideoAssemblyPlan(
+    [{ ...shots[0], adopted_take_id: 'video-1' }, shots[1]],
+    takes.map((take) => ({ ...take, is_adopted: take.id !== 'image-1' })),
+    [],
+  );
+  assert.deepEqual(plan.clips.map((clip) => clip.visualKind), ['video', 'video']);
+  assert.deepEqual(plan.clips.map((clip) => clip.duration), [6, 6]);
+  assert.ok(plan.clips.every((clip, index) => !productionKanban.buildPreviewClipCommands(clip, index, '9:16').visual.includes('-loop')));
+});
 test('preview subtitles serialize to valid SRT timestamps', () => {
   assert.equal(typeof productionKanban.previewSubtitlesToSrt, 'function');
   assert.equal(
@@ -143,6 +171,11 @@ test('production kanban exposes one-click preview assembly instead of only an FF
   assert.match(source, /episode_outputs/);
   const releaseNotes = fs.readFileSync(path.join(__dirname, '../src/data/releaseNotes.ts'), 'utf8');
   assert.match(releaseNotes, /一键生成分集与全片预演/);
+});
+test('production kanban distinguishes animatic previews from real video merges', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/components/workspace/kanban/ProductionKanbanView.tsx'), 'utf8');
+  assert.match(source, /合并已采用视频/);
+  assert.match(source, /buildVideoAssemblyPlan/);
 });
 test('theater review loads and plays the current assembled preview', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/components/workspace/views/TheaterReviewStudioView.tsx'), 'utf8');

@@ -108,13 +108,31 @@ function field<T = any>(value: any, snake: string, camel: string): T | undefined
   return value?.[snake] ?? value?.[camel];
 }
 
-export function buildPreviewAssemblyPlan(shots: any[], takes: any[], dialogueLines: any[]): PreviewAssemblyPlan {
+function buildAssemblyPlan(
+  shots: any[],
+  takes: any[],
+  dialogueLines: any[],
+  requiredVisualKind?: "video",
+): PreviewAssemblyPlan {
   const orderedShots = [...shots].sort(compareProductionShots);
   const missing = orderedShots.filter((shot) => {
     const adoptedId = field<string>(shot, "adopted_take_id", "adoptedTakeId");
-    return !takes.some((take) => take.id === adoptedId && field(take, "take_type", "takeType") !== "audio" && field(take, "media_url", "mediaUrl"));
+    return !takes.some((take) => {
+      const takeType = field(take, "take_type", "takeType");
+      return take.id === adoptedId &&
+        takeType !== "audio" &&
+        (!requiredVisualKind || takeType === requiredVisualKind) &&
+        (!requiredVisualKind || Boolean(field(take, "is_adopted", "isAdopted"))) &&
+        field(take, "media_url", "mediaUrl");
+    });
   });
-  if (missing.length) throw new Error(`${missing.length} 个镜头缺少已采用画面，暂不能合成预演片`);
+  if (missing.length) {
+    const missingLabels = missing.slice(0, 5).map(productionShotLabel).join("、");
+    if (requiredVisualKind === "video") {
+      throw new Error(`${missing.length} 个镜头缺少已采用视频片段（${missingLabels}），请先生成并采用视频`);
+    }
+    throw new Error(`${missing.length} 个镜头缺少已采用画面（${missingLabels}），暂不能合成预演片`);
+  }
 
   let timeline = 0;
   const subtitles: PreviewSubtitleCue[] = [];
@@ -122,7 +140,12 @@ export function buildPreviewAssemblyPlan(shots: any[], takes: any[], dialogueLin
     const shotId = field<string>(shot, "shot_id", "shotId") || shot.id;
     const adoptedId = field<string>(shot, "adopted_take_id", "adoptedTakeId")!;
     const visual = takes.find((take) => take.id === adoptedId)!;
-    const duration = Math.max(Number(shot.duration) || Number(visual.duration) || 2, 0.1);
+    const duration = Math.max(
+      requiredVisualKind === "video"
+        ? Number(visual.duration) || Number(shot.duration) || 2
+        : Number(shot.duration) || Number(visual.duration) || 2,
+      0.1,
+    );
     const lines = dialogueLines
       .filter((line) => field(line, "shot_id", "shotId") === shotId)
       .sort((a, b) => Number(field(a, "order_index", "orderIndex") || 0) - Number(field(b, "order_index", "orderIndex") || 0));
@@ -178,6 +201,14 @@ export function buildPreviewAssemblyPlan(shots: any[], takes: any[], dialogueLin
   });
 
   return { clips, subtitles, totalDuration: timeline };
+}
+
+export function buildPreviewAssemblyPlan(shots: any[], takes: any[], dialogueLines: any[]): PreviewAssemblyPlan {
+  return buildAssemblyPlan(shots, takes, dialogueLines);
+}
+
+export function buildVideoAssemblyPlan(shots: any[], takes: any[], dialogueLines: any[]): PreviewAssemblyPlan {
+  return buildAssemblyPlan(shots, takes, dialogueLines, "video");
 }
 
 function srtTime(seconds: number) {

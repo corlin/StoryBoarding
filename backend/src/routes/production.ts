@@ -628,11 +628,14 @@ router.get("/costs", async (c) => {
     // Takes stats
     const allTakes = await db.select().from(takes).where(eq(takes.projectId, projectId!)).all();
     const visualTakes = allTakes.filter((t: any) => t.takeType !== "audio");
+    const videoTakes = allTakes.filter((t: any) => t.takeType === "video");
     const audioTakes = allTakes.filter((t: any) => t.takeType === "audio");
     const reviewedTakes = allTakes.filter((t: any) => t.reviewStatus !== "pending");
     const approvedTakes = allTakes.filter((t: any) => t.reviewStatus === "approved" || t.isAdopted);
     const reviewedVisualTakes = visualTakes.filter((t: any) => t.reviewStatus !== "pending");
     const approvedVisualTakes = visualTakes.filter((t: any) => t.reviewStatus === "approved" || t.isAdopted);
+    const reviewedVideoTakes = videoTakes.filter((t: any) => t.reviewStatus !== "pending");
+    const approvedVideoTakes = videoTakes.filter((t: any) => t.reviewStatus === "approved" || t.isAdopted);
 
     return c.json({
       project_id: projectId,
@@ -648,6 +651,11 @@ router.get("/costs", async (c) => {
       approved_visual_takes: approvedVisualTakes.length,
       pending_visual_review: visualTakes.length - reviewedVisualTakes.length,
       visual_adoption_rate: reviewedVisualTakes.length > 0 ? approvedVisualTakes.length / reviewedVisualTakes.length : 0,
+      total_video_takes: videoTakes.length,
+      reviewed_video_takes: reviewedVideoTakes.length,
+      approved_video_takes: approvedVideoTakes.length,
+      pending_video_review: videoTakes.length - reviewedVideoTakes.length,
+      video_adoption_rate: reviewedVideoTakes.length > 0 ? approvedVideoTakes.length / reviewedVideoTakes.length : 0,
       costs_by_currency: costsByCurrency,
       has_unknown_cost: hasUnknownCost,
       cost_complete: !hasUnknownCost && jobs.every((j: any) => j.costCurrency && j.costAmount !== null),

@@ -571,6 +571,11 @@ export const api = {
     approved_visual_takes: number;
     pending_visual_review: number;
     visual_adoption_rate: number;
+    total_video_takes: number;
+    reviewed_video_takes: number;
+    approved_video_takes: number;
+    pending_video_review: number;
+    video_adoption_rate: number;
     costs_by_currency: Record<string, any>;
     has_unknown_cost: boolean;
     cost_complete: boolean;

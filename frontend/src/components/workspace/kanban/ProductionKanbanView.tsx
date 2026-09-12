@@ -6,6 +6,7 @@ import { normalizeAssetUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import {
   buildPreviewAssemblyPlan,
+  buildVideoAssemblyPlan,
   compareProductionShots,
   configuredTtsVoiceOptions,
   deriveDialogueLineFromShot,
@@ -89,6 +90,7 @@ interface EditVersion {
     episode_mp4_urls?: string[];
     episode_srt_urls?: string[];
     episode_outputs?: Array<{ episode_number: number; mp4_url: string; srt_url: string }>;
+    assembly_mode?: "preview" | "video";
     subtitle_mode?: string;
   };
 }
@@ -538,10 +540,16 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
     showToast("素材清单 JSON 已下载");
   };
 
-  const handleAssemblePreview = async () => {
-    if (!window.confirm("将在浏览器中加载约 31MB 的合成引擎，并读取已采用素材生成完整及分集 MP4。合成期间请保持页面打开，是否继续？")) return;
+  const handleAssembly = async (mode: "preview" | "video") => {
+    const isVideoMerge = mode === "video";
+    const actionLabel = isVideoMerge ? "合并已采用视频" : "合成预演片";
+    const buildPlan = isVideoMerge ? buildVideoAssemblyPlan : buildPreviewAssemblyPlan;
+    const confirmation = isVideoMerge
+      ? "只会合并每个镜头已采用的真实视频片段；静态分镜图不会参与。缺少已采用视频时将直接阻止合并。是否继续？"
+      : "将在浏览器中加载约 31MB 的合成引擎，并读取已采用画面生成完整及分集预演 MP4。合成期间请保持页面打开，是否继续？";
+    if (!window.confirm(confirmation)) return;
     setAssembling(true);
-    setAssemblyProgress("正在整理已采用素材...");
+    setAssemblyProgress(`正在整理${isVideoMerge ? "已采用视频" : "已采用画面"}...`);
     try {
       const takeResponses = await Promise.all(shots.map((shot) => api.getShotTakes(shot.shot_id)));
       const allTakes = takeResponses.flatMap((response) => response.takes || []).map((take: any) => ({
@@ -550,11 +558,11 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
       }));
       const dialogueResponse = await api.getDialogueLines(projectId);
       const dialogue = dialogueResponse.dialogue_lines || [];
-      const fullPlan = buildPreviewAssemblyPlan(shots, allTakes, dialogue);
+      const fullPlan = buildPlan(shots, allTakes, dialogue);
       const episodeNumbers = Array.from(new Set(shots.map((shot) => shot.episode_number || 1))).sort((a, b) => a - b);
       const episodePlans = episodeNumbers.map((episodeNumber) => ({
         episodeNumber,
-        plan: buildPreviewAssemblyPlan(shots.filter((shot) => (shot.episode_number || 1) === episodeNumber), allTakes, dialogue),
+        plan: buildPlan(shots.filter((shot) => (shot.episode_number || 1) === episodeNumber), allTakes, dialogue),
       }));
       const updateProgress = (label: string) => (progress: { message: string; percent: number }) => {
         setAssemblyProgress(`${label} · ${progress.message} · ${progress.percent}%`);
@@ -567,9 +575,9 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
         const label = `EP${String(episodeNumber).padStart(2, "0")}`;
         const mp4 = await assemblePreviewMp4(plan, projectAspectRatio, updateProgress(label));
         setAssemblyProgress(`${label} · 正在上传 MP4 与字幕`);
-        const mp4Upload = await api.uploadDelivery(projectId, new File([mp4], `${label}_preview.mp4`, { type: "video/mp4" }), `episode_${episodeNumber}_mp4`);
+        const mp4Upload = await api.uploadDelivery(projectId, new File([mp4], `${label}_${mode}.mp4`, { type: "video/mp4" }), `episode_${episodeNumber}_${mode}_mp4`);
         const srtBlob = new Blob([previewSubtitlesToSrt(plan.subtitles)], { type: "application/x-subrip;charset=utf-8" });
-        const srtUpload = await api.uploadDelivery(projectId, new File([srtBlob], `${label}.srt`, { type: "application/x-subrip" }), `episode_${episodeNumber}_srt`);
+        const srtUpload = await api.uploadDelivery(projectId, new File([srtBlob], `${label}_${mode}.srt`, { type: "application/x-subrip" }), `episode_${episodeNumber}_${mode}_srt`);
         episodeMp4Urls.push(mp4Upload.media_url);
         episodeSrtUrls.push(srtUpload.media_url);
         episodeOutputs.push({ episode_number: episodeNumber, mp4_url: mp4Upload.media_url, srt_url: srtUpload.media_url });
@@ -577,9 +585,9 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
 
       const fullMp4 = await assemblePreviewMp4(fullPlan, projectAspectRatio, updateProgress("全片"));
       setAssemblyProgress("全片 · 正在上传 MP4、字幕与清单");
-      const fullMp4Upload = await api.uploadDelivery(projectId, new File([fullMp4], `${projectTitle}_preview.mp4`, { type: "video/mp4" }), "full_preview_mp4");
+      const fullMp4Upload = await api.uploadDelivery(projectId, new File([fullMp4], `${projectTitle}_${mode}.mp4`, { type: "video/mp4" }), `full_${mode}_mp4`);
       const fullSrt = previewSubtitlesToSrt(fullPlan.subtitles);
-      const fullSrtUpload = await api.uploadDelivery(projectId, new File([new Blob([fullSrt], { type: "application/x-subrip;charset=utf-8" })], `${projectTitle}.srt`, { type: "application/x-subrip" }), "full_preview_srt");
+      const fullSrtUpload = await api.uploadDelivery(projectId, new File([new Blob([fullSrt], { type: "application/x-subrip;charset=utf-8" })], `${projectTitle}_${mode}.srt`, { type: "application/x-subrip" }), `full_${mode}_srt`);
       const manifest = {
         project_id: projectId,
         project_title: projectTitle,
@@ -595,11 +603,11 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
         srt_url: fullSrtUpload.media_url,
       };
       const manifestFile = new File([JSON.stringify(manifest, null, 2)], `${projectTitle}_manifest.json`, { type: "application/json" });
-      const manifestUpload = await api.uploadDelivery(projectId, manifestFile, "preview_manifest");
+      const manifestUpload = await api.uploadDelivery(projectId, manifestFile, `${mode}_manifest`);
       await api.createEditVersion({
         project_id: projectId,
-        version_tag: `preview-${Date.now()}`,
-        version_name: `自动预演片 ${new Date().toLocaleString()}`,
+        version_tag: `${mode}-${Date.now()}`,
+        version_name: `${isVideoMerge ? "真实视频合并版" : "自动预演片"} ${new Date().toLocaleString()}`,
         assembly_data: { shots: fullPlan.clips },
         subtitle_data: fullPlan.subtitles,
         export_result: {
@@ -609,6 +617,7 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
           episode_mp4_urls: episodeMp4Urls,
           episode_srt_urls: episodeSrtUrls,
           episode_outputs: episodeOutputs,
+          assembly_mode: mode,
           subtitle_mode: "mov_text+sidecar_srt",
         },
         total_duration: fullPlan.totalDuration,
@@ -616,7 +625,7 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
       });
       await loadEditVersions();
       setAssemblyProgress("");
-      showToast(`预演片已合成：${episodePlans.length} 集 + 完整版`);
+      showToast(`${actionLabel}完成：${episodePlans.length} 集 + 完整版`);
     } catch (error: any) {
       setAssemblyProgress("");
       showToast(`合成失败: ${error?.response?.data?.detail || error?.message || error}`, "error");
@@ -624,6 +633,9 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
       setAssembling(false);
     }
   };
+
+  const handleAssemblePreview = () => handleAssembly("preview");
+  const handleAssembleVideo = () => handleAssembly("video");
 
   const loadDialogue = useCallback(async (shotId: string) => {
     setDialogueLoading(true);
@@ -938,19 +950,19 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
               任务 <span className="font-bold text-white">{costData.total_jobs}</span>
             </span>
             <span className="text-gray-400">
-              视频候选 <span className="font-bold text-white">{costData.total_visual_takes ?? costData.total_takes}</span>
+              视频候选 <span className="font-bold text-white">{costData.total_video_takes ?? 0}</span>
             </span>
             <span className="text-gray-400">
               配音 <span className="font-bold text-white">{costData.total_audio_takes ?? 0}</span>
             </span>
             <span className="text-gray-400">
-              视频已采用 <span className="font-bold text-green-400">{costData.approved_visual_takes ?? costData.approved_takes}</span>
+              视频已采用 <span className="font-bold text-green-400">{costData.approved_video_takes ?? 0}</span>
             </span>
             <span className="text-gray-400">
-              视频待审 <span className="font-bold text-amber-400">{costData.pending_visual_review ?? costData.pending_review}</span>
+              视频待审 <span className="font-bold text-amber-400">{costData.pending_video_review ?? 0}</span>
             </span>
             <span className="text-gray-400">
-              视频采用率 <span className="font-bold text-white">{((costData.visual_adoption_rate ?? costData.adoption_rate ?? 0) * 100).toFixed(0)}%</span>
+              视频采用率 <span className="font-bold text-white">{((costData.video_adoption_rate ?? 0) * 100).toFixed(0)}%</span>
             </span>
             {Object.entries(costData.costs_by_currency || {}).map(([currency, data]: [string, any]) => (
               <span key={currency} className="text-gray-400">
@@ -984,9 +996,16 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
               <button
                 onClick={handleAssemblePreview}
                 disabled={assembling || exporting}
-                className="rounded bg-amber-500 px-3 py-1.5 text-xs font-semibold text-black hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded bg-[#21262d] px-3 py-1.5 text-xs font-medium text-gray-200 hover:bg-[#30363d] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {assembling ? "正在合成..." : "一键合成预演片"}
+              </button>
+              <button
+                onClick={handleAssembleVideo}
+                disabled={assembling || exporting}
+                className="rounded bg-amber-500 px-3 py-1.5 text-xs font-semibold text-black hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {assembling ? "正在合并..." : "合并已采用视频"}
               </button>
               <button
                 onClick={downloadFfmpegScript}
@@ -1001,7 +1020,9 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
                 下载素材清单 JSON
               </button>
               <span className="text-[10px] text-gray-500">
-                {assemblyProgress || (currentExport.mp4_url ? "当前预演片已保存到 R2，可直接下载" : "站内合成使用已采用画面、配音与字幕")}
+                {assemblyProgress || (currentExport.mp4_url
+                  ? `当前${currentExport.assembly_mode === "video" ? "视频合并版" : "预演片"}已保存到 R2，可直接下载`
+                  : "预演片可用静态画面；视频合并版只接受已采用视频片段")}
               </span>
             </div>
             {currentEditVersion && (

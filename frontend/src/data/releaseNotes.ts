@@ -20,12 +20,12 @@ export interface ReleaseNote {
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
     version: "v2.2.0",
-    title: "四阶段制作与一键预演片",
+    title: "四阶段制作与视频合并",
     date: "2026-09-12",
     badge: "最新版本",
     isLatest: true,
     summary:
-      "创作流程整合为准备、分镜、审片、交付四个阶段。新增视频生成、对白配音、候选审片和一键预演片，成片与字幕可直接归档和回看。",
+      "创作流程整合为准备、分镜、审片、交付四个阶段。支持视频生成、对白配音、候选审片、预演片与真实视频合并。",
     changeGroups: [
       {
         type: "highlight",
@@ -45,6 +45,11 @@ export const RELEASE_NOTES: ReleaseNote[] = [
             title: "一键生成分集与全片预演",
             description:
               "按已采用画面、配音和字幕生成每集及完整版 MP4，并保存字幕、素材清单和当前剪辑版本。",
+          },
+          {
+            title: "真实视频片段合并",
+            description:
+              "新增视频专用合并入口，仅合并已采用的视频片段；缺少视频时明确阻止，不再把静态分镜误作成片。",
           },
         ],
       },
