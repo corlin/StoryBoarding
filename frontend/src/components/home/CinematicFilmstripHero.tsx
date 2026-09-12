@@ -99,20 +99,20 @@ export function CinematicFilmstripHero({
   return (
     <div className="w-full max-w-5xl mx-auto space-y-2 relative select-none">
       {/* Film Reel Frame Container */}
-      <div className="rounded-2xl border border-border/80 bg-[#0e0e13]/90 backdrop-blur-xl p-3 shadow-2xl relative overflow-hidden group">
+      <div className="rounded-2xl border border-white/15 bg-[#151922]/95 backdrop-blur-xl p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34)] relative overflow-hidden group">
         {/* Top Film Sprocket Holes */}
-        <div className="flex items-center justify-between px-2 pb-2 border-b border-white/5 opacity-60">
+        <div className="flex items-center justify-between px-2 pb-2 border-b border-white/10 opacity-80">
           <div className="flex items-center gap-2">
             <span className="w-2 h-1.5 rounded-xs bg-white/20" />
             <span className="w-2 h-1.5 rounded-xs bg-white/20" />
             <span className="w-2 h-1.5 rounded-xs bg-white/20" />
             <span className="text-[10px] font-mono text-muted-foreground ml-1">
-              KODAK VISION3 500T · 16:9 & 9:16 DUAL SHOT STREAM
+              精选镜头 · 横屏 / 竖屏
             </span>
           </div>
           <div className="flex items-center gap-1.5 font-mono text-[10px] text-amber-400">
             <Sparkles className="w-3 h-3" />
-            <span>鼠标悬停任意镜头 · 0秒漫游实装工程</span>
+            <span>选镜头体验样片</span>
           </div>
         </div>
 
@@ -122,7 +122,7 @@ export function CinematicFilmstripHero({
             <div
               key={frame.id}
               className={cn(
-                "rounded-xl border border-border/70 bg-black/70 relative shrink-0 overflow-hidden flex flex-col justify-between group/frame transition-all duration-300 hover:scale-[1.02] hover:border-primary/60 shadow-lg",
+                "rounded-xl border border-white/15 bg-black/50 relative shrink-0 overflow-hidden flex flex-col justify-between group/frame transition-all duration-300 hover:scale-[1.02] hover:border-sky-400/60 shadow-lg",
                 frame.aspectRatio === "9:16" ? "w-44 sm:w-52 h-48 sm:h-56" : "w-64 sm:w-72 h-48 sm:h-56"
               )}
             >
@@ -131,9 +131,9 @@ export function CinematicFilmstripHero({
                 <img
                   src={frame.imageUrl}
                   alt={frame.shotNumber}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover/frame:scale-105 opacity-85 group-hover/frame:opacity-100"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover/frame:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-black/50" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/15" />
               </div>
 
               {/* Viewfinder Corner Marks */}
@@ -148,7 +148,7 @@ export function CinematicFilmstripHero({
                   <span className="px-1.5 py-0.5 rounded bg-black/80 text-white font-bold border border-white/10">
                     {frame.shotNumber}
                   </span>
-                  <span className="text-muted-foreground text-[10px]">
+                  <span className="text-white/65 text-[10px]">
                     {frame.projectTitle}
                   </span>
                 </div>
@@ -203,7 +203,7 @@ export function CinematicFilmstripHero({
                   className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold shadow-lg shadow-amber-500/20 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                 >
                   <Play className="w-3.5 h-3.5 fill-black text-black" />
-                  <span>0秒漫游此工程</span>
+                  <span>体验此工程</span>
                 </button>
 
                 <span className="text-[9px] font-mono text-muted-foreground">
@@ -215,14 +215,14 @@ export function CinematicFilmstripHero({
         </div>
 
         {/* Bottom Film Perfs */}
-        <div className="flex items-center justify-between px-2 pt-2 border-t border-white/5 opacity-50">
+        <div className="flex items-center justify-between px-2 pt-2 border-t border-white/10 opacity-70">
           <div className="flex items-center gap-2">
             <span className="w-2 h-1.5 rounded-xs bg-white/20" />
             <span className="w-2 h-1.5 rounded-xs bg-white/20" />
             <span className="w-2 h-1.5 rounded-xs bg-white/20" />
           </div>
           <span className="text-[10px] font-mono text-muted-foreground">
-            2.39:1 WIDESCREEN & 9:16 VERTICAL SHORT-DRAMA ENGINE
+            电影宽屏 · 竖屏短剧
           </span>
         </div>
       </div>

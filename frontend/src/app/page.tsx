@@ -213,20 +213,20 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0b0b0e] text-foreground selection:bg-primary/30 relative overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-[#10131a] text-foreground selection:bg-primary/30 relative overflow-x-hidden">
       {/* Background Cinematic Radial Ambient Glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(99,102,241,0.12),rgba(0,0,0,0)_65%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(#1c1c28_1px,transparent_1px)] [background-size:24px_24px] opacity-35 pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_12%,rgba(56,189,248,0.14),rgba(51,65,85,0.12)_38%,rgba(16,19,26,0)_72%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:24px_24px] opacity-45 pointer-events-none" />
 
       {/* Header Navigation */}
-      <header className="border-b border-border/40 backdrop-blur-md bg-[#0b0b0e]/85 sticky top-0 z-40 shadow-xs">
+      <header className="border-b border-white/10 backdrop-blur-md bg-[#0d1016]/90 sticky top-0 z-40 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20 group-hover:scale-105 group-hover:bg-primary/20 transition-all shadow-inner">
               <Clapperboard className="w-5 h-5" />
             </div>
-            <span className="font-extrabold text-lg tracking-tight text-foreground">
-              AI Director Studio
+            <span className="font-extrabold text-base sm:text-lg tracking-tight text-foreground whitespace-nowrap">
+              AI Director<span className="hidden sm:inline"> Studio</span>
             </span>
           </Link>
 
@@ -236,7 +236,7 @@ export default function HomePage() {
               className="text-muted-foreground hover:text-foreground transition-colors hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-secondary/60"
             >
               <Film className="w-3.5 h-3.5 text-sky-400" />
-              <span>工程驾驶舱</span>
+              <span>工程</span>
             </Link>
 
             {isAuthenticated ? (
@@ -267,13 +267,13 @@ export default function HomePage() {
                   title="免注册免输密码，以官方演示账号身份快速体验功能"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>0秒漫游 Demo</span>
+                  <span>体验 Demo</span>
                 </button>
                 <button
                   onClick={() => openAuthModal("login")}
                   className="px-3.5 py-2 rounded-xl text-foreground/90 bg-secondary/80 hover:bg-secondary border border-border transition-colors font-semibold text-xs shadow-xs shrink-0 cursor-pointer"
                 >
-                  登录 / 注册
+                  登录<span className="hidden sm:inline"> / 注册</span>
                 </button>
               </div>
             )}
@@ -307,20 +307,20 @@ export default function HomePage() {
 
         {/* Hero Title & Subtitle */}
         <div className="text-center space-y-2.5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/80 border border-border/80 text-muted-foreground text-xs font-mono font-medium">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1a2130]/90 border border-white/15 text-foreground/70 text-xs font-mono font-medium shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>AI Director Studio · 剧本分镜与视觉预演系统</span>
+            <span>AI 分镜与视觉预演</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground">
-            让文字故事高效转化为专业分镜与视觉预演
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#f1f5ff] text-balance">
+            把故事变成分镜与预演
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            输入剧情设定或剧本文本，AI 导演即刻完成场景拆镜、时码排期与参考视觉生成
+          <p className="text-sm sm:text-base text-foreground/65 max-w-xl mx-auto leading-relaxed">
+            输入剧情或剧本，生成镜头、时码与参考画面
           </p>
         </div>
 
         {/* Central Pure Updream-Style Prompt Box */}
-        <div className="w-full max-w-3xl rounded-2xl border border-border/80 bg-[#121218]/90 backdrop-blur-xl p-4 shadow-2xl focus-within:border-primary/70 focus-within:ring-4 focus-within:ring-primary/10 transition-all space-y-3 relative group">
+        <div className="w-full max-w-3xl rounded-2xl border border-white/15 bg-[#181c25]/95 backdrop-blur-xl p-4 shadow-[0_24px_80px_rgba(0,0,0,0.38)] focus-within:border-sky-400/60 focus-within:ring-4 focus-within:ring-sky-400/10 transition-all space-y-3 relative group">
           {/* Textarea Input */}
           <textarea
             ref={textareaRef}
@@ -328,12 +328,12 @@ export default function HomePage() {
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="描述你想创作的短剧剧情、影视镜头或故事设定... (点击下方成片画卷可直接带入)"
-            className="w-full bg-transparent border-0 resize-none text-foreground placeholder:text-muted-foreground/60 text-sm sm:text-base focus:outline-hidden leading-relaxed px-1"
+            placeholder="输入剧情、剧本片段或镜头想法…"
+            className="w-full bg-transparent border-0 resize-none text-foreground placeholder:text-foreground/45 text-sm sm:text-base focus:outline-hidden leading-relaxed px-1"
           />
 
           {/* Bottom Action Ribbon */}
-          <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/40">
+          <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/10">
             {/* Left Quick Config: Duration Toggle */}
             <div className="flex items-center gap-2">
               <button
@@ -398,7 +398,7 @@ export default function HomePage() {
       </main>
 
       {/* Minimal Footer */}
-      <footer className="border-t border-border/40 py-6 px-6 text-center text-xs text-muted-foreground bg-[#0a0a0d] mt-auto">
+      <footer className="border-t border-white/10 py-6 px-6 text-center text-xs text-muted-foreground bg-[#0d1016] mt-auto">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Clapperboard className="w-4 h-4 text-primary" />
