@@ -225,8 +225,8 @@ export default function HomePage() {
             <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20 group-hover:scale-105 group-hover:bg-primary/20 transition-all shadow-inner">
               <Clapperboard className="w-5 h-5" />
             </div>
-            <span className="font-extrabold text-lg tracking-tight text-foreground">
-              AI Director Studio
+            <span className="font-extrabold text-base sm:text-lg tracking-tight text-foreground whitespace-nowrap">
+              AI Director<span className="hidden sm:inline"> Studio</span>
             </span>
           </Link>
 
@@ -273,7 +273,7 @@ export default function HomePage() {
                   onClick={() => openAuthModal("login")}
                   className="px-3.5 py-2 rounded-xl text-foreground/90 bg-secondary/80 hover:bg-secondary border border-border transition-colors font-semibold text-xs shadow-xs shrink-0 cursor-pointer"
                 >
-                  登录 / 注册
+                  登录<span className="hidden sm:inline"> / 注册</span>
                 </button>
               </div>
             )}
