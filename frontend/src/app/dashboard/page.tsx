@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,66 +13,75 @@ import {
   Settings,
   AlertCircle,
   RefreshCw,
-  Trash2,
   Search,
   Download,
+  Play,
   User,
   Loader2,
   BookOpen,
   Lightbulb,
   Smartphone,
+  Monitor,
   ChevronDown,
-  Key,
-  Workflow,
+  Layers,
+  CheckCircle2,
+  ChevronUp,
+  X,
+  SlidersHorizontal,
 } from "lucide-react";
 import { api, ProjectListItem, normalizeAssetUrl } from "@/lib/api";
+import { ShotModel, ProjectModel } from "@/types/shot";
 import { DeleteProjectModal } from "@/components/modals/DeleteProjectModal";
-import { CreateProjectModal, CreateProjectInitialValues } from "@/components/modals/CreateProjectModal";
+import {
+  CreateProjectModal,
+  CreateProjectInitialValues,
+} from "@/components/modals/CreateProjectModal";
 import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
 import { PitchIdeaGeneratorModal } from "@/components/modals/PitchIdeaGeneratorModal";
 import { GlobalAssetLibraryModal } from "@/components/modals/GlobalAssetLibraryModal";
+import { CinemaTheaterModal } from "@/components/modals/CinemaTheaterModal";
 import { exportStoryboardSheetToPng } from "@/lib/canvasExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
-import { STARTER_TEMPLATES, OFFICIAL_SAMPLE_PROJECTS, StarterTemplate } from "@/data/dashboardPresets";
+import {
+  STARTER_TEMPLATES,
+  OFFICIAL_SAMPLE_PROJECTS,
+  StarterTemplate,
+} from "@/data/dashboardPresets";
 import { useAuthStore } from "@/stores/authStore";
+import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, openAuthModal, openSettingsModal, login } = useAuthStore();
+  const { user, isAuthenticated, openAuthModal, openSettingsModal, login } =
+    useAuthStore();
 
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [createInitialValues, setCreateInitialValues] = useState<CreateProjectInitialValues>({});
+  const [createInitialValues, setCreateInitialValues] =
+    useState<CreateProjectInitialValues>({});
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<ProjectListItem | null>(null);
+  const [projectToDelete, setProjectToDelete] =
+    useState<ProjectListItem | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [aspectFilter, setAspectFilter] = useState<"all" | "16:9" | "9:16">("all");
+  const [sortBy, setSortBy] = useState<"updated" | "created" | "shots">("updated");
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+
   const [exportingProjectId, setExportingProjectId] = useState<string | null>(null);
+
+  // Quick Theater Modal state
+  const [isTheaterOpen, setIsTheaterOpen] = useState(false);
+  const [theaterProject, setTheaterProject] = useState<ProjectModel | null>(null);
+  const [theaterShots, setTheaterShots] = useState<ShotModel[]>([]);
 
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
   const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
   const [isGlobalAssetModalOpen, setIsGlobalAssetModalOpen] = useState(false);
-  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
-  const toolsMenuRef = useRef<HTMLDivElement>(null);
-
-  // Close tools menu on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (toolsMenuRef.current && !toolsMenuRef.current.contains(e.target as Node)) {
-        setIsToolsMenuOpen(false);
-      }
-    };
-    if (isToolsMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isToolsMenuOpen]);
 
   const loadProjects = async () => {
     try {
@@ -80,13 +89,13 @@ export default function DashboardPage() {
       setHasError(false);
       const data = await api.getProjects();
       if (!data || data.length === 0) {
-        // 当未登录或用户暂无自建工程时，免注册展示官方精选样片工程供用户即开即玩
+        // 当未登录或暂无自建工程时展示官方精选样片工程
         setProjects(OFFICIAL_SAMPLE_PROJECTS);
       } else {
         setProjects(data);
       }
     } catch (e) {
-      console.warn("Failed to fetch remote projects, falling back to official sample projects:", e);
+      console.warn("Failed to fetch remote projects, falling back to samples:", e);
       setProjects(OFFICIAL_SAMPLE_PROJECTS);
     } finally {
       setIsLoading(false);
@@ -100,7 +109,8 @@ export default function DashboardPage() {
   const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
   const hasCustomKey = !isDemoUser && !!user?.custom_settings?.llmApiKey;
 
-  const checkAuthAndKey = (actionName: string) => useAuthStore.getState().checkAuthAndKey(actionName);
+  const checkAuthAndKey = (actionName: string) =>
+    useAuthStore.getState().checkAuthAndKey(actionName);
 
   const handleOpenCreateModal = () => {
     if (!checkAuthAndKey("新建分镜工程")) return;
@@ -112,42 +122,20 @@ export default function DashboardPage() {
     setIsCreating(true);
   };
 
-  const handleOpenPitchModal = () => {
-    setIsToolsMenuOpen(false);
-    if (!checkAuthAndKey("一句话点子成剧")) return;
-    setIsPitchModalOpen(true);
-  };
-
-  const handleOpenSeriesModal = () => {
-    setIsToolsMenuOpen(false);
-    if (!checkAuthAndKey("长篇小说成剧")) return;
-    setIsSeriesModalOpen(true);
-  };
-
-  const navigateToWorkspaceWithAction = (action: string) => {
-    const targetId = projects[0]?.id || "6f01c422-48ea-4796-afc7-09cc6447f764";
-    notify.info("🎬 正在进入工程工作台并自动为您呼出对应模块...");
-    router.push(`/workspace?id=${targetId}&open=${action}`);
-  };
-
   const handleApplyTemplate = async (tmpl: StarterTemplate) => {
-    // 零 Token 成本样板房策略：未登录用户点击直接以官方 Demo 账号免密进入体验现成工程，无需调用 LLM 与生图接口
     if (!isAuthenticated) {
       try {
         await login("demo@caifu.social", "demo123");
         notify.success("🎬 已为您一键载入官方精品样板工程（免等待、零消耗 Token）！");
-        // 导向系统现成的官方精品样片工程，0 消耗体验全功能
         router.push("/workspace?id=6f01c422-48ea-4796-afc7-09cc6447f764");
         return;
-      } catch (err) {
-        // Fallback to opening login modal if demo login encounters network issue
+      } catch {
         openAuthModal("login");
         return;
       }
     }
 
-    const hasKey = !!user?.custom_settings?.llmApiKey;
-    if (!hasKey) {
+    if (!hasCustomKey) {
       notify.info("🎬 已为您填入模板故事！若要使用 AI 重新规划新镜头，请在「设置 ⚙️」中配置您的专属 OpenRouter API Key");
     }
 
@@ -159,6 +147,30 @@ export default function DashboardPage() {
     setIsCreating(true);
   };
 
+  const handleQuickPlay = async (e: React.MouseEvent, proj: ProjectListItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      notify.info("🎬 正在加载放映厅分镜资产与台本...");
+      const fullProj = await api.getProject(proj.id);
+      const shots =
+        fullProj.sequences?.flatMap((sequence) => sequence.shots || []) || [];
+
+      if (shots.length === 0) {
+        notify.error("该工程暂无分镜头，请进入工作台完成 AI 拆镜。");
+        return;
+      }
+
+      setTheaterProject(fullProj);
+      setTheaterShots(shots);
+      setIsTheaterOpen(true);
+    } catch (err: any) {
+      console.error("Failed to load theater preview:", err);
+      notify.error("加载放映厅失败：" + (err?.message || "请重试"));
+    }
+  };
+
   const handleQuickExport = async (e: React.MouseEvent, proj: ProjectListItem) => {
     e.preventDefault();
     e.stopPropagation();
@@ -167,10 +179,11 @@ export default function DashboardPage() {
 
     try {
       setExportingProjectId(proj.id);
-      notify.info("🎨 正在加载全量分镜数据并按工程画幅合成打样单...");
+      notify.info("🎨 正在加载分镜数据并合成专业工业打样单...");
 
       const fullProject = await api.getProject(proj.id);
-      const shots = fullProject.sequences?.flatMap((sequence) => sequence.shots || []) || [];
+      const shots =
+        fullProject.sequences?.flatMap((sequence) => sequence.shots || []) || [];
 
       if (shots.length === 0) {
         notify.error("该项目中暂无分镜头，请进入工作台先进行 AI 拆镜。");
@@ -178,7 +191,7 @@ export default function DashboardPage() {
       }
 
       await exportStoryboardSheetToPng(fullProject, shots, { includeHud: true });
-      notify.success("🎉 故事板草图打样单 (PNG) 已成功下载！");
+      notify.success("🎉 故事板打样单 (PNG) 已成功下载！");
     } catch (err: any) {
       console.error("Quick export error:", err);
       notify.error(err?.message || "导出故事板打样单失败");
@@ -187,23 +200,71 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDeleteClick = (e: React.MouseEvent, proj: ProjectListItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setProjectToDelete(proj);
+    setIsDeleteOpen(true);
+  };
+
   const handleConfirmDelete = async (projectId: string) => {
     await api.deleteProject(projectId);
     await loadProjects();
   };
 
-  const filteredProjects = projects.filter((p) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return p.title.toLowerCase().includes(q) || (p.story || "").toLowerCase().includes(q);
-  });
+  // Filtered and sorted projects
+  const filteredProjects = useMemo(() => {
+    let result = [...projects];
 
-  const totalShotsCount = projects.reduce((acc, p) => acc + (p.shot_count || 0), 0);
+    // Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          (p.story || "").toLowerCase().includes(q)
+      );
+    }
+
+    // Aspect ratio filter
+    if (aspectFilter !== "all") {
+      result = result.filter((p) => {
+        if (aspectFilter === "9:16") return p.aspect_ratio === "9:16";
+        return p.aspect_ratio !== "9:16"; // 16:9 or default
+      });
+    }
+
+    // Sorting
+    result.sort((a, b) => {
+      if (sortBy === "shots") {
+        return (b.shot_count || 0) - (a.shot_count || 0);
+      }
+      if (sortBy === "created") {
+        return (
+          new Date(b.created_at || 0).getTime() -
+          new Date(a.created_at || 0).getTime()
+        );
+      }
+      // Default: updated_at
+      return (
+        new Date(b.updated_at || b.created_at || 0).getTime() -
+        new Date(a.updated_at || a.created_at || 0).getTime()
+      );
+    });
+
+    return result;
+  }, [projects, searchQuery, aspectFilter, sortBy]);
+
+  const activeProject = filteredProjects[0];
+  const totalShotsCount = projects.reduce(
+    (acc, p) => acc + (p.shot_count || 0),
+    0
+  );
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/30">
+    <div className="min-h-screen bg-[#0b0b0e] text-foreground flex flex-col selection:bg-primary/30">
       {/* Top Header */}
-      <header className="border-b border-border bg-card/70 backdrop-blur-md px-6 h-16 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+      <header className="border-b border-border/50 bg-[#0b0b0e]/85 backdrop-blur-md px-4 sm:px-6 h-16 flex items-center justify-between sticky top-0 z-30 shadow-xs">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20 group-hover:scale-105 group-hover:bg-primary/20 transition-all shadow-inner">
             <Clapperboard className="w-5 h-5" />
@@ -211,11 +272,13 @@ export default function DashboardPage() {
           <div>
             <span className="font-bold text-base tracking-tight text-foreground flex items-center gap-1.5">
               <span>AI Director Studio</span>
-              <span className="text-[10px] font-mono font-normal px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
                 PRO
               </span>
             </span>
-            <p className="text-[11px] text-muted-foreground hidden sm:block">故事板分镜与 AI 视频预演工作台</p>
+            <p className="text-[11px] text-muted-foreground hidden sm:block">
+              影视级双向协同分镜与短剧创作驾驶舱
+            </p>
           </div>
         </Link>
 
@@ -224,15 +287,15 @@ export default function DashboardPage() {
           <Search className="w-4 h-4 text-muted-foreground absolute left-3 pointer-events-none" />
           <input
             type="text"
-            placeholder="搜索分镜项目、主角或故事设定..."
+            placeholder="搜索分镜工程、主角人设或剧情关键词..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 rounded-lg bg-secondary/50 border border-border text-xs focus:outline-none focus:border-primary focus:bg-background transition-all"
+            className="w-full pl-9 pr-4 py-1.5 rounded-lg bg-secondary/50 border border-border text-xs focus:outline-none focus:border-primary focus:bg-[#121218] transition-all"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 text-xs text-muted-foreground hover:text-foreground"
+              className="absolute right-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
             >
               ×
             </button>
@@ -240,12 +303,100 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* 1. Global Resources & Architecture */}
-          <div className="flex items-center gap-1.5">
+          {/* Settings button */}
+          <button
+            onClick={() => {
+              if (isDemoUser) {
+                notify.info("🎬 当前为公共体验账号，API Key 配置仅对专属导演账号生效！请先注册专属账号");
+                openAuthModal("register");
+                return;
+              }
+              openSettingsModal();
+            }}
+            className="p-2 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+            title="后端连接与 AI 大模型设置"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+
+          {/* User auth state */}
+          {isAuthenticated && user ? (
+            <UserMenuDropdown />
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await login("demo@caifu.social", "demo123");
+                    notify.success("🎬 已一键登入官方演示 Demo 账号！");
+                  } catch {
+                    openAuthModal("login");
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 transition-all shadow-2xs cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>体验 Demo</span>
+              </button>
+              <button
+                onClick={() => openAuthModal("login")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-colors cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>登录</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-6">
+        {/* Compact Director Command Strip (高效导演工坊命令栏) */}
+        <div className="rounded-2xl border border-border/80 bg-[#121218]/90 backdrop-blur-md p-3 sm:p-4 shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          {/* Left: Primary Action + Creative Tools */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            {/* Primary: Create Project */}
             <button
-              type="button"
+              onClick={handleOpenCreateModal}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>新建分镜工程</span>
+            </button>
+
+            <div className="h-5 w-px bg-border/60 hidden sm:block" />
+
+            {/* Tool 1: Pitch to Series */}
+            <button
               onClick={() => {
-                const { isAuthenticated, openAuthModal } = useAuthStore.getState();
+                if (!checkAuthAndKey("一句话点子成剧")) return;
+                setIsPitchModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors cursor-pointer"
+              title="输入一句话脑洞，AI 自动生成 3 款短剧与文学剧本"
+            >
+              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+              <span>一句话点子成剧</span>
+            </button>
+
+            {/* Tool 2: Novel to Series */}
+            <button
+              onClick={() => {
+                if (!checkAuthAndKey("长篇小说成剧")) return;
+                setIsSeriesModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 transition-colors cursor-pointer"
+              title="导入万字长篇小说，一键切分多集剧本与全局角色库"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-sky-400" />
+              <span>长篇小说成剧</span>
+            </button>
+
+            {/* Tool 3: Global Asset Library */}
+            <button
+              onClick={() => {
                 if (!isAuthenticated) {
                   notify.info("请先登录查看全局资产库");
                   openAuthModal("login");
@@ -253,264 +404,239 @@ export default function DashboardPage() {
                 }
                 setIsGlobalAssetModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
-              title="用户级全局资产库：跨项目沉淀复用角色、场景与道具"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-secondary/80 hover:bg-secondary text-foreground/90 border border-border/80 transition-colors cursor-pointer"
+              title="用户级全局资产库：跨项目复用核心角色、场景与道具"
             >
               <span>◇ 全局资产库</span>
             </button>
           </div>
 
-          <div className="h-4 w-px bg-border/60" />
-
-          {/* 2. Core Creative Production Actions */}
-          <div className="flex items-center gap-2">
-            {/* Advanced Creation Tools Dropdown */}
-            <div className="relative" ref={toolsMenuRef}>
-              <button
-                type="button"
-                onClick={() => setIsToolsMenuOpen((prev) => !prev)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-xs",
-                  isToolsMenuOpen
-                    ? "bg-secondary text-foreground border-border"
-                    : "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border-border/70"
-                )}
-                title="更多智能剧本与长篇小说衍生工具"
-              >
-                <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-                <span>创作工具</span>
-                <ChevronDown className={cn("w-3 h-3 text-muted-foreground transition-transform", isToolsMenuOpen && "rotate-180")} />
-              </button>
-
-              {isToolsMenuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-60 bg-popover/95 backdrop-blur-md border border-border rounded-xl shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  <button
-                    type="button"
-                    onClick={handleOpenPitchModal}
-                    className="w-full flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/80 text-left transition-colors cursor-pointer group"
-                  >
-                    <div className={cn(
-                      "p-1.5 rounded-md transition-colors mt-0.5",
-                      isDemoUser || !hasCustomKey ? "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500/25" : "bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20"
-                    )}>
-                      {isDemoUser || !hasCustomKey ? <Key className="w-4 h-4" /> : <Lightbulb className="w-4 h-4" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground flex items-center gap-1">
-                        <span>一句话点子成剧</span>
-                        <span className={cn(
-                          "text-[10px] px-1 py-0.2 rounded font-normal",
-                          isDemoUser
-                            ? "bg-amber-500/20 text-amber-300 font-semibold"
-                            : !hasCustomKey
-                            ? "bg-amber-500/20 text-amber-300 font-semibold"
-                            : "bg-amber-500/20 text-amber-300"
-                        )}>
-                          {isDemoUser ? "🔑 注册体验" : !hasCustomKey ? "🔑 填Key体验" : "AI孵化"}
-                        </span>
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
-                        输入一句话脑洞，AI 自动生成 3 款短剧提案
-                      </p>
-                    </div>
-                  </button>
-
-                  <div className="my-1 border-t border-border/40" />
-
-                  <button
-                    type="button"
-                    onClick={handleOpenSeriesModal}
-                    className="w-full flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/80 text-left transition-colors cursor-pointer group"
-                  >
-                    <div className={cn(
-                      "p-1.5 rounded-md transition-colors mt-0.5",
-                      isDemoUser || !hasCustomKey ? "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500/25" : "bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20"
-                    )}>
-                      {isDemoUser || !hasCustomKey ? <Key className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground flex items-center gap-1">
-                        <span>长篇小说成剧</span>
-                        <span className={cn(
-                          "text-[10px] px-1 py-0.2 rounded font-normal",
-                          isDemoUser
-                            ? "bg-amber-500/20 text-amber-300 font-semibold"
-                            : !hasCustomKey
-                            ? "bg-amber-500/20 text-amber-300 font-semibold"
-                            : "bg-sky-500/20 text-sky-300"
-                        )}>
-                          {isDemoUser ? "🔑 注册体验" : !hasCustomKey ? "🔑 填Key体验" : "多集切分"}
-                        </span>
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
-                        批量提炼核心角色设定与切分多集剧本
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
-
+          {/* Right: Starter Templates Toggle Drawer */}
+          <div className="flex items-center justify-end gap-2 shrink-0">
             <button
-              onClick={handleOpenCreateModal}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
+              type="button"
+              onClick={() => setIsTemplatesOpen((prev) => !prev)}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer",
+                isTemplatesOpen
+                  ? "bg-secondary text-foreground border-primary/50 text-primary"
+                  : "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border-border/70"
+              )}
             >
-              <Plus className="w-4 h-4" />
-              <span>新建分镜工程</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>经典起步模板 (4款)</span>
+              {isTemplatesOpen ? (
+                <ChevronUp className="w-3 h-3 ml-0.5" />
+              ) : (
+                <ChevronDown className="w-3 h-3 ml-0.5" />
+              )}
             </button>
           </div>
+        </div>
 
-          <div className="h-4 w-px bg-border/60" />
-
-          {/* 3. Account, Auth & System Settings Guardrail */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                const isDemoUser = !user || user.id === "demo" || user.email === "demo@caifu.social";
-                if (isDemoUser) {
-                  notify.info("🎬 当前为公共体验账号，API Key 配置仅对专属导演账号生效！请先注册专属账号");
-                  openAuthModal("register");
-                  return;
-                }
-                openSettingsModal();
-              }}
-              className="p-2 rounded-lg border border-border bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-              title="后端连接与 AI 大模型设置"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-
-            {isAuthenticated && user ? (
-              <UserMenuDropdown />
-            ) : (
+        {/* Collapsible Starter Templates Panel */}
+        {isTemplatesOpen && (
+          <div className="rounded-2xl border border-border/80 bg-[#121218]/95 p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <h3 className="text-xs font-bold text-foreground">
+                  经典起步模板 · 点击一键载入创作工作台
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsTemplatesOpen(false)}
+                className="text-xs text-muted-foreground hover:text-foreground p-1"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {STARTER_TEMPLATES.map((tmpl) => (
+                <button
+                  key={tmpl.id}
+                  onClick={() => handleApplyTemplate(tmpl)}
+                  className={cn(
+                    "p-3 rounded-xl border text-left transition-all duration-200 hover:scale-[1.02] bg-gradient-to-br flex flex-col justify-between group cursor-pointer",
+                    tmpl.gradient
+                  )}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold font-mono tracking-tight">{tmpl.title}</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/60 border border-current">
+                        {tmpl.badge}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed group-hover:text-foreground/90 transition-colors">
+                      {tmpl.desc}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-current/15 text-[10px] font-medium">
+                    <span className="opacity-80">点击载入模板</span>
+                    <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent Active Project Hero Card (焦点活跃工程卡片) */}
+        {activeProject && (
+          <div className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-[#14141d] to-[#101017] p-5 md:p-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6">
+            {/* Ambient Background Glow */}
+            <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-primary/15 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="space-y-3 z-10 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-primary/20 text-primary border border-primary/30">
+                  最近活跃工程
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-black/60 text-sky-300 border border-sky-500/20">
+                  {activeProject.aspect_ratio === "9:16" ? "9:16 竖屏微短剧" : "16:9 电影宽银幕"}
+                </span>
+                <span className="text-[11px] font-mono text-muted-foreground">
+                  {activeProject.target_duration}s · {activeProject.shot_count || 0} 镜
+                </span>
+              </div>
+
+              <div>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight">
+                  《{activeProject.title}》
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1 max-w-3xl leading-relaxed">
+                  {activeProject.story || "点击进入工作台继续分镜头剧本编写与视听画面预演。"}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-1 text-xs">
+                <Link
+                  href={`/workspace?id=${activeProject.id}`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <span>继续创作</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+
                 <button
                   type="button"
-                  onClick={async () => {
-                    try {
-                      await login("demo@caifu.social", "demo123");
-                      notify.success("🎬 已一键登入官方演示 Demo 账号！");
-                    } catch (err) {
-                      openAuthModal("login");
-                    }
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 transition-all shadow-2xs cursor-pointer"
-                  title="免注册免输密码，一键以官方演示 Demo 账号体验"
+                  onClick={(e) => handleQuickPlay(e, activeProject)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition-colors cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>体验 Demo 账号</span>
+                  <Play className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+                  <span>放映厅全屏快播</span>
                 </button>
+
                 <button
-                  onClick={() => openAuthModal("login")}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 border border-sky-500/30 transition-colors shadow-2xs cursor-pointer"
+                  type="button"
+                  onClick={(e) => handleQuickExport(e, activeProject)}
+                  disabled={exportingProjectId === activeProject.id}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-colors disabled:opacity-50 cursor-pointer"
                 >
-                  <User className="w-3.5 h-3.5" />
-                  <span>登录 / 注册</span>
+                  <Download className="w-3.5 h-3.5 text-sky-400" />
+                  <span>{exportingProjectId === activeProject.id ? "合成中..." : "导出专业打样单"}</span>
                 </button>
+              </div>
+            </div>
+
+            {/* Poster Thumbnail Box */}
+            {activeProject.cover_image_url && (
+              <div className="shrink-0 w-full md:w-64 aspect-video rounded-xl overflow-hidden border border-white/10 relative shadow-lg group">
+                <img
+                  src={normalizeAssetUrl(activeProject.cover_image_url)}
+                  alt={activeProject.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute bottom-2 left-2 text-[10px] font-mono text-white/70">
+                  {activeProject.updated_at ? activeProject.updated_at.split("T")[0] : "刚刚"}
+                </div>
               </div>
             )}
           </div>
-        </div>
-      </header>
+        )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 space-y-8">
-        {/* Hero Pitch Banner: One-Line Pitch to Series */}
-        <div className="relative rounded-2xl p-6 bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-sky-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 overflow-hidden shadow-sm">
-          <div className="space-y-1.5 z-10">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-mono font-bold">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-              <span>新功能 · 一句话点子孵化短剧</span>
-            </div>
-            <h2 className="text-lg font-bold text-foreground">
-              不知道怎么编完整梗概？输入一句话，AI 为你生成 3 款短剧与文学剧本
-            </h2>
-            <p className="text-xs text-muted-foreground max-w-2xl">
-              支持女频/男频赛道偏好，严格锁定已有角色（绝不胡乱新增上司/配角），硬性锚定核心情节，彻底告别白纸焦虑。
-            </p>
-          </div>
-          <button
-            onClick={() => setIsPitchModalOpen(true)}
-            className="shrink-0 z-10 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-black shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Sparkles className="w-4 h-4 text-black" />
-            <span>立即体验点子孵化</span>
-          </button>
-          <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        </div>
-
-        {/* Section 1: Director Starter Presets */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-semibold text-foreground tracking-tight">
-                导演灵感与经典起步模板 (Director Starters)
-              </h2>
-            </div>
-            <span className="text-xs text-muted-foreground">点击快速填入精炼剧本</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {STARTER_TEMPLATES.map((tmpl) => (
-              <button
-                key={tmpl.id}
-                onClick={() => handleApplyTemplate(tmpl)}
-                className={cn(
-                  "p-4 rounded-xl border text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-gradient-to-br flex flex-col justify-between group relative overflow-hidden",
-                  tmpl.gradient
-                )}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold font-mono tracking-tight">{tmpl.title}</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-background/80 border border-current">
-                      {tmpl.badge}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed group-hover:text-foreground/90 transition-colors">
-                    {tmpl.desc}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-current/15 text-[11px] font-medium">
-                  <span className="opacity-80">一键体验样片</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Section 2: User Projects List */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+        {/* Section: Projects Grid with Multidimensional Controls */}
+        <div className="space-y-4 pt-2">
+          {/* Filter Bar & Controls Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
+            {/* Title & Count */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Film className="w-5 h-5 text-sky-400" />
-                <span>我的分镜工程</span>
-                <span className="text-xs font-mono font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
-                  {filteredProjects.length} 个工程
-                </span>
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                累计已构建 {totalShotsCount} 个预演镜头 · 支持多租户数据隔离与 9:16 / 16:9 打样导出
-              </p>
+                <h2 className="text-lg font-bold tracking-tight">全部故事板工程</h2>
+              </div>
+              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                {filteredProjects.length} 个工程 · {totalShotsCount} 镜
+              </span>
             </div>
 
-            <div className="flex items-center gap-2 text-xs">
+            {/* Filter & Sort Controls */}
+            <div className="flex flex-wrap items-center gap-2.5 text-xs">
+              {/* Aspect Ratio Filter Tabs */}
+              <div className="flex items-center p-1 rounded-xl bg-secondary/60 border border-border/80">
+                <button
+                  onClick={() => setAspectFilter("all")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer",
+                    aspectFilter === "all"
+                      ? "bg-background text-foreground shadow-2xs font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  全部画幅
+                </button>
+                <button
+                  onClick={() => setAspectFilter("16:9")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-medium flex items-center gap-1 transition-colors cursor-pointer",
+                    aspectFilter === "16:9"
+                      ? "bg-background text-sky-300 shadow-2xs font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Monitor className="w-3 h-3" />
+                  <span>16:9 电影</span>
+                </button>
+                <button
+                  onClick={() => setAspectFilter("9:16")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-medium flex items-center gap-1 transition-colors cursor-pointer",
+                    aspectFilter === "9:16"
+                      ? "bg-background text-rose-300 shadow-2xs font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Smartphone className="w-3 h-3" />
+                  <span>9:16 短剧</span>
+                </button>
+              </div>
+
+              {/* Sort Selector */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-2.5 py-1.5 rounded-xl bg-secondary/60 border border-border/80 text-muted-foreground hover:text-foreground font-mono text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="updated">最近修改</option>
+                <option value="created">创建时间</option>
+                <option value="shots">镜头数量</option>
+              </select>
+
+              {/* Refresh Button */}
               <button
                 onClick={loadProjects}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                title="刷新项目列表"
+                className="p-2 rounded-xl border border-border bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                title="刷新工程列表"
               >
                 <RefreshCw className={cn("w-3.5 h-3.5", isLoading && "animate-spin text-primary")} />
-                <span>刷新</span>
               </button>
             </div>
           </div>
 
-          {/* Backend Connection Error Banner */}
+          {/* Backend Connection Error */}
           {hasError && (
             <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
@@ -524,7 +650,7 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={openSettingsModal}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500 text-black hover:bg-amber-400 transition-colors shrink-0"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500 text-black hover:bg-amber-400 transition-colors shrink-0 cursor-pointer"
               >
                 配置后端
               </button>
@@ -539,242 +665,106 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : filteredProjects.length === 0 ? (
-            <div className="h-72 border border-dashed border-border rounded-2xl flex flex-col items-center justify-center text-center p-8 bg-card/20">
+            <div className="h-72 border border-dashed border-border/80 rounded-2xl flex flex-col items-center justify-center text-center p-8 bg-[#101015]/60">
               <div className="p-3 rounded-full bg-primary/10 text-primary mb-3">
                 <Film className="w-8 h-8" />
               </div>
               <h3 className="font-semibold text-base mb-1">
-                {searchQuery ? `未找到与 “${searchQuery}” 相关的工程` : "暂无分镜项目"}
+                {searchQuery ? `未找到与 “${searchQuery}” 相关的分镜工程` : "暂无分镜工程"}
               </h3>
               <p className="text-xs text-muted-foreground mb-5 max-w-sm">
-                {searchQuery ? "请尝试更换关键词，或清空搜索查看所有分镜工程" : "选择上方经典起步模板，或点击下方按钮开启你的第一个故事板"}
+                {searchQuery
+                  ? "请尝试更换关键词，或重置筛选条件"
+                  : "点击上方「新建分镜工程」开启创作，或选择模板载入官方样片"}
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-3">
+              <div className="flex items-center gap-3">
                 {searchQuery ? (
                   <button
-                    onClick={() => setSearchQuery("")}
-                    className="px-4 py-2 rounded-lg text-xs font-medium bg-secondary text-foreground hover:bg-secondary/80 border border-border transition-colors"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setAspectFilter("all");
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-secondary text-foreground hover:bg-secondary/80 border border-border transition-colors cursor-pointer"
                   >
-                    清空搜索
+                    清空筛选
                   </button>
                 ) : (
-                  <>
-                    {!isAuthenticated && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            await login("demo@caifu.social", "demo123");
-                            notify.success("🎬 已一键登入官方演示 Demo 账号！");
-                          } catch (err) {
-                            openAuthModal("login");
-                          }
-                        }}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-md active:scale-95"
-                      >
-                        <Sparkles className="w-4 h-4 text-black" />
-                        <span>一键进入 Demo 体验账号</span>
-                      </button>
-                    )}
-                    <button
-                      onClick={handleOpenCreateModal}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-md"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>立即新建分镜工程</span>
-                    </button>
-                  </>
+                  <button
+                    onClick={handleOpenCreateModal}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-md cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    <span>立即新建工程</span>
+                  </button>
                 )}
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProjects.map((proj) => {
-                const coverImg = normalizeAssetUrl(proj.cover_image_url);
-
-                return (
-                  <Link
-                    key={proj.id}
-                    href={`/workspace?id=${proj.id}`}
-                    className="group rounded-2xl border border-border/80 bg-card/60 hover:bg-card hover:border-primary/50 transition-all duration-300 flex flex-col overflow-hidden shadow-xs hover:shadow-xl hover:-translate-y-1 relative"
-                  >
-                    {/* Filmstrip Poster Header */}
-                    <div className="w-full aspect-video bg-neutral-950 relative overflow-hidden border-b border-border/60 shrink-0">
-                      {coverImg ? (
-                        <>
-                          <img
-                            src={coverImg}
-                            alt={proj.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
-                        </>
-                      ) : (
-                        /* Modern Darkroom Concept Frame */
-                        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gradient-to-b from-neutral-900 to-neutral-950">
-                          <div className="p-3 rounded-full bg-primary/10 text-primary border border-primary/20 mb-2">
-                            <Clapperboard className="w-6 h-6" />
-                          </div>
-                          <span className="text-xs font-medium text-muted-foreground">
-                            故事板分镜工程
-                          </span>
-                          <span className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">
-                            {proj.aspect_ratio === "9:16"
-                              ? "9:16 竖屏短剧画幅"
-                              : "16:9 宽银幕电影画幅"}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Top Badges on Poster */}
-                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-                        <div className="flex items-center gap-1.5">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-black/80 text-sky-400 border border-sky-400/30 backdrop-blur-md">
-                            {proj.target_duration}s
-                          </span>
-                        </div>
-
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-black/80 text-foreground border border-white/20 backdrop-blur-md">
-                          {proj.shot_count || 0} 个分镜
-                        </span>
-                      </div>
-
-                      {/* Quick Hover Overlay CTA */}
-                      <div className="absolute inset-0 bg-primary/15 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                        <span className="px-3.5 py-1.5 rounded-full bg-background/90 text-primary text-xs font-semibold border border-primary/40 shadow-lg backdrop-blur-md flex items-center gap-1.5">
-                          <span>进入工作台</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Card Content Info */}
-                    <div className="p-5 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                          {proj.title}
-                        </h3>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1.5 leading-relaxed">
-                          {proj.story || "未填写故事设定，点击进入工作台进行剧本编辑与 AI 拆镜。"}
-                        </p>
-                      </div>
-
-                      {/* Footer Actions */}
-                      <div className="pt-4 mt-4 border-t border-border/50 flex items-center justify-between">
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          {/* Quick Export PNG Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => handleQuickExport(e, proj)}
-                            disabled={exportingProjectId === proj.id}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border transition-colors disabled:opacity-50 cursor-pointer"
-                            title="快速导出 16:9 故事板草图打样单"
-                          >
-                            <Download className="w-3 h-3 text-sky-400" />
-                            <span>{exportingProjectId === proj.id ? "合成中..." : "导出单"}</span>
-                          </button>
-
-                          {/* Delete Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setProjectToDelete(proj);
-                              setIsDeleteOpen(true);
-                            }}
-                            className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                            title="删除项目"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        <span className="text-xs font-semibold text-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform ml-auto">
-                          <span>打开工程</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+              {filteredProjects.map((proj) => (
+                <ProjectCard
+                  key={proj.id}
+                  project={proj}
+                  onQuickPlay={handleQuickPlay}
+                  onQuickExport={handleQuickExport}
+                  onDelete={handleDeleteClick}
+                  isExporting={exportingProjectId === proj.id}
+                />
+              ))}
             </div>
           )}
-        </section>
+        </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border/40 py-6 mt-auto bg-card/20 text-center text-xs text-muted-foreground relative z-10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Clapperboard className="w-4 h-4 text-primary" />
-            <span className="font-semibold text-foreground">AI Director Studio</span>
-            <span>· 故事板分镜与 AI 视频预演工作台</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link
-              href="/releases"
-              className="hover:text-foreground transition-colors flex items-center gap-1.5"
-            >
-              <span>版本更新日志</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                v1.3.0
-              </span>
-            </Link>
-            <a
-              href="https://github.com/corlin/StoryBoarding"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
-              GitHub
-            </a>
-          </div>
-        </div>
-      </footer>
-
-      {/* Create Project Modal */}
+      {/* Modals & Drawers */}
       <CreateProjectModal
         isOpen={isCreating}
-        onClose={() => setIsCreating(false)}
+        onClose={() => {
+          setIsCreating(false);
+          loadProjects();
+        }}
         initialValues={createInitialValues}
       />
 
-      {/* Delete Project Confirmation Modal */}
       <DeleteProjectModal
         isOpen={isDeleteOpen}
         onClose={() => {
           setIsDeleteOpen(false);
           setProjectToDelete(null);
         }}
-        project={projectToDelete}
         onConfirmDelete={handleConfirmDelete}
+        project={projectToDelete}
       />
 
-      {/* Multi-Episode Series Blueprint Modal */}
       <SeriesBlueprintModal
         isOpen={isSeriesModalOpen}
-        onClose={() => {
-          setIsSeriesModalOpen(false);
-          loadProjects();
-        }}
+        onClose={() => setIsSeriesModalOpen(false)}
       />
 
-      {/* One-Line Pitch Idea Generator Modal */}
       <PitchIdeaGeneratorModal
         isOpen={isPitchModalOpen}
-        onClose={() => {
-          setIsPitchModalOpen(false);
-          loadProjects();
-        }}
+        onClose={() => setIsPitchModalOpen(false)}
       />
 
-      {/* User-Level Global Cross-Project Asset Library Modal (Industry Standard) */}
       <GlobalAssetLibraryModal
         isOpen={isGlobalAssetModalOpen}
         onClose={() => setIsGlobalAssetModalOpen(false)}
       />
+
+      {/* Cinema Theater Fullscreen Modal */}
+      {isTheaterOpen && (
+        <CinemaTheaterModal
+          isOpen={isTheaterOpen}
+          onClose={() => {
+            setIsTheaterOpen(false);
+            setTheaterProject(null);
+            setTheaterShots([]);
+          }}
+          shots={theaterShots}
+          aspectRatio={theaterProject?.aspect_ratio || "16:9"}
+          targetDuration={theaterProject?.target_duration || 30}
+        />
+      )}
     </div>
   );
 }

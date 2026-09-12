@@ -23,87 +23,25 @@ import {
   BookOpen,
   Key,
   CheckCircle2,
+  Workflow,
+  Play,
+  Smartphone,
+  Monitor,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { api } from "@/lib/api";
+import { api, ProjectListItem } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { DirectorPipelineProgress } from "@/components/modals/DirectorPipelineProgress";
 import { SeriesBlueprintModal } from "@/components/modals/SeriesBlueprintModal";
-
-interface FeaturedSkill {
-  id: string;
-  title: string;
-  tag: string;
-  author: string;
-  desc: string;
-  uses: string;
-  gradient: string;
-  borderHover: string;
-  coverImage: string;
-  presetStory: string;
-  targetDuration: number;
-}
-
-const FEATURED_SKILLS: FeaturedSkill[] = [
-  {
-    id: "skill-cyberpunk",
-    title: "赛博雨夜 · 矩阵子弹时间",
-    tag: "动作科幻",
-    author: "AI Director 官方",
-    desc: "2.39:1 变形宽银幕、霓虹暴雨、机械瞳孔对焦与 0.1x 极限子弹时间对决",
-    uses: "12.8 k",
-    gradient: "from-purple-900/40 via-fuchsia-950/30 to-card",
-    borderHover: "hover:border-purple-500/50",
-    coverImage: "/images/storyboard/shot_02_katana_strike.jpg",
-    presetStory:
-      "暴雨夜新东京，青瓦飞檐古楼悬挂赤红发光灯笼。仿生特工右眼机械光圈收缩至 F1.2 锁定暗影，拔出高频武士刀斩出白色音爆激波。0.1x 极限子弹时间，侧身仰避超音速弹道，万千悬浮水滴与高压电火花在空中完全静止悬停。",
-    targetDuration: 30,
-  },
-  {
-    id: "skill-suspense",
-    title: "悬疑暗房 · 芬奇低调冷光",
-    tag: "悬疑推理",
-    author: "AI Director 官方",
-    desc: "胶片密室、暖色台灯、高反差伦勃朗光与极具心理压迫感正反打特写",
-    uses: "8.6 k",
-    gradient: "from-sky-950/40 via-blue-950/30 to-card",
-    borderHover: "hover:border-sky-500/50",
-    coverImage: "/images/storyboard/shot_01_teahouse_rain.jpg",
-    presetStory:
-      "雨夜老旧暗房内，红光微弱暗淡。老刑警手指夹着燃尽的香烟，凝视墙上密密麻麻的照片连线。突然台灯无故闪烁，门轴发出刺耳吱呀声，地上投射出拉长的风衣黑影。",
-    targetDuration: 30,
-  },
-  {
-    id: "skill-scifi",
-    title: "科幻史诗 · 星际黑洞跃迁",
-    tag: "太空史诗",
-    author: "AI Director 官方",
-    desc: "超大质量黑洞吸积盘、宇航员面罩倒影与空间曲率奇点跃迁",
-    uses: "9.4 k",
-    gradient: "from-amber-950/40 via-orange-950/30 to-card",
-    borderHover: "hover:border-amber-500/50",
-    coverImage: "/images/storyboard/shot_03_bullet_time_climax.jpg",
-    presetStory:
-      "探索舰穿越多维虫洞，舷窗外金黄色黑洞吸积盘撕裂时空。宇航员面罩上倒映着坍缩光晕，曲率引擎爆发刺目蓝白奇点脉冲，星舰瞬间切入多维裂缝完成时空跃迁。",
-    targetDuration: 30,
-  },
-  {
-    id: "skill-wuxia",
-    title: "东方写意 · 水墨竹林对决",
-    tag: "东方武侠",
-    author: "AI Director 官方",
-    desc: "泼墨写意长镜头、竹林疾风、一击必杀与东方古典留白美学",
-    uses: "6.2 k",
-    gradient: "from-emerald-950/40 via-teal-950/30 to-card",
-    borderHover: "hover:border-emerald-500/50",
-    coverImage: "/images/storyboard/shot_01_teahouse_rain.jpg",
-    presetStory:
-      "烟雨竹海，万竿翠竹随风倒伏。两名绝顶剑客在细密雨丝中相背而立，剑气激荡竹叶回旋。拔剑瞬间水墨晕染天地，一剑封喉，竹叶缓缓飘落于静止剑锋之上。",
-    targetDuration: 30,
-  },
-];
+import { CinematicFilmstripHero } from "@/components/home/CinematicFilmstripHero";
+import { FeaturedBentoGrid } from "@/components/home/FeaturedBentoGrid";
+import {
+  InteractiveSampleWorkshop,
+  SamplePreset,
+} from "@/components/home/InteractiveSampleWorkshop";
+import { DramaticBeatPreviewModal } from "@/components/modals/DramaticBeatPreviewModal";
 
 export default function HomePage() {
   const router = useRouter();
@@ -120,6 +58,10 @@ export default function HomePage() {
   const [selectedStyle, setSelectedStyle] = useState<string>("电影级写实");
   const [showBanner, setShowBanner] = useState<boolean>(true);
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
+  const [isBeatModalOpen, setIsBeatModalOpen] = useState(false);
+
+  // Recent active project for returning users
+  const [recentProject, setRecentProject] = useState<ProjectListItem | null>(null);
 
   // Creation loading progress states
   const [isCreating, setIsCreating] = useState(false);
@@ -139,6 +81,21 @@ export default function HomePage() {
     user?.custom_settings?.llm_api_key
   );
 
+  // Load recent project for authenticated users
+  useEffect(() => {
+    if (isAuthenticated && !isDemoUser) {
+      api.getProjects()
+        .then((data) => {
+          if (data && data.length > 0) {
+            setRecentProject(data[0]);
+          }
+        })
+        .catch(() => {});
+    } else {
+      setRecentProject(null);
+    }
+  }, [isAuthenticated, isDemoUser]);
+
   // Check and resume stashed creation upon login
   useEffect(() => {
     if (isAuthenticated) {
@@ -157,42 +114,43 @@ export default function HomePage() {
     }
   }, [isAuthenticated]);
 
-  const handleApplySkill = (skill: FeaturedSkill) => {
-    setPromptText(skill.presetStory);
-    setTargetDuration(skill.targetDuration);
+  const handleApplyPreset = (preset: SamplePreset) => {
+    setPromptText(preset.presetStory);
+    setTargetDuration(preset.duration);
     if (textareaRef.current) {
       textareaRef.current.focus();
       textareaRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-    notify.success(`✨ 已填入「${skill.title}」剧本预设，点击 ↑ 即可直接生成！`);
+    notify.success(`✨ 已填入「${preset.title}」故事预设，点击 ↑ 即可直接生成！`);
+  };
+
+  const handleExploreSample = async (preset: SamplePreset) => {
+    const targetId = preset.sampleProjectId || "6f01c422-48ea-4796-afc7-09cc6447f764";
+    if (!isAuthenticated) {
+      try {
+        await login("demo@caifu.social", "demo123");
+        notify.success(`🎬 已免密载入「${preset.title}」现成 18 镜工作台（0消耗 Token）！`);
+        router.push(`/workspace?id=${targetId}`);
+        return;
+      } catch {
+        router.push(`/workspace?id=${targetId}`);
+        return;
+      }
+    }
+    router.push(`/workspace?id=${targetId}`);
   };
 
   const handleStartCreation = async () => {
     const trimmedStory = promptText.trim();
     if (!trimmedStory) {
-      notify.error("请输入你想创作的电影故事、镜头画面或脑洞灵感");
+      notify.error("请输入你想创作的电影故事、影视镜头或脑洞灵感");
       if (textareaRef.current) textareaRef.current.focus();
       return;
     }
 
-    if (!isAuthenticated) {
-      // Stash story & ask for login
-      sessionStorage.setItem(
-        "stashed_story_creation",
-        JSON.stringify({ story: trimmedStory, duration: targetDuration })
-      );
-      notify.info("🎬 请先注册或登录专属导演账号，登录后将自动开工！");
-      openAuthModal("register");
-      return;
-    }
-
-    if (isDemoUser) {
-      sessionStorage.setItem(
-        "stashed_story_creation",
-        JSON.stringify({ story: trimmedStory, duration: targetDuration })
-      );
-      notify.info("🎬 当前为公共体验账号！如需创建并生成 AI 故事板，请注册专属导演账号并在设置中填入 Key");
-      openAuthModal("register");
+    // Zero-friction preview flow: show 3-beat dramatic preview before auth wall
+    if (!isAuthenticated || isDemoUser) {
+      setIsBeatModalOpen(true);
       return;
     }
 
@@ -257,6 +215,27 @@ export default function HomePage() {
     }
   };
 
+  const handleConfirmAuthFromBeat = () => {
+    setIsBeatModalOpen(false);
+    sessionStorage.setItem(
+      "stashed_story_creation",
+      JSON.stringify({ story: promptText.trim(), duration: targetDuration })
+    );
+    notify.info("🎬 请注册或登录专属导演账号，登录后将自动为您保留并生成！");
+    openAuthModal("register");
+  };
+
+  const handleExploreDemoFromBeat = async () => {
+    setIsBeatModalOpen(false);
+    try {
+      await login("demo@caifu.social", "demo123");
+      notify.success("🎬 已免密载入官方精品样片《合约恋人》！");
+      router.push("/workspace?id=6f01c422-48ea-4796-afc7-09cc6447f764");
+    } catch {
+      router.push("/workspace?id=6f01c422-48ea-4796-afc7-09cc6447f764");
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -265,29 +244,29 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0a0a0c] text-foreground selection:bg-primary/30 relative overflow-x-hidden">
-      {/* Background Dot Matrix Radial Glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(99,102,241,0.12),rgba(0,0,0,0)_60%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(#1e1e28_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
+    <div className="flex flex-col min-h-screen bg-[#0b0b0e] text-foreground selection:bg-primary/30 relative overflow-x-hidden">
+      {/* Background Cinematic Radial Ambient Glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(99,102,241,0.14),rgba(0,0,0,0)_65%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#1c1c28_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
 
       {/* Top Banner */}
       {showBanner && (
-        <div className="bg-gradient-to-r from-primary/20 via-purple-500/20 to-pink-500/20 border-b border-primary/20 text-xs py-2 px-4 text-center flex items-center justify-center gap-3 relative z-50 backdrop-blur-md">
-          <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold text-[10px]">
-            官方上线
+        <div className="bg-gradient-to-r from-primary/20 via-purple-500/20 to-amber-500/20 border-b border-primary/20 text-xs py-2 px-4 text-center flex items-center justify-center gap-3 relative z-50 backdrop-blur-md">
+          <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold text-[10px] uppercase tracking-wider">
+            导演级 2.0
           </span>
           <span className="text-foreground/90 font-medium">
-            🎬 AI 导演 2.0 正式就绪：一键剧本智能拆镜，直通 16:9 宽银幕预演画卷
+            🎬 分镜头脚本与视觉故事板双向协同引擎现已就绪 · 支持 16:9 宽银幕与 9:16 竖屏微短剧
           </span>
           <Link
             href="/dashboard"
             className="underline text-primary hover:text-primary/80 font-bold ml-1"
           >
-            探索模板 →
+            探索工程看板 →
           </Link>
           <button
             onClick={() => setShowBanner(false)}
-            className="absolute right-4 text-muted-foreground hover:text-foreground p-1"
+            className="absolute right-4 text-muted-foreground hover:text-foreground p-1 cursor-pointer"
             title="关闭通知"
           >
             <X className="w-3.5 h-3.5" />
@@ -296,8 +275,8 @@ export default function HomePage() {
       )}
 
       {/* Header Navigation */}
-      <header className="border-b border-border/40 backdrop-blur-md bg-[#0a0a0c]/80 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <header className="border-b border-border/50 backdrop-blur-md bg-[#0b0b0e]/85 sticky top-0 z-40 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20 group-hover:scale-105 group-hover:bg-primary/20 transition-all shadow-inner">
               <Clapperboard className="w-5 h-5" />
@@ -312,14 +291,15 @@ export default function HomePage() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-4 text-xs font-medium">
+          <div className="flex items-center gap-3 text-xs font-medium">
             <Link
               href="/dashboard"
-              className="text-muted-foreground hover:text-foreground transition-colors hidden sm:flex items-center gap-1.5"
+              className="text-muted-foreground hover:text-foreground transition-colors hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-secondary/60"
             >
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
-              <span>4 大经典起步模板</span>
+              <Film className="w-3.5 h-3.5 text-sky-400" />
+              <span>工程驾驶舱</span>
             </Link>
+
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <Link
@@ -332,57 +312,88 @@ export default function HomePage() {
                 <UserMenuDropdown />
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={async () => {
                     try {
                       await login("demo@caifu.social", "demo123");
-                      notify.success("🎬 已一键登入官方演示 Demo 账号！");
+                      notify.success("🎬 已一键免密登入官方演示 Demo 账号！");
                       router.push("/dashboard");
-                    } catch (err) {
+                    } catch {
                       openAuthModal("login");
                     }
                   }}
-                  className="inline-flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition-all shadow-xs shrink-0"
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition-all shadow-xs shrink-0 cursor-pointer"
                   title="免注册免输密码，一键以官方演示账号身份体验全套功能"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span className="hidden xs:inline">体验 </span>Demo
+                  <span>0秒漫游 Demo</span>
                 </button>
                 <button
                   onClick={() => openAuthModal("login")}
-                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-foreground/90 bg-secondary/80 hover:bg-secondary border border-border transition-colors font-semibold text-xs shadow-xs shrink-0"
+                  className="px-3.5 py-2 rounded-xl text-foreground/90 bg-secondary/80 hover:bg-secondary border border-border transition-colors font-semibold text-xs shadow-xs shrink-0 cursor-pointer"
                 >
-                  登录
+                  登录 / 注册
                 </button>
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center gap-1 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all text-xs shadow-sm shrink-0"
-                >
-                  <span>开工</span>
-                  <ArrowRight className="w-3 h-3 hidden sm:inline" />
-                </Link>
               </div>
             )}
           </div>
         </div>
       </header>
 
-      {/* Main Hero Prompt-First Center Area */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pt-16 pb-24 max-w-5xl mx-auto w-full space-y-12 relative z-10">
-        {/* Center Inspiration Title */}
+      {/* Main Container */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pt-10 pb-24 max-w-6xl mx-auto w-full space-y-12 relative z-10">
+        {/* Returning User Quick Resume Banner (if authenticated and has recent project) */}
+        {recentProject && (
+          <div className="w-full max-w-3xl flex items-center justify-between px-4 py-3 rounded-2xl bg-gradient-to-r from-primary/15 via-sky-500/10 to-transparent border border-primary/30 text-xs text-foreground/90 shadow-lg backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-2.5">
+              <span className="text-lg">🎬</span>
+              <div>
+                <span className="font-semibold text-foreground">
+                  欢迎回来，导演！
+                </span>
+                <span className="text-muted-foreground ml-1.5 hidden sm:inline">
+                  继续上次创作：
+                </span>
+                <strong className="text-primary font-bold ml-1">
+                  《{recentProject.title}》
+                </strong>
+                <span className="text-muted-foreground font-mono ml-1 text-[11px]">
+                  ({recentProject.shot_count || 0} 镜)
+                </span>
+              </div>
+            </div>
+
+            <Link
+              href={`/workspace?id=${recentProject.id}`}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all text-xs shadow-sm shrink-0"
+            >
+              <span>继续创作</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
+
+        {/* Hero Title & Subtitle */}
         <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/80 border border-border/80 text-muted-foreground text-xs font-mono font-medium">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>AI Director Studio 2.0 · 双向协同故事板</span>
+          </div>
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground">
-            灵感从这里开始！
+            让每一个文字剧本，秒变院线级分镜画卷
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto">
-            描述你想创作的电影故事或输入文本剧本，AI 导演即刻为你生成全套分镜画卷与视听台本
+          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            输入一句话脑洞或粘贴长篇文学剧本，AI 导演即刻为你生成全套 16:9 / 9:16 分镜视听台本与角色一致性画卷
           </p>
         </div>
 
+        {/* Dynamic Filmstrip Ribbon Preview */}
+        <CinematicFilmstripHero />
+
         {/* Central Updream-Style Prompt Box */}
-        <div className="w-full max-w-3xl rounded-2xl border border-border/80 bg-card/70 backdrop-blur-xl p-4 shadow-2xl focus-within:border-primary/70 focus-within:ring-4 focus-within:ring-primary/10 transition-all space-y-3 relative group">
+        <div className="w-full max-w-3xl rounded-2xl border border-border/80 bg-[#121218]/80 backdrop-blur-xl p-4 shadow-2xl focus-within:border-primary/70 focus-within:ring-4 focus-within:ring-primary/10 transition-all space-y-3 relative group">
           {/* Textarea Input */}
           <textarea
             ref={textareaRef}
@@ -390,7 +401,7 @@ export default function HomePage() {
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="描述你想创作的电影故事、影视镜头或脑洞灵感... (例如：暴雨夜新东京，仿生特工拔出高频武士刀斩出音爆激波，0.1x 极限子弹时间避开超音速弹道)"
+            placeholder="描述你想创作的短剧剧情、电影镜头或脑洞灵感... (例如：暴雨夜新东京，青瓦飞檐，仿生特工右眼机械光圈锁定暗影，拔刀斩出白色音爆激波，0.1x 极限子弹时间避开超音速弹道)"
             className="w-full bg-transparent border-0 resize-none text-foreground placeholder:text-muted-foreground/60 text-sm sm:text-base focus:outline-hidden leading-relaxed px-1"
           />
 
@@ -429,7 +440,7 @@ export default function HomePage() {
 
             {/* Right Submit Button & Key Status */}
             <div className="flex items-center justify-end gap-2 shrink-0">
-              {/* Real-time Key Status Pill (Clickable) */}
+              {/* Real-time Key Status Pill */}
               <button
                 type="button"
                 onClick={() => {
@@ -457,7 +468,7 @@ export default function HomePage() {
                 {!isAuthenticated ? (
                   <>
                     <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>未登录</span>
+                    <span>免密初拆</span>
                   </>
                 ) : isDemoUser ? (
                   <>
@@ -481,6 +492,7 @@ export default function HomePage() {
                 Enter ↵
               </span>
 
+              {/* Submit CTA */}
               <button
                 type="button"
                 onClick={handleStartCreation}
@@ -491,30 +503,16 @@ export default function HomePage() {
                     ? "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20 font-bold"
                     : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20"
                 )}
-                title={
-                  !isAuthenticated
-                    ? "点击注册或登录专属账号"
-                    : isDemoUser
-                    ? "当前为公共体验账号，点击注册专属账号并配置 Key"
-                    : !hasCustomKey
-                    ? "点击前往设置配置专属 OpenRouter Key"
-                    : "立即开始智能创作"
-                }
               >
                 {isCreating ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                     <span>规划中...</span>
                   </>
-                ) : !isAuthenticated ? (
+                ) : !isAuthenticated || isDemoUser ? (
                   <>
-                    <Key className="w-3.5 h-3.5 text-black stroke-[2.5] shrink-0" />
-                    <span>注册开工</span>
-                  </>
-                ) : isDemoUser ? (
-                  <>
-                    <Key className="w-3.5 h-3.5 text-black stroke-[2.5] shrink-0" />
-                    <span>注册专属账号</span>
+                    <Sparkles className="w-3.5 h-3.5 text-black stroke-[2.5] shrink-0" />
+                    <span>初拆预览</span>
                   </>
                 ) : !hasCustomKey ? (
                   <>
@@ -523,7 +521,7 @@ export default function HomePage() {
                   </>
                 ) : (
                   <>
-                    <span>发送</span>
+                    <span>生成分镜</span>
                     <ArrowUp className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
                   </>
                 )}
@@ -536,139 +534,114 @@ export default function HomePage() {
         <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
           <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
             <Film className="w-3.5 h-3.5 text-amber-400" />
-            <span>新手体验推荐：</span>
+            <span>新手 0 等待样板房：</span>
           </span>
-          <Link
-            href="/workspace?id=6f01c422-48ea-4796-afc7-09cc6447f764"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-foreground border border-border/80 hover:border-primary/50 transition-all font-medium shadow-2xs group"
+          <button
+            type="button"
+            onClick={() => handleExploreSample({
+              id: "contract-lover",
+              title: "合约恋人",
+              tag: "9:16 短剧",
+              author: "官方",
+              desc: "",
+              aspectRatio: "9:16",
+              duration: 180,
+              shotCount: 18,
+              coverImage: "",
+              presetStory: "",
+              sampleProjectId: "6f01c422-48ea-4796-afc7-09cc6447f764",
+              gradient: "",
+              borderHover: "",
+            })}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-foreground border border-border/80 hover:border-primary/50 transition-all font-medium shadow-2xs group cursor-pointer"
           >
-            <span>🎬 体验都市短剧《合约恋人》（3集·18镜流程演示，配图未审）</span>
+            <span>🎬 体验都市短剧《合约恋人》（3集·18镜全套分镜台本）</span>
             <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-          </Link>
-          <Link
-            href="/workspace?id=2792deae-5f60-4246-850a-56b93eaf790a"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-foreground border border-border/80 hover:border-primary/50 transition-all font-medium shadow-2xs group"
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExploreSample({
+              id: "bencao-jie",
+              title: "本草劫",
+              tag: "9:16 短剧",
+              author: "官方",
+              desc: "",
+              aspectRatio: "9:16",
+              duration: 180,
+              shotCount: 18,
+              coverImage: "",
+              presetStory: "",
+              sampleProjectId: "2792deae-5f60-4246-850a-56b93eaf790a",
+              gradient: "",
+              borderHover: "",
+            })}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-foreground border border-border/80 hover:border-primary/50 transition-all font-medium shadow-2xs group cursor-pointer"
           >
-            <span>📜 体验古装短剧《本草劫》（18镜流程演示，配图未审）</span>
+            <span>📜 体验古装短剧《本草劫》（18镜视听完整工程）</span>
             <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-          </Link>
+          </button>
         </div>
 
-        {/* Bottom Section: 官方精选技能 (Featured Skills Deck) */}
-        <section className="w-full space-y-5 pt-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <h2 className="text-base sm:text-lg font-bold text-foreground">官方精选技能</h2>
-            </div>
-            <Link
-              href="/dashboard"
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors font-medium"
-            >
-              <span>查看全部</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+        {/* Section: 经典短剧与电影题材工坊 (Interactive Sample Workshop) */}
+        <InteractiveSampleWorkshop
+          onApplyPrompt={handleApplyPreset}
+          onExploreSample={handleExploreSample}
+        />
 
-          {/* 4 Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {FEATURED_SKILLS.map((skill) => (
-              <div
-                key={skill.id}
-                onClick={() => handleApplySkill(skill)}
-                className={`p-4 rounded-2xl border border-border/70 bg-gradient-to-b ${skill.gradient} ${skill.borderHover} transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 hover:shadow-xl hover:-translate-y-1 group relative overflow-hidden`}
-              >
-                <div className="space-y-3">
-                  {/* Top Pill & Author */}
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold border border-primary/30">
-                      {skill.tag}
-                    </span>
-                    <span className="text-muted-foreground text-[10px]">{skill.author}</span>
-                  </div>
-
-                  {/* Title & Description */}
-                  <div className="space-y-1">
-                    <h3 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors flex items-center justify-between">
-                      <span>{skill.title}</span>
-                    </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                      {skill.desc}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Card Bottom: Thumbnail + Usage count */}
-                <div className="flex items-end justify-between gap-3 pt-2 border-t border-border/40">
-                  <div className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono">
-                    <Flame className="w-3.5 h-3.5 text-rose-400" />
-                    <span>使用次数 {skill.uses}</span>
-                  </div>
-
-                  <div className="w-16 h-10 rounded-lg overflow-hidden border border-border/80 bg-neutral-900 shrink-0 shadow-xs">
-                    <img
-                      src={skill.coverImage}
-                      alt={skill.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* Section: 电影级生产力三大支柱 (FeaturedBentoGrid) */}
+        <FeaturedBentoGrid />
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 py-8 bg-card/20 text-center text-xs text-muted-foreground relative z-10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="border-t border-border/40 py-8 px-6 text-center text-xs text-muted-foreground bg-[#0a0a0d]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Clapperboard className="w-4 h-4 text-primary" />
             <span className="font-semibold text-foreground">AI Director Studio</span>
-            <span>· 故事板分镜与 AI 视频预演工作台</span>
+            <span>· 故事板分镜与 AI 影视视听预演系统</span>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 text-muted-foreground">
             <Link href="/dashboard" className="hover:text-foreground transition-colors">
-              分镜看板
+              工程看板
             </Link>
             <Link href="/releases" className="hover:text-foreground transition-colors">
-              版本更新日志
+              更新日志
             </Link>
-            <a
-              href="https://github.com/corlin/StoryBoarding"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-foreground transition-colors"
+            <button
+              onClick={() => openSettingsModal()}
+              className="hover:text-foreground transition-colors cursor-pointer"
             >
-              GitHub
-            </a>
+              API Key 设置
+            </button>
           </div>
         </div>
       </footer>
 
-      {/* Creation Progress */}
-      <DirectorPipelineProgress
-        isOpen={isCreating}
-        title={promptText.slice(0, 18).trim() || "新电影分镜预演"}
-        story={promptText}
-        targetDuration={targetDuration}
-        progressPercent={creationProgress}
-        activeStageIndex={creationStage}
-        elapsedSeconds={creationElapsed}
-        isComplete={creationComplete}
-        errorMessage={creationError}
-        onRetry={handleStartCreation}
-        onCancel={() => setIsCreating(false)}
-        onOpenSettings={() => {
-          setIsCreating(false);
-          openSettingsModal();
-        }}
-        onClose={() => setIsCreating(false)}
-      />
-
+      {/* Novel to Series Blueprint Modal */}
       <SeriesBlueprintModal
         isOpen={isSeriesModalOpen}
         onClose={() => setIsSeriesModalOpen(false)}
+      />
+
+      {/* 3-Beat Dramatic Outline Preview Modal */}
+      <DramaticBeatPreviewModal
+        isOpen={isBeatModalOpen}
+        onClose={() => setIsBeatModalOpen(false)}
+        storyText={promptText}
+        targetDuration={targetDuration}
+        onConfirmAuth={handleConfirmAuthFromBeat}
+        onExploreDemo={handleExploreDemoFromBeat}
+      />
+
+      {/* Director Pipeline Progress Modal during creation */}
+      <DirectorPipelineProgress
+        isOpen={isCreating}
+        onClose={() => setIsCreating(false)}
+        progressPercent={creationProgress}
+        elapsedSeconds={creationElapsed}
+        activeStageIndex={creationStage}
+        isComplete={creationComplete}
+        errorMessage={creationError}
       />
     </div>
   );
