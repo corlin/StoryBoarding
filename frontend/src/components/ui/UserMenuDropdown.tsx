@@ -99,7 +99,7 @@ export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ align = "rig
                     : "bg-primary/10 text-primary border border-primary/20"
                 }`}
               >
-                {isDemo ? "⚡ 公共演示账号" : "PRO 导演"}
+                {isDemo ? "⚡ 公共演示账号" : "🎬 认证导演"}
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">

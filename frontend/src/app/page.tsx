@@ -225,14 +225,9 @@ export default function HomePage() {
             <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20 group-hover:scale-105 group-hover:bg-primary/20 transition-all shadow-inner">
               <Clapperboard className="w-5 h-5" />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-lg tracking-tight text-foreground">
-                AI Director Studio
-              </span>
-              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                PRO
-              </span>
-            </div>
+            <span className="font-extrabold text-lg tracking-tight text-foreground">
+              AI Director Studio
+            </span>
           </Link>
 
           <div className="flex items-center gap-3 text-xs font-medium">

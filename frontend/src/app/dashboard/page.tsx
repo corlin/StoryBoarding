@@ -270,11 +270,8 @@ export default function DashboardPage() {
             <Clapperboard className="w-5 h-5" />
           </div>
           <div>
-            <span className="font-bold text-base tracking-tight text-foreground flex items-center gap-1.5">
-              <span>AI Director Studio</span>
-              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                PRO
-              </span>
+            <span className="font-bold text-base tracking-tight text-foreground block">
+              AI Director Studio
             </span>
             <p className="text-[11px] text-muted-foreground hidden sm:block">
               影视级双向协同分镜与短剧创作驾驶舱
