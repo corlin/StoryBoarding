@@ -1,6 +1,6 @@
 {
   "name": "storyboard-backend-worker",
-  "version": "1.0.0",
+  "version": "2.3.0",
   "description": "AI Director Storyboarding Edge API on Cloudflare Workers",
   "main": "src/index.ts",
   "scripts": {
