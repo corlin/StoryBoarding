@@ -33,6 +33,9 @@ export interface AudioData {
   ambient?: string;
 }
 
+export type AudioStrategy = 'native_av' | 'reference_audio_av' | 'post_dub' | 'performance_lipsync' | 'silent_broll';
+export type LipSyncStatus = 'not_applicable' | 'required' | 'pending' | 'verified' | 'failed';
+
 export interface ContinuityData {
   screen_direction?: string;
   character_positions?: Record<string, string>;
@@ -79,6 +82,8 @@ export interface ShotModel {
   dialogue_emotion?: string;
   beats_range?: [number, number]; // 认领剧本节拍区间 [起, 止]
   h3_prompt?: string; // 段/分镜 MiniMax H3 结构化提示词
+  audio_strategy?: AudioStrategy;
+  lip_sync_status?: LipSyncStatus;
   scene_index?: number;
   // Narrative OS Phase 1: Dramatic Beat State Tree
   beat_type?: 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook';

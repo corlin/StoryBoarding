@@ -138,6 +138,8 @@ export const shots = sqliteTable("shots", {
   // MiniMax Hailuo H3 multi-modal prompt & beat range alignment
   h3Prompt: text("h3_prompt").default("").notNull(),
   beatsRange: text("beats_range").default("[]").notNull(), // JSON string [start, end]
+  audioStrategy: text("audio_strategy").default("native_av").notNull(), // native_av | reference_audio_av | post_dub | performance_lipsync | silent_broll
+  lipSyncStatus: text("lip_sync_status").default("pending").notNull(), // not_applicable | required | pending | verified | failed
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -256,6 +258,9 @@ export const dialogueLines = sqliteTable("dialogue_lines", {
   actualDuration: real("actual_duration").default(0), // seconds, from actual audio
   plannedDuration: real("planned_duration").default(0), // seconds, from shot plan
   isVoiceover: integer("is_voiceover", { mode: "boolean" }).default(false).notNull(),
+  language: text("language").notNull().default("zh-CN"),
+  voiceSource: text("voice_source").notNull().default(""),
+  voiceConsentStatus: text("voice_consent_status").notNull().default("unverified"),
   orderIndex: integer("order_index").notNull().default(0),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),

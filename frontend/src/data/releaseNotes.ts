@@ -19,11 +19,38 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "v2.3.0",
+    title: "原生音视频与口型验收",
+    date: "2026-09-13",
+    badge: "最新版本",
+    isLatest: true,
+    summary: "H3 与 Seedance 走真实协议；按镜头选择原生音频、参考音频或后期配音，成片合并前必须完成口型验收。",
+    changeGroups: [
+      {
+        type: "highlight",
+        label: "🎙️ 音画联合生成",
+        items: [
+          { title: "H3 与 Seedance 独立接入", description: "H3 不再降级为 Hailuo；新增 BytePlus Seedance 2.5/2.0。" },
+          { title: "五种镜头音频策略", description: "支持原生音视频、参考音频驱动、后期配音、口型专项与无对白 B-roll。" },
+          { title: "保留生成视频原声", description: "合并 H3/Seedance 候选时保留已验收的原生音轨，不再重复覆盖 TTS。" },
+        ],
+      },
+      {
+        type: "improvement",
+        label: "✅ 可交付验收",
+        items: [
+          { title: "口型交付门禁", description: "有可见对白的镜头未通过口型验收时，阻止真实视频成片合并。" },
+          { title: "声音来源与授权", description: "对白记录语言、声音来源和授权状态，TTS 自动标记供应商预设音色。" },
+          { title: "音频策略写入清单", description: "剪辑版本和交付清单保留每镜策略、口型状态与原生音轨信息。" },
+        ],
+      },
+    ],
+  },
+  {
     version: "v2.2.0",
     title: "四阶段制作与视频合并",
     date: "2026-09-12",
-    badge: "最新版本",
-    isLatest: true,
+    isLatest: false,
     summary:
       "创作流程整合为准备、分镜、审片、交付四个阶段。支持视频生成、对白配音、候选审片、预演片与真实视频合并。",
     changeGroups: [

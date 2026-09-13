@@ -40,6 +40,10 @@ interface ModelProviderCardProps {
   onChange: (patch: Partial<ModelChannelConfig>) => void;
   /** 测试按钮回调 */
   onTest: () => void;
+  /** 无可靠免费探针时隐藏测试按钮，避免把本地校验冒充供应商实测 */
+  hideTestButton?: boolean;
+  /** 视频协议需要明确能力契约时可关闭任意模型 ID */
+  allowCustomModel?: boolean;
   /** 复用 Key 开关回调 (仅图像通道) */
   onSyncKeyToggle?: (checked: boolean) => void;
 }
@@ -83,6 +87,8 @@ export const ModelProviderCard: React.FC<ModelProviderCardProps> = ({
   footerNote,
   onChange,
   onTest,
+  hideTestButton = false,
+  allowCustomModel = true,
   onSyncKeyToggle,
 }) => {
   const styles = ACCENT_STYLES[accentColor];
@@ -121,7 +127,7 @@ export const ModelProviderCard: React.FC<ModelProviderCardProps> = ({
         </div>
 
         <div>
-          <label className="text-[11px] text-muted-foreground block mb-1">模型快捷选择 / 自定义</label>
+          <label className="text-[11px] text-muted-foreground block mb-1">{allowCustomModel ? "模型快捷选择 / 自定义" : "已验证模型"}</label>
           <select
             value={config.model}
             onChange={(e) => onChange({ model: e.target.value })}
@@ -133,13 +139,13 @@ export const ModelProviderCard: React.FC<ModelProviderCardProps> = ({
               </option>
             ))}
           </select>
-          <input
+          {allowCustomModel && <input
             type="text"
             value={config.model}
             onChange={(e) => onChange({ model: e.target.value })}
             placeholder="自定义输入任意 Model ID"
             className="w-full text-[11px] font-mono bg-background border border-border/80 rounded px-2 py-1 focus:outline-none focus:border-primary"
-          />
+          />}
         </div>
       </div>
 
@@ -207,7 +213,7 @@ export const ModelProviderCard: React.FC<ModelProviderCardProps> = ({
 
       {/* 测试按钮 + 状态 */}
       <div className="flex items-center justify-between pt-1">
-        <button
+        {!hideTestButton && <button
           type="button"
           onClick={onTest}
           disabled={testStatus === "testing"}
@@ -227,7 +233,7 @@ export const ModelProviderCard: React.FC<ModelProviderCardProps> = ({
               <span>{testButtonLabel}</span>
             </>
           )}
-        </button>
+        </button>}
         {testStatus === "ok" && (
           <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
             <Check className="w-3.5 h-3.5" />

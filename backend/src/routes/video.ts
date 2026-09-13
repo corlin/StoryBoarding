@@ -1,30 +1,29 @@
 import { Hono } from "hono";
 import { desc, eq } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
-import { shots, sequences, projects, generationJobs, takes } from "../db/schema";
+import { shots, sequences, projects, generationJobs, takes, dialogueLines } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
 import { saveMediaToR2 } from "../lib/storage";
 import { generatedVideoTakeId, isActiveVideoJob } from "../lib/videoJobState";
+import {
+  AUDIO_STRATEGIES,
+  type AudioStrategy,
+  buildVideoProviderRequest,
+  parseVideoProviderPoll,
+  resolveVideoProviderConfig,
+  lipSyncStatusForStrategy,
+} from "../lib/videoProvider";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
-function normalizeMiniMaxConfig(apiBase: string, model: string) {
-  let base = (apiBase || "https://api.minimax.cn/v1").replace(/\/+$/, "");
-  if (base.endsWith("/v2")) base = `${base.slice(0, -3)}/v1`;
-  const normalizedModel = model === "MiniMax-H3" || model === "MiniMax-H3-Max" || model === "video-01-h3"
-    ? "MiniMax-Hailuo-02"
-    : (model || "MiniMax-Hailuo-02");
-  return { apiBase: base, model: normalizedModel };
-}
-
-function normalizeFirstFrameUrl(value: string | null | undefined, requestUrl: string) {
-  const imageUrl = (value || "").trim();
-  if (!imageUrl) return "";
-  if (imageUrl.startsWith("https://") || imageUrl.startsWith("http://") || imageUrl.startsWith("data:image/")) {
-    return imageUrl;
+function normalizeProviderAssetUrl(value: string | null | undefined, requestUrl: string) {
+  const assetUrl = (value || "").trim();
+  if (!assetUrl) return "";
+  if (assetUrl.startsWith("https://") || assetUrl.startsWith("http://") || assetUrl.startsWith("data:")) {
+    return assetUrl;
   }
-  if (imageUrl.startsWith("/api/assets/")) {
-    return new URL(imageUrl, new URL(requestUrl).origin).toString();
+  if (assetUrl.startsWith("/api/assets/")) {
+    return new URL(assetUrl, new URL(requestUrl).origin).toString();
   }
   return "";
 }
@@ -93,15 +92,56 @@ router.post("/video/:shotId", async (c) => {
 
     // Determine aspect ratio from project
     const aspectRatio = project.aspectRatio === "16:9" ? "16:9" : "9:16";
-    const videoDuration = (shot.duration || 0) > 6 ? 10 : 6;
-    const providerConfig = normalizeMiniMaxConfig(userSettings.videoApiBase, userSettings.videoModel);
-    const firstFrameImage = normalizeFirstFrameUrl(shot.storyboardImageUrl, c.req.url);
+    const providerConfig = resolveVideoProviderConfig(
+      userSettings.videoProvider || "minimax",
+      userSettings.videoApiBase,
+      userSettings.videoModel,
+    );
+    const configuredStrategy = String((shot as any).audioStrategy || "native_av") as AudioStrategy;
+    if (!AUDIO_STRATEGIES.includes(configuredStrategy)) {
+      return c.json({ detail: `镜头音频策略无效：${configuredStrategy}` }, 409);
+    }
+    const firstFrameImage = normalizeProviderAssetUrl(shot.storyboardImageUrl, c.req.url);
     const firstFrameReference = firstFrameImage.startsWith("data:image/") ? "inline_data_url" : firstFrameImage;
-    const generationMode = firstFrameImage ? "image_to_video" : "text_to_video";
+    const shotDialogueLines = await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, shotId))
+      .orderBy(dialogueLines.orderIndex).all();
+    const adoptedAudioLines = shotDialogueLines.filter((line: any) => line.audioVersion && line.audioUrl);
+    if (configuredStrategy === "reference_audio_av" || configuredStrategy === "performance_lipsync") {
+      const unverifiedVoiceLines = adoptedAudioLines.filter((line: any) =>
+        !["self", "licensed", "provider_preset"].includes(line.voiceConsentStatus || "unverified"));
+      if (unverifiedVoiceLines.length > 0) {
+        return c.json({
+          detail: "参考音频的声音来源或授权尚未确认，请先在台词时间线完成标记",
+          error_code: "VOICE_CONSENT_UNVERIFIED",
+          dialogue_ids: unverifiedVoiceLines.map((line: any) => line.id),
+        }, 409);
+      }
+    }
+    const referenceAudioUrls = adoptedAudioLines
+      .map((line: any) => normalizeProviderAssetUrl(line.audioUrl, c.req.url))
+      .filter(Boolean);
+    let providerRequest;
+    try {
+      providerRequest = buildVideoProviderRequest(providerConfig, {
+        prompt: videoPrompt,
+        aspectRatio,
+        duration: shot.duration || providerConfig.capability.minDuration,
+        firstFrameImage,
+        audioStrategy: configuredStrategy,
+        referenceAudioUrls,
+      });
+    } catch (requestError: any) {
+      return c.json({
+        detail: requestError?.message || String(requestError),
+        error_code: "VIDEO_AUDIO_STRATEGY_INVALID",
+        shot_id: shotId,
+      }, 409);
+    }
+    const generationMode = providerRequest.generationMode;
 
     // MiniMax T2V does not accept an aspect-ratio parameter. For vertical projects,
     // require a vertical first frame unless the caller explicitly accepts fallback risk.
-    if (aspectRatio === "9:16" && !firstFrameImage && body.allow_landscape_fallback !== true) {
+    if (providerConfig.protocol === "minimax_v1" && aspectRatio === "9:16" && !firstFrameImage && body.allow_landscape_fallback !== true) {
       return c.json({
         detail: "竖屏工程缺少首帧。请先生成或上传 9:16 分镜图，再使用图生视频；如确需文生视频，请明确接受横屏输出风险。",
         error_code: "VERTICAL_FIRST_FRAME_REQUIRED",
@@ -115,8 +155,12 @@ router.post("/video/:shotId", async (c) => {
     const now = new Date().toISOString();
     const parameters = JSON.stringify({
       requested_aspect_ratio: aspectRatio,
-      duration: videoDuration,
+      duration: providerRequest.duration,
       fps: 24,
+      protocol: providerConfig.protocol,
+      audio_strategy: configuredStrategy,
+      native_audio: providerConfig.capability.nativeAudio && configuredStrategy !== "post_dub" && configuredStrategy !== "silent_broll",
+      reference_audio_take_ids: adoptedAudioLines.map((line: any) => line.audioVersion),
       generation_mode: generationMode,
       first_frame_image_url: firstFrameReference,
     });
@@ -138,7 +182,7 @@ router.post("/video/:shotId", async (c) => {
       jobId,
       projectId || "",
       shotId,
-      userSettings.videoProvider || "minimax",
+      providerConfig.provider,
       providerConfig.model,
       videoPrompt.substring(0, 500),
       firstFrameReference,
@@ -164,23 +208,15 @@ router.post("/video/:shotId", async (c) => {
       });
     }
 
-    // MiniMax China v1 API: POST /video_generation with prompt.
-    const reqBody: any = {
-      model: providerConfig.model,
-      prompt: videoPrompt.substring(0, 2000),
-      resolution: "768P",
-      duration: videoDuration,
-    };
-    if (firstFrameImage) reqBody.first_frame_image = firstFrameImage;
     let submitResp: Response;
     try {
-      submitResp = await fetch(`${providerConfig.apiBase}/video_generation`, {
+      submitResp = await fetch(providerRequest.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${userSettings.videoApiKey}`,
         },
-        body: JSON.stringify(reqBody),
+        body: JSON.stringify(providerRequest.body),
       });
     } catch (submitError: any) {
       const errorMsg = submitError?.message || String(submitError);
@@ -216,7 +252,7 @@ router.post("/video/:shotId", async (c) => {
     }
 
     // MiniMax v2 returns { task_id: "..." }
-    const externalTaskId = submitData?.task_id || "";
+    const externalTaskId = submitData?.task_id || submitData?.id || submitData?.data?.task_id || submitData?.data?.id || "";
     if (!externalTaskId) {
       const respBody = JSON.stringify(submitData).substring(0, 500);
       await db.update(generationJobs).set({
@@ -241,9 +277,14 @@ router.post("/video/:shotId", async (c) => {
       external_task_id: externalTaskId,
       shot_id: shotId,
       generation_mode: generationMode,
-      message: generationMode === "image_to_video"
-        ? "图生视频任务已提交，将沿用当前分镜首帧的画幅"
-        : "文生视频任务已提交，供应商可能不保持工程画幅",
+      audio_strategy: configuredStrategy,
+      native_audio: providerConfig.capability.nativeAudio && configuredStrategy !== "post_dub" && configuredStrategy !== "silent_broll",
+      reference_audio_count: referenceAudioUrls.length,
+      message: generationMode === "reference_to_video"
+        ? "参考音频驱动的视频任务已提交；生成后仍需人工验收口型"
+        : generationMode === "image_to_video"
+          ? "图生视频任务已提交，将沿用当前分镜首帧"
+          : "文生视频任务已提交",
     });
   } catch (err: any) {
     console.error("[Video Submit Error]:", err);
@@ -274,6 +315,9 @@ router.post("/poll", async (c) => {
     if (!jobProject || jobProject.userId !== authUser.userId) {
       return c.json({ detail: "无权访问该任务" }, 403);
     }
+    const jobShot = job.shotId
+      ? await db.select().from(shots).where(eq(shots.id, job.shotId)).get()
+      : null;
 
     // If already completed, return current state
     if (job.status === "succeeded" || job.status === "failed" || job.status === "cancelled") {
@@ -294,11 +338,15 @@ router.post("/poll", async (c) => {
 
     // Get user settings for API key
     const userSettings = await getUserSettings(db, authUser.userId);
-    const providerConfig = normalizeMiniMaxConfig(userSettings.videoApiBase, job.model || userSettings.videoModel);
+    const providerConfig = resolveVideoProviderConfig(
+      job.provider || userSettings.videoProvider || "minimax",
+      userSettings.videoApiBase,
+      job.model || userSettings.videoModel,
+    );
 
     // MiniMax v1 task query returns status and file_id.
     const pollResp = await fetch(
-      `${providerConfig.apiBase}/query/video_generation?task_id=${encodeURIComponent(job.externalTaskId)}`,
+      providerConfig.queryUrl(job.externalTaskId),
       {
         method: "GET",
         headers: { Authorization: `Bearer ${userSettings.videoApiKey}` },
@@ -316,26 +364,16 @@ router.post("/poll", async (c) => {
       });
     }
 
-    const taskStatus = pollData?.status || "";
-    const fileId = pollData?.file_id || "";
-    const errorMsg = pollData?.error_message || pollData?.base_resp?.status_msg || pollData?.error?.message || "";
-    let videoUrl = "";
+    const pollResult = parseVideoProviderPoll(providerConfig, pollData);
+    const taskStatus = pollResult.rawStatus;
+    const fileId = pollResult.fileId;
+    const errorMsg = pollResult.error;
+    let videoUrl = pollResult.videoUrl;
+    const newStatus = pollResult.status;
 
-    // Map MiniMax v2 status to our status: queued, running, succeeded, failed, cancelled
-    let newStatus = job.status;
-    if (taskStatus === "Success" || taskStatus === "success" || taskStatus === "succeeded") {
-      newStatus = "succeeded";
-    } else if (taskStatus === "Fail" || taskStatus === "failed") {
-      newStatus = "failed";
-    } else if (taskStatus === "Cancelled" || taskStatus === "cancelled") {
-      newStatus = "cancelled";
-    } else if (["Queueing", "Preparing", "Processing", "queued", "running", "processing"].includes(taskStatus)) {
-      newStatus = "processing";
-    }
-
-    if (newStatus === "succeeded" && fileId) {
+    if (newStatus === "succeeded" && !videoUrl && fileId && providerConfig.provider === "minimax") {
       const fileResp = await fetch(
-        `${providerConfig.apiBase}/files/retrieve?file_id=${encodeURIComponent(fileId)}`,
+        `${providerConfig.baseUrl}/v1/files/retrieve?file_id=${encodeURIComponent(fileId)}`,
         { headers: { Authorization: `Bearer ${userSettings.videoApiKey}` } }
       );
       const fileData: any = await fileResp.json().catch(() => ({}));
@@ -343,6 +381,9 @@ router.post("/poll", async (c) => {
         return c.json({ job_id: jobId, status: "processing", message: "视频已生成，下载地址暂未就绪" });
       }
       videoUrl = fileData.file.download_url;
+    }
+    if (newStatus === "succeeded" && !videoUrl) {
+      return c.json({ job_id: jobId, status: "processing", message: "视频已生成，下载地址暂未就绪" });
     }
 
     // Update job status
@@ -366,6 +407,10 @@ router.post("/poll", async (c) => {
       // Create a Take record for the generated video
       let parameters: any = {};
       try { parameters = JSON.parse(job.parameters || "{}"); } catch { /* ignore */ }
+      const persistedDialogueLines = job.shotId
+        ? await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, job.shotId)).all()
+        : [];
+      const isVoiceover = persistedDialogueLines.length > 0 && persistedDialogueLines.every((line: any) => line.isVoiceover);
       await db.insert(takes).values({
         id: takeId,
         projectId: job.projectId || "",
@@ -374,16 +419,25 @@ router.post("/poll", async (c) => {
         takeType: "video",
         source: "ai_generated",
         mediaUrl: finalUrl,
-        duration: parameters.duration || 0,
+        duration: pollResult.duration || parameters.duration || 0,
         reviewStatus: "pending",
         isAdopted: false,
         metadata: JSON.stringify({
           external_task_id: job.externalTaskId,
           file_id: fileId,
           model: job.model,
-          resolution: "768P",
+          resolution: pollResult.resolution || (providerConfig.protocol === "byteplus_las" ? "720p" : "768P"),
+          output_ratio: pollResult.ratio || "",
           requested_ratio: parameters.requested_aspect_ratio || parameters.aspect_ratio,
           generation_mode: parameters.generation_mode || "text_to_video",
+          audio_strategy: parameters.audio_strategy || "native_av",
+          native_audio: Boolean(parameters.native_audio),
+          lip_sync_status: lipSyncStatusForStrategy(
+            (parameters.audio_strategy || "native_av") as AudioStrategy,
+            jobShot?.dialogue || "",
+            isVoiceover,
+          ),
+          reference_audio_take_ids: parameters.reference_audio_take_ids || [],
           first_frame_image_url: parameters.first_frame_image_url || "",
           upstream_url: r2Url ? videoUrl : undefined,
           r2_persisted: Boolean(r2Url),

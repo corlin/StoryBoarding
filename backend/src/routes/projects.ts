@@ -8,6 +8,7 @@ import { generateCinematicStoryboardImage, runConcurrentTasks, getProjectBaseSee
 import { diagnoseAndRewriteScreenplay } from "../agents/director/hookDoctor";
 import { getAuthUser, getUserSettings } from "../lib/auth";
 import { authorizeProjectOwner, authorizeShotForUser } from "../lib/projectAccess";
+import { recommendedShotAudioWorkflow } from "../lib/videoProvider";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -120,6 +121,8 @@ router.get("/:id", async (c) => {
             action: s.action,
             dialogue: s.dialogue,
             dialogue_emotion: s.dialogueEmotion || "",
+            audio_strategy: s.audioStrategy || "native_av",
+            lip_sync_status: (s.dialogue || "").trim() ? (s.lipSyncStatus || "pending") : "not_applicable",
             narrative_function: s.narrativeFunction,
             lighting: s.lighting,
             audio: s.audio ? JSON.parse(s.audio) : {},
@@ -300,6 +303,7 @@ router.post("/", async (c) => {
           subject: s.subject || "",
           action: s.action,
           dialogue: s.dialogue || "",
+          ...recommendedShotAudioWorkflow(s.dialogue || ""),
           narrativeFunction: s.narrative_function || "动作推进",
           lighting: s.lighting || "黑白灰石墨光影",
           audio: JSON.stringify(s.audio || {}),
@@ -514,6 +518,7 @@ router.post("/create-series", async (c) => {
           subject: s.subject || "",
           action: s.action,
           dialogue: s.dialogue || "",
+          ...recommendedShotAudioWorkflow(s.dialogue || ""),
           narrativeFunction: s.narrative_function || "动作推进",
           lighting: s.lighting || "黑白灰石墨光影",
           audio: JSON.stringify(s.audio || {}),
@@ -1095,6 +1100,7 @@ router.post("/:id/sequences/:seqId/sync-screenplay", async (c) => {
           subject: parsed.subject || "",
           action: parsed.action,
           dialogue: parsed.dialogue || "",
+          ...recommendedShotAudioWorkflow(parsed.dialogue || ""),
           narrativeFunction: "动作推进",
           lighting: "自然电影光影",
           audio: JSON.stringify({ sfx: "环境音效" }),
@@ -1287,6 +1293,7 @@ router.post("/:id/episodes", async (c) => {
         subject: s.subject || "",
         action: s.action || "",
         dialogue: s.dialogue || "",
+        ...recommendedShotAudioWorkflow(s.dialogue || ""),
         narrativeFunction: s.narrative_function || "动作推进",
         lighting: s.lighting || "自然电影光影",
         audio: JSON.stringify(s.audio || {}),
@@ -1495,6 +1502,7 @@ ${userPrompt ? `【创作者续订后续方向与意向】:\n${userPrompt}\n` : 
           subject: s.subject || "",
           action: s.action || "",
           dialogue: s.dialogue || "",
+          ...recommendedShotAudioWorkflow(s.dialogue || ""),
           audio: s.audio ? (typeof s.audio === "object" ? JSON.stringify(s.audio) : s.audio) : "{}",
           duration: Number(s.duration) || 3.0,
           imagePrompt: s.image_prompt || "",

@@ -40,10 +40,13 @@ StoryBoarding is a production workspace for short-drama writers, directors, and 
 
 ## AI video and speech
 
-- **Video:** Provider tasks support submission, polling, R2 recovery, review, and adoption. Vertical projects can require a 9:16 first frame before paid generation.
+- **Video:** MiniMax H3, BytePlus Seedance 2.x, and legacy Hailuo use distinct provider protocols, with native AV, reference-audio, and post-dub workflows.
 - **Speech/TTS:** The Settings UI exposes configurable OpenRouter `speech` models plus default female, male, and narrator voices. Per-line overrides remain available in production.
 - **Audio versions:** TTS results are stored as Audio Takes and can be previewed, adopted, rejected, or restored. Adopted audio can be remixed into final MP4 deliveries.
+- **Lip-sync gate:** Real-video shots with visible dialogue cannot be merged into a final cut until lip sync is explicitly reviewed. Muxing TTS onto a video is not treated as lip sync.
 - **Cost integrity:** The ledger records a charge only when the provider supplies real billing data. Unknown charges remain explicitly incomplete.
+
+See [Native AV Models and External Dubbing](./docs/native-audio-external-dubbing-research.md) for model capabilities and shot-level workflow guidance.
 
 ## Deployed three-episode acceptance sample
 

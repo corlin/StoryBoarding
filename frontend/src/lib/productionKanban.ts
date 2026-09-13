@@ -44,21 +44,27 @@ export function productionMediaFileBase(shot: ProductionShotIdentity): string {
   return `ep_${String(shot.episode_number || 1).padStart(2, "0")}_shot_${String(shot.order).padStart(2, "0")}`;
 }
 
-export function estimateVideoGeneration(duration: number) {
-  const billableDuration = duration > 6 ? 10 : 6;
+export function estimateVideoGeneration(duration: number, model = "MiniMax-Hailuo-02") {
+  let billableDuration: number;
+  if (model === "MiniMax-H3") billableDuration = Math.max(4, Math.min(15, Math.ceil(duration || 4)));
+  else if (model === "MiniMax-H3-Max") billableDuration = Math.max(5, Math.min(15, Math.ceil(duration || 5)));
+  else if (model === "dreamina-seedance-2-5-260628") billableDuration = Math.max(4, Math.min(30, Math.ceil(duration || 4)));
+  else if (model.startsWith("dreamina-seedance-")) billableDuration = Math.max(4, Math.min(15, Math.ceil(duration || 4)));
+  else billableDuration = duration > 6 ? 10 : 6;
   return {
     billableDuration,
   };
 }
 
-export function planVideoGeneration(aspectRatio: string, hasFirstFrame: boolean, duration: number) {
-  const { billableDuration } = estimateVideoGeneration(duration);
+export function planVideoGeneration(aspectRatio: string, hasFirstFrame: boolean, duration: number, model = "MiniMax-Hailuo-02") {
+  const { billableDuration } = estimateVideoGeneration(duration, model);
   const generationMode = hasFirstFrame ? "image_to_video" : "text_to_video";
+  const isLegacyHailuo = model.startsWith("MiniMax-Hailuo-");
   return {
     billableDuration,
     generationMode,
     usesFirstFrameAspectConstraint: hasFirstFrame,
-    requiresLandscapeFallbackConfirmation: aspectRatio === "9:16" && !hasFirstFrame,
+    requiresLandscapeFallbackConfirmation: isLegacyHailuo && aspectRatio === "9:16" && !hasFirstFrame,
   };
 }
 
@@ -74,6 +80,9 @@ export function deriveDialogueLineFromShot(shot: ProductionShotIdentity) {
     performance: "",
     actualDuration: 0,
     plannedDuration: shot.duration || 0,
+    isVoiceover: attribution.speakerName === "旁白",
+    language: "zh-CN",
+    voiceConsentStatus: "unverified",
     orderIndex: 0,
     derivedFromShot: true,
   };
@@ -90,6 +99,9 @@ export interface PreviewAssemblyClip {
   visualKind: "video" | "image";
   audioTakeIds: string[];
   audioUrls: string[];
+  audioStrategy: "native_av" | "reference_audio_av" | "post_dub" | "performance_lipsync" | "silent_broll";
+  lipSyncStatus: "not_applicable" | "required" | "pending" | "verified" | "failed";
+  preserveSourceAudio: boolean;
 }
 
 export interface PreviewSubtitleCue {
@@ -106,6 +118,12 @@ export interface PreviewAssemblyPlan {
 
 function field<T = any>(value: any, snake: string, camel: string): T | undefined {
   return value?.[snake] ?? value?.[camel];
+}
+
+function metadata(value: any): Record<string, any> {
+  const raw = value?.metadata;
+  if (raw && typeof raw === "object") return raw;
+  try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
 function buildAssemblyPlan(
@@ -134,12 +152,30 @@ function buildAssemblyPlan(
     throw new Error(`${missing.length} 个镜头缺少已采用画面（${missingLabels}），暂不能合成预演片`);
   }
 
+  if (requiredVisualKind === "video") {
+    const unresolvedLipSync = orderedShots.filter((shot) => {
+      if (!String(shot.dialogue || "").trim()) return false;
+      const adoptedId = field<string>(shot, "adopted_take_id", "adoptedTakeId");
+      const visual = takes.find((take) => take.id === adoptedId);
+      const visualMetadata = metadata(visual);
+      const status = field<string>(shot, "lip_sync_status", "lipSyncStatus") || visualMetadata.lip_sync_status || "required";
+      return status !== "verified" && status !== "not_applicable";
+    });
+    if (unresolvedLipSync.length) {
+      const labels = unresolvedLipSync.slice(0, 5).map(productionShotLabel).join("、");
+      throw new Error(`${unresolvedLipSync.length} 个对白镜头尚未通过口型验收（${labels}），请完成口型重定向或人工确认`);
+    }
+  }
+
   let timeline = 0;
   const subtitles: PreviewSubtitleCue[] = [];
   const clips = orderedShots.map((shot) => {
     const shotId = field<string>(shot, "shot_id", "shotId") || shot.id;
     const adoptedId = field<string>(shot, "adopted_take_id", "adoptedTakeId")!;
     const visual = takes.find((take) => take.id === adoptedId)!;
+    const visualMetadata = metadata(visual);
+    const audioStrategy = (field<string>(shot, "audio_strategy", "audioStrategy") || visualMetadata.audio_strategy || "post_dub") as PreviewAssemblyClip["audioStrategy"];
+    const lipSyncStatus = (field<string>(shot, "lip_sync_status", "lipSyncStatus") || visualMetadata.lip_sync_status || "not_applicable") as PreviewAssemblyClip["lipSyncStatus"];
     const duration = Math.max(
       requiredVisualKind === "video"
         ? Number(visual.duration) || Number(shot.duration) || 2
@@ -184,6 +220,13 @@ function buildAssemblyPlan(
         }
       }
     }
+    const generatedJointAudio = visualMetadata.native_audio === true &&
+      (audioStrategy === "native_av" || audioStrategy === "reference_audio_av" || audioStrategy === "performance_lipsync");
+    if (generatedJointAudio || audioStrategy === "silent_broll") {
+      audioTakeIds.splice(0);
+      audioUrls.splice(0);
+    }
+    const preserveSourceAudio = generatedJointAudio && audioUrls.length === 0;
     const clip: PreviewAssemblyClip = {
       shotId,
       sequenceId: field<string>(shot, "sequence_id", "sequenceId") || "",
@@ -195,6 +238,9 @@ function buildAssemblyPlan(
       visualKind: field(visual, "take_type", "takeType") === "video" ? "video" : "image",
       audioTakeIds,
       audioUrls,
+      audioStrategy,
+      lipSyncStatus,
+      preserveSourceAudio,
     };
     timeline += duration;
     return clip;
@@ -224,7 +270,7 @@ export function previewSubtitlesToSrt(cues: PreviewSubtitleCue[]): string {
   return cues.map((cue, index) => `${index + 1}\n${srtTime(cue.start)} --> ${srtTime(cue.end)}\n${cue.text}\n`).join("\n");
 }
 
-export function buildPreviewClipCommands(clip: Pick<PreviewAssemblyClip, "duration" | "visualKind" | "audioUrls">, index: number, aspectRatio: string) {
+export function buildPreviewClipCommands(clip: Pick<PreviewAssemblyClip, "duration" | "visualKind" | "audioUrls"> & Partial<Pick<PreviewAssemblyClip, "preserveSourceAudio">>, index: number, aspectRatio: string) {
   const key = String(index).padStart(3, "0");
   const visualInput = `visual_${key}.input`;
   const silentVideo = `silent_${key}.mp4`;
@@ -236,7 +282,8 @@ export function buildPreviewClipCommands(clip: Pick<PreviewAssemblyClip, "durati
   const filter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black${holdLastFrame},fps=24,format=yuv420p`;
   const visual = [
     ...(clip.visualKind === "image" ? ["-loop", "1"] : []),
-    "-i", visualInput, "-vf", filter, "-t", duration, "-an",
+    "-i", visualInput, "-vf", filter, "-t", duration,
+    ...(clip.preserveSourceAudio ? ["-map", "0:v:0", "-map", "0:a:0", "-ar", "48000", "-ac", "2", "-c:a", "aac"] : ["-an"]),
     "-c:v", "libx264", "-preset", "ultrafast", "-movflags", "+faststart", silentVideo,
   ];
   const audioInputs = clip.audioUrls.flatMap((_, audioIndex) => ["-i", `audio_${key}_${audioIndex}.input`]);
@@ -246,6 +293,8 @@ export function buildPreviewClipCommands(clip: Pick<PreviewAssemblyClip, "durati
     : [];
   const mux = clip.audioUrls.length
     ? ["-i", silentVideo, "-i", audioOutput, "-c:v", "copy", "-c:a", "copy", "-t", duration, output]
+    : clip.preserveSourceAudio
+      ? ["-i", silentVideo, "-c", "copy", "-t", duration, output]
     : ["-i", silentVideo, "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000", "-c:v", "copy", "-c:a", "aac", "-t", duration, output];
   return { key, visualInput, silentVideo, audioOutput, output, visual, audio, mux };
 }

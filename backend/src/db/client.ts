@@ -77,6 +77,8 @@ export async function ensureSchema(d1: D1Database) {
         storyboard_image_url TEXT,
         is_dirty INTEGER NOT NULL DEFAULT 0,
         is_locked INTEGER NOT NULL DEFAULT 0,
+        audio_strategy TEXT NOT NULL DEFAULT 'native_av',
+        lip_sync_status TEXT NOT NULL DEFAULT 'pending',
         created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
         updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
       );
@@ -205,6 +207,14 @@ export async function ensureSchema(d1: D1Database) {
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN screen_text_style TEXT DEFAULT 'bold_impact';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN h3_prompt TEXT DEFAULT '';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE shots ADD COLUMN beats_range TEXT DEFAULT '[]';`).run(); } catch (_) {}
+    try {
+      await d1.prepare(`ALTER TABLE shots ADD COLUMN audio_strategy TEXT NOT NULL DEFAULT 'native_av';`).run();
+      await d1.prepare(`UPDATE shots SET audio_strategy = CASE WHEN TRIM(COALESCE(dialogue, '')) = '' THEN 'native_av' WHEN LOWER(TRIM(dialogue)) LIKE '旁白%' OR LOWER(TRIM(dialogue)) LIKE '画外音%' OR LOWER(TRIM(dialogue)) LIKE 'narrator%' THEN 'post_dub' ELSE 'reference_audio_av' END;`).run();
+    } catch (_) {}
+    try {
+      await d1.prepare(`ALTER TABLE shots ADD COLUMN lip_sync_status TEXT NOT NULL DEFAULT 'pending';`).run();
+      await d1.prepare(`UPDATE shots SET lip_sync_status = CASE WHEN TRIM(COALESCE(dialogue, '')) = '' OR audio_strategy IN ('post_dub', 'silent_broll') THEN 'not_applicable' ELSE 'pending' END;`).run();
+    } catch (_) {}
 
     // 10. P0-1: generation_jobs table
     await d1.prepare(`
@@ -273,11 +283,17 @@ export async function ensureSchema(d1: D1Database) {
         actual_duration REAL DEFAULT 0,
         planned_duration REAL DEFAULT 0,
         is_voiceover INTEGER NOT NULL DEFAULT 0,
+        language TEXT NOT NULL DEFAULT 'zh-CN',
+        voice_source TEXT NOT NULL DEFAULT '',
+        voice_consent_status TEXT NOT NULL DEFAULT 'unverified',
         order_index INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
         updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
       );
     `).run();
+    try { await d1.prepare(`ALTER TABLE dialogue_lines ADD COLUMN language TEXT NOT NULL DEFAULT 'zh-CN';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE dialogue_lines ADD COLUMN voice_source TEXT NOT NULL DEFAULT '';`).run(); } catch (_) {}
+    try { await d1.prepare(`ALTER TABLE dialogue_lines ADD COLUMN voice_consent_status TEXT NOT NULL DEFAULT 'unverified';`).run(); } catch (_) {}
 
     // 13. P0-1: edit_versions table
     await d1.prepare(`

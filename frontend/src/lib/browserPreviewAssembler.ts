@@ -39,7 +39,11 @@ export async function assemblePreviewMp4(
       }
 
       onProgress?.({ phase: "encoding", percent: basePercent + 3, message: `正在统一镜头 ${index + 1}/${plan.clips.length} 的画幅与声音` });
-      if (await ffmpeg.exec(commands.visual) !== 0) throw new Error(`镜头 ${index + 1} 画面编码失败`);
+      if (await ffmpeg.exec(commands.visual) !== 0) {
+        throw new Error(clip.preserveSourceAudio
+          ? `镜头 ${index + 1} 未检测到可用原生音轨，不能按原生音视频合并`
+          : `镜头 ${index + 1} 画面编码失败`);
+      }
       if (commands.audio.length && await ffmpeg.exec(commands.audio) !== 0) throw new Error(`镜头 ${index + 1} 配音编码失败`);
       if (await ffmpeg.exec(commands.mux) !== 0) throw new Error(`镜头 ${index + 1} 音画合并失败`);
       clipOutputs.push(commands.output);

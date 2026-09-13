@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { eq, desc } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
 import { projects, sequences, shots, projectVersions } from "../db/schema";
+import { lipSyncStatusForStrategy, recommendedAudioStrategy } from "../lib/videoProvider";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -184,6 +185,11 @@ router.post("/:projectId/versions/:versionId/rollback", async (c) => {
         subject: shotData.subject || "",
         action: shotData.action || "",
         dialogue: shotData.dialogue || "",
+        audioStrategy: shotData.audioStrategy || shotData.audio_strategy || recommendedAudioStrategy(shotData.dialogue || ""),
+        lipSyncStatus: shotData.lipSyncStatus || shotData.lip_sync_status || lipSyncStatusForStrategy(
+          shotData.audioStrategy || shotData.audio_strategy || recommendedAudioStrategy(shotData.dialogue || ""),
+          shotData.dialogue || "",
+        ),
         narrativeFunction: shotData.narrativeFunction || shotData.narrative_function || "动作推进",
         lighting: shotData.lighting || "自然光",
         audio: typeof shotData.audio === "string" ? shotData.audio : JSON.stringify(shotData.audio || {}),
@@ -250,6 +256,11 @@ router.post("/:projectId/versions/:versionId/fork", async (c) => {
         subject: shotData.subject || "",
         action: shotData.action || "",
         dialogue: shotData.dialogue || "",
+        audioStrategy: shotData.audioStrategy || shotData.audio_strategy || recommendedAudioStrategy(shotData.dialogue || ""),
+        lipSyncStatus: shotData.lipSyncStatus || shotData.lip_sync_status || lipSyncStatusForStrategy(
+          shotData.audioStrategy || shotData.audio_strategy || recommendedAudioStrategy(shotData.dialogue || ""),
+          shotData.dialogue || "",
+        ),
         narrativeFunction: shotData.narrativeFunction || shotData.narrative_function || "动作推进",
         lighting: shotData.lighting || "自然光",
         audio: typeof shotData.audio === "string" ? shotData.audio : JSON.stringify(shotData.audio || {}),

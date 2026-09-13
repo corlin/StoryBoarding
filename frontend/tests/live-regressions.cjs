@@ -278,6 +278,8 @@ test('three-episode production order and filenames retain episode identity', () 
   });
   assert.equal(planVideoGeneration('9:16', false, 4).requiresLandscapeFallbackConfirmation, true);
   assert.equal(planVideoGeneration('16:9', false, 4).requiresLandscapeFallbackConfirmation, false);
+  assert.equal(planVideoGeneration('9:16', false, 7, 'MiniMax-H3').requiresLandscapeFallbackConfirmation, false);
+  assert.equal(planVideoGeneration('9:16', false, 7, 'MiniMax-H3').billableDuration, 7);
   assert.deepEqual(configuredTtsVoiceOptions({
     model: 'hexgrad/kokoro-82m',
     voiceFemale: 'zf_xiaoxiao',
@@ -327,6 +329,120 @@ test('video jobs share one active slot and one stable review candidate', () => {
   assert.equal(isActiveVideoJob({ jobType: 'audio', status: 'processing' }), false);
   assert.equal(generatedVideoTakeId('job-123'), 'video-job-123');
   assert.equal(generatedVideoTakeId('job-123'), generatedVideoTakeId('job-123'));
+});
+
+test('video provider contracts keep H3 native AV and Seedance distinct from legacy Hailuo', () => {
+  const {
+    VIDEO_MODEL_CAPABILITIES,
+    buildVideoProviderRequest,
+    parseVideoProviderPoll,
+    recommendedShotAudioWorkflow,
+    resolveVideoProviderConfig,
+  } = require('../../backend/src/lib/videoProvider.ts');
+
+  const h3 = resolveVideoProviderConfig('minimax', 'https://api.minimax.cn/v1', 'MiniMax-H3');
+  assert.equal(h3.model, 'MiniMax-H3');
+  assert.equal(h3.protocol, 'minimax_v2');
+  assert.equal(h3.submitUrl, 'https://api.minimaxi.com/v2/video_generation');
+  assert.equal(h3.queryUrl('task-h3'), 'https://api.minimaxi.com/v2/query/video_generation/task-h3');
+  assert.equal(VIDEO_MODEL_CAPABILITIES['MiniMax-H3'].nativeAudio, true);
+  assert.equal(VIDEO_MODEL_CAPABILITIES['MiniMax-H3'].audioReference, true);
+  assert.deepEqual(recommendedShotAudioWorkflow('林夏：门开了。'), {
+    audioStrategy: 'reference_audio_av', lipSyncStatus: 'pending',
+  });
+  assert.deepEqual(recommendedShotAudioWorkflow('旁白：雨一直下。'), {
+    audioStrategy: 'post_dub', lipSyncStatus: 'not_applicable',
+  });
+
+  const h3Request = buildVideoProviderRequest(h3, {
+    prompt: '林夏说：门已经开了。',
+    aspectRatio: '9:16',
+    duration: 7,
+    firstFrameImage: 'https://assets.example/frame.jpg',
+    audioStrategy: 'reference_audio_av',
+    referenceAudioUrls: ['https://assets.example/dialogue.wav'],
+  });
+  assert.equal(h3Request.body.model, 'MiniMax-H3');
+  assert.equal(h3Request.body.ratio, '9:16');
+  assert.ok(h3Request.body.content.some((item) => item.role === 'reference_image'));
+  assert.ok(h3Request.body.content.some((item) => item.role === 'reference_audio'));
+  assert.ok(!h3Request.body.content.some((item) => item.role === 'first_frame'));
+  assert.throws(() => buildVideoProviderRequest(h3, {
+    prompt: '多人对白', aspectRatio: '9:16', duration: 7, firstFrameImage: '',
+    audioStrategy: 'reference_audio_av', referenceAudioUrls: ['a', 'b', 'c', 'd'],
+  }), /最多接受 3 条参考音频/);
+
+  const legacy = resolveVideoProviderConfig('minimax', 'https://api.minimaxi.com', 'MiniMax-Hailuo-02');
+  assert.equal(legacy.model, 'MiniMax-Hailuo-02');
+  assert.equal(legacy.protocol, 'minimax_v1');
+  assert.equal(legacy.submitUrl, 'https://api.minimaxi.com/v1/video_generation');
+
+  const seedance = resolveVideoProviderConfig('byteplus', '', 'dreamina-seedance-2-5-260628');
+  assert.equal(seedance.protocol, 'byteplus_las');
+  assert.match(seedance.submitUrl, /contents\/generations\/tasks$/);
+  const seedanceRequest = buildVideoProviderRequest(seedance, {
+    prompt: '旁白介绍雨夜。', aspectRatio: '9:16', duration: 12,
+    firstFrameImage: 'https://assets.example/frame.jpg', audioStrategy: 'post_dub', referenceAudioUrls: [],
+  });
+  assert.equal(seedanceRequest.body.generate_audio, false);
+
+  assert.deepEqual(parseVideoProviderPoll(h3, {
+    task: { status: 'succeeded', content: { url: 'https://assets.example/h3.mp4' }, duration: 7, resolution: '768P', ratio: '9:16' },
+  }), {
+    status: 'succeeded', videoUrl: 'https://assets.example/h3.mp4', fileId: '', error: '',
+    duration: 7, resolution: '768P', ratio: '9:16', rawStatus: 'succeeded',
+  });
+
+  const videoRoute = fs.readFileSync(path.join(__dirname, '../../backend/src/routes/video.ts'), 'utf8');
+  assert.match(videoRoute, /resolveVideoProviderConfig/);
+  assert.match(videoRoute, /buildVideoProviderRequest/);
+  assert.match(videoRoute, /VOICE_CONSENT_UNVERIFIED/);
+  const productionRoute = fs.readFileSync(path.join(__dirname, '../../backend/src/routes/production.ts'), 'utf8');
+  assert.match(productionRoute, /take\.takeType === "video"/);
+  assert.match(productionRoute, /lipSyncStatus: lipSyncStatusForStrategy/);
+  assert.doesNotMatch(videoRoute, /function normalizeMiniMaxConfig/);
+
+  const { DEFAULT_VIDEO_CONFIG } = require('../src/types/modelConfig.ts');
+  const { VIDEO_MODELS, VIDEO_PROVIDER_PRESETS } = require('../src/data/modelCatalog.ts');
+  assert.equal(DEFAULT_VIDEO_CONFIG.model, 'MiniMax-H3');
+  assert.equal(DEFAULT_VIDEO_CONFIG.apiBase, 'https://api.minimaxi.com');
+  assert.equal(VIDEO_PROVIDER_PRESETS.byteplus.model, 'dreamina-seedance-2-5-260628');
+  assert.ok(VIDEO_MODELS.some((model) => model.id === 'MiniMax-H3' && model.provider === 'minimax'));
+  assert.ok(VIDEO_MODELS.some((model) => model.id === 'dreamina-seedance-2-5-260628' && model.provider === 'byteplus'));
+});
+
+test('final assembly preserves verified native audio and blocks unresolved visible dialogue', () => {
+  const shot = {
+    shot_id: 's-native', episode_number: 1, order: 1, duration: 6,
+    dialogue: '林夏：门已经开了。', adopted_take_id: 'v-native',
+    audio_strategy: 'native_av', lip_sync_status: 'verified',
+  };
+  const take = {
+    id: 'v-native', shot_id: 's-native', take_type: 'video', media_url: '/native.mp4',
+    is_adopted: true, duration: 6,
+    metadata: JSON.stringify({ audio_strategy: 'native_av', native_audio: true, lip_sync_status: 'verified' }),
+  };
+  const plan = productionKanban.buildVideoAssemblyPlan([shot], [take], []);
+  assert.equal(plan.clips[0].preserveSourceAudio, true);
+  assert.equal(plan.clips[0].audioStrategy, 'native_av');
+  const commands = productionKanban.buildPreviewClipCommands(plan.clips[0], 0, '9:16');
+  assert.ok(!commands.visual.includes('-an'));
+  assert.ok(commands.visual.includes('0:a:0'));
+  assert.ok(!commands.visual.includes('0:a:0?'));
+  assert.ok(!commands.mux.some((arg) => arg.includes('anullsrc')));
+
+  const referencePlan = productionKanban.buildVideoAssemblyPlan(
+    [{ ...shot, audio_strategy: 'reference_audio_av' }],
+    [{ ...take, metadata: JSON.stringify({ audio_strategy: 'reference_audio_av', native_audio: true, lip_sync_status: 'verified' }) }],
+    [{ id: 'line-1', shot_id: 's-native', text: '门已经开了。', audio_version: 'a-1', audio_url: '/reference.mp3' }],
+  );
+  assert.equal(referencePlan.clips[0].preserveSourceAudio, true);
+  assert.deepEqual(referencePlan.clips[0].audioUrls, []);
+
+  assert.throws(
+    () => productionKanban.buildVideoAssemblyPlan([{ ...shot, lip_sync_status: 'pending' }], [take], []),
+    /1 个对白镜头尚未通过口型验收/,
+  );
 });
 
 test('OpenRouter TTS strips screenplay attribution and selects traceable Chinese voices', () => {

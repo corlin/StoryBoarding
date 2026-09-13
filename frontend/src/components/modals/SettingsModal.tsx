@@ -403,30 +403,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             channel="video"
             icon={<Film className="w-4 h-4" />}
             title="文生视频 / Video Generator (视频模型)"
-            badge="MiniMax H3 · 异步生成"
+            badge="H3 / Seedance · 原生音视频"
             accentColor="purple"
             config={config.video}
             providerOptions={VIDEO_PROVIDERS}
-            modelOptions={VIDEO_MODELS}
+            modelOptions={VIDEO_MODELS.filter((model) => !model.provider || model.provider === config.video.provider)}
             testButtonLabel="服务端实测视频"
             testButtonIcon={<Film className="w-3.5 h-3.5" />}
             testStatus="idle"
             testMessage=""
+            hideTestButton
+            allowCustomModel={false}
             keyPlaceholder={
               config.video.hasKey
                 ? "● 已加密保存在云端 D1 数据库 (若不修改请留空)"
-                : "输入 MiniMax API Key (eyJhbGci...)"
+                : config.video.provider === "byteplus" ? "输入 BytePlus API Key" : "输入 MiniMax API Key"
             }
             footerNote={
               <>
-                视频生成采用异步模式：提交任务后返回 job_id，通过轮询获取结果。镜头有分镜图时自动作为首帧走图生视频，并以首帧画幅约束输出；竖屏镜头没有首帧时会在付费提交前提示横屏风险。生成结果自动存入视频候选，可在生产看板中采用或退回。MiniMax API Key 请在{" "}
+                H3 与 Seedance 可生成原生音轨，也可使用已采用的对白音频驱动画面；Hailuo 旧模型仍需后期配音。参考音频不等于已验收口型，成片导出前需在生产看板标记通过。视频供应商没有免费探针，保存后请在生产看板确认付费提交。密钥请在{" "}
                 <a
-                  href="https://platform.minimaxi.com"
+                  href={config.video.provider === "byteplus" ? "https://console.byteplus.com" : "https://platform.minimaxi.com"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary underline"
                 >
-                  platform.minimaxi.com
+                  {config.video.provider === "byteplus" ? "BytePlus 控制台" : "MiniMax 开放平台"}
                 </a>{" "}
                 申请。
               </>

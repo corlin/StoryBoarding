@@ -6,6 +6,7 @@ import { runDirectorPipeline, formatDirectorImagePrompt, cleanPromptOfMetaPollut
 import { captureProjectSnapshot } from "./versions";
 import { getAuthUser, getUserSettings } from "../lib/auth";
 import { saveImageToR2 } from "../lib/storage";
+import { recommendedShotAudioWorkflow } from "../lib/videoProvider";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -354,6 +355,7 @@ const handleGenerateFromStory = async (c: any) => {
         subject: item.planShot.subject || "",
         action: item.planShot.action,
         dialogue: item.planShot.dialogue || "",
+        ...recommendedShotAudioWorkflow(item.planShot.dialogue || ""),
         narrativeFunction: item.planShot.narrative_function || "动作推进",
         lighting: item.planShot.lighting || "自然光",
         audio: JSON.stringify(item.planShot.audio || {}),
@@ -401,6 +403,7 @@ const handleGenerateFromStory = async (c: any) => {
         subject: s.subject || "",
         action: s.action,
         dialogue: s.dialogue || "",
+        ...recommendedShotAudioWorkflow(s.dialogue || ""),
         narrativeFunction: s.narrative_function || "动作推进",
         lighting: s.lighting || "自然光",
         audio: JSON.stringify(s.audio || {}),
@@ -560,6 +563,7 @@ router.post("/from-script", async (c) => {
         subject: item.planShot.subject || "",
         action: item.planShot.action,
         dialogue: item.planShot.dialogue || "",
+        ...recommendedShotAudioWorkflow(item.planShot.dialogue || ""),
         narrativeFunction: item.planShot.narrative_function || "动作推进",
         lighting: item.planShot.lighting || "自然光",
         audio: JSON.stringify(item.planShot.audio || {}),
@@ -607,6 +611,7 @@ router.post("/from-script", async (c) => {
         subject: s.subject || "",
         action: s.action,
         dialogue: s.dialogue || "",
+        ...recommendedShotAudioWorkflow(s.dialogue || ""),
         narrativeFunction: s.narrative_function || "动作推进",
         lighting: s.lighting || "自然光",
         audio: JSON.stringify(s.audio || {}),

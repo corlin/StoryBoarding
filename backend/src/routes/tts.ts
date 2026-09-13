@@ -217,6 +217,11 @@ router.post("/tts/:dialogueId", async (c) => {
       createdAt: now,
       updatedAt: now,
     });
+    await db.update(dialogueLines).set({
+      voiceSource: `${model}:${voice}`,
+      voiceConsentStatus: "provider_preset",
+      updatedAt: now,
+    }).where(eq(dialogueLines.id, dialogueId));
     await db.update(generationJobs).set({
       status: "succeeded",
       externalTaskId: generationId,

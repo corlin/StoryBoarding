@@ -9,6 +9,7 @@ import { getAuthUser } from "../lib/auth";
 import { saveImageToR2 } from "../lib/storage";
 import { dialogueIdFromTakeMetadata } from "../lib/tts";
 import { authorizeProjectOwner, authorizeSequenceOwner, authorizeShotOwner } from "../lib/projectAccess";
+import { AUDIO_STRATEGIES, lipSyncStatusForStrategy, type AudioStrategy } from "../lib/videoProvider";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -18,6 +19,18 @@ async function getProjectIdFromShot(db: any, shotId: string): Promise<string> {
   if (!shot) return "";
   const seq = await db.select().from(sequences).where(eq(sequences.id, shot.sequenceId)).get();
   return seq?.projectId || "";
+}
+
+async function refreshShotLipSyncFromDialogue(db: any, shotId: string) {
+  const shot = await db.select().from(shots).where(eq(shots.id, shotId)).get();
+  if (!shot) return;
+  const lines = await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, shotId)).all();
+  const isVoiceover = lines.length > 0 && lines.every((line: any) => line.isVoiceover);
+  const strategy = (shot.audioStrategy || "native_av") as AudioStrategy;
+  await db.update(shots).set({
+    lipSyncStatus: lipSyncStatusForStrategy(strategy, shot.dialogue || "", isVoiceover),
+    updatedAt: new Date().toISOString(),
+  }).where(eq(shots.id, shotId));
 }
 
 // ============================================================
@@ -91,6 +104,8 @@ router.get("/kanban", async (c) => {
         duration: shot.duration,
         action: shot.action,
         dialogue: shot.dialogue,
+        audio_strategy: shot.audioStrategy || "native_av",
+        lip_sync_status: (shot.dialogue || "").trim() ? (shot.lipSyncStatus || "pending") : "not_applicable",
         status,
         has_image: !!shot.storyboardImageUrl,
         takes_count: visualTakes.length,
@@ -230,6 +245,22 @@ router.post("/takes/:id/adopt", async (c) => {
         updatedAt: new Date().toISOString(),
       }).where(eq(shots.id, take.shotId));
     }
+    if (take.takeType === "video") {
+      const shot = await db.select().from(shots).where(eq(shots.id, take.shotId)).get();
+      let takeMetadata: Record<string, any> = {};
+      try { takeMetadata = JSON.parse(take.metadata || "{}"); } catch { takeMetadata = {}; }
+      const metadataStrategy = String(takeMetadata.audio_strategy || "");
+      const audioStrategy = (AUDIO_STRATEGIES.includes(metadataStrategy as AudioStrategy)
+        ? metadataStrategy
+        : shot?.audioStrategy || "native_av") as AudioStrategy;
+      const shotLines = await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, take.shotId)).all();
+      const isVoiceover = shotLines.length > 0 && shotLines.every((line: any) => line.isVoiceover);
+      await db.update(shots).set({
+        audioStrategy,
+        lipSyncStatus: lipSyncStatusForStrategy(audioStrategy, shot?.dialogue || "", isVoiceover),
+        updatedAt: new Date().toISOString(),
+      }).where(eq(shots.id, take.shotId));
+    }
     if (take.takeType === "audio" && dialogueId && take.mediaUrl) {
       await db.update(dialogueLines).set({
         audioVersion: take.id,
@@ -302,6 +333,7 @@ router.post("/takes/upload", async (c) => {
     const formData = await c.req.formData();
     const shotId = formData.get("shot_id") as string;
     const takeType = (formData.get("take_type") as string) || "video";
+    const dialogueId = (formData.get("dialogue_id") as string) || "";
     const file = formData.get("file") as File;
 
     if (!shotId) return c.json({ detail: "shot_id required" }, 400);
@@ -310,6 +342,14 @@ router.post("/takes/upload", async (c) => {
     const access = await authorizeShotOwner(db, c.req.header("Authorization"), shotId);
     if (!access.ok) return c.json({ detail: access.detail }, access.status);
     const projectId = access.project.id;
+    if (takeType === "audio" && dialogueId) {
+      const line = await db.select().from(dialogueLines).where(and(
+        eq(dialogueLines.id, dialogueId),
+        eq(dialogueLines.projectId, projectId),
+        eq(dialogueLines.shotId, shotId),
+      )).get();
+      if (!line) return c.json({ detail: "台词与当前镜头不匹配" }, 409);
+    }
 
     // Upload to R2
     const ext = file.name.split(".").pop() || "mp4";
@@ -336,7 +376,7 @@ router.post("/takes/upload", async (c) => {
       duration: 0,
       reviewStatus: "pending",
       isAdopted: false,
-      metadata: JSON.stringify({ filename: file.name, size: file.size, type: file.type }),
+      metadata: JSON.stringify({ filename: file.name, size: file.size, type: file.type, dialogue_id: dialogueId || undefined }),
     });
 
     return c.json({
@@ -463,7 +503,8 @@ router.post("/dialogue", async (c) => {
     const body = await c.req.json();
 
     const { id, project_id, shot_id, sequence_id, speaker, text, performance, emotion,
-      audio_version, audio_url, actual_duration, planned_duration, is_voiceover, order_index } = body;
+      audio_version, audio_url, actual_duration, planned_duration, is_voiceover, order_index,
+      language, voice_source, voice_consent_status } = body;
 
     if (!project_id) return c.json({ detail: "project_id required" }, 400);
     const access = await authorizeProjectOwner(db, c.req.header("Authorization"), project_id);
@@ -494,9 +535,15 @@ router.post("/dialogue", async (c) => {
       if (actual_duration !== undefined) updateData.actualDuration = actual_duration;
       if (planned_duration !== undefined) updateData.plannedDuration = planned_duration;
       if (is_voiceover !== undefined) updateData.isVoiceover = is_voiceover;
+      if (language !== undefined) updateData.language = language;
+      if (voice_source !== undefined) updateData.voiceSource = voice_source;
+      if (voice_consent_status !== undefined) updateData.voiceConsentStatus = voice_consent_status;
       if (order_index !== undefined) updateData.orderIndex = order_index;
 
       await db.update(dialogueLines).set(updateData).where(eq(dialogueLines.id, id));
+      if (is_voiceover !== undefined && (shot_id || existing.shotId)) {
+        await refreshShotLipSyncFromDialogue(db, shot_id || existing.shotId);
+      }
       return c.json({ status: "success", dialogue_id: id, action: "updated" });
     } else {
       // Create new
@@ -515,8 +562,12 @@ router.post("/dialogue", async (c) => {
         actualDuration: actual_duration || 0,
         plannedDuration: planned_duration || 0,
         isVoiceover: is_voiceover || false,
+        language: language || "zh-CN",
+        voiceSource: voice_source || "",
+        voiceConsentStatus: voice_consent_status || "unverified",
         orderIndex: order_index || 0,
       });
+      if (shot_id) await refreshShotLipSyncFromDialogue(db, shot_id);
       return c.json({ status: "success", dialogue_id: lineId, action: "created" });
     }
   } catch (err: any) {

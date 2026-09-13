@@ -17,7 +17,7 @@
 /** LLM / 图像模型支持的 Provider 协议 */
 export type LlmProviderType = "openrouter" | "openai_compatible";
 export type ImageProviderType = "openrouter" | "openai_compatible";
-export type VideoProviderType = "minimax";
+export type VideoProviderType = "minimax" | "byteplus";
 export type TtsProviderType = "openrouter";
 
 // ============================================================
@@ -35,6 +35,8 @@ export interface ModelOption {
   recommended?: boolean;
   /** 是否为默认模型 */
   isDefault?: boolean;
+  /** 限定该模型所属供应商；用于跨供应商目录筛选 */
+  provider?: string;
 }
 
 // ============================================================
@@ -154,8 +156,8 @@ export const DEFAULT_IMAGE_CONFIG: Omit<ModelChannelConfig, "apiKey" | "hasKey">
 
 export const DEFAULT_VIDEO_CONFIG: Omit<ModelChannelConfig, "apiKey" | "hasKey"> = {
   provider: "minimax",
-  apiBase: "https://api.minimax.cn/v1",
-  model: "MiniMax-Hailuo-02",
+  apiBase: "https://api.minimaxi.com",
+  model: "MiniMax-H3",
 };
 
 export const DEFAULT_TTS_CONFIG: TtsConfig = {

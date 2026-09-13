@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
 import { shots } from "../db/schema";
 import { authorizeSequenceOwner, authorizeShotOwner } from "../lib/projectAccess";
+import { AUDIO_STRATEGIES, LIP_SYNC_STATUSES, lipSyncStatusForStrategy, recommendedAudioStrategy } from "../lib/videoProvider";
 
 import { formatDirectorImagePrompt, formatDirectorVideoPrompt } from "../agents/director/pipeline";
 
@@ -34,6 +35,13 @@ router.post("/", async (c) => {
 
   const charIds = Array.isArray(body.character_ids) ? JSON.stringify(body.character_ids) : (body.character_ids || "[]");
   const locId = body.location_id || "";
+  const isVoiceover = Boolean(body.is_voiceover) || /^(旁白|画外音|内心|narrator)\s*[：:]/i.test(body.dialogue || "");
+  const audioStrategy = AUDIO_STRATEGIES.includes(body.audio_strategy)
+    ? body.audio_strategy
+    : recommendedAudioStrategy(body.dialogue || "", isVoiceover);
+  const lipSyncStatus = LIP_SYNC_STATUSES.includes(body.lip_sync_status)
+    ? body.lip_sync_status
+    : lipSyncStatusForStrategy(audioStrategy, body.dialogue || "", isVoiceover);
 
   const [newShot] = await db
     .insert(shots)
@@ -58,6 +66,8 @@ router.post("/", async (c) => {
       continuityData: typeof body.continuity_data === "string" ? body.continuity_data : JSON.stringify(body.continuity_data || {}),
       screenText: body.screen_text || "",
       screenTextStyle: body.screen_text_style || "bold_impact",
+      audioStrategy,
+      lipSyncStatus,
       isDirty: false,
     })
     .returning();
@@ -68,6 +78,8 @@ router.post("/", async (c) => {
     location_id: newShot.locationId || "",
     screen_text: newShot.screenText || "",
     screen_text_style: newShot.screenTextStyle || "bold_impact",
+    audio_strategy: newShot.audioStrategy,
+    lip_sync_status: newShot.lipSyncStatus,
   }, 201);
 });
 
@@ -104,7 +116,22 @@ router.put("/:id", async (c) => {
     updates.locationId = body.location_id;
   }
   if (body.action !== undefined) updates.action = body.action;
-  if (body.dialogue !== undefined) updates.dialogue = body.dialogue;
+  if (body.dialogue !== undefined) {
+    updates.dialogue = body.dialogue;
+    if (body.audio_strategy === undefined && body.lip_sync_status === undefined) {
+      const inferredStrategy = recommendedAudioStrategy(body.dialogue || "");
+      updates.audioStrategy = inferredStrategy;
+      updates.lipSyncStatus = lipSyncStatusForStrategy(inferredStrategy, body.dialogue || "");
+    }
+  }
+  if (body.audio_strategy !== undefined) {
+    if (!AUDIO_STRATEGIES.includes(body.audio_strategy)) return c.json({ detail: "无效的音频策略" }, 400);
+    updates.audioStrategy = body.audio_strategy;
+  }
+  if (body.lip_sync_status !== undefined) {
+    if (!LIP_SYNC_STATUSES.includes(body.lip_sync_status)) return c.json({ detail: "无效的口型验收状态" }, 400);
+    updates.lipSyncStatus = body.lip_sync_status;
+  }
   if (body.narrative_function !== undefined) updates.narrativeFunction = body.narrative_function;
   if (body.lighting !== undefined) updates.lighting = body.lighting;
   if (body.audio !== undefined) {
@@ -182,6 +209,8 @@ router.put("/:id", async (c) => {
     screen_text_style: updated.screenTextStyle || "bold_impact",
     h3_prompt: updated.h3Prompt || "",
     beats_range: updated.beatsRange ? JSON.parse(updated.beatsRange) : [],
+    audio_strategy: updated.audioStrategy,
+    lip_sync_status: updated.lipSyncStatus,
   });
 });
 

@@ -44,6 +44,8 @@ interface KanbanShot {
   pending_takes: number;
   adopted_take_id: string | null;
   latest_failure: string;
+  audio_strategy: "native_av" | "reference_audio_av" | "post_dub" | "performance_lipsync" | "silent_broll";
+  lip_sync_status: "not_applicable" | "required" | "pending" | "verified" | "failed";
 }
 
 interface Take {
@@ -191,7 +193,6 @@ function ProductionTakeCard({
               src={normalizeAssetUrl(take.media_url)}
               className="h-full w-full object-cover"
               controls
-              muted
               playsInline
             />
           ) : take.take_type === "video" ? (
@@ -226,6 +227,12 @@ function ProductionTakeCard({
               <span className="rounded bg-green-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
                 已采用
               </span>
+            )}
+            {take.take_type === "video" && takeMetadata(take).native_audio && (
+              <span className="rounded bg-cyan-700 px-1.5 py-0.5 text-[10px] font-bold text-white">原生音轨</span>
+            )}
+            {take.take_type === "video" && takeMetadata(take).audio_strategy === "reference_audio_av" && (
+              <span className="rounded bg-blue-700 px-1.5 py-0.5 text-[10px] font-bold text-white">参考音频驱动</span>
             )}
             {take.review_status === "rejected" && (
               <span className="rounded bg-purple-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
@@ -335,7 +342,11 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
     setLoading(true);
     try {
       const res = await api.getProductionKanban(projectId);
-      setShots((res.shots || []) as KanbanShot[]);
+      const freshShots = (res.shots || []) as KanbanShot[];
+      setShots(freshShots);
+      setSelectedShot((current) => current
+        ? freshShots.find((shot) => shot.shot_id === current.shot_id) || null
+        : current);
       setStatusCounts(res.status_counts || {});
       setProjectAspectRatio(res.project_aspect_ratio || "9:16");
     } catch (e: any) {
@@ -370,7 +381,10 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
   const [activeRightTab, setActiveRightTab] = useState<"takes" | "dialogue">("takes");
   const [dialogueLines, setDialogueLines] = useState<any[]>([]);
   const [dialogueLoading, setDialogueLoading] = useState(false);
-  const [newLine, setNewLine] = useState({ speaker: "", text: "", performance: "", planned_duration: 0 });
+  const [newLine, setNewLine] = useState({
+    speaker: "", text: "", performance: "", planned_duration: 0,
+    language: "zh-CN", is_voiceover: false, voice_source: "", voice_consent_status: "unverified",
+  });
   const [generatingTtsKey, setGeneratingTtsKey] = useState<string | null>(null);
   const [ttsVoiceOverrides, setTtsVoiceOverrides] = useState<Record<string, string>>({});
   const [ttsConfig, setTtsConfig] = useState({
@@ -378,6 +392,8 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
     voiceFemale: "",
     voiceMale: "",
     voiceNarrator: "",
+    videoProvider: "minimax",
+    videoModel: "MiniMax-H3",
   });
 
   // P0-6: Cost summary
@@ -420,6 +436,8 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
         voiceFemale: res.tts_voice_female || "",
         voiceMale: res.tts_voice_male || "",
         voiceNarrator: res.tts_voice_narrator || "",
+        videoProvider: res.video_provider || "minimax",
+        videoModel: res.video_model || "MiniMax-H3",
       });
     } catch (e: any) {
       console.warn("TTS config load failed:", e?.message);
@@ -459,6 +477,8 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
             media_url: item.take.media_url,
             duration: item.take.duration,
             take_type: item.take.take_type,
+            audio_strategy: item.shot.audio_strategy,
+            lip_sync_status: item.shot.lip_sync_status,
           })),
         },
         total_duration: totalDuration,
@@ -521,6 +541,8 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
         shot_id: item.shot.shot_id,
         action: item.shot.action,
         dialogue: item.shot.dialogue,
+        audio_strategy: item.shot.audio_strategy,
+        lip_sync_status: item.shot.lip_sync_status,
         take: {
           id: item.take.id,
           type: item.take.take_type,
@@ -594,6 +616,11 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
         generated_at: new Date().toISOString(),
         aspect_ratio: projectAspectRatio,
         total_duration: fullPlan.totalDuration,
+        lip_sync_gate: isVideoMerge ? "passed" : "preview_not_enforced",
+        audio_strategy_summary: fullPlan.clips.reduce((summary: Record<string, number>, clip) => {
+          summary[clip.audioStrategy] = (summary[clip.audioStrategy] || 0) + 1;
+          return summary;
+        }, {}),
         clips: fullPlan.clips,
         subtitles: fullPlan.subtitles,
         episode_mp4_urls: episodeMp4Urls,
@@ -667,6 +694,10 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
         performance: line.performance,
         planned_duration: line.planned_duration ?? line.plannedDuration ?? 0,
         actual_duration: line.actual_duration ?? line.actualDuration ?? 0,
+        is_voiceover: line.is_voiceover ?? line.isVoiceover ?? false,
+        language: line.language || "zh-CN",
+        voice_source: line.voice_source ?? line.voiceSource ?? "",
+        voice_consent_status: line.voice_consent_status ?? line.voiceConsentStatus ?? "unverified",
         order_index: line.order_index ?? line.orderIndex ?? dialogueLines.length,
       });
       showToast("台词已保存");
@@ -681,8 +712,15 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
       showToast("请填写说话人或台词", "error");
       return;
     }
-    await handleSaveLine({ ...newLine, order_index: dialogueLines.length });
-    setNewLine({ speaker: "", text: "", performance: "", planned_duration: 0 });
+    await handleSaveLine({
+      ...newLine,
+      is_voiceover: newLine.is_voiceover || /^(旁白|画外音|narrator|voice[- ]?over)$/i.test(newLine.speaker.trim()),
+      order_index: dialogueLines.length,
+    });
+    setNewLine({
+      speaker: "", text: "", performance: "", planned_duration: 0,
+      language: "zh-CN", is_voiceover: false, voice_source: "", voice_consent_status: "unverified",
+    });
   };
 
   const handleGenerateTts = async (line: any, index: number) => {
@@ -713,12 +751,22 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
           performance: line.performance || "",
           planned_duration: line.plannedDuration || selectedShot.duration || 0,
           actual_duration: 0,
+          is_voiceover: line.isVoiceover || false,
+          language: line.language || "zh-CN",
+          voice_consent_status: line.voiceConsentStatus || "unverified",
           order_index: line.orderIndex || index,
         });
         dialogueId = saved.dialogue_id;
       }
       const voice = selectedVoice || undefined;
       const result = await api.generateTts(dialogueId, { voice, speed: 1 });
+      await api.saveDialogueLine({
+        id: dialogueId,
+        project_id: projectId,
+        shot_id: selectedShot.shot_id,
+        voice_source: `${result.model}:${result.voice}`,
+        voice_consent_status: "provider_preset",
+      });
       try {
         const actualDuration = await measureAudioDuration(result.media_url);
         await api.saveDialogueLine({
@@ -742,6 +790,48 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
       showToast(`配音生成失败: ${e?.response?.data?.detail || e.message}`, "error");
     } finally {
       setGeneratingTtsKey(null);
+    }
+  };
+
+  const handleUploadDialogueAudio = async (e: React.ChangeEvent<HTMLInputElement>, line: any, index: number) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedShot) return;
+    setUploadingShotId(selectedShot.shot_id);
+    try {
+      let dialogueId = line.id;
+      if (!dialogueId) {
+        const saved = await api.saveDialogueLine({
+          project_id: projectId,
+          shot_id: selectedShot.shot_id,
+          speaker: line.speaker,
+          text: line.text,
+          performance: line.performance || "",
+          planned_duration: line.plannedDuration || selectedShot.duration || 0,
+          is_voiceover: line.isVoiceover || false,
+          language: line.language || "zh-CN",
+          voice_consent_status: line.voiceConsentStatus || "unverified",
+          order_index: line.orderIndex || index,
+        });
+        dialogueId = saved.dialogue_id;
+      }
+      const upload = await api.uploadTake(selectedShot.shot_id, file, "audio", dialogueId);
+      const source = line.voiceSource || line.voice_source || `external:${file.name}`;
+      let actualDuration = line.actualDuration || line.actual_duration || 0;
+      try { actualDuration = await measureAudioDuration(upload.media_url); } catch { /* user can enter it manually */ }
+      await api.saveDialogueLine({
+        id: dialogueId,
+        project_id: projectId,
+        shot_id: selectedShot.shot_id,
+        voice_source: source,
+        actual_duration: actualDuration,
+      });
+      showToast(`对白音频已上传 · ${file.name}`);
+      await Promise.all([loadTakes(selectedShot.shot_id), loadDialogue(selectedShot.shot_id), loadCosts()]);
+    } catch (error: any) {
+      showToast(`对白音频上传失败: ${error?.response?.data?.detail || error.message}`, "error");
+    } finally {
+      setUploadingShotId(null);
+      e.target.value = "";
     }
   };
 
@@ -782,16 +872,26 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
 
   const handleGenerateVideo = async () => {
     if (!selectedShot) return;
-    const estimate = planVideoGeneration(projectAspectRatio, selectedShot.has_image, selectedShot.duration);
-    const modeDescription = estimate.generationMode === "image_to_video"
+    const estimate = planVideoGeneration(projectAspectRatio, selectedShot.has_image, selectedShot.duration, ttsConfig.videoModel);
+    const strategyLabels: Record<KanbanShot["audio_strategy"], string> = {
+      native_av: "模型原生音视频",
+      reference_audio_av: "已采用对白音频驱动画面",
+      post_dub: "静音画面 + 后期配音",
+      performance_lipsync: "参考音频驱动的表演 / 口型专项",
+      silent_broll: "无对白 B-roll",
+    };
+    const modeDescription = selectedShot.audio_strategy === "reference_audio_av" || selectedShot.audio_strategy === "performance_lipsync"
+      ? "参考音频联合生成 · 使用已采用对白音频驱动画面与表演"
+      : estimate.generationMode === "image_to_video"
       ? "图生视频 · 使用当前分镜图作为首帧画幅约束"
       : "文生视频 · 没有首帧约束";
     const aspectWarning = estimate.requiresLandscapeFallbackConfirmation
       ? "\n\n⚠ 当前是 9:16 工程，但该镜头没有首帧。MiniMax 文生视频不接受画幅参数，可能返回横屏。建议取消并先生成或上传 9:16 分镜图。"
       : "";
     const confirmed = window.confirm(
-      `将调用已配置的视频供应商生成 ${productionShotLabel(selectedShot)}。\n` +
-      `${modeDescription}\n最低可用档：768P · ${estimate.billableDuration}s。具体扣费取决于供应商套餐或按量账单。` +
+      `将调用 ${ttsConfig.videoModel || ttsConfig.videoProvider} 生成 ${productionShotLabel(selectedShot)}。\n` +
+      `音频策略：${strategyLabels[selectedShot.audio_strategy]}。\n` +
+      `${modeDescription}\n请求时长：${estimate.billableDuration}s。分辨率与扣费取决于当前模型及供应商账单。` +
       aspectWarning +
       "\n\n确认提交付费任务？"
     );
@@ -809,6 +909,19 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
       showToast(`生成失败: ${e?.response?.data?.detail || e.message}`, "error");
     } finally {
       setGeneratingVideo(false);
+    }
+  };
+
+  const handleUpdateAudioWorkflow = async (patch: Partial<Pick<KanbanShot, "audio_strategy" | "lip_sync_status">>) => {
+    if (!selectedShot) return;
+    try {
+      await api.updateShot(selectedShot.shot_id, patch);
+      const next = { ...selectedShot, ...patch };
+      setSelectedShot(next);
+      setShots((current) => current.map((shot) => shot.shot_id === next.shot_id ? { ...shot, ...patch } : shot));
+      showToast("音频与口型流程已更新");
+    } catch (e: any) {
+      showToast(`更新失败: ${e?.response?.data?.detail || e.message}`, "error");
     }
   };
 
@@ -1154,6 +1267,39 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
 
                 {activeRightTab === "takes" && (
                 <>
+                <div className="mb-4 grid gap-3 rounded-lg border border-[#21262d] bg-[#161b22] p-3 sm:grid-cols-2">
+                  <label className="text-[10px] text-gray-400">
+                    音频生成策略
+                    <select
+                      value={selectedShot.audio_strategy}
+                      onChange={(e) => handleUpdateAudioWorkflow({ audio_strategy: e.target.value as KanbanShot["audio_strategy"] })}
+                      className="mt-1 w-full rounded border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-xs text-white"
+                    >
+                      <option value="native_av">模型原生音视频</option>
+                      <option value="reference_audio_av">参考音频驱动画面</option>
+                      <option value="post_dub">后期配音</option>
+                      <option value="performance_lipsync">参考音频表演 / 口型专项</option>
+                      <option value="silent_broll">无对白 B-roll</option>
+                    </select>
+                  </label>
+                  <label className="text-[10px] text-gray-400">
+                    口型验收
+                    <select
+                      value={selectedShot.lip_sync_status}
+                      onChange={(e) => handleUpdateAudioWorkflow({ lip_sync_status: e.target.value as KanbanShot["lip_sync_status"] })}
+                      className="mt-1 w-full rounded border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-xs text-white"
+                    >
+                      <option value="not_applicable">不适用（旁白 / 无对白）</option>
+                      <option value="required">需要处理</option>
+                      <option value="pending">待人工验收</option>
+                      <option value="verified">已验收通过</option>
+                      <option value="failed">验收失败</option>
+                    </select>
+                  </label>
+                  <p className="sm:col-span-2 text-[10px] leading-4 text-gray-500">
+                    参考音频会在生成前送入支持该能力的模型；单纯把外部配音混入 MP4 不会自动产生口型同步。含可见对白的镜头只有“已验收通过”后才能进入成片合并。
+                  </p>
+                </div>
                 <div className="mb-4 flex items-center justify-between">
                   <span className="text-xs text-gray-400">共 {visualTakes.length} 个视频/图片候选</span>
                   <div className="flex items-center gap-2">
@@ -1301,7 +1447,25 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
                             placeholder="计划时长(s)"
                             className="w-24 rounded border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-xs text-white placeholder-gray-600"
                           />
+                          <select
+                            value={newLine.language}
+                            onChange={(e) => setNewLine({ ...newLine, language: e.target.value })}
+                            className="rounded border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-xs text-white"
+                          >
+                            <option value="zh-CN">普通话</option>
+                            <option value="zh-HK">粤语</option>
+                            <option value="en-US">英语</option>
+                            <option value="ja-JP">日语</option>
+                          </select>
                         </div>
+                        <label className="flex items-center gap-2 text-[10px] text-gray-400">
+                          <input
+                            type="checkbox"
+                            checked={newLine.is_voiceover}
+                            onChange={(e) => setNewLine({ ...newLine, is_voiceover: e.target.checked })}
+                          />
+                          旁白 / 画外音（无需口型）
+                        </label>
                         <textarea
                           value={newLine.text}
                           onChange={(e) => setNewLine({ ...newLine, text: e.target.value })}
@@ -1345,6 +1509,43 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
                             </div>
                             <p className="text-xs text-gray-300">{line.text}</p>
                             {line.performance && <p className="mt-1 text-[10px] text-gray-500">表演: {line.performance}</p>}
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <select
+                                value={line.language || "zh-CN"}
+                                onChange={(e) => handleSaveLine({ ...line, language: e.target.value })}
+                                className="rounded border border-[#30363d] bg-[#0d1117] px-2 py-1 text-[10px] text-white"
+                              >
+                                <option value="zh-CN">普通话</option>
+                                <option value="zh-HK">粤语</option>
+                                <option value="en-US">英语</option>
+                                <option value="ja-JP">日语</option>
+                              </select>
+                              <select
+                                value={line.voiceConsentStatus || line.voice_consent_status || "unverified"}
+                                onChange={(e) => handleSaveLine({ ...line, voice_consent_status: e.target.value })}
+                                className="rounded border border-[#30363d] bg-[#0d1117] px-2 py-1 text-[10px] text-white"
+                                aria-label="声音授权状态"
+                              >
+                                <option value="unverified">声音授权待确认</option>
+                                <option value="self">本人声音</option>
+                                <option value="licensed">已获授权</option>
+                                <option value="provider_preset">供应商预设音色</option>
+                              </select>
+                              <input
+                                type="text"
+                                defaultValue={line.voiceSource || line.voice_source || ""}
+                                onBlur={(e) => handleSaveLine({ ...line, voice_source: e.target.value.trim() })}
+                                placeholder="声音来源 / 授权凭据"
+                                className="min-w-40 flex-1 rounded border border-[#30363d] bg-[#0d1117] px-2 py-1 text-[10px] text-white placeholder-gray-600"
+                              />
+                              <label className="flex items-center gap-1 text-[10px] text-gray-400">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(line.isVoiceover ?? line.is_voiceover)}
+                                  onChange={(e) => handleSaveLine({ ...line, is_voiceover: e.target.checked })}
+                                />旁白
+                              </label>
+                            </div>
                             {line.derivedFromShot && (
                               <p className="mt-1 text-[10px] text-amber-400">来自分镜台词；录入实际时长后建立可追踪台词记录</p>
                             )}
@@ -1372,6 +1573,16 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
                               >
                                 {generatingTtsKey === (line.id || `derived-${selectedShot.shot_id}-${i}`) ? "生成配音中..." : "OpenRouter 配音"}
                               </button>
+                              <label className="cursor-pointer rounded bg-blue-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-blue-700">
+                                上传演员 / 外部配音
+                                <input
+                                  type="file"
+                                  accept="audio/*"
+                                  className="hidden"
+                                  disabled={uploadingShotId === selectedShot.shot_id}
+                                  onChange={(e) => handleUploadDialogueAudio(e, line, i)}
+                                />
+                              </label>
                               <input
                                 type="number"
                                 defaultValue={line.actualDuration || 0}

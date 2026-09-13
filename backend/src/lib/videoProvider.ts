@@ -1,0 +1,291 @@
+export type VideoProviderProtocol = "minimax_v1" | "minimax_v2" | "byteplus_las";
+export type AudioStrategy =
+  | "native_av"
+  | "reference_audio_av"
+  | "post_dub"
+  | "performance_lipsync"
+  | "silent_broll";
+
+export type LipSyncStatus = "not_applicable" | "required" | "pending" | "verified" | "failed";
+
+export const AUDIO_STRATEGIES: AudioStrategy[] = ["native_av", "reference_audio_av", "post_dub", "performance_lipsync", "silent_broll"];
+export const LIP_SYNC_STATUSES: LipSyncStatus[] = ["not_applicable", "required", "pending", "verified", "failed"];
+
+export interface VideoModelCapability {
+  provider: "minimax" | "byteplus";
+  nativeAudio: boolean;
+  audioReference: boolean;
+  voiceReference: boolean;
+  maxAudioRefs: number;
+  minDuration: number;
+  maxDuration: number;
+  resolutions: string[];
+  outputAudioSampleRate?: number;
+  dialogueLanguages: string[];
+  supportsLipSyncEdit: boolean;
+}
+
+export const VIDEO_MODEL_CAPABILITIES: Record<string, VideoModelCapability> = {
+  "MiniMax-H3": {
+    provider: "minimax",
+    nativeAudio: true,
+    audioReference: true,
+    voiceReference: true,
+    maxAudioRefs: 3,
+    minDuration: 4,
+    maxDuration: 15,
+    resolutions: ["768P", "2K"],
+    outputAudioSampleRate: 32000,
+    dialogueLanguages: ["zh", "en", "ja", "ko", "es", "fr", "de", "it", "pt", "ru", "ar"],
+    supportsLipSyncEdit: false,
+  },
+  "MiniMax-H3-Max": {
+    provider: "minimax",
+    nativeAudio: true,
+    audioReference: false,
+    voiceReference: false,
+    maxAudioRefs: 0,
+    minDuration: 5,
+    maxDuration: 15,
+    resolutions: ["480P", "768P"],
+    outputAudioSampleRate: 32000,
+    dialogueLanguages: ["zh", "en", "ja", "ko", "es", "fr", "de", "it", "pt", "ru", "ar"],
+    supportsLipSyncEdit: false,
+  },
+  "MiniMax-Hailuo-2.3": {
+    provider: "minimax",
+    nativeAudio: false,
+    audioReference: false,
+    voiceReference: false,
+    maxAudioRefs: 0,
+    minDuration: 6,
+    maxDuration: 10,
+    resolutions: ["768P", "1080P"],
+    dialogueLanguages: [],
+    supportsLipSyncEdit: false,
+  },
+  "MiniMax-Hailuo-02": {
+    provider: "minimax",
+    nativeAudio: false,
+    audioReference: false,
+    voiceReference: false,
+    maxAudioRefs: 0,
+    minDuration: 6,
+    maxDuration: 10,
+    resolutions: ["512P", "768P", "1080P"],
+    dialogueLanguages: [],
+    supportsLipSyncEdit: false,
+  },
+  "dreamina-seedance-2-5-260628": {
+    provider: "byteplus",
+    nativeAudio: true,
+    audioReference: true,
+    voiceReference: true,
+    maxAudioRefs: 10,
+    minDuration: 4,
+    maxDuration: 30,
+    resolutions: ["480p", "720p"],
+    dialogueLanguages: ["multi"],
+    supportsLipSyncEdit: true,
+  },
+  "dreamina-seedance-2-0-260128": {
+    provider: "byteplus",
+    nativeAudio: true,
+    audioReference: true,
+    voiceReference: true,
+    maxAudioRefs: 3,
+    minDuration: 4,
+    maxDuration: 15,
+    resolutions: ["480p", "720p", "1080p", "4k"],
+    dialogueLanguages: ["multi"],
+    supportsLipSyncEdit: false,
+  },
+};
+
+export interface ResolvedVideoProviderConfig {
+  provider: "minimax" | "byteplus";
+  protocol: VideoProviderProtocol;
+  model: string;
+  baseUrl: string;
+  submitUrl: string;
+  queryUrl: (taskId: string) => string;
+  capability: VideoModelCapability;
+}
+
+function stripApiVersion(value: string) {
+  return value.trim().replace(/\/+$/, "").replace(/\/api\/v1$/i, "").replace(/\/v[12]$/i, "");
+}
+
+function normalizeMiniMaxOrigin(apiBase: string) {
+  const raw = stripApiVersion(apiBase || "https://api.minimaxi.com");
+  // api.minimax.cn was used by the old integration; the current CN Open Platform
+  // publishes both H3 and legacy endpoints on api.minimaxi.com.
+  return raw.replace(/^https:\/\/api\.minimax\.cn$/i, "https://api.minimaxi.com");
+}
+
+export function resolveVideoProviderConfig(provider: string, apiBase: string, model: string): ResolvedVideoProviderConfig {
+  const resolvedProvider = provider === "byteplus" || model.startsWith("dreamina-seedance-") ? "byteplus" : "minimax";
+  const fallbackModel = resolvedProvider === "byteplus" ? "dreamina-seedance-2-5-260628" : "MiniMax-H3";
+  const requestedModel = model || fallbackModel;
+  const resolvedModel = requestedModel === "video-01-h3" ? "MiniMax-H3" : requestedModel;
+  const capability = VIDEO_MODEL_CAPABILITIES[resolvedModel];
+  if (!capability) throw new Error(`不支持的视频模型：${resolvedModel}`);
+  if (capability.provider !== resolvedProvider) {
+    throw new Error(`视频供应商 ${resolvedProvider} 与模型 ${resolvedModel} 不匹配`);
+  }
+
+  if (resolvedProvider === "byteplus") {
+    const baseUrl = (apiBase || "https://operator.las.ap-southeast-1.bytepluses.com/api/v1")
+      .trim().replace(/\/+$/, "").replace(/\/contents\/generations\/tasks$/i, "");
+    const submitUrl = `${baseUrl}/contents/generations/tasks`;
+    return {
+      provider: resolvedProvider,
+      protocol: "byteplus_las",
+      model: resolvedModel,
+      baseUrl,
+      submitUrl,
+      queryUrl: (taskId) => `${submitUrl}/${encodeURIComponent(taskId)}`,
+      capability,
+    };
+  }
+
+  const baseUrl = normalizeMiniMaxOrigin(apiBase);
+  const protocol: VideoProviderProtocol = resolvedModel.startsWith("MiniMax-H3") ? "minimax_v2" : "minimax_v1";
+  return {
+    provider: resolvedProvider,
+    protocol,
+    model: resolvedModel,
+    baseUrl,
+    submitUrl: `${baseUrl}/${protocol === "minimax_v2" ? "v2" : "v1"}/video_generation`,
+    queryUrl: protocol === "minimax_v2"
+      ? (taskId) => `${baseUrl}/v2/query/video_generation/${encodeURIComponent(taskId)}`
+      : (taskId) => `${baseUrl}/v1/query/video_generation?task_id=${encodeURIComponent(taskId)}`,
+    capability,
+  };
+}
+
+export function recommendedAudioStrategy(dialogue: string, isVoiceover = false): AudioStrategy {
+  const text = (dialogue || "").trim();
+  if (!text) return "native_av";
+  if (isVoiceover || /^(旁白|画外音|内心|narrator)\s*[：:]/i.test(text)) return "post_dub";
+  return "reference_audio_av";
+}
+
+export function lipSyncStatusForStrategy(strategy: AudioStrategy, dialogue: string, isVoiceover = false): LipSyncStatus {
+  if (!(dialogue || "").trim() || isVoiceover || strategy === "silent_broll") return "not_applicable";
+  if (strategy === "post_dub") return "required";
+  return "pending";
+}
+
+export function recommendedShotAudioWorkflow(dialogue: string, isVoiceover = false) {
+  const inferredVoiceover = isVoiceover || /^(旁白|画外音|内心|narrator)\s*[：:]/i.test((dialogue || "").trim());
+  const audioStrategy = recommendedAudioStrategy(dialogue, inferredVoiceover);
+  return {
+    audioStrategy,
+    lipSyncStatus: lipSyncStatusForStrategy(audioStrategy, dialogue, inferredVoiceover),
+  };
+}
+
+export interface VideoGenerationInput {
+  prompt: string;
+  aspectRatio: "9:16" | "16:9" | string;
+  duration: number;
+  firstFrameImage: string;
+  audioStrategy: AudioStrategy;
+  referenceAudioUrls: string[];
+}
+
+export function buildVideoProviderRequest(config: ResolvedVideoProviderConfig, input: VideoGenerationInput) {
+  const duration = Math.max(config.capability.minDuration, Math.min(config.capability.maxDuration, Math.ceil(input.duration || config.capability.minDuration)));
+  const availableReferenceAudioUrls = input.referenceAudioUrls.filter(Boolean);
+  const requiresAudioReference = input.audioStrategy === "reference_audio_av" || input.audioStrategy === "performance_lipsync";
+  if (requiresAudioReference && availableReferenceAudioUrls.length > config.capability.maxAudioRefs) {
+    throw new Error(`${config.model} 最多接受 ${config.capability.maxAudioRefs} 条参考音频，请先合并对白或拆分镜头`);
+  }
+  const referenceAudioUrls = availableReferenceAudioUrls.slice(0, config.capability.maxAudioRefs);
+  if (requiresAudioReference && !config.capability.audioReference) {
+    throw new Error(`${config.model} 不支持参考音频，请选择原生音视频或后期配音策略`);
+  }
+  if (requiresAudioReference && referenceAudioUrls.length === 0) {
+    throw new Error("参考音频驱动需要先生成并采用至少一条对白音频");
+  }
+
+  if (config.protocol === "minimax_v1") {
+    const legacyDuration = duration > 6 ? 10 : 6;
+    const body: Record<string, any> = {
+      model: config.model,
+      prompt: input.prompt.substring(0, 2000),
+      resolution: "768P",
+      duration: legacyDuration,
+    };
+    if (input.firstFrameImage) body.first_frame_image = input.firstFrameImage;
+    return { url: config.submitUrl, body, duration: legacyDuration, generationMode: input.firstFrameImage ? "image_to_video" : "text_to_video" };
+  }
+
+  const content: Array<Record<string, any>> = [{ type: "text", text: input.prompt.substring(0, 7000) }];
+  const usesReferences = referenceAudioUrls.length > 0;
+  if (input.firstFrameImage) {
+    content.push({
+      type: "image_url",
+      image_url: { url: input.firstFrameImage },
+      role: usesReferences ? "reference_image" : "first_frame",
+    });
+  }
+  for (const url of referenceAudioUrls) {
+    content.push({ type: "audio_url", audio_url: { url }, role: "reference_audio" });
+  }
+
+  if (config.protocol === "minimax_v2") {
+    return {
+      url: config.submitUrl,
+      body: {
+        model: config.model,
+        content,
+        resolution: "768P",
+        duration,
+        ratio: usesReferences || !input.firstFrameImage ? input.aspectRatio : "adaptive",
+      },
+      duration,
+      generationMode: usesReferences ? "reference_to_video" : input.firstFrameImage ? "image_to_video" : "text_to_video",
+    };
+  }
+
+  return {
+    url: config.submitUrl,
+    body: {
+      model: config.model,
+      content,
+      generate_audio: input.audioStrategy !== "post_dub" && input.audioStrategy !== "silent_broll",
+      resolution: "720p",
+      duration,
+      ratio: input.aspectRatio,
+      watermark: false,
+    },
+    duration,
+    generationMode: usesReferences ? "reference_to_video" : input.firstFrameImage ? "image_to_video" : "text_to_video",
+  };
+}
+
+function normalizeStatus(status: string) {
+  if (["Success", "success", "succeeded", "completed", "done"].includes(status)) return "succeeded";
+  if (["Fail", "failed", "error"].includes(status)) return "failed";
+  if (["Cancelled", "cancelled"].includes(status)) return "cancelled";
+  if (["Queueing", "Preparing", "Processing", "queued", "running", "processing", "submitted"].includes(status)) return "processing";
+  return status || "processing";
+}
+
+export function parseVideoProviderPoll(config: ResolvedVideoProviderConfig, payload: any) {
+  const task = payload?.task || payload?.data || payload || {};
+  const rawStatus = task?.status || "";
+  const content = task?.content || task?.output || {};
+  return {
+    status: normalizeStatus(rawStatus),
+    videoUrl: content?.url || content?.video_url || task?.video_url || "",
+    fileId: task?.file_id || "",
+    error: task?.error_message || task?.base_resp?.status_msg || task?.error?.message || payload?.error?.message || "",
+    duration: Number(task?.duration || 0),
+    resolution: task?.resolution || "",
+    ratio: task?.ratio || "",
+    rawStatus,
+  };
+}

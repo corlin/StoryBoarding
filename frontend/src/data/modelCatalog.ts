@@ -122,16 +122,43 @@ export const IMAGE_MODELS: ModelOption[] = [
 
 export const VIDEO_MODELS: ModelOption[] = [
   {
+    id: "MiniMax-H3",
+    label: "MiniMax H3",
+    description: "原生音视频 · 参考音频 · 4–15s · 768P/2K",
+    provider: "minimax",
+    recommended: true,
+    isDefault: true,
+  },
+  {
+    id: "MiniMax-H3-Max",
+    label: "MiniMax H3 Max",
+    description: "原生音视频 · 5–15s · 最高 768P",
+    provider: "minimax",
+  },
+  {
     id: "MiniMax-Hailuo-2.3",
     label: "MiniMax-Hailuo-2.3",
-    description: "768P/1080P · 6/10s",
-    recommended: true,
+    description: "无原生音轨 · 需后期配音 · 6/10s",
+    provider: "minimax",
   },
   {
     id: "MiniMax-Hailuo-02",
     label: "MiniMax-Hailuo-02",
-    description: "768P/1080P · 6/10s",
-    isDefault: true,
+    description: "无原生音轨 · 需后期配音 · 6/10s",
+    provider: "minimax",
+  },
+  {
+    id: "dreamina-seedance-2-5-260628",
+    label: "Seedance 2.5",
+    description: "原生音视频 · 参考音频 · 4–30s · 480P/720P",
+    provider: "byteplus",
+    recommended: true,
+  },
+  {
+    id: "dreamina-seedance-2-0-260128",
+    label: "Seedance 2.0",
+    description: "原生音视频 · 参考音频 · 4–15s",
+    provider: "byteplus",
   },
 ];
 
@@ -150,7 +177,8 @@ export const IMAGE_PROVIDERS: Array<{ value: ImageProviderType; label: string }>
 ];
 
 export const VIDEO_PROVIDERS: Array<{ value: VideoProviderType; label: string }> = [
-  { value: "minimax", label: "MiniMax (H3 视频生成)" },
+  { value: "minimax", label: "MiniMax（H3 / Hailuo）" },
+  { value: "byteplus", label: "BytePlus（Seedance 2.x）" },
 ];
 
 // ============================================================
@@ -181,8 +209,12 @@ export const IMAGE_PROVIDER_PRESETS: Record<ImageProviderType, { apiBase: string
 
 export const VIDEO_PROVIDER_PRESETS: Record<VideoProviderType, { apiBase: string; model: string }> = {
   minimax: {
-    apiBase: "https://api.minimax.cn/v1",
-    model: "MiniMax-Hailuo-02",
+    apiBase: "https://api.minimaxi.com",
+    model: "MiniMax-H3",
+  },
+  byteplus: {
+    apiBase: "https://operator.las.ap-southeast-1.bytepluses.com/api/v1",
+    model: "dreamina-seedance-2-5-260628",
   },
 };
 
@@ -359,4 +391,3 @@ export const TTS_MODEL_VOICE_PRESETS: Record<string, TtsVoicePreset> = {
 export function getTtsVoicePreset(modelId: string): TtsVoicePreset | null {
   return TTS_MODEL_VOICE_PRESETS[modelId] || null;
 }
-

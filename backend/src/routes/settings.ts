@@ -4,6 +4,7 @@ import { getDb, Bindings } from "../db/client";
 import { users } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
 import { encryptUserSecret, maskApiKey } from "../lib/crypto";
+import { resolveVideoProviderConfig } from "../lib/videoProvider";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -76,8 +77,8 @@ router.get("/providers", async (c) => {
     has_video_key: Boolean(settings.videoApiKey && settings.videoApiKey.trim()),
     video_api_key_masked: maskApiKey(settings.videoApiKey),
     video_api_key: "",
-    video_api_base: settings.videoApiBase || "https://api.minimax.cn/v1",
-    video_model: settings.videoModel || "MiniMax-Hailuo-02",
+    video_api_base: settings.videoApiBase || "https://api.minimaxi.com",
+    video_model: settings.videoModel || "MiniMax-H3",
     tts_provider: "openrouter",
     tts_uses_llm_key: true,
     tts_api_base: settings.ttsApiBase,
@@ -148,8 +149,8 @@ const handleUpdateProviders = async (c: any) => {
     imageModel: (body.image_model || existingUserSettings.imageModel || "bytedance-seed/seedream-5-0-lite").trim(),
     videoProvider: body.video_provider || existingUserSettings.videoProvider || "minimax",
     videoApiKey: finalEncryptedVideoKey,
-    videoApiBase: (body.video_api_base || existingUserSettings.videoApiBase || "https://api.minimax.cn/v1").trim(),
-    videoModel: (body.video_model || existingUserSettings.videoModel || "MiniMax-Hailuo-02").trim(),
+    videoApiBase: (body.video_api_base || existingUserSettings.videoApiBase || "https://api.minimaxi.com").trim(),
+    videoModel: (body.video_model || existingUserSettings.videoModel || "MiniMax-H3").trim(),
     ttsProvider: "openrouter",
     ttsApiBase: (body.tts_api_base || existingUserSettings.ttsApiBase || body.llm_api_base || existingUserSettings.llmApiBase || "https://openrouter.ai/api/v1").trim(),
     ttsModel: (body.tts_model || existingUserSettings.ttsModel || "hexgrad/kokoro-82m").trim(),
@@ -158,6 +159,11 @@ const handleUpdateProviders = async (c: any) => {
     ttsVoiceNarrator: (body.tts_voice_narrator || existingUserSettings.ttsVoiceNarrator || "zf_xiaobei").trim(),
     updatedAt: new Date().toISOString(),
   };
+  try {
+    resolveVideoProviderConfig(updateData.videoProvider, updateData.videoApiBase, updateData.videoModel);
+  } catch (error: any) {
+    return c.json({ detail: error?.message || String(error), error_code: "VIDEO_PROVIDER_MODEL_MISMATCH" }, 400);
+  }
 
   await db
     .update(users)

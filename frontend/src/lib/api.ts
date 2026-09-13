@@ -484,7 +484,7 @@ export const api = {
   },
 
   // Upload external media (video/audio)
-  async uploadTake(shotId: string, file: File, takeType: string = "video"): Promise<{
+  async uploadTake(shotId: string, file: File, takeType: string = "video", dialogueId?: string): Promise<{
     status: string;
     take_id: string;
     media_url: string;
@@ -494,6 +494,7 @@ export const api = {
     const formData = new FormData();
     formData.append("shot_id", shotId);
     formData.append("take_type", takeType);
+    if (dialogueId) formData.append("dialogue_id", dialogueId);
     formData.append("file", file);
     const { data } = await apiClient.post("/production/takes/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -586,7 +587,7 @@ export const api = {
   },
 
   // ============================================================
-  // P0-2: Video Generation APIs (MiniMax H3 async)
+  // P0-2: Video Generation APIs (MiniMax H3 / BytePlus Seedance async)
   // ============================================================
 
   // Submit a video generation task for a shot
@@ -595,7 +596,10 @@ export const api = {
     job_id: string;
     external_task_id?: string;
     shot_id: string;
-    generation_mode?: "image_to_video" | "text_to_video";
+    generation_mode?: "image_to_video" | "text_to_video" | "reference_to_video";
+    audio_strategy?: string;
+    native_audio?: boolean;
+    reference_audio_count?: number;
     message: string;
   }> {
     const { data } = await apiClient.post(`/generate/video/${shotId}`, options);
