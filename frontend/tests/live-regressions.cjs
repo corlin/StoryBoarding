@@ -377,6 +377,14 @@ test('video provider contracts keep H3 native AV and Seedance distinct from lega
   assert.equal(legacy.model, 'MiniMax-Hailuo-02');
   assert.equal(legacy.protocol, 'minimax_v1');
   assert.equal(legacy.submitUrl, 'https://api.minimaxi.com/v1/video_generation');
+  assert.throws(() => buildVideoProviderRequest(legacy, {
+    prompt: '对白镜头', aspectRatio: '9:16', duration: 6, firstFrameImage: 'https://assets.example/frame.jpg',
+    audioStrategy: 'native_av', referenceAudioUrls: [],
+  }), /不生成原生音轨/);
+  assert.throws(() => buildVideoProviderRequest(h3, {
+    prompt: '口型编辑', aspectRatio: '9:16', duration: 7, firstFrameImage: 'https://assets.example/frame.jpg',
+    audioStrategy: 'performance_lipsync', referenceAudioUrls: ['https://assets.example/dialogue.wav'],
+  }), /不支持口型专项处理/);
 
   const seedance = resolveVideoProviderConfig('byteplus', '', 'dreamina-seedance-2-5-260628');
   assert.equal(seedance.protocol, 'byteplus_las');

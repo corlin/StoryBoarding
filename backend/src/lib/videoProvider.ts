@@ -210,6 +210,12 @@ export function buildVideoProviderRequest(config: ResolvedVideoProviderConfig, i
   const duration = Math.max(config.capability.minDuration, Math.min(config.capability.maxDuration, Math.ceil(input.duration || config.capability.minDuration)));
   const availableReferenceAudioUrls = input.referenceAudioUrls.filter(Boolean);
   const requiresAudioReference = input.audioStrategy === "reference_audio_av" || input.audioStrategy === "performance_lipsync";
+  if (input.audioStrategy === "native_av" && !config.capability.nativeAudio) {
+    throw new Error(`${config.model} 不生成原生音轨，请选择后期配音或无对白 B-roll 策略`);
+  }
+  if (input.audioStrategy === "performance_lipsync" && !config.capability.supportsLipSyncEdit) {
+    throw new Error(`${config.model} 不支持口型专项处理，请改用参考音频联合生成或支持口型编辑的模型`);
+  }
   if (requiresAudioReference && availableReferenceAudioUrls.length > config.capability.maxAudioRefs) {
     throw new Error(`${config.model} 最多接受 ${config.capability.maxAudioRefs} 条参考音频，请先合并对白或拆分镜头`);
   }
