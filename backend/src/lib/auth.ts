@@ -191,7 +191,7 @@ export async function getUserSettings(db: any, userId?: string) {
     imageModel: userSettings.imageModel || "bytedance-seed/seedream-5-0-lite",
     videoProvider: userSettings.videoProvider || "minimax",
     videoApiKey,
-    videoApiBase: userSettings.videoApiBase || "https://api.minimaxi.com",
+    videoApiBase: userSettings.videoApiBase || "https://api.minimax.cn",
     videoModel: userSettings.videoModel || "MiniMax-H3",
     ttsApiKey: llmApiKey,
     ttsApiBase: userSettings.ttsApiBase || userSettings.llmApiBase || "https://openrouter.ai/api/v1",

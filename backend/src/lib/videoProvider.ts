@@ -124,10 +124,7 @@ function stripApiVersion(value: string) {
 }
 
 function normalizeMiniMaxOrigin(apiBase: string) {
-  const raw = stripApiVersion(apiBase || "https://api.minimaxi.com");
-  // api.minimax.cn was used by the old integration; the current CN Open Platform
-  // publishes both H3 and legacy endpoints on api.minimaxi.com.
-  return raw.replace(/^https:\/\/api\.minimax\.cn$/i, "https://api.minimaxi.com");
+  return stripApiVersion(apiBase || "https://api.minimax.cn");
 }
 
 export function resolveVideoProviderConfig(provider: string, apiBase: string, model: string): ResolvedVideoProviderConfig {

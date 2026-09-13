@@ -77,7 +77,7 @@ router.get("/providers", async (c) => {
     has_video_key: Boolean(settings.videoApiKey && settings.videoApiKey.trim()),
     video_api_key_masked: maskApiKey(settings.videoApiKey),
     video_api_key: "",
-    video_api_base: settings.videoApiBase || "https://api.minimaxi.com",
+    video_api_base: settings.videoApiBase || "https://api.minimax.cn",
     video_model: settings.videoModel || "MiniMax-H3",
     tts_provider: "openrouter",
     tts_uses_llm_key: true,
@@ -149,7 +149,7 @@ const handleUpdateProviders = async (c: any) => {
     imageModel: (body.image_model || existingUserSettings.imageModel || "bytedance-seed/seedream-5-0-lite").trim(),
     videoProvider: body.video_provider || existingUserSettings.videoProvider || "minimax",
     videoApiKey: finalEncryptedVideoKey,
-    videoApiBase: (body.video_api_base || existingUserSettings.videoApiBase || "https://api.minimaxi.com").trim(),
+    videoApiBase: (body.video_api_base || existingUserSettings.videoApiBase || "https://api.minimax.cn").trim(),
     videoModel: (body.video_model || existingUserSettings.videoModel || "MiniMax-H3").trim(),
     ttsProvider: "openrouter",
     ttsApiBase: (body.tts_api_base || existingUserSettings.ttsApiBase || body.llm_api_base || existingUserSettings.llmApiBase || "https://openrouter.ai/api/v1").trim(),
@@ -170,7 +170,7 @@ const handleUpdateProviders = async (c: any) => {
   // path when the provider revokes an old credential. Provider/model/base stay fixed.
   const changesActiveVideoConfig = updateData.videoProvider !== (existingUserSettings.videoProvider || "minimax") ||
     updateData.videoModel !== (existingUserSettings.videoModel || "MiniMax-H3") ||
-    normalizeBase(updateData.videoApiBase) !== normalizeBase(existingUserSettings.videoApiBase || "https://api.minimaxi.com");
+    normalizeBase(updateData.videoApiBase) !== normalizeBase(existingUserSettings.videoApiBase || "https://api.minimax.cn");
   if (changesActiveVideoConfig) {
     const ownedProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.userId, authUser.userId)).all();
     if (ownedProjects.length > 0) {
