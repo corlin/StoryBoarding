@@ -59,3 +59,9 @@ test('dialogue text, speaker, performance, and voiceover edits all refresh lip-s
   assert.match(body, /\[speaker, text, performance, emotion, is_voiceover\]\.some/);
   assert.match(body, /refreshShotLipSyncFromDialogue/);
 });
+
+test('loading dialogue repairs provider-generated legacy TTS consent metadata', () => {
+  const body = routeBody('get', '/dialogue');
+  assert.match(body, /take\?\.source === "ai_generated"/);
+  assert.match(body, /voiceConsentStatus: "provider_preset"/);
+});

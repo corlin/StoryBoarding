@@ -512,6 +512,26 @@ router.get("/dialogue", async (c) => {
       return c.json({ detail: "project_id or shot_id required" }, 400);
     }
 
+    const adoptedAudioIds = lines.map((line: any) => line.audioVersion).filter(Boolean);
+    const adoptedAudioTakes = adoptedAudioIds.length > 0
+      ? await db.select().from(takes).where(inArray(takes.id, adoptedAudioIds)).all()
+      : [];
+    const audioTakeById = new Map(adoptedAudioTakes.map((take: any) => [take.id, take]));
+    for (const line of lines as any[]) {
+      const take: any = audioTakeById.get(line.audioVersion);
+      let metadata: Record<string, any> = {};
+      try { metadata = JSON.parse(take?.metadata || "{}"); } catch { metadata = {}; }
+      if (line.voiceConsentStatus === "unverified" && take?.source === "ai_generated" && metadata.model && metadata.voice) {
+        line.voiceConsentStatus = "provider_preset";
+        line.voiceSource = `${metadata.model}:${metadata.voice}`;
+        await db.update(dialogueLines).set({
+          voiceConsentStatus: "provider_preset",
+          voiceSource: line.voiceSource,
+          updatedAt: new Date().toISOString(),
+        }).where(eq(dialogueLines.id, line.id));
+      }
+    }
+
     return c.json({ dialogue_lines: lines });
   } catch (err: any) {
     console.error("[Dialogue List Error]:", err);
