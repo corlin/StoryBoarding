@@ -185,7 +185,8 @@ test('theater review loads and plays the current assembled preview', () => {
 });
 test('active video jobs are reconciled with the provider automatically', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/components/workspace/kanban/ProductionKanbanView.tsx'), 'utf8');
-  assert.match(source, /Promise\.allSettled\(activeJobs\.map\(\(job\) => api\.pollVideo\(job\.id\)\)\)/);
+  assert.match(source, /api\.getProjectVideoJobs\(projectId\)/);
+  assert.match(source, /Promise\.allSettled\(activeProjectJobs\.map\(\(job\) => api\.pollVideo\(job\.id\)\)\)/);
 });
 test('generated TTS duration is measured and saved back to the dialogue timeline', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/components/workspace/kanban/ProductionKanbanView.tsx'), 'utf8');
@@ -335,6 +336,7 @@ test('video provider contracts keep H3 native AV and Seedance distinct from lega
   const {
     VIDEO_MODEL_CAPABILITIES,
     buildVideoProviderRequest,
+    composeVideoGenerationPrompt,
     parseVideoProviderPoll,
     recommendedShotAudioWorkflow,
     resolveVideoProviderConfig,
@@ -343,8 +345,8 @@ test('video provider contracts keep H3 native AV and Seedance distinct from lega
   const h3 = resolveVideoProviderConfig('minimax', 'https://api.minimax.cn/v1', 'MiniMax-H3');
   assert.equal(h3.model, 'MiniMax-H3');
   assert.equal(h3.protocol, 'minimax_v2');
-  assert.equal(h3.submitUrl, 'https://api.minimaxi.com/v2/video_generation');
-  assert.equal(h3.queryUrl('task-h3'), 'https://api.minimaxi.com/v2/query/video_generation/task-h3');
+  assert.equal(h3.submitUrl, 'https://api.minimax.cn/v2/video_generation');
+  assert.equal(h3.queryUrl('task-h3'), 'https://api.minimax.cn/v2/query/video_generation/task-h3');
   assert.equal(VIDEO_MODEL_CAPABILITIES['MiniMax-H3'].nativeAudio, true);
   assert.equal(VIDEO_MODEL_CAPABILITIES['MiniMax-H3'].audioReference, true);
   assert.deepEqual(recommendedShotAudioWorkflow('林夏：门开了。'), {
@@ -353,6 +355,42 @@ test('video provider contracts keep H3 native AV and Seedance distinct from lega
   assert.deepEqual(recommendedShotAudioWorkflow('旁白：雨一直下。'), {
     audioStrategy: 'post_dub', lipSyncStatus: 'not_applicable',
   });
+
+  const compiled = composeVideoGenerationPrompt?.({
+    basePrompt: '雨夜客厅，女主角慢慢推近。',
+    h3Prompt: '',
+    audioStrategy: 'native_av',
+    legacyDialogue: '林夏：门已经开了。',
+    dialogueLines: [{ speaker: '林夏', text: '门已经开了。', language: 'zh-CN', performance: '低声、警惕' }],
+  });
+  assert.equal(compiled?.speechExpected, true);
+  assert.equal(compiled?.dialogueInPrompt, true);
+  assert.equal(compiled?.promptSource, 'video_prompt+dialogue_lines');
+  assert.match(compiled?.prompt || '', /林夏/);
+  assert.match(compiled?.prompt || '', /<d>\[Chinese\] 门已经开了。<\/d>/);
+  assert.match(compiled?.prompt || '', /低声、警惕/);
+
+  const noRepeatedSpeaker = composeVideoGenerationPrompt({
+    basePrompt: '推近', h3Prompt: 'H3 分镜指令 林夏说：<d>[Chinese] 旧台词</d>', audioStrategy: 'native_av', legacyDialogue: '',
+    dialogueLines: [{ speaker: '林夏', text: '林夏：“门开了。”', language: 'zh-CN' }],
+  });
+  assert.equal(noRepeatedSpeaker.promptSource, 'h3_prompt+dialogue_lines');
+  assert.match(noRepeatedSpeaker.prompt, /^H3 分镜指令/);
+  assert.match(noRepeatedSpeaker.prompt, /<d>\[Chinese\] 门开了。<\/d>/);
+  assert.doesNotMatch(noRepeatedSpeaker.prompt, /<d>\[Chinese\] 林夏：/);
+  assert.equal((noRepeatedSpeaker.prompt.match(/<d>/g) || []).length, 1);
+  assert.doesNotMatch(noRepeatedSpeaker.prompt, /旧台词/);
+
+  assert.equal(composeVideoGenerationPrompt({
+    basePrompt: '推近', audioStrategy: 'native_av', legacyDialogue: '没有标注说话人的台词', dialogueLines: [],
+  }).unresolvedSpeakerCount, 1);
+
+  const postDub = composeVideoGenerationPrompt?.({
+    basePrompt: '客厅推近', h3Prompt: '', audioStrategy: 'post_dub',
+    legacyDialogue: '旁白：雨一直下。', dialogueLines: [],
+  });
+  assert.equal(postDub?.speechExpected, false);
+  assert.match(postDub?.prompt || '', /不生成人声对白/);
 
   const h3Request = buildVideoProviderRequest(h3, {
     prompt: '林夏说：门已经开了。',
@@ -428,10 +466,11 @@ test('video provider contracts keep H3 native AV and Seedance distinct from lega
   }), /缺少可验证的时长/);
 
   assert.deepEqual(parseVideoProviderPoll(h3, {
-    task: { status: 'succeeded', content: { url: 'https://assets.example/h3.mp4' }, duration: 7, resolution: '768P', ratio: '9:16' },
+    task: { status: 'succeeded', content: { url: 'https://assets.example/h3.mp4' }, duration: 7, resolution: '768P', ratio: '9:16', usage: { total_tokens: 11, video_seconds: 7 } },
   }), {
     status: 'succeeded', videoUrl: 'https://assets.example/h3.mp4', fileId: '', error: '',
     duration: 7, resolution: '768P', ratio: '9:16', rawStatus: 'succeeded',
+    usage: { total_tokens: 11, video_seconds: 7 },
   });
   assert.deepEqual(parseVideoProviderPoll(seedance, { status: 'expired' }).status, 'failed');
   assert.match(parseVideoProviderPoll(seedance, { status: 'expired' }).error, /已过期/);

@@ -624,4 +624,9 @@ export const api = {
     const { data } = await apiClient.get("/generate/video/jobs", { params: { shot_id: shotId } });
     return data;
   },
+
+  async getProjectVideoJobs(projectId: string): Promise<{ jobs: any[]; count: number }> {
+    const { data } = await apiClient.get("/generate/video/jobs", { params: { project_id: projectId } });
+    return data;
+  },
 };

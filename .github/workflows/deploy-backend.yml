@@ -41,6 +41,10 @@ jobs:
         working-directory: backend
         run: npx tsc --noEmit
 
+      - name: Run Backend Tests
+        working-directory: backend
+        run: npm test
+
       - name: Auto-Provision D1 & R2 on US East and Inject D1 UUID
         working-directory: backend
         run: |

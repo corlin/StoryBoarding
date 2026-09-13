@@ -101,7 +101,7 @@ router.get("/kanban", async (c) => {
       let status = "待生成";
       if (failedJobs.length > 0 && !adoptedTake) status = "失败";
       else if (shotJobs.some((j: any) => j.status === "processing" || j.status === "submitted")) status = "生成中";
-      else if (pendingTakes.length > 0 && !adoptedTake) status = "待审";
+      else if (pendingTakes.length > 0) status = "待审";
       else if (visualTakes.some((t: any) => t.reviewStatus === "rejected") && !adoptedTake) status = "退回";
       else if (adoptedTake) status = "已采用";
 
@@ -578,7 +578,7 @@ router.post("/dialogue", async (c) => {
       if (order_index !== undefined) updateData.orderIndex = order_index;
 
       await db.update(dialogueLines).set(updateData).where(eq(dialogueLines.id, id));
-      if (is_voiceover !== undefined && (shot_id || existing.shotId)) {
+      if ([speaker, text, performance, emotion, is_voiceover].some((value) => value !== undefined) && (shot_id || existing.shotId)) {
         await refreshShotLipSyncFromDialogue(db, shot_id || existing.shotId);
       }
       return c.json({ status: "success", dialogue_id: id, action: "updated" });

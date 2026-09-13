@@ -9,6 +9,7 @@ import {
   AUDIO_STRATEGIES,
   type AudioStrategy,
   buildVideoProviderRequest,
+  composeVideoGenerationPrompt,
   parseVideoProviderPoll,
   resolveVideoProviderConfig,
   lipSyncStatusForStrategy,
@@ -86,12 +87,6 @@ router.post("/video/:shotId", async (c) => {
       }, 400);
     }
 
-    // Build video prompt
-    const videoPrompt = (shot as any).videoPrompt || shot.action || shot.dialogue || "";
-    if (!videoPrompt.trim()) {
-      return c.json({ detail: "该镜头缺少视频提示词或动作描述" }, 400);
-    }
-
     // Determine aspect ratio from project
     const aspectRatio = project.aspectRatio === "16:9" ? "16:9" : "9:16";
     const providerConfig = resolveVideoProviderConfig(
@@ -107,9 +102,65 @@ router.post("/video/:shotId", async (c) => {
     const firstFrameReference = firstFrameImage.startsWith("data:image/") ? "inline_data_url" : firstFrameImage;
     const shotDialogueLines = await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, shotId))
       .orderBy(dialogueLines.orderIndex).all();
+    const compiledPrompt = composeVideoGenerationPrompt({
+      basePrompt: (shot as any).videoPrompt || shot.action || "",
+      h3Prompt: providerConfig.model.startsWith("MiniMax-H3") ? (shot as any).h3Prompt || "" : "",
+      audioStrategy: configuredStrategy,
+      legacyDialogue: shot.dialogue || "",
+      dialogueLines: shotDialogueLines,
+    });
+    if (!compiledPrompt.prompt.trim()) {
+      return c.json({ detail: "该镜头缺少视频提示词、动作描述或对白" }, 400);
+    }
+    if (compiledPrompt.unresolvedSpeakerCount > 0) {
+      return c.json({
+        detail: "可见对白缺少明确说话人，请先在台词时间线确认说话人",
+        error_code: "DIALOGUE_SPEAKER_REQUIRED",
+        unresolved_count: compiledPrompt.unresolvedSpeakerCount,
+      }, 409);
+    }
     const adoptedAudioLines = shotDialogueLines.filter((line: any) => line.audioVersion && line.audioUrl);
-    if (configuredStrategy === "reference_audio_av" || configuredStrategy === "performance_lipsync") {
-      const unverifiedVoiceLines = adoptedAudioLines.filter((line: any) =>
+    const strategyUsesReferenceAudio = configuredStrategy === "reference_audio_av" || configuredStrategy === "performance_lipsync";
+    const referenceAudioLines = strategyUsesReferenceAudio ? adoptedAudioLines : [];
+    const referenceTakeIds = referenceAudioLines.map((line: any) => line.audioVersion).filter(Boolean);
+    const referenceTakes = referenceTakeIds.length > 0
+      ? await db.select().from(takes).where(inArray(takes.id, referenceTakeIds)).all()
+      : [];
+    const referenceTakeById = new Map(referenceTakes.map((take: any) => [take.id, take]));
+    const referenceMetadataById = new Map<string, Record<string, any>>();
+    for (const take of referenceTakes as any[]) {
+      let metadata: Record<string, any> = {};
+      try { metadata = JSON.parse(take.metadata || "{}"); } catch { metadata = {}; }
+      if ((!metadata.size || !metadata.type) && take.mediaUrl?.startsWith("/api/assets/") && c.env.STORAGE) {
+        const key = take.mediaUrl.slice("/api/assets/".length);
+        const object = await c.env.STORAGE.head(key);
+        if (object) {
+          metadata = {
+            ...metadata,
+            size: metadata.size || object.size,
+            type: metadata.type || object.httpMetadata?.contentType || "audio/mpeg",
+          };
+          await db.update(takes).set({ metadata: JSON.stringify(metadata), updatedAt: new Date().toISOString() })
+            .where(eq(takes.id, take.id));
+        }
+      }
+      referenceMetadataById.set(take.id, metadata);
+    }
+    for (const line of referenceAudioLines as any[]) {
+      const take: any = referenceTakeById.get(line.audioVersion);
+      const metadata = referenceMetadataById.get(line.audioVersion) || {};
+      if (line.voiceConsentStatus === "unverified" && take?.source === "ai_generated" && metadata.voice && metadata.model) {
+        line.voiceConsentStatus = "provider_preset";
+        line.voiceSource = `${metadata.model}:${metadata.voice}`;
+        await db.update(dialogueLines).set({
+          voiceConsentStatus: "provider_preset",
+          voiceSource: line.voiceSource,
+          updatedAt: new Date().toISOString(),
+        }).where(eq(dialogueLines.id, line.id));
+      }
+    }
+    if (strategyUsesReferenceAudio) {
+      const unverifiedVoiceLines = referenceAudioLines.filter((line: any) =>
         !["self", "licensed", "provider_preset"].includes(line.voiceConsentStatus || "unverified"));
       if (unverifiedVoiceLines.length > 0) {
         return c.json({
@@ -118,7 +169,7 @@ router.post("/video/:shotId", async (c) => {
           dialogue_ids: unverifiedVoiceLines.map((line: any) => line.id),
         }, 409);
       }
-      const missingVoiceSourceLines = adoptedAudioLines.filter((line: any) =>
+      const missingVoiceSourceLines = referenceAudioLines.filter((line: any) =>
         line.voiceConsentStatus !== "provider_preset" && !(line.voiceSource || "").trim());
       if (missingVoiceSourceLines.length > 0) {
         return c.json({
@@ -128,13 +179,6 @@ router.post("/video/:shotId", async (c) => {
         }, 409);
       }
     }
-    const strategyUsesReferenceAudio = configuredStrategy === "reference_audio_av" || configuredStrategy === "performance_lipsync";
-    const referenceAudioLines = strategyUsesReferenceAudio ? adoptedAudioLines : [];
-    const referenceTakeIds = referenceAudioLines.map((line: any) => line.audioVersion).filter(Boolean);
-    const referenceTakes = referenceTakeIds.length > 0
-      ? await db.select().from(takes).where(inArray(takes.id, referenceTakeIds)).all()
-      : [];
-    const referenceTakeById = new Map(referenceTakes.map((take: any) => [take.id, take]));
     const invalidReferenceLines = referenceAudioLines.filter((line: any) => {
       const take: any = referenceTakeById.get(line.audioVersion);
       return !take || take.projectId !== projectId || take.shotId !== shotId || take.takeType !== "audio" ||
@@ -153,19 +197,15 @@ router.post("/video/:shotId", async (c) => {
     let providerRequest;
     try {
       providerRequest = buildVideoProviderRequest(providerConfig, {
-        prompt: videoPrompt,
+        prompt: compiledPrompt.prompt,
         aspectRatio,
         duration: shot.duration || providerConfig.capability.minDuration,
         firstFrameImage,
         audioStrategy: configuredStrategy,
         referenceAudioUrls,
         referenceAudioDurations: referenceAudioLines.map((line: any) => Number(line.actualDuration || line.plannedDuration || 0)),
-        referenceAudioSizes: referenceAudioLines.map((line: any) => {
-          try { return Number(JSON.parse(referenceTakeById.get(line.audioVersion)?.metadata || "{}").size || 0); } catch { return 0; }
-        }),
-        referenceAudioMimeTypes: referenceAudioLines.map((line: any) => {
-          try { return String(JSON.parse(referenceTakeById.get(line.audioVersion)?.metadata || "{}").type || ""); } catch { return ""; }
-        }),
+        referenceAudioSizes: referenceAudioLines.map((line: any) => Number(referenceMetadataById.get(line.audioVersion)?.size || 0)),
+        referenceAudioMimeTypes: referenceAudioLines.map((line: any) => String(referenceMetadataById.get(line.audioVersion)?.type || "")),
       });
     } catch (requestError: any) {
       return c.json({
@@ -198,6 +238,13 @@ router.post("/video/:shotId", async (c) => {
       provider_base_url: providerConfig.baseUrl,
       audio_strategy: configuredStrategy,
       native_audio: providerConfig.capability.nativeAudio && configuredStrategy !== "post_dub" && configuredStrategy !== "silent_broll",
+      audio_track_expected: providerConfig.capability.nativeAudio && configuredStrategy !== "post_dub" && configuredStrategy !== "silent_broll",
+      speech_expected: compiledPrompt.speechExpected,
+      dialogue_in_prompt: compiledPrompt.dialogueInPrompt,
+      dialogue_verification_status: compiledPrompt.speechExpected ? "pending" : "not_applicable",
+      dialogue_snapshot: compiledPrompt.dialogueSnapshot,
+      prompt_source: compiledPrompt.promptSource,
+      provider_prompt: compiledPrompt.prompt.substring(0, 7000),
       reference_audio_take_ids: referenceAudioLines.map((line: any) => line.audioVersion),
       generation_mode: generationMode,
       first_frame_image_url: firstFrameReference,
@@ -222,7 +269,7 @@ router.post("/video/:shotId", async (c) => {
       shotId,
       providerConfig.provider,
       providerConfig.model,
-      videoPrompt.substring(0, 500),
+      compiledPrompt.prompt.substring(0, 500),
       firstFrameReference,
       parameters,
       now,
@@ -317,6 +364,9 @@ router.post("/video/:shotId", async (c) => {
       generation_mode: generationMode,
       audio_strategy: configuredStrategy,
       native_audio: providerConfig.capability.nativeAudio && configuredStrategy !== "post_dub" && configuredStrategy !== "silent_broll",
+      speech_expected: compiledPrompt.speechExpected,
+      dialogue_in_prompt: compiledPrompt.dialogueInPrompt,
+      prompt_source: compiledPrompt.promptSource,
       reference_audio_count: referenceAudioUrls.length,
       message: generationMode === "reference_to_video"
         ? "参考音频驱动的视频任务已提交；生成后仍需人工验收口型"
@@ -367,6 +417,7 @@ router.post("/poll", async (c) => {
         failure_reason: job.failureReason,
         video_url: job.resultUrl,
         take_id: metadata.take_id,
+        usage: metadata.usage || null,
       });
     }
 
@@ -430,6 +481,7 @@ router.post("/poll", async (c) => {
 
     // Update job status
     const updateData: any = { status: newStatus, updatedAt: new Date().toISOString() };
+    if (pollResult.usage) updateData.costUnit = "provider_usage_unpriced";
 
     if (newStatus === "succeeded" && videoUrl) {
       updateData.completedAt = new Date().toISOString();
@@ -482,6 +534,13 @@ router.post("/poll", async (c) => {
           generation_mode: parameters.generation_mode || "text_to_video",
           audio_strategy: parameters.audio_strategy || "native_av",
           native_audio: Boolean(parameters.native_audio),
+          audio_track_expected: Boolean(parameters.audio_track_expected ?? parameters.native_audio),
+          audio_track_status: (parameters.audio_track_expected ?? parameters.native_audio) ? "unverified" : "not_expected",
+          speech_expected: Boolean(parameters.speech_expected),
+          dialogue_in_prompt: Boolean(parameters.dialogue_in_prompt),
+          dialogue_verification_status: parameters.speech_expected ? "pending" : "not_applicable",
+          dialogue_snapshot: parameters.dialogue_snapshot || [],
+          prompt_source: parameters.prompt_source || "legacy_unknown",
           lip_sync_status: lipSyncStatusForStrategy(
             (parameters.audio_strategy || "native_av") as AudioStrategy,
             dialogueText,
@@ -497,7 +556,7 @@ router.post("/poll", async (c) => {
       const persistedTake = await db.select().from(takes).where(eq(takes.id, takeId)).get();
       updateData.resultUrl = persistedTake?.mediaUrl || finalUrl;
 
-      updateData.resultMetadata = JSON.stringify({ take_id: takeId });
+      updateData.resultMetadata = JSON.stringify({ take_id: takeId, usage: pollResult.usage || null });
     } else if (newStatus === "failed") {
       updateData.completedAt = new Date().toISOString();
       updateData.failureReason = errorMsg || "供应商返回失败状态";
@@ -512,6 +571,7 @@ router.post("/poll", async (c) => {
       video_url: newStatus === "succeeded" ? (updateData.resultUrl || videoUrl || "") : (videoUrl || ""),
       failure_reason: newStatus === "failed" ? (errorMsg || job.failureReason) : "",
       take_id: newStatus === "succeeded" ? JSON.parse(updateData.resultMetadata || "{}").take_id : undefined,
+      usage: pollResult.usage || null,
     });
   } catch (err: any) {
     console.error("[Video Poll Error]:", err);
@@ -531,15 +591,25 @@ router.get("/video/jobs", async (c) => {
   const db = getDb(c.env.DB);
 
   const shotId = c.req.query("shot_id");
-  if (!shotId) return c.json({ detail: "shot_id required" }, 400);
+  const projectId = c.req.query("project_id");
+  if (!shotId && !projectId) return c.json({ detail: "shot_id or project_id required" }, 400);
 
-  const context = await loadOwnedShotContext(db, shotId, authUser.userId);
-  if ("error" in context) return c.json({ detail: context.error }, context.status);
-
-  const jobs = await db.select().from(generationJobs)
-    .where(eq(generationJobs.shotId, shotId))
-    .orderBy(desc(generationJobs.createdAt))
-    .all();
+  let jobs;
+  if (shotId) {
+    const context = await loadOwnedShotContext(db, shotId, authUser.userId);
+    if ("error" in context) return c.json({ detail: context.error }, context.status);
+    jobs = await db.select().from(generationJobs)
+      .where(eq(generationJobs.shotId, shotId))
+      .orderBy(desc(generationJobs.createdAt))
+      .all();
+  } else {
+    const project = await db.select().from(projects).where(eq(projects.id, projectId!)).get();
+    if (!project || project.userId !== authUser.userId) return c.json({ detail: "无权访问该工程" }, 403);
+    jobs = await db.select().from(generationJobs)
+      .where(eq(generationJobs.projectId, projectId!))
+      .orderBy(desc(generationJobs.createdAt))
+      .all();
+  }
 
   const videoJobs = jobs.filter((j: any) => j.jobType === "video");
   return c.json({ jobs: videoJobs, count: videoJobs.length });

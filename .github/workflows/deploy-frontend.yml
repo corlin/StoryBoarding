@@ -34,6 +34,10 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Run Frontend Tests
+        working-directory: frontend
+        run: npm test
+
       - name: Build Next.js Static Export
         working-directory: frontend
         env:

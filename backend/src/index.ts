@@ -46,7 +46,7 @@ app.get("/api/health", (c) => {
     framework: "hono",
     database: "cloudflare-d1",
     storage: "cloudflare-r2",
-    version: "2.3.0",
+    version: "2.3.1",
   });
 });
 

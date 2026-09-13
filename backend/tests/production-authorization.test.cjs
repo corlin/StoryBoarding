@@ -53,3 +53,9 @@ test('sequence references are authorized and constrained to the requested projec
   }
   assert.match(routeBody('post', '/dialogue'), /shotAccess\.sequence\.id !== sequence_id/);
 });
+
+test('dialogue text, speaker, performance, and voiceover edits all refresh lip-sync readiness', () => {
+  const body = routeBody('post', '/dialogue');
+  assert.match(body, /\[speaker, text, performance, emotion, is_voiceover\]\.some/);
+  assert.match(body, /refreshShotLipSyncFromDialogue/);
+});

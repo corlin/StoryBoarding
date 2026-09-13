@@ -19,11 +19,37 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "v2.3.1",
+    title: "对白生成链路修复",
+    date: "2026-09-14",
+    badge: "最新版本",
+    isLatest: true,
+    summary: "修复视频有画面却没有对白的问题，并补齐任务、验收与费用记录。",
+    changeGroups: [
+      {
+        type: "fix",
+        label: "🎙️ 对白与音轨",
+        items: [
+          { title: "对白写入视频请求", description: "视觉提示、H3 指令和逐字台词合并提交；说话人不明确时会先阻止生成。" },
+          { title: "音轨状态不再误报", description: "区分“预计有音轨”和“对白已验收”，成片前仍需确认对白与口型。" },
+          { title: "旧配音可继续使用", description: "自动补齐旧 TTS 的授权来源和文件信息，避免参考音频被误拦截。" },
+        ],
+      },
+      {
+        type: "improvement",
+        label: "🔎 任务可追溯",
+        items: [
+          { title: "显示实际提交内容", description: "任务中可查看实际提示词、对白写入状态和供应商用量。" },
+          { title: "全工程自动刷新", description: "切换镜头后，其他镜头的生成任务也会继续刷新。" },
+        ],
+      },
+    ],
+  },
+  {
     version: "v2.3.0",
     title: "原生音视频与口型验收",
     date: "2026-09-13",
-    badge: "最新版本",
-    isLatest: true,
+    isLatest: false,
     summary: "H3 与 Seedance 走真实协议；按镜头选择原生音频、参考音频或后期配音，成片合并前必须完成口型验收。",
     changeGroups: [
       {

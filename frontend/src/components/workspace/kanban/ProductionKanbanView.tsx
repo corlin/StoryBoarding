@@ -74,6 +74,8 @@ interface VideoJob {
   failureReason: string;
   costAmount: number | null;
   costCurrency: string;
+  parameters?: string;
+  resultMetadata?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -150,6 +152,10 @@ function takeMetadata(take: Take): Record<string, any> {
   } catch {
     return {};
   }
+}
+
+function jsonMetadata(value: string | undefined): Record<string, any> {
+  try { return JSON.parse(value || "{}"); } catch { return {}; }
 }
 
 interface ProductionTakeCardProps {
@@ -229,7 +235,10 @@ function ProductionTakeCard({
               </span>
             )}
             {take.take_type === "video" && takeMetadata(take).native_audio && (
-              <span className="rounded bg-cyan-700 px-1.5 py-0.5 text-[10px] font-bold text-white">原生音轨</span>
+              <span className="rounded bg-cyan-700 px-1.5 py-0.5 text-[10px] font-bold text-white">原生音轨（内容待验）</span>
+            )}
+            {take.take_type === "video" && takeMetadata(take).speech_expected && takeMetadata(take).dialogue_verification_status !== "verified" && (
+              <span className="rounded bg-amber-700 px-1.5 py-0.5 text-[10px] font-bold text-white">对白待验</span>
             )}
             {take.take_type === "video" && takeMetadata(take).audio_strategy === "reference_audio_av" && (
               <span className="rounded bg-blue-700 px-1.5 py-0.5 text-[10px] font-bold text-white">参考音频驱动</span>
@@ -320,6 +329,7 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
   const [selectedShot, setSelectedShot] = useState<KanbanShot | null>(null);
   const [takes, setTakes] = useState<Take[]>([]);
   const [videoJobs, setVideoJobs] = useState<VideoJob[]>([]);
+  const [projectVideoJobs, setProjectVideoJobs] = useState<VideoJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [takesLoading, setTakesLoading] = useState(false);
   const [generatingVideo, setGeneratingVideo] = useState(false);
@@ -376,6 +386,16 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
       showToast(`任务加载失败: ${e?.response?.data?.detail || e.message}`, "error");
     }
   }, []);
+
+  const loadProjectVideoJobs = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const res = await api.getProjectVideoJobs(projectId);
+      setProjectVideoJobs(res.jobs || []);
+    } catch (e: any) {
+      console.warn("Project video jobs load failed:", e?.message);
+    }
+  }, [projectId]);
 
   // P0-4: Dialogue & timeline state
   const [activeRightTab, setActiveRightTab] = useState<"takes" | "dialogue">("takes");
@@ -841,9 +861,10 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
       loadCosts();
       loadEditVersions();
       loadTtsConfig();
+      loadProjectVideoJobs();
       setTtsVoiceOverrides({});
     }
-  }, [projectId, loadKanban, loadCosts, loadEditVersions, loadTtsConfig]);
+  }, [projectId, loadKanban, loadCosts, loadEditVersions, loadTtsConfig, loadProjectVideoJobs]);
 
   useEffect(() => {
     if (selectedShot) {
@@ -858,20 +879,33 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
   }, [selectedShot, loadTakes, loadVideoJobs, loadDialogue]);
 
   useEffect(() => {
-    if (!selectedShot) return;
-    const activeJobs = videoJobs.filter((job) => job.status === "submitted" || job.status === "processing");
-    if (!activeJobs.length) return;
+    const activeProjectJobs = projectVideoJobs.filter((job) => job.status === "submitted" || job.status === "processing");
+    if (!activeProjectJobs.length) return;
     const reconcile = async () => {
-      await Promise.allSettled(activeJobs.map((job) => api.pollVideo(job.id)));
-      await Promise.all([loadVideoJobs(selectedShot.shot_id), loadTakes(selectedShot.shot_id)]);
-      loadKanban();
+      await Promise.allSettled(activeProjectJobs.map((job) => api.pollVideo(job.id)));
+      await Promise.all([
+        loadProjectVideoJobs(),
+        loadKanban(),
+        loadCosts(),
+        ...(selectedShot ? [loadVideoJobs(selectedShot.shot_id), loadTakes(selectedShot.shot_id)] : []),
+      ]);
     };
     const timer = window.setInterval(reconcile, 8000);
     return () => window.clearInterval(timer);
-  }, [selectedShot, videoJobs, loadVideoJobs, loadTakes, loadKanban]);
+  }, [selectedShot, projectVideoJobs, loadProjectVideoJobs, loadVideoJobs, loadTakes, loadKanban, loadCosts]);
 
   const handleGenerateVideo = async () => {
     if (!selectedShot) return;
+    const providerSpeechExpected = ["native_av", "reference_audio_av", "performance_lipsync"].includes(selectedShot.audio_strategy);
+    const visibleDialogueLines = dialogueLines.filter((line) =>
+      String(line.text || "").trim() && !(line.is_voiceover ?? line.isVoiceover ?? false));
+    const unresolvedDialogueLines = visibleDialogueLines.filter((line) =>
+      !String(line.speaker || "").trim() || String(line.speaker || "").includes("待确认"));
+    if (providerSpeechExpected && unresolvedDialogueLines.length > 0) {
+      showToast("请先在台词时间线确认说话人，再生成带对白的视频", "error");
+      setActiveRightTab("dialogue");
+      return;
+    }
     const estimate = planVideoGeneration(projectAspectRatio, selectedShot.has_image, selectedShot.duration, ttsConfig.videoModel);
     const strategyLabels: Record<KanbanShot["audio_strategy"], string> = {
       native_av: "模型原生音视频",
@@ -888,10 +922,16 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
     const aspectWarning = estimate.requiresLandscapeFallbackConfirmation
       ? "\n\n⚠ 当前是 9:16 工程，但该镜头没有首帧。MiniMax 文生视频不接受画幅参数，可能返回横屏。建议取消并先生成或上传 9:16 分镜图。"
       : "";
+    const dialoguePreview = providerSpeechExpected && visibleDialogueLines.length > 0
+      ? `\n对白（将逐字写入模型请求）：\n${visibleDialogueLines.map((line) => `- ${line.speaker}：${line.text}`).join("\n")}`
+      : selectedShot.audio_strategy === "post_dub"
+        ? "\n本次不让视频模型说台词；采用后由外部配音与字幕合成。"
+        : "";
     const confirmed = window.confirm(
       `将调用 ${ttsConfig.videoModel || ttsConfig.videoProvider} 生成 ${productionShotLabel(selectedShot)}。\n` +
       `音频策略：${strategyLabels[selectedShot.audio_strategy]}。\n` +
       `${modeDescription}\n请求时长：${estimate.billableDuration}s。分辨率与扣费取决于当前模型及供应商账单。` +
+      dialoguePreview +
       aspectWarning +
       "\n\n确认提交付费任务？"
     );
@@ -903,6 +943,7 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
       });
       showToast(result.status === "existing" ? result.message : "视频任务已提交");
       await loadVideoJobs(selectedShot.shot_id);
+      loadProjectVideoJobs();
       loadKanban();
       loadCosts();
     } catch (e: any) {
@@ -1329,6 +1370,8 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
                     <div className="text-xs font-medium text-gray-300">视频生成任务</div>
                     {videoJobs.map((job) => {
                       const active = job.status === "submitted" || job.status === "processing";
+                      const parameters = jsonMetadata(job.parameters);
+                      const resultMetadata = jsonMetadata(job.resultMetadata);
                       return (
                         <div key={job.id} className="flex items-start justify-between gap-3 rounded border border-[#30363d] bg-[#0d1117] p-2">
                           <div className="min-w-0 text-[10px] text-gray-500">
@@ -1340,6 +1383,18 @@ export default function ProductionKanbanView({ projectId, projectTitle, onBackTo
                               <p className="text-amber-500">费用待账单回填</p>
                             )}
                             {job.failureReason && <p className="text-red-400">{job.failureReason}</p>}
+                            {parameters.speech_expected && (
+                              <p className={parameters.dialogue_in_prompt ? "text-green-500" : "text-red-400"}>
+                                {parameters.dialogue_in_prompt ? "对白已写入模型请求 · 生成后待验收" : "对白未写入模型请求"}
+                              </p>
+                            )}
+                            {resultMetadata.usage && <p>供应商用量：{JSON.stringify(resultMetadata.usage)}</p>}
+                            {parameters.provider_prompt && (
+                              <details className="mt-1 max-w-xl">
+                                <summary className="cursor-pointer text-gray-400">查看实际提交提示词</summary>
+                                <pre className="mt-1 max-h-36 overflow-auto whitespace-pre-wrap rounded bg-black/30 p-2 text-[9px] text-gray-400">{parameters.provider_prompt}</pre>
+                              </details>
+                            )}
                           </div>
                           {active && (
                             <button

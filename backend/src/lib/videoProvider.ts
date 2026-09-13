@@ -191,6 +191,115 @@ export function recommendedShotAudioWorkflow(dialogue: string, isVoiceover = fal
   };
 }
 
+export interface DialoguePromptLine {
+  speaker?: string;
+  text?: string;
+  performance?: string;
+  emotion?: string;
+  language?: string;
+  isVoiceover?: boolean;
+}
+
+export interface VideoPromptInput {
+  basePrompt: string;
+  h3Prompt?: string;
+  audioStrategy: AudioStrategy;
+  legacyDialogue?: string;
+  dialogueLines?: DialoguePromptLine[];
+}
+
+function languageTag(language = "zh-CN") {
+  const normalized = language.trim().toLowerCase();
+  if (normalized.startsWith("en")) return "English";
+  if (normalized.startsWith("ja")) return "Japanese";
+  if (normalized.startsWith("ko")) return "Korean";
+  if (normalized.startsWith("es")) return "Spanish";
+  if (normalized.startsWith("fr")) return "French";
+  if (normalized.startsWith("de")) return "German";
+  if (normalized.startsWith("it")) return "Italian";
+  if (normalized.startsWith("pt")) return "Portuguese";
+  if (normalized.startsWith("ru")) return "Russian";
+  if (normalized.startsWith("ar")) return "Arabic";
+  return "Chinese";
+}
+
+function dialogueFromLegacy(value: string): DialoguePromptLine[] {
+  return (value || "").split(/\n+/).map((raw) => raw.trim()).filter(Boolean).map((raw) => {
+    const match = raw.match(/^([^\n：:]{1,40})(?:（[^\uff09]*\uff09|\([^)]*\))?\s*[：:]\s*[“\"]?([\s\S]*?)[”\"]?$/);
+    const speaker = match?.[1]?.trim() || "";
+    const text = (match?.[2] || raw).trim();
+    return {
+      speaker,
+      text,
+      language: "zh-CN",
+      isVoiceover: /^(旁白|画外音|内心|narrator|voice[- ]?over)$/i.test(speaker),
+    };
+  });
+}
+
+function spokenDialogueText(text: string, speaker: string) {
+  const value = text.trim();
+  if (!speaker) return value.replace(/^[“\"]|[”\"]$/g, "").trim();
+  const escaped = speaker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return value
+    .replace(new RegExp(`^${escaped}(?:（[^\uff09]*\uff09|\\([^)]*\\))?\\s*[：:]\\s*`), "")
+    .replace(/^[“\"]|[”\"]$/g, "")
+    .trim();
+}
+
+/** Build the immutable provider prompt from visual direction plus canonical dialogue. */
+export function composeVideoGenerationPrompt(input: VideoPromptInput) {
+  const persistedLines = (input.dialogueLines || []).filter((line) => String(line.text || "").trim());
+  const dialogueSnapshot = persistedLines.length > 0
+    ? persistedLines.map((line) => ({
+        speaker: String(line.speaker || "").trim(),
+        text: spokenDialogueText(String(line.text || ""), String(line.speaker || "").trim()),
+        performance: String(line.performance || line.emotion || "").trim(),
+        language: String(line.language || "zh-CN").trim(),
+        isVoiceover: Boolean(line.isVoiceover),
+      }))
+    : dialogueFromLegacy(input.legacyDialogue || "");
+  const providerSpeechExpected = !["post_dub", "silent_broll"].includes(input.audioStrategy) &&
+    dialogueSnapshot.some((line) => !line.isVoiceover && line.text);
+  const unresolvedSpeakerCount = providerSpeechExpected
+    ? dialogueSnapshot.filter((line) => !line.isVoiceover && !line.speaker).length
+    : 0;
+  // A saved H3 prompt may contain an older dialogue snapshot. Replace embedded
+  // dialogue tags so the canonical list appended below is the only spoken text.
+  const visualPrompt = String(input.h3Prompt || input.basePrompt || "")
+    .replace(/<d>\[[^\]]+\][\s\S]*?<\/d>/gi, "[对白见文末唯一台词清单]")
+    .trim();
+  const promptSource = input.h3Prompt?.trim()
+    ? `h3_prompt${persistedLines.length ? "+dialogue_lines" : dialogueSnapshot.length ? "+shot_dialogue" : ""}`
+    : `video_prompt${persistedLines.length ? "+dialogue_lines" : dialogueSnapshot.length ? "+shot_dialogue" : ""}`;
+
+  let prompt = visualPrompt;
+  let dialogueInPrompt = false;
+  if (providerSpeechExpected) {
+    const spoken = dialogueSnapshot.filter((line) => !line.isVoiceover && line.text).map((line) => {
+      const performance = line.performance ? `，表演：${line.performance}` : "";
+      return `- 说话人：${line.speaker || "待确认说话者"}${performance}，台词：<d>[${languageTag(line.language)}] ${line.text}</d>`;
+    });
+    prompt = [
+      visualPrompt,
+      "对白要求：画面中的说话角色必须按下列内容逐字说出，不得省略、改写或增加台词，并保持自然口型同步。",
+      ...spoken,
+    ].filter(Boolean).join("\n");
+    dialogueInPrompt = spoken.length > 0;
+  } else if (["post_dub", "silent_broll"].includes(input.audioStrategy)) {
+    prompt = [visualPrompt, "本次只生成画面与环境声，不生成人声对白；台词由后期音轨合成。"].filter(Boolean).join("\n");
+  }
+
+  return {
+    prompt,
+    dialogueSnapshot,
+    speechExpected: providerSpeechExpected,
+    dialogueInPrompt,
+    unresolvedSpeakerCount,
+    promptSource,
+  };
+}
+
 export interface VideoGenerationInput {
   prompt: string;
   aspectRatio: "9:16" | "16:9" | string;
@@ -333,5 +442,6 @@ export function parseVideoProviderPoll(config: ResolvedVideoProviderConfig, payl
     resolution: task?.resolution || "",
     ratio: task?.ratio || "",
     rawStatus,
+    usage: task?.usage || payload?.usage || null,
   };
 }
