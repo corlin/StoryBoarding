@@ -15,6 +15,7 @@ export interface VideoModelCapability {
   provider: "minimax" | "byteplus";
   nativeAudio: boolean;
   audioReference: boolean;
+  audioOnlyReference: boolean;
   voiceReference: boolean;
   maxAudioRefs: number;
   minDuration: number;
@@ -30,6 +31,7 @@ export const VIDEO_MODEL_CAPABILITIES: Record<string, VideoModelCapability> = {
     provider: "minimax",
     nativeAudio: true,
     audioReference: true,
+    audioOnlyReference: true,
     voiceReference: true,
     maxAudioRefs: 3,
     minDuration: 4,
@@ -43,6 +45,7 @@ export const VIDEO_MODEL_CAPABILITIES: Record<string, VideoModelCapability> = {
     provider: "minimax",
     nativeAudio: true,
     audioReference: false,
+    audioOnlyReference: false,
     voiceReference: false,
     maxAudioRefs: 0,
     minDuration: 5,
@@ -56,6 +59,7 @@ export const VIDEO_MODEL_CAPABILITIES: Record<string, VideoModelCapability> = {
     provider: "minimax",
     nativeAudio: false,
     audioReference: false,
+    audioOnlyReference: false,
     voiceReference: false,
     maxAudioRefs: 0,
     minDuration: 6,
@@ -68,6 +72,7 @@ export const VIDEO_MODEL_CAPABILITIES: Record<string, VideoModelCapability> = {
     provider: "minimax",
     nativeAudio: false,
     audioReference: false,
+    audioOnlyReference: false,
     voiceReference: false,
     maxAudioRefs: 0,
     minDuration: 6,
@@ -80,6 +85,7 @@ export const VIDEO_MODEL_CAPABILITIES: Record<string, VideoModelCapability> = {
     provider: "byteplus",
     nativeAudio: true,
     audioReference: true,
+    audioOnlyReference: true,
     voiceReference: true,
     maxAudioRefs: 10,
     minDuration: 4,
@@ -92,6 +98,7 @@ export const VIDEO_MODEL_CAPABILITIES: Record<string, VideoModelCapability> = {
     provider: "byteplus",
     nativeAudio: true,
     audioReference: true,
+    audioOnlyReference: false,
     voiceReference: true,
     maxAudioRefs: 3,
     minDuration: 4,
@@ -135,8 +142,9 @@ export function resolveVideoProviderConfig(provider: string, apiBase: string, mo
   }
 
   if (resolvedProvider === "byteplus") {
-    const baseUrl = (apiBase || "https://operator.las.ap-southeast-1.bytepluses.com/api/v1")
+    const rawBaseUrl = (apiBase || "https://operator.las.ap-southeast-1.bytepluses.com")
       .trim().replace(/\/+$/, "").replace(/\/contents\/generations\/tasks$/i, "");
+    const baseUrl = /\/api\/v1$/i.test(rawBaseUrl) ? rawBaseUrl : `${rawBaseUrl}/api/v1`;
     const submitUrl = `${baseUrl}/contents/generations/tasks`;
     return {
       provider: resolvedProvider,
@@ -193,6 +201,9 @@ export interface VideoGenerationInput {
   firstFrameImage: string;
   audioStrategy: AudioStrategy;
   referenceAudioUrls: string[];
+  referenceAudioDurations?: number[];
+  referenceAudioSizes?: number[];
+  referenceAudioMimeTypes?: string[];
 }
 
 export function buildVideoProviderRequest(config: ResolvedVideoProviderConfig, input: VideoGenerationInput) {
@@ -209,6 +220,26 @@ export function buildVideoProviderRequest(config: ResolvedVideoProviderConfig, i
   if (requiresAudioReference && referenceAudioUrls.length === 0) {
     throw new Error("参考音频驱动需要先生成并采用至少一条对白音频");
   }
+  if (requiresAudioReference && !input.firstFrameImage && !config.capability.audioOnlyReference) {
+    throw new Error(`${config.model} 的参考音频不能单独输入，请同时提供参考图像或改用支持纯音频参考的模型`);
+  }
+  if (requiresAudioReference) {
+    const knownDurations = (input.referenceAudioDurations || []).filter((value) => Number.isFinite(value) && value > 0);
+    const invalidDuration = knownDurations.find((value) => value < 2 || value > config.capability.maxDuration);
+    if (invalidDuration !== undefined) {
+      throw new Error(`${config.model} 的单条参考音频须为 2–${config.capability.maxDuration} 秒`);
+    }
+    const totalDuration = knownDurations.reduce((sum, value) => sum + value, 0);
+    if (totalDuration > config.capability.maxDuration) {
+      throw new Error(`${config.model} 的参考音频总时长不能超过 ${config.capability.maxDuration} 秒`);
+    }
+    if ((input.referenceAudioSizes || []).some((value) => Number.isFinite(value) && value > 15 * 1024 * 1024)) {
+      throw new Error(`${config.model} 的单条参考音频不能超过 15 MB`);
+    }
+    if ((input.referenceAudioMimeTypes || []).some((value) => value && !/^(audio\/(mpeg|mp3|wav|x-wav)|application\/octet-stream)$/i.test(value))) {
+      throw new Error(`${config.model} 的参考音频仅支持 WAV 或 MP3`);
+    }
+  }
 
   if (config.protocol === "minimax_v1") {
     const legacyDuration = duration > 6 ? 10 : 6;
@@ -223,7 +254,7 @@ export function buildVideoProviderRequest(config: ResolvedVideoProviderConfig, i
   }
 
   const content: Array<Record<string, any>> = [{ type: "text", text: input.prompt.substring(0, 7000) }];
-  const usesReferences = referenceAudioUrls.length > 0;
+  const usesReferences = requiresAudioReference && referenceAudioUrls.length > 0;
   if (input.firstFrameImage) {
     content.push({
       type: "image_url",
@@ -231,7 +262,7 @@ export function buildVideoProviderRequest(config: ResolvedVideoProviderConfig, i
       role: usesReferences ? "reference_image" : "first_frame",
     });
   }
-  for (const url of referenceAudioUrls) {
+  for (const url of usesReferences ? referenceAudioUrls : []) {
     content.push({ type: "audio_url", audio_url: { url }, role: "reference_audio" });
   }
 
@@ -268,7 +299,7 @@ export function buildVideoProviderRequest(config: ResolvedVideoProviderConfig, i
 
 function normalizeStatus(status: string) {
   if (["Success", "success", "succeeded", "completed", "done"].includes(status)) return "succeeded";
-  if (["Fail", "failed", "error"].includes(status)) return "failed";
+  if (["Fail", "failed", "error", "expired"].includes(status)) return "failed";
   if (["Cancelled", "cancelled"].includes(status)) return "cancelled";
   if (["Queueing", "Preparing", "Processing", "queued", "running", "processing", "submitted"].includes(status)) return "processing";
   return status || "processing";
@@ -282,7 +313,8 @@ export function parseVideoProviderPoll(config: ResolvedVideoProviderConfig, payl
     status: normalizeStatus(rawStatus),
     videoUrl: content?.url || content?.video_url || task?.video_url || "",
     fileId: task?.file_id || "",
-    error: task?.error_message || task?.base_resp?.status_msg || task?.error?.message || payload?.error?.message || "",
+    error: task?.error_message || task?.base_resp?.status_msg || task?.error?.message || payload?.error?.message ||
+      (rawStatus === "expired" ? "供应商任务已过期" : ""),
     duration: Number(task?.duration || 0),
     resolution: task?.resolution || "",
     ratio: task?.ratio || "",

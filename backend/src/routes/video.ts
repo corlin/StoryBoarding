@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { getDb, ensureSchema, Bindings } from "../db/client";
 import { shots, sequences, projects, generationJobs, takes, dialogueLines } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
@@ -22,6 +22,8 @@ function normalizeProviderAssetUrl(value: string | null | undefined, requestUrl:
   if (assetUrl.startsWith("https://") || assetUrl.startsWith("http://") || assetUrl.startsWith("data:")) {
     return assetUrl;
   }
+  // BytePlus LAS uses approved asset-library identifiers for human references.
+  if (/^asset:\/\/[A-Za-z0-9._:-]+$/.test(assetUrl)) return assetUrl;
   if (assetUrl.startsWith("/api/assets/")) {
     return new URL(assetUrl, new URL(requestUrl).origin).toString();
   }
@@ -116,8 +118,24 @@ router.post("/video/:shotId", async (c) => {
           dialogue_ids: unverifiedVoiceLines.map((line: any) => line.id),
         }, 409);
       }
+      const missingVoiceSourceLines = adoptedAudioLines.filter((line: any) =>
+        line.voiceConsentStatus !== "provider_preset" && !(line.voiceSource || "").trim());
+      if (missingVoiceSourceLines.length > 0) {
+        return c.json({
+          detail: "参考音频缺少声音来源或授权凭据，请先在台词时间线补充",
+          error_code: "VOICE_SOURCE_REQUIRED",
+          dialogue_ids: missingVoiceSourceLines.map((line: any) => line.id),
+        }, 409);
+      }
     }
-    const referenceAudioUrls = adoptedAudioLines
+    const strategyUsesReferenceAudio = configuredStrategy === "reference_audio_av" || configuredStrategy === "performance_lipsync";
+    const referenceAudioLines = strategyUsesReferenceAudio ? adoptedAudioLines : [];
+    const referenceTakeIds = referenceAudioLines.map((line: any) => line.audioVersion).filter(Boolean);
+    const referenceTakes = referenceTakeIds.length > 0
+      ? await db.select().from(takes).where(inArray(takes.id, referenceTakeIds)).all()
+      : [];
+    const referenceTakeById = new Map(referenceTakes.map((take: any) => [take.id, take]));
+    const referenceAudioUrls = referenceAudioLines
       .map((line: any) => normalizeProviderAssetUrl(line.audioUrl, c.req.url))
       .filter(Boolean);
     let providerRequest;
@@ -129,6 +147,13 @@ router.post("/video/:shotId", async (c) => {
         firstFrameImage,
         audioStrategy: configuredStrategy,
         referenceAudioUrls,
+        referenceAudioDurations: referenceAudioLines.map((line: any) => Number(line.actualDuration || line.plannedDuration || 0)),
+        referenceAudioSizes: referenceAudioLines.map((line: any) => {
+          try { return Number(JSON.parse(referenceTakeById.get(line.audioVersion)?.metadata || "{}").size || 0); } catch { return 0; }
+        }),
+        referenceAudioMimeTypes: referenceAudioLines.map((line: any) => {
+          try { return String(JSON.parse(referenceTakeById.get(line.audioVersion)?.metadata || "{}").type || ""); } catch { return ""; }
+        }),
       });
     } catch (requestError: any) {
       return c.json({
@@ -158,9 +183,10 @@ router.post("/video/:shotId", async (c) => {
       duration: providerRequest.duration,
       fps: 24,
       protocol: providerConfig.protocol,
+      provider_base_url: providerConfig.baseUrl,
       audio_strategy: configuredStrategy,
       native_audio: providerConfig.capability.nativeAudio && configuredStrategy !== "post_dub" && configuredStrategy !== "silent_broll",
-      reference_audio_take_ids: adoptedAudioLines.map((line: any) => line.audioVersion),
+      reference_audio_take_ids: referenceAudioLines.map((line: any) => line.audioVersion),
       generation_mode: generationMode,
       first_frame_image_url: firstFrameReference,
     });
@@ -336,11 +362,15 @@ router.post("/poll", async (c) => {
       return c.json({ job_id: jobId, status: job.status, message: "任务尚未提交到供应商" });
     }
 
-    // Get user settings for API key
+    let parameters: any = {};
+    try { parameters = JSON.parse(job.parameters || "{}"); } catch { /* ignore legacy parameters */ }
+
+    // The provider/model/base are immutable job inputs. The key remains user-owned,
+    // while settings prevent it from changing until active jobs reach a terminal state.
     const userSettings = await getUserSettings(db, authUser.userId);
     const providerConfig = resolveVideoProviderConfig(
       job.provider || userSettings.videoProvider || "minimax",
-      userSettings.videoApiBase,
+      parameters.provider_base_url || userSettings.videoApiBase,
       job.model || userSettings.videoModel,
     );
 
@@ -398,19 +428,26 @@ router.post("/poll", async (c) => {
       const takeId = generatedVideoTakeId(job.id);
       const r2Key = `takes/${job.shotId || "orphan"}/${takeId}.mp4`;
       const r2Url = await saveMediaToR2(videoUrl, r2Key, c.env.STORAGE, 120000, "video/*,*/*");
-      const finalUrl = r2Url || videoUrl;
       if (!r2Url) {
-        console.warn(`[Video Poll] R2 persist failed, keeping upstream URL for job ${jobId}`);
+        console.error(`[Video Poll] R2 persist failed; refusing ephemeral upstream URL for job ${jobId}`);
+        return c.json({
+          job_id: jobId,
+          status: "processing",
+          message: "视频已生成，但持久化存储失败；未采用供应商临时链接，请稍后重试",
+          error_code: "VIDEO_PERSISTENCE_PENDING",
+        }, 502);
       }
+      const finalUrl = r2Url;
       updateData.resultUrl = finalUrl;
 
       // Create a Take record for the generated video
-      let parameters: any = {};
-      try { parameters = JSON.parse(job.parameters || "{}"); } catch { /* ignore */ }
       const persistedDialogueLines = job.shotId
         ? await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, job.shotId)).all()
         : [];
       const isVoiceover = persistedDialogueLines.length > 0 && persistedDialogueLines.every((line: any) => line.isVoiceover);
+      const dialogueText = persistedDialogueLines.length > 0
+        ? persistedDialogueLines.map((line: any) => line.text || "").filter(Boolean).join("\n")
+        : jobShot?.dialogue || "";
       await db.insert(takes).values({
         id: takeId,
         projectId: job.projectId || "",
@@ -434,13 +471,13 @@ router.post("/poll", async (c) => {
           native_audio: Boolean(parameters.native_audio),
           lip_sync_status: lipSyncStatusForStrategy(
             (parameters.audio_strategy || "native_av") as AudioStrategy,
-            jobShot?.dialogue || "",
+            dialogueText,
             isVoiceover,
           ),
           reference_audio_take_ids: parameters.reference_audio_take_ids || [],
           first_frame_image_url: parameters.first_frame_image_url || "",
-          upstream_url: r2Url ? videoUrl : undefined,
-          r2_persisted: Boolean(r2Url),
+          upstream_url: videoUrl,
+          r2_persisted: true,
         }),
       }).onConflictDoNothing({ target: takes.id });
 

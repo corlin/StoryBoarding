@@ -154,12 +154,17 @@ function buildAssemblyPlan(
 
   if (requiredVisualKind === "video") {
     const unresolvedLipSync = orderedShots.filter((shot) => {
-      if (!String(shot.dialogue || "").trim()) return false;
+      const shotId = field<string>(shot, "shot_id", "shotId") || shot.id;
+      const persistedLines = dialogueLines.filter((line) => field(line, "shot_id", "shotId") === shotId);
+      const hasVisibleDialogue = persistedLines.length > 0
+        ? persistedLines.some((line) => String(line.text || "").trim() && !Boolean(field(line, "is_voiceover", "isVoiceover")))
+        : Boolean(String(shot.dialogue || "").trim()) && !/^(旁白|画外音|内心|narrator|voice[- ]?over)\s*[：:]/i.test(String(shot.dialogue || "").trim());
+      if (!hasVisibleDialogue) return false;
       const adoptedId = field<string>(shot, "adopted_take_id", "adoptedTakeId");
       const visual = takes.find((take) => take.id === adoptedId);
       const visualMetadata = metadata(visual);
       const status = field<string>(shot, "lip_sync_status", "lipSyncStatus") || visualMetadata.lip_sync_status || "required";
-      return status !== "verified" && status !== "not_applicable";
+      return status !== "verified";
     });
     if (unresolvedLipSync.length) {
       const labels = unresolvedLipSync.slice(0, 5).map(productionShotLabel).join("、");
@@ -218,6 +223,20 @@ function buildAssemblyPlan(
           audioTakeIds.push(take.id);
           audioUrls.push(field<string>(take, "media_url", "mediaUrl")!);
         }
+      }
+    }
+    if (requiredVisualKind === "video" && audioStrategy === "post_dub") {
+      const spokenLines = lines.filter((line) => String(line.text || "").trim());
+      const missingAudioLines = spokenLines.filter((line) => {
+        const audioVersion = field<string>(line, "audio_version", "audioVersion");
+        return !takes.some((take) => take.id === audioVersion &&
+          field(take, "take_type", "takeType") === "audio" &&
+          Boolean(field(take, "is_adopted", "isAdopted")) &&
+          field(take, "media_url", "mediaUrl"));
+      });
+      const legacyDialogueMissingAudio = spokenLines.length === 0 && String(shot.dialogue || "").trim() && audioUrls.length === 0;
+      if (missingAudioLines.length > 0 || legacyDialogueMissingAudio) {
+        throw new Error(`${productionShotLabel(shot)} 使用后期配音，但仍有台词缺少已采用音频`);
       }
     }
     const generatedJointAudio = visualMetadata.native_audio === true &&

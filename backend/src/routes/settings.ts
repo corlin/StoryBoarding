@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
-import { users } from "../db/schema";
+import { generationJobs, projects, users } from "../db/schema";
 import { getAuthUser, getUserSettings } from "../lib/auth";
 import { encryptUserSecret, maskApiKey } from "../lib/crypto";
 import { resolveVideoProviderConfig } from "../lib/videoProvider";
@@ -163,6 +163,31 @@ const handleUpdateProviders = async (c: any) => {
     resolveVideoProviderConfig(updateData.videoProvider, updateData.videoApiBase, updateData.videoModel);
   } catch (error: any) {
     return c.json({ detail: error?.message || String(error), error_code: "VIDEO_PROVIDER_MODEL_MISMATCH" }, 400);
+  }
+
+  const normalizeBase = (value: string) => value.trim().replace(/\/+$/, "");
+  const suppliedVideoKey = typeof body.video_api_key === "string" &&
+    Boolean(body.video_api_key.trim()) && !body.video_api_key.includes("••••");
+  const changesActiveVideoConfig = suppliedVideoKey ||
+    updateData.videoProvider !== (existingUserSettings.videoProvider || "minimax") ||
+    updateData.videoModel !== (existingUserSettings.videoModel || "MiniMax-H3") ||
+    normalizeBase(updateData.videoApiBase) !== normalizeBase(existingUserSettings.videoApiBase || "https://api.minimaxi.com");
+  if (changesActiveVideoConfig) {
+    const ownedProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.userId, authUser.userId)).all();
+    if (ownedProjects.length > 0) {
+      const activeVideoJobs = await db.select({ id: generationJobs.id }).from(generationJobs).where(and(
+        inArray(generationJobs.projectId, ownedProjects.map((project: any) => project.id)),
+        eq(generationJobs.jobType, "video"),
+        inArray(generationJobs.status, ["submitted", "processing"]),
+      )).all();
+      if (activeVideoJobs.length > 0) {
+        return c.json({
+          detail: "仍有进行中的视频任务，请等待任务结束后再修改视频供应商、模型、地址或密钥",
+          error_code: "ACTIVE_VIDEO_JOBS_LOCK_SETTINGS",
+          job_ids: activeVideoJobs.map((job: any) => job.id),
+        }, 409);
+      }
+    }
   }
 
   await db

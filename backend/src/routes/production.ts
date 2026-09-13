@@ -26,9 +26,12 @@ async function refreshShotLipSyncFromDialogue(db: any, shotId: string) {
   if (!shot) return;
   const lines = await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, shotId)).all();
   const isVoiceover = lines.length > 0 && lines.every((line: any) => line.isVoiceover);
+  const dialogueText = lines.length > 0
+    ? lines.map((line: any) => line.text || "").filter(Boolean).join("\n")
+    : shot.dialogue || "";
   const strategy = (shot.audioStrategy || "native_av") as AudioStrategy;
   await db.update(shots).set({
-    lipSyncStatus: lipSyncStatusForStrategy(strategy, shot.dialogue || "", isVoiceover),
+    lipSyncStatus: lipSyncStatusForStrategy(strategy, dialogueText, isVoiceover),
     updatedAt: new Date().toISOString(),
   }).where(eq(shots.id, shotId));
 }
@@ -74,6 +77,9 @@ router.get("/kanban", async (c) => {
       ? await db.select().from(generationJobs).all()
       : [];
     const projectJobs = allJobs.filter((j: any) => shotIds.includes(j.shotId));
+    const projectDialogueLines = shotIds.length > 0
+      ? await db.select().from(dialogueLines).where(inArray(dialogueLines.shotId, shotIds)).all()
+      : [];
 
     // Build kanban items
     const items = projectShots.map((shot: any) => {
@@ -85,6 +91,10 @@ router.get("/kanban", async (c) => {
       const adoptedTake = visualTakes.find((t: any) => t.isAdopted);
       const pendingTakes = visualTakes.filter((t: any) => t.reviewStatus === "pending");
       const failedJobs = shotJobs.filter((j: any) => j.status === "failed");
+      const shotLines = projectDialogueLines.filter((line: any) => line.shotId === shot.id && (line.text || "").trim());
+      const hasVisibleDialogue = shotLines.length > 0
+        ? shotLines.some((line: any) => !line.isVoiceover)
+        : Boolean((shot.dialogue || "").trim()) && !/^(旁白|画外音|内心|narrator|voice[- ]?over)\s*[：:]/i.test((shot.dialogue || "").trim());
 
       // Determine kanban status
       let status = "待生成";
@@ -105,7 +115,7 @@ router.get("/kanban", async (c) => {
         action: shot.action,
         dialogue: shot.dialogue,
         audio_strategy: shot.audioStrategy || "native_av",
-        lip_sync_status: (shot.dialogue || "").trim() ? (shot.lipSyncStatus || "pending") : "not_applicable",
+        lip_sync_status: hasVisibleDialogue ? (shot.lipSyncStatus || "pending") : "not_applicable",
         status,
         has_image: !!shot.storyboardImageUrl,
         takes_count: visualTakes.length,
@@ -255,9 +265,12 @@ router.post("/takes/:id/adopt", async (c) => {
         : shot?.audioStrategy || "native_av") as AudioStrategy;
       const shotLines = await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, take.shotId)).all();
       const isVoiceover = shotLines.length > 0 && shotLines.every((line: any) => line.isVoiceover);
+      const dialogueText = shotLines.length > 0
+        ? shotLines.map((line: any) => line.text || "").filter(Boolean).join("\n")
+        : shot?.dialogue || "";
       await db.update(shots).set({
         audioStrategy,
-        lipSyncStatus: lipSyncStatusForStrategy(audioStrategy, shot?.dialogue || "", isVoiceover),
+        lipSyncStatus: lipSyncStatusForStrategy(audioStrategy, dialogueText, isVoiceover),
         updatedAt: new Date().toISOString(),
       }).where(eq(shots.id, take.shotId));
     }
@@ -376,7 +389,16 @@ router.post("/takes/upload", async (c) => {
       duration: 0,
       reviewStatus: "pending",
       isAdopted: false,
-      metadata: JSON.stringify({ filename: file.name, size: file.size, type: file.type, dialogue_id: dialogueId || undefined }),
+      metadata: JSON.stringify({
+        filename: file.name,
+        size: file.size,
+        type: file.type,
+        dialogue_id: dialogueId || undefined,
+        // Uploaded videos are treated as audiovisual masters. Assembly maps the
+        // source audio mandatorily, so a silent upload fails clearly instead of
+        // silently producing a muted delivery.
+        native_audio: takeType === "video",
+      }),
     });
 
     return c.json({

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb, Bindings } from "../db/client";
-import { shots } from "../db/schema";
+import { dialogueLines, shots } from "../db/schema";
 import { authorizeSequenceOwner, authorizeShotOwner } from "../lib/projectAccess";
 import { AUDIO_STRATEGIES, LIP_SYNC_STATUSES, lipSyncStatusForStrategy, recommendedAudioStrategy } from "../lib/videoProvider";
 
@@ -42,6 +42,13 @@ router.post("/", async (c) => {
   const lipSyncStatus = LIP_SYNC_STATUSES.includes(body.lip_sync_status)
     ? body.lip_sync_status
     : lipSyncStatusForStrategy(audioStrategy, body.dialogue || "", isVoiceover);
+  const hasVisibleDialogue = Boolean((body.dialogue || "").trim()) && !isVoiceover;
+  if (hasVisibleDialogue && audioStrategy === "silent_broll") {
+    return c.json({ detail: "有可见对白的镜头不能使用无对白 B-roll 策略" }, 409);
+  }
+  if (hasVisibleDialogue && lipSyncStatus === "not_applicable") {
+    return c.json({ detail: "有可见对白的镜头必须完成口型验收" }, 409);
+  }
 
   const [newShot] = await db
     .insert(shots)
@@ -92,6 +99,12 @@ router.put("/:id", async (c) => {
   const access = await authorizeShotOwner(db, c.req.header("Authorization"), id);
   if (!access.ok) return c.json({ detail: access.detail }, access.status);
   const existingShot = access.shot;
+  const persistedDialogueLines = await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, id)).all();
+  const effectiveDialogue = body.dialogue !== undefined ? String(body.dialogue || "") : String(existingShot.dialogue || "");
+  const inferredVoiceover = /^(旁白|画外音|内心|narrator|voice[- ]?over)\s*[：:]/i.test(effectiveDialogue.trim());
+  const hasVisibleDialogue = persistedDialogueLines.length > 0
+    ? persistedDialogueLines.some((line: any) => String(line.text || "").trim() && !line.isVoiceover)
+    : Boolean(effectiveDialogue.trim()) && !inferredVoiceover;
 
   const updates: any = {};
   if (body.order !== undefined) updates.order = Number(body.order);
@@ -119,18 +132,33 @@ router.put("/:id", async (c) => {
   if (body.dialogue !== undefined) {
     updates.dialogue = body.dialogue;
     if (body.audio_strategy === undefined && body.lip_sync_status === undefined) {
-      const inferredStrategy = recommendedAudioStrategy(body.dialogue || "");
+      const inferredStrategy = recommendedAudioStrategy(body.dialogue || "", inferredVoiceover);
       updates.audioStrategy = inferredStrategy;
-      updates.lipSyncStatus = lipSyncStatusForStrategy(inferredStrategy, body.dialogue || "");
+      updates.lipSyncStatus = hasVisibleDialogue
+        ? lipSyncStatusForStrategy(inferredStrategy, effectiveDialogue, false)
+        : "not_applicable";
     }
   }
   if (body.audio_strategy !== undefined) {
     if (!AUDIO_STRATEGIES.includes(body.audio_strategy)) return c.json({ detail: "无效的音频策略" }, 400);
+    if (hasVisibleDialogue && body.audio_strategy === "silent_broll") {
+      return c.json({ detail: "有可见对白的镜头不能使用无对白 B-roll 策略" }, 409);
+    }
     updates.audioStrategy = body.audio_strategy;
+    if (body.audio_strategy !== existingShot.audioStrategy || body.lip_sync_status === undefined) {
+      updates.lipSyncStatus = hasVisibleDialogue
+        ? (body.audio_strategy === "post_dub" ? "required" : "pending")
+        : "not_applicable";
+    }
   }
   if (body.lip_sync_status !== undefined) {
     if (!LIP_SYNC_STATUSES.includes(body.lip_sync_status)) return c.json({ detail: "无效的口型验收状态" }, 400);
-    updates.lipSyncStatus = body.lip_sync_status;
+    if (hasVisibleDialogue && body.lip_sync_status === "not_applicable") {
+      return c.json({ detail: "有可见对白的镜头必须完成口型验收" }, 409);
+    }
+    if (body.audio_strategy === undefined || body.audio_strategy === existingShot.audioStrategy) {
+      updates.lipSyncStatus = body.lip_sync_status;
+    }
   }
   if (body.narrative_function !== undefined) updates.narrativeFunction = body.narrative_function;
   if (body.lighting !== undefined) updates.lighting = body.lighting;

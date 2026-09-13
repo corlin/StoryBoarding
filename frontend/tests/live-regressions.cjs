@@ -379,12 +379,38 @@ test('video provider contracts keep H3 native AV and Seedance distinct from lega
 
   const seedance = resolveVideoProviderConfig('byteplus', '', 'dreamina-seedance-2-5-260628');
   assert.equal(seedance.protocol, 'byteplus_las');
+  assert.equal(seedance.baseUrl, 'https://operator.las.ap-southeast-1.bytepluses.com/api/v1');
   assert.match(seedance.submitUrl, /contents\/generations\/tasks$/);
   const seedanceRequest = buildVideoProviderRequest(seedance, {
     prompt: '旁白介绍雨夜。', aspectRatio: '9:16', duration: 12,
     firstFrameImage: 'https://assets.example/frame.jpg', audioStrategy: 'post_dub', referenceAudioUrls: [],
   });
   assert.equal(seedanceRequest.body.generate_audio, false);
+  const nativeWithoutReferences = buildVideoProviderRequest(h3, {
+    prompt: '原生对白', aspectRatio: '9:16', duration: 8, firstFrameImage: '',
+    audioStrategy: 'native_av', referenceAudioUrls: ['https://assets.example/adopted-but-unused.wav'],
+  });
+  assert.ok(!nativeWithoutReferences.body.content.some((item) => item.role === 'reference_audio'));
+
+  const seedance20 = resolveVideoProviderConfig('byteplus', 'https://operator.las.ap-southeast-1.bytepluses.com', 'dreamina-seedance-2-0-260128');
+  assert.throws(() => buildVideoProviderRequest(seedance20, {
+    prompt: '声音驱动画面', aspectRatio: '9:16', duration: 8, firstFrameImage: '',
+    audioStrategy: 'reference_audio_av', referenceAudioUrls: ['https://assets.example/dialogue.wav'],
+  }), /不能单独输入/);
+  assert.doesNotThrow(() => buildVideoProviderRequest(seedance, {
+    prompt: '声音驱动画面', aspectRatio: '9:16', duration: 8, firstFrameImage: '',
+    audioStrategy: 'reference_audio_av', referenceAudioUrls: ['https://assets.example/dialogue.wav'],
+  }));
+  assert.throws(() => buildVideoProviderRequest(h3, {
+    prompt: '过长对白', aspectRatio: '9:16', duration: 8, firstFrameImage: '',
+    audioStrategy: 'reference_audio_av', referenceAudioUrls: ['a', 'b'],
+    referenceAudioDurations: [8, 8],
+  }), /总时长不能超过 15 秒/);
+  assert.throws(() => buildVideoProviderRequest(h3, {
+    prompt: '格式错误', aspectRatio: '9:16', duration: 8, firstFrameImage: '',
+    audioStrategy: 'reference_audio_av', referenceAudioUrls: ['a'],
+    referenceAudioMimeTypes: ['audio/aac'],
+  }), /仅支持 WAV 或 MP3/);
 
   assert.deepEqual(parseVideoProviderPoll(h3, {
     task: { status: 'succeeded', content: { url: 'https://assets.example/h3.mp4' }, duration: 7, resolution: '768P', ratio: '9:16' },
@@ -392,15 +418,22 @@ test('video provider contracts keep H3 native AV and Seedance distinct from lega
     status: 'succeeded', videoUrl: 'https://assets.example/h3.mp4', fileId: '', error: '',
     duration: 7, resolution: '768P', ratio: '9:16', rawStatus: 'succeeded',
   });
+  assert.deepEqual(parseVideoProviderPoll(seedance, { status: 'expired' }).status, 'failed');
+  assert.match(parseVideoProviderPoll(seedance, { status: 'expired' }).error, /已过期/);
 
   const videoRoute = fs.readFileSync(path.join(__dirname, '../../backend/src/routes/video.ts'), 'utf8');
   assert.match(videoRoute, /resolveVideoProviderConfig/);
   assert.match(videoRoute, /buildVideoProviderRequest/);
   assert.match(videoRoute, /VOICE_CONSENT_UNVERIFIED/);
+  assert.match(videoRoute, /provider_base_url/);
+  assert.match(videoRoute, /VIDEO_PERSISTENCE_PENDING/);
+  assert.match(videoRoute, /asset:\\\/\\\//);
   const productionRoute = fs.readFileSync(path.join(__dirname, '../../backend/src/routes/production.ts'), 'utf8');
   assert.match(productionRoute, /take\.takeType === "video"/);
   assert.match(productionRoute, /lipSyncStatus: lipSyncStatusForStrategy/);
   assert.doesNotMatch(videoRoute, /function normalizeMiniMaxConfig/);
+  const settingsRoute = fs.readFileSync(path.join(__dirname, '../../backend/src/routes/settings.ts'), 'utf8');
+  assert.match(settingsRoute, /ACTIVE_VIDEO_JOBS_LOCK_SETTINGS/);
 
   const { DEFAULT_VIDEO_CONFIG } = require('../src/types/modelConfig.ts');
   const { VIDEO_MODELS, VIDEO_PROVIDER_PRESETS } = require('../src/data/modelCatalog.ts');
@@ -442,6 +475,26 @@ test('final assembly preserves verified native audio and blocks unresolved visib
   assert.throws(
     () => productionKanban.buildVideoAssemblyPlan([{ ...shot, lip_sync_status: 'pending' }], [take], []),
     /1 个对白镜头尚未通过口型验收/,
+  );
+  assert.throws(
+    () => productionKanban.buildVideoAssemblyPlan([{ ...shot, lip_sync_status: 'not_applicable' }], [take], []),
+    /1 个对白镜头尚未通过口型验收/,
+  );
+  assert.throws(
+    () => productionKanban.buildVideoAssemblyPlan(
+      [{ ...shot, dialogue: '', lip_sync_status: 'pending' }],
+      [take],
+      [{ id: 'line-visible', shot_id: 's-native', text: '独立录入对白', is_voiceover: false }],
+    ),
+    /1 个对白镜头尚未通过口型验收/,
+  );
+  assert.throws(
+    () => productionKanban.buildVideoAssemblyPlan(
+      [{ ...shot, dialogue: '', audio_strategy: 'post_dub', lip_sync_status: 'not_applicable' }],
+      [{ ...take, metadata: '{}' }],
+      [{ id: 'line-vo', shot_id: 's-native', text: '旁白内容', is_voiceover: true, audio_version: '' }],
+    ),
+    /使用后期配音，但仍有台词缺少已采用音频/,
   );
 });
 
