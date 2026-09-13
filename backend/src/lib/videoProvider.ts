@@ -224,19 +224,30 @@ export function buildVideoProviderRequest(config: ResolvedVideoProviderConfig, i
     throw new Error(`${config.model} 的参考音频不能单独输入，请同时提供参考图像或改用支持纯音频参考的模型`);
   }
   if (requiresAudioReference) {
-    const knownDurations = (input.referenceAudioDurations || []).filter((value) => Number.isFinite(value) && value > 0);
-    const invalidDuration = knownDurations.find((value) => value < 2 || value > config.capability.maxDuration);
+    const durations = input.referenceAudioDurations || [];
+    const sizes = input.referenceAudioSizes || [];
+    const mimeTypes = input.referenceAudioMimeTypes || [];
+    if (durations.length !== referenceAudioUrls.length || durations.some((value) => !Number.isFinite(value) || value <= 0)) {
+      throw new Error("参考音频缺少可验证的时长，请先完成音频分析或重新生成");
+    }
+    if (sizes.length !== referenceAudioUrls.length || sizes.some((value) => !Number.isFinite(value) || value <= 0)) {
+      throw new Error("参考音频缺少可验证的文件大小，请重新上传或生成");
+    }
+    if (mimeTypes.length !== referenceAudioUrls.length || mimeTypes.some((value) => !value)) {
+      throw new Error("参考音频缺少可验证的 WAV/MP3 格式信息，请重新上传或生成");
+    }
+    const invalidDuration = durations.find((value) => value < 2 || value > config.capability.maxDuration);
     if (invalidDuration !== undefined) {
       throw new Error(`${config.model} 的单条参考音频须为 2–${config.capability.maxDuration} 秒`);
     }
-    const totalDuration = knownDurations.reduce((sum, value) => sum + value, 0);
+    const totalDuration = durations.reduce((sum, value) => sum + value, 0);
     if (totalDuration > config.capability.maxDuration) {
       throw new Error(`${config.model} 的参考音频总时长不能超过 ${config.capability.maxDuration} 秒`);
     }
-    if ((input.referenceAudioSizes || []).some((value) => Number.isFinite(value) && value > 15 * 1024 * 1024)) {
+    if (sizes.some((value) => value > 15 * 1024 * 1024)) {
       throw new Error(`${config.model} 的单条参考音频不能超过 15 MB`);
     }
-    if ((input.referenceAudioMimeTypes || []).some((value) => value && !/^(audio\/(mpeg|mp3|wav|x-wav)|application\/octet-stream)$/i.test(value))) {
+    if (mimeTypes.some((value) => !/^audio\/(mpeg|mp3|wav|x-wav)$/i.test(value))) {
       throw new Error(`${config.model} 的参考音频仅支持 WAV 或 MP3`);
     }
   }

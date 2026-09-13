@@ -166,10 +166,9 @@ const handleUpdateProviders = async (c: any) => {
   }
 
   const normalizeBase = (value: string) => value.trim().replace(/\/+$/, "");
-  const suppliedVideoKey = typeof body.video_api_key === "string" &&
-    Boolean(body.video_api_key.trim()) && !body.video_api_key.includes("••••");
-  const changesActiveVideoConfig = suppliedVideoKey ||
-    updateData.videoProvider !== (existingUserSettings.videoProvider || "minimax") ||
+  // A key rotation must remain possible while a task is active: it is the recovery
+  // path when the provider revokes an old credential. Provider/model/base stay fixed.
+  const changesActiveVideoConfig = updateData.videoProvider !== (existingUserSettings.videoProvider || "minimax") ||
     updateData.videoModel !== (existingUserSettings.videoModel || "MiniMax-H3") ||
     normalizeBase(updateData.videoApiBase) !== normalizeBase(existingUserSettings.videoApiBase || "https://api.minimaxi.com");
   if (changesActiveVideoConfig) {

@@ -135,6 +135,18 @@ router.post("/video/:shotId", async (c) => {
       ? await db.select().from(takes).where(inArray(takes.id, referenceTakeIds)).all()
       : [];
     const referenceTakeById = new Map(referenceTakes.map((take: any) => [take.id, take]));
+    const invalidReferenceLines = referenceAudioLines.filter((line: any) => {
+      const take: any = referenceTakeById.get(line.audioVersion);
+      return !take || take.projectId !== projectId || take.shotId !== shotId || take.takeType !== "audio" ||
+        !take.isAdopted || take.mediaUrl !== line.audioUrl;
+    });
+    if (invalidReferenceLines.length > 0) {
+      return c.json({
+        detail: "参考音频不是当前镜头已采用的音频版本，请重新采用后再生成视频",
+        error_code: "REFERENCE_AUDIO_NOT_ADOPTED",
+        dialogue_ids: invalidReferenceLines.map((line: any) => line.id),
+      }, 409);
+    }
     const referenceAudioUrls = referenceAudioLines
       .map((line: any) => normalizeProviderAssetUrl(line.audioUrl, c.req.url))
       .filter(Boolean);
@@ -444,9 +456,10 @@ router.post("/poll", async (c) => {
       const persistedDialogueLines = job.shotId
         ? await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, job.shotId)).all()
         : [];
-      const isVoiceover = persistedDialogueLines.length > 0 && persistedDialogueLines.every((line: any) => line.isVoiceover);
-      const dialogueText = persistedDialogueLines.length > 0
-        ? persistedDialogueLines.map((line: any) => line.text || "").filter(Boolean).join("\n")
+      const nonEmptyDialogueLines = persistedDialogueLines.filter((line: any) => String(line.text || "").trim());
+      const isVoiceover = nonEmptyDialogueLines.length > 0 && nonEmptyDialogueLines.every((line: any) => line.isVoiceover);
+      const dialogueText = nonEmptyDialogueLines.length > 0
+        ? nonEmptyDialogueLines.map((line: any) => line.text).join("\n")
         : jobShot?.dialogue || "";
       await db.insert(takes).values({
         id: takeId,

@@ -100,10 +100,11 @@ router.put("/:id", async (c) => {
   if (!access.ok) return c.json({ detail: access.detail }, access.status);
   const existingShot = access.shot;
   const persistedDialogueLines = await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, id)).all();
+  const nonEmptyDialogueLines = persistedDialogueLines.filter((line: any) => String(line.text || "").trim());
   const effectiveDialogue = body.dialogue !== undefined ? String(body.dialogue || "") : String(existingShot.dialogue || "");
   const inferredVoiceover = /^(旁白|画外音|内心|narrator|voice[- ]?over)\s*[：:]/i.test(effectiveDialogue.trim());
-  const hasVisibleDialogue = persistedDialogueLines.length > 0
-    ? persistedDialogueLines.some((line: any) => String(line.text || "").trim() && !line.isVoiceover)
+  const hasVisibleDialogue = nonEmptyDialogueLines.length > 0
+    ? nonEmptyDialogueLines.some((line: any) => !line.isVoiceover)
     : Boolean(effectiveDialogue.trim()) && !inferredVoiceover;
 
   const updates: any = {};

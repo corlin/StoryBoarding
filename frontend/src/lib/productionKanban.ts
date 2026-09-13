@@ -156,8 +156,9 @@ function buildAssemblyPlan(
     const unresolvedLipSync = orderedShots.filter((shot) => {
       const shotId = field<string>(shot, "shot_id", "shotId") || shot.id;
       const persistedLines = dialogueLines.filter((line) => field(line, "shot_id", "shotId") === shotId);
-      const hasVisibleDialogue = persistedLines.length > 0
-        ? persistedLines.some((line) => String(line.text || "").trim() && !Boolean(field(line, "is_voiceover", "isVoiceover")))
+      const nonEmptyLines = persistedLines.filter((line) => String(line.text || "").trim());
+      const hasVisibleDialogue = nonEmptyLines.length > 0
+        ? nonEmptyLines.some((line) => !Boolean(field(line, "is_voiceover", "isVoiceover")))
         : Boolean(String(shot.dialogue || "").trim()) && !/^(旁白|画外音|内心|narrator|voice[- ]?over)\s*[：:]/i.test(String(shot.dialogue || "").trim());
       if (!hasVisibleDialogue) return false;
       const adoptedId = field<string>(shot, "adopted_take_id", "adoptedTakeId");

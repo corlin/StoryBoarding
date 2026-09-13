@@ -361,6 +361,7 @@ test('video provider contracts keep H3 native AV and Seedance distinct from lega
     firstFrameImage: 'https://assets.example/frame.jpg',
     audioStrategy: 'reference_audio_av',
     referenceAudioUrls: ['https://assets.example/dialogue.wav'],
+    referenceAudioDurations: [7], referenceAudioSizes: [1024], referenceAudioMimeTypes: ['audio/wav'],
   });
   assert.equal(h3Request.body.model, 'MiniMax-H3');
   assert.equal(h3Request.body.ratio, '9:16');
@@ -400,17 +401,23 @@ test('video provider contracts keep H3 native AV and Seedance distinct from lega
   assert.doesNotThrow(() => buildVideoProviderRequest(seedance, {
     prompt: '声音驱动画面', aspectRatio: '9:16', duration: 8, firstFrameImage: '',
     audioStrategy: 'reference_audio_av', referenceAudioUrls: ['https://assets.example/dialogue.wav'],
+    referenceAudioDurations: [8], referenceAudioSizes: [1024], referenceAudioMimeTypes: ['audio/wav'],
   }));
   assert.throws(() => buildVideoProviderRequest(h3, {
     prompt: '过长对白', aspectRatio: '9:16', duration: 8, firstFrameImage: '',
     audioStrategy: 'reference_audio_av', referenceAudioUrls: ['a', 'b'],
-    referenceAudioDurations: [8, 8],
+    referenceAudioDurations: [8, 8], referenceAudioSizes: [1024, 1024],
+    referenceAudioMimeTypes: ['audio/wav', 'audio/wav'],
   }), /总时长不能超过 15 秒/);
   assert.throws(() => buildVideoProviderRequest(h3, {
     prompt: '格式错误', aspectRatio: '9:16', duration: 8, firstFrameImage: '',
     audioStrategy: 'reference_audio_av', referenceAudioUrls: ['a'],
-    referenceAudioMimeTypes: ['audio/aac'],
+    referenceAudioDurations: [8], referenceAudioSizes: [1024], referenceAudioMimeTypes: ['audio/aac'],
   }), /仅支持 WAV 或 MP3/);
+  assert.throws(() => buildVideoProviderRequest(h3, {
+    prompt: '缺元数据', aspectRatio: '9:16', duration: 8, firstFrameImage: '',
+    audioStrategy: 'reference_audio_av', referenceAudioUrls: ['a'],
+  }), /缺少可验证的时长/);
 
   assert.deepEqual(parseVideoProviderPoll(h3, {
     task: { status: 'succeeded', content: { url: 'https://assets.example/h3.mp4' }, duration: 7, resolution: '768P', ratio: '9:16' },
@@ -425,6 +432,7 @@ test('video provider contracts keep H3 native AV and Seedance distinct from lega
   assert.match(videoRoute, /resolveVideoProviderConfig/);
   assert.match(videoRoute, /buildVideoProviderRequest/);
   assert.match(videoRoute, /VOICE_CONSENT_UNVERIFIED/);
+  assert.match(videoRoute, /REFERENCE_AUDIO_NOT_ADOPTED/);
   assert.match(videoRoute, /provider_base_url/);
   assert.match(videoRoute, /VIDEO_PERSISTENCE_PENDING/);
   assert.match(videoRoute, /asset:\\\/\\\//);
@@ -434,6 +442,7 @@ test('video provider contracts keep H3 native AV and Seedance distinct from lega
   assert.doesNotMatch(videoRoute, /function normalizeMiniMaxConfig/);
   const settingsRoute = fs.readFileSync(path.join(__dirname, '../../backend/src/routes/settings.ts'), 'utf8');
   assert.match(settingsRoute, /ACTIVE_VIDEO_JOBS_LOCK_SETTINGS/);
+  assert.match(settingsRoute, /A key rotation must remain possible/);
 
   const { DEFAULT_VIDEO_CONFIG } = require('../src/types/modelConfig.ts');
   const { VIDEO_MODELS, VIDEO_PROVIDER_PRESETS } = require('../src/data/modelCatalog.ts');
@@ -485,6 +494,14 @@ test('final assembly preserves verified native audio and blocks unresolved visib
       [{ ...shot, dialogue: '', lip_sync_status: 'pending' }],
       [take],
       [{ id: 'line-visible', shot_id: 's-native', text: '独立录入对白', is_voiceover: false }],
+    ),
+    /1 个对白镜头尚未通过口型验收/,
+  );
+  assert.throws(
+    () => productionKanban.buildVideoAssemblyPlan(
+      [{ ...shot, dialogue: '镜头字段中的可见对白', lip_sync_status: 'not_applicable' }],
+      [take],
+      [{ id: 'line-empty', shot_id: 's-native', text: '', is_voiceover: false }],
     ),
     /1 个对白镜头尚未通过口型验收/,
   );

@@ -25,9 +25,10 @@ async function refreshShotLipSyncFromDialogue(db: any, shotId: string) {
   const shot = await db.select().from(shots).where(eq(shots.id, shotId)).get();
   if (!shot) return;
   const lines = await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, shotId)).all();
-  const isVoiceover = lines.length > 0 && lines.every((line: any) => line.isVoiceover);
-  const dialogueText = lines.length > 0
-    ? lines.map((line: any) => line.text || "").filter(Boolean).join("\n")
+  const nonEmptyLines = lines.filter((line: any) => String(line.text || "").trim());
+  const isVoiceover = nonEmptyLines.length > 0 && nonEmptyLines.every((line: any) => line.isVoiceover);
+  const dialogueText = nonEmptyLines.length > 0
+    ? nonEmptyLines.map((line: any) => line.text).join("\n")
     : shot.dialogue || "";
   const strategy = (shot.audioStrategy || "native_av") as AudioStrategy;
   await db.update(shots).set({
@@ -264,9 +265,10 @@ router.post("/takes/:id/adopt", async (c) => {
         ? metadataStrategy
         : shot?.audioStrategy || "native_av") as AudioStrategy;
       const shotLines = await db.select().from(dialogueLines).where(eq(dialogueLines.shotId, take.shotId)).all();
-      const isVoiceover = shotLines.length > 0 && shotLines.every((line: any) => line.isVoiceover);
-      const dialogueText = shotLines.length > 0
-        ? shotLines.map((line: any) => line.text || "").filter(Boolean).join("\n")
+      const nonEmptyShotLines = shotLines.filter((line: any) => String(line.text || "").trim());
+      const isVoiceover = nonEmptyShotLines.length > 0 && nonEmptyShotLines.every((line: any) => line.isVoiceover);
+      const dialogueText = nonEmptyShotLines.length > 0
+        ? nonEmptyShotLines.map((line: any) => line.text).join("\n")
         : shot?.dialogue || "";
       await db.update(shots).set({
         audioStrategy,
@@ -546,6 +548,19 @@ router.post("/dialogue", async (c) => {
     if (id) {
       const existing = await db.select().from(dialogueLines).where(eq(dialogueLines.id, id)).get();
       if (!existing || existing.projectId !== project_id) return c.json({ detail: "台词记录不存在" }, 404);
+      if (audio_version !== undefined || audio_url !== undefined) {
+        const effectiveAudioVersion = audio_version !== undefined ? audio_version : existing.audioVersion;
+        const effectiveAudioUrl = audio_url !== undefined ? audio_url : existing.audioUrl;
+        if (effectiveAudioVersion || effectiveAudioUrl) {
+          const adoptedAudio = effectiveAudioVersion
+            ? await db.select().from(takes).where(eq(takes.id, effectiveAudioVersion)).get()
+            : null;
+          if (!adoptedAudio || adoptedAudio.projectId !== project_id || adoptedAudio.shotId !== (shot_id || existing.shotId) ||
+            adoptedAudio.takeType !== "audio" || !adoptedAudio.isAdopted || adoptedAudio.mediaUrl !== effectiveAudioUrl) {
+            return c.json({ detail: "audio_version 必须指向当前镜头已采用的音频版本", error_code: "REFERENCE_AUDIO_NOT_ADOPTED" }, 409);
+          }
+        }
+      }
       // Update existing
       const updateData: any = { updatedAt: new Date().toISOString() };
       if (speaker !== undefined) updateData.speaker = speaker;
@@ -569,6 +584,15 @@ router.post("/dialogue", async (c) => {
       return c.json({ status: "success", dialogue_id: id, action: "updated" });
     } else {
       // Create new
+      if (audio_version || audio_url) {
+        const adoptedAudio = audio_version
+          ? await db.select().from(takes).where(eq(takes.id, audio_version)).get()
+          : null;
+        if (!adoptedAudio || adoptedAudio.projectId !== project_id || adoptedAudio.shotId !== shot_id ||
+          adoptedAudio.takeType !== "audio" || !adoptedAudio.isAdopted || adoptedAudio.mediaUrl !== audio_url) {
+          return c.json({ detail: "audio_version 必须指向当前镜头已采用的音频版本", error_code: "REFERENCE_AUDIO_NOT_ADOPTED" }, 409);
+        }
+      }
       const lineId = crypto.randomUUID();
       await db.insert(dialogueLines).values({
         id: lineId,

@@ -176,8 +176,8 @@ router.post("/tts/:dialogueId", async (c) => {
     }
 
     const audio = await response.arrayBuffer();
-    if (!audio.byteLength || audio.byteLength > 20 * 1024 * 1024) {
-      const reason = !audio.byteLength ? "OpenRouter TTS 返回了空音频" : "OpenRouter TTS 音频超过 20MB 限制";
+    if (!audio.byteLength || audio.byteLength > 15 * 1024 * 1024) {
+      const reason = !audio.byteLength ? "OpenRouter TTS 返回了空音频" : "OpenRouter TTS 音频超过 15MB 参考音频限制";
       await db.update(generationJobs).set({ status: "failed", failureReason: reason, completedAt: now, updatedAt: now })
         .where(eq(generationJobs.id, jobId));
       return c.json({ detail: reason, job_id: jobId, status: "failed" }, 502);
@@ -212,6 +212,8 @@ router.post("/tts/:dialogueId", async (c) => {
         model,
         characters: spokenText.length,
         generation_id: generationId,
+        size: audio.byteLength,
+        type: "audio/mpeg",
         r2_persisted: true,
       }),
       createdAt: now,
