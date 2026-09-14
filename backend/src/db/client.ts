@@ -8,6 +8,12 @@ export type Bindings = {
   DEFAULT_LLM_API_BASE?: string;
   DEFAULT_LLM_MODEL?: string;
   DEFAULT_IMAGE_MODEL?: string;
+  JWT_SECRET?: string;
+  BOOTSTRAP_ADMIN_EMAILS?: string;
+  PLATFORM_BILLING_ENABLED?: string;
+  PLATFORM_LLM_API_KEY?: string;
+  PLATFORM_IMAGE_API_KEY?: string;
+  PLATFORM_VIDEO_API_KEY?: string;
 };
 
 let schemaInitialized = false;
@@ -163,6 +169,7 @@ export async function ensureSchema(d1: D1Database) {
     `).run();
 
     // 9. Safe Alter Table migrations
+    try { await d1.prepare(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin'));`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE projects ADD COLUMN user_id TEXT;`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE projects ADD COLUMN aspect_ratio TEXT NOT NULL DEFAULT '9:16';`).run(); } catch (_) {}
     try { await d1.prepare(`ALTER TABLE projects ADD COLUMN adaptation_tradeoffs TEXT NOT NULL DEFAULT '{}';`).run(); } catch (_) {}

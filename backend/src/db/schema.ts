@@ -9,8 +9,117 @@ export const users = sqliteTable("users", {
   salt: text("salt").notNull(),
   avatarUrl: text("avatar_url").default(""),
   customSettings: text("custom_settings").default("{}").notNull(), // JSON string for personal API Keys & Model overrides
+  role: text("role").default("user").notNull(), // 'user' | 'admin'
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+export const membershipPlans = sqliteTable("membership_plans", {
+  id: text("id").primaryKey(),
+  code: text("code").notNull(),
+  name: text("name").notNull(),
+  version: integer("version").notNull(),
+  priceCentsCny: integer("price_cents_cny").notNull(),
+  cycleDays: integer("cycle_days").notNull(),
+  creditsPerCycle: integer("credits_per_cycle").notNull(),
+  creditValidDays: integer("credit_valid_days").notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
+  effectiveAt: text("effective_at").notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+export const userMemberships = sqliteTable("user_memberships", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  planId: text("plan_id").notNull().references(() => membershipPlans.id),
+  status: text("status").notNull(),
+  startsAt: text("starts_at").notNull(),
+  endsAt: text("ends_at").notNull(),
+  registeredBy: text("registered_by").references(() => users.id),
+  externalPaymentReference: text("external_payment_reference").default("").notNull(),
+  note: text("note").default("").notNull(),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+export const creditAccounts = sqliteTable("credit_accounts", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  availableCredits: integer("available_credits").default(0).notNull(),
+  heldCredits: integer("held_credits").default(0).notNull(),
+  lifetimeGranted: integer("lifetime_granted").default(0).notNull(),
+  lifetimeSpent: integer("lifetime_spent").default(0).notNull(),
+  version: integer("version").default(0).notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+export const creditLots = sqliteTable("credit_lots", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  source: text("source").notNull(),
+  grantedCredits: integer("granted_credits").notNull(),
+  remainingCredits: integer("remaining_credits").notNull(),
+  heldCredits: integer("held_credits").default(0).notNull(),
+  membershipId: text("membership_id").references(() => userMemberships.id),
+  sourceReference: text("source_reference").default("").notNull(),
+  grantedAt: text("granted_at").notNull(),
+  expiresAt: text("expires_at"),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+export const creditLedger = sqliteTable("credit_ledger", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  lotId: text("lot_id").references(() => creditLots.id),
+  entryType: text("entry_type").notNull(),
+  availableDelta: integer("available_delta").notNull(),
+  heldDelta: integer("held_delta").notNull(),
+  availableAfter: integer("available_after").notNull(),
+  heldAfter: integer("held_after").notNull(),
+  businessType: text("business_type").default("").notNull(),
+  businessId: text("business_id").default("").notNull(),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  actorUserId: text("actor_user_id").references(() => users.id),
+  reason: text("reason").notNull(),
+  metadataJson: text("metadata_json").default("{}").notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+export const modelRates = sqliteTable("model_rates", {
+  id: text("id").primaryKey(),
+  provider: text("provider").notNull(),
+  model: text("model").notNull(),
+  operation: text("operation").notNull(),
+  unit: text("unit").notNull(),
+  creditsNumerator: integer("credits_numerator").notNull(),
+  creditsDenominator: integer("credits_denominator").default(1).notNull(),
+  minimumCredits: integer("minimum_credits").default(0).notNull(),
+  providerCostMicrousd: integer("provider_cost_microusd").default(0).notNull(),
+  providerCostUnitCount: integer("provider_cost_unit_count").default(1).notNull(),
+  fxMicrounitsCnyPerUsd: integer("fx_microunits_cny_per_usd").default(0).notNull(),
+  sourceUrl: text("source_url").notNull(),
+  verifiedAt: text("verified_at").notNull(),
+  effectiveFrom: text("effective_from").notNull(),
+  effectiveTo: text("effective_to"),
+  status: text("status").default("active").notNull(),
+  version: text("version").notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+export const billingAuditLogs = sqliteTable("billing_audit_logs", {
+  id: text("id").primaryKey(),
+  actorUserId: text("actor_user_id").notNull().references(() => users.id),
+  action: text("action").notNull(),
+  targetType: text("target_type").notNull(),
+  targetId: text("target_id").notNull(),
+  beforeJson: text("before_json").default("{}").notNull(),
+  afterJson: text("after_json").default("{}").notNull(),
+  reason: text("reason").notNull(),
+  requestId: text("request_id").notNull(),
+  ipAddress: text("ip_address").default("").notNull(),
+  userAgent: text("user_agent").default("").notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
 
 export const projects = sqliteTable("projects", {
@@ -170,6 +279,13 @@ export const projectVersions = sqliteTable("project_versions", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+export type MembershipPlan = typeof membershipPlans.$inferSelect;
+export type UserMembership = typeof userMemberships.$inferSelect;
+export type CreditAccount = typeof creditAccounts.$inferSelect;
+export type CreditLot = typeof creditLots.$inferSelect;
+export type CreditLedgerEntry = typeof creditLedger.$inferSelect;
+export type ModelRate = typeof modelRates.$inferSelect;
+export type BillingAuditLog = typeof billingAuditLogs.$inferSelect;
 
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = typeof projects.$inferInsert;
@@ -217,6 +333,32 @@ export const generationJobs = sqliteTable("generation_jobs", {
   costUnit: text("cost_unit").notNull().default(""), // 'per_call' | 'per_second' | 'per_image'
   submittedAt: text("submitted_at"),
   completedAt: text("completed_at"),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+export const usageCharges = sqliteTable("usage_charges", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  generationJobId: text("generation_job_id").references(() => generationJobs.id, { onDelete: "set null" }).unique(),
+  rateId: text("rate_id").references(() => modelRates.id),
+  billingMode: text("billing_mode").notNull(),
+  status: text("status").notNull(),
+  estimatedUnits: integer("estimated_units").default(0).notNull(),
+  actualUnits: integer("actual_units"),
+  heldCredits: integer("held_credits").default(0).notNull(),
+  settledCredits: integer("settled_credits").default(0).notNull(),
+  providerCostMicrousd: integer("provider_cost_microusd"),
+  quoteSnapshotJson: text("quote_snapshot_json").notNull(),
+  usageSnapshotJson: text("usage_snapshot_json").default("{}").notNull(),
+  externalTaskId: text("external_task_id").default("").notNull(),
+  failureCode: text("failure_code").default("").notNull(),
+  reconciliationNote: text("reconciliation_note").default("").notNull(),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  expiresAt: text("expires_at").notNull(),
+  submittedAt: text("submitted_at"),
+  settledAt: text("settled_at"),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -298,6 +440,8 @@ export const assetVersions = sqliteTable("asset_versions", {
 
 export type GenerationJob = typeof generationJobs.$inferSelect;
 export type InsertGenerationJob = typeof generationJobs.$inferInsert;
+export type UsageCharge = typeof usageCharges.$inferSelect;
+export type InsertUsageCharge = typeof usageCharges.$inferInsert;
 export type Take = typeof takes.$inferSelect;
 export type InsertTake = typeof takes.$inferInsert;
 export type DialogueLine = typeof dialogueLines.$inferSelect;
