@@ -141,6 +141,22 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
             </span>
           )}
 
+          {/* Visual Metaphor & Prop Anchor Badge */}
+          {(() => {
+            const vm = shot.visual_metaphor || (shot.continuity_data as any)?.visual_metaphor;
+            if (!vm || (!vm.prop_name && !vm.metaphor_theme)) return null;
+            return (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25 shrink-0"
+                title={`视听信物隐喻: ${vm.prop_name || "道具"}\n象征主题: ${vm.metaphor_theme || ""}\n微动作: ${vm.action_detail || ""}`}
+              >
+                <span>💍</span>
+                <span className="font-semibold">{vm.prop_name || "承重信物"}</span>
+                {vm.metaphor_theme && <span className="opacity-70">· {vm.metaphor_theme}</span>}
+              </span>
+            );
+          })()}
+
           {isLocked && (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
               <Lock className="w-3 h-3" />

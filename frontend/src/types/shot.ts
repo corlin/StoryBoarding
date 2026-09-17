@@ -44,6 +44,11 @@ export interface ContinuityData {
   motion_in?: string;
   motion_out?: string;
   transition_recommendation?: string;
+  visual_metaphor?: {
+    prop_name?: string;
+    metaphor_theme?: string;
+    action_detail?: string;
+  };
 }
 
 export interface ShotModel {
@@ -95,6 +100,11 @@ export interface ShotModel {
   // Director Studio Screen Text & Motion Overlays
   screen_text?: string;
   screen_text_style?: 'bold_impact' | 'warning_banner' | 'key_point' | 'minimal_lower_third';
+  visual_metaphor?: {
+    prop_name?: string;
+    metaphor_theme?: string;
+    action_detail?: string;
+  };
   created_at: string;
   updated_at: string;
 }

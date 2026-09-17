@@ -26,6 +26,11 @@ export interface ShotPlan {
   compute_tier?: "flagship" | "standard" | "economy";
   act_progression?: string; // '启动·钩子与建置' | '升级·检验与逼迫' | '假高潮·行动与质变' | '兑现·核心反转与余味'
   hook_phase?: string; // '0-3s入画' | '3-10s加压' | '10-30s揭底牌' | '后段高潮'
+  visual_metaphor?: {
+    prop_name?: string;
+    metaphor_theme?: string;
+    action_detail?: string;
+  };
 }
 
 export interface DirectorGenerationResult {
@@ -206,8 +211,14 @@ ${pacingGuidance}
    - 追求冰山下的“未说之话 (Subtext)”，表面平静克制，台词背后是涌动的杀机或深情；
    - 斯奈德遮名测试：确保每位角色具有独一无二的词汇特征与语感，遮住名字依然能一眼辨识；无人说话写“无”。
 
-4. 【道具承重叙事 (Prop as Narrative Anchor · 视听质感核心)】:
-   - 善于利用具体的物理道具（如撕毁的婚约、微弱反光的匕首、摔碎的怀表、屏幕跳动的绝密短信）作为特写焦点与情绪载体，赋予画面沉甸甸的电影胶片质感。
+4. 【道具承重叙事与视听隐喻调度 (Prop as Narrative Anchor & Visual Metaphor · 好莱坞视听核心)】:
+   - 拒斥千篇一律的静态大头照！关键镜头必须有“视听隐喻 (Visual Metaphor)”；
+   - 优先调度系列圣经中的【承重信物 (bonding_items)】与角色的【致命缺陷 (attacks_flaw)】作为视觉核心（如微弱反光的匕首、碎屏手机、染血婚书、卡死的怀表）；
+   - 在关键高压节拍 (tension_build / plot_twist / climax_payoff / cliffhanger_hook) 中，强制注入【好莱坞奇观升级三要素 (Setpiece Escalation Triad)】：
+     * ① 窒息环境限制: 空间骤然收窄、大火逼近、狂风暴雨或断崖绝境；
+     * ② 物理倒计时加压: 引信燃烧、秒表倒数、迫近的脚步声或最后一秒生路；
+     * ③ 多任务并发冲突: 抢夺证据同时防备暗箭，以退为进制造物理阻碍；
+   - 必须通过特写、材质反射（反光刺破暗影）、手部微动作（手指发白、微微颤抖、死死攥紧）转化为具有电影胶片质感的纯英文视觉提示词。
 
 5. 【特鲁比四角对立与系列引擎潜意识驱动 (Truby Opposition & Series Engine Driven)】:
    - 若上下文中提供了【系列引擎】或【角色四角对立定位】：
@@ -218,13 +229,13 @@ ${pacingGuidance}
 6. 【题材与主体忠实性法则 (Genre & Subject Fidelity)】:
    - 严禁擅自篡改题材！历史风貌/现实主义严禁加入魔幻翅膀或哥特光环；硬核科幻与动作遵循物理质感；动物萌宠严格锁定主体，严禁生成无关人物。
 
-6. 【纯净自然生图画卷描述 (Pure Diegetic Natural Prompting)】:
+7. 【纯净自然生图画卷描述 (Pure Diegetic Natural Prompting)】:
    - 严禁输出 "Visual Anchor:", "Anticipation Pose:", "Action:", "Shot #", "Subject:" 等任何机械标签！
    - 必须写出主谓宾连贯、具有电影级光影层次、材质细节与空间纵深的纯英文描述句。
    - 结尾统一附加强负向约束：
      "no poster frame, no decorative golden borders, no ornate card borders, no trading card frame, no franchise logo, no text watermark, full bleed widescreen film still, edge-to-edge diegetic scene, 16:9 widescreen"
 
-5. 【输出格式规范】：
+8. 【输出格式规范】：
 请在 JSON 顶层输出：
 1. "theme": 故事核心主题短语 (中英文)
 2. "global_visual_anchor": 全片核心视觉基石 (纯英文描述, 包含主角/主体外观、场景美学与艺术风格)
@@ -249,6 +260,7 @@ ${pacingGuidance}
 - emotional_voltage: 情绪势能电压 (0~100 的整数，首镜通常为 70+开篇悬念，中段蓄压 50~80，高潮 90+，末镜为 95+绝境卡点)
 - information_gap: 为什么观众必须看下一镜？(简练阐明此镜头结尾留存的信息缺口与悬念引线)
 - compute_tier: 算力调度建议 ('flagship' | 'standard' | 'economy'，高潮动作/人物特写为 flagship，普通对白为 standard，空镜头为 economy)
+- visual_metaphor: 视听隐喻与物理微动作 ({ "prop_name": "承重信物道具名", "metaphor_theme": "隐喻象征主题", "action_detail": "微动作与光影质感" })（加压、转折、高潮与卡点镜头必填）
 - image_prompt: 纯净英文自然生图描述句 (Pure Visual Description in English, no labels)
 - video_prompt: 4段式 AI 视频提示词 ([Camera], [Action], [Dynamics], [Quality])
 - continuity_data: 镜头间剪辑流数据 ({ "screen_direction": "left_to_right" | "right_to_left", "motion_in": "入画动势", "motion_out": "出画动势", "transition_recommendation": "Match cut on action" | "Cross dissolve" | "Hard cut" })
@@ -1126,6 +1138,27 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
 
     const { act_progression, hook_phase } = getActProgressionAndHookPhase(idx, totalCount);
 
+    let visualMetaphor: { prop_name?: string; metaphor_theme?: string; action_detail?: string } | undefined = undefined;
+    if (beatType === "cliffhanger_hook") {
+      visualMetaphor = {
+        prop_name: "悬念信物",
+        metaphor_theme: "命运逆转与死局",
+        action_detail: "冷色侧光打在信物表面，特写微动作定格在反转最高潮一瞬",
+      };
+    } else if (beatType === "climax_payoff") {
+      visualMetaphor = {
+        prop_name: "对峙信物",
+        metaphor_theme: "权力倾斜与终极一战",
+        action_detail: "强反差明暗光影，指节死死发白抠紧边缘，微动作彰显决绝杀气",
+      };
+    } else if (beatType === "hook") {
+      visualMetaphor = {
+        prop_name: "危机引线",
+        metaphor_theme: "不可逆危机切口",
+        action_detail: "大特写聚焦道具异动，反光刺破暗影拉满悬念张力",
+      };
+    }
+
     return {
       order: idx + 1,
       duration: durPerShot,
@@ -1148,10 +1181,12 @@ export function generateAdaptiveStoryShots(storyText: string, targetDuration: nu
       video_prompt: videoPrompt,
       continuity_data: {
         screen_direction: screenDirection,
-        motion_in: `Shot #${idx + 1} entry kinetic momentum from ${screenDirection}`,
-        motion_out: `Shot #${idx + 1} exit kinetic momentum forward`,
-        transition_recommendation: idx === baseArcs.length - 1 ? "Fade to black" : "Match cut on action",
+        motion_in: arc.mov === "push_in" ? "向内推入" : "平稳入画",
+        motion_out: arc.mov === "pull_out" ? "向外拉远" : "留白定格",
+        transition_recommendation: idx === totalCount - 1 ? "Fade to black" : "Match cut on action",
+        visual_metaphor: visualMetaphor,
       },
+      visual_metaphor: visualMetaphor,
       beat_type: beatType,
       emotional_voltage: emotionalVoltage,
       information_gap: infoGap,

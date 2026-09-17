@@ -160,6 +160,7 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isAdvancedVisualOpen, setIsAdvancedVisualOpen] = useState(false);
+  const [isInjectingMetaphor, setIsInjectingMetaphor] = useState(false);
 
   // Auth & Key state perception
   const user = useAuthStore((s) => s.user);
@@ -289,6 +290,53 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
       notify.error(e?.message || "重绘失败");
     } finally {
       setIsRegenerating(false);
+    }
+  };
+
+  const handleInjectVisualMetaphor = async () => {
+    try {
+      setIsInjectingMetaphor(true);
+      const currentAction = formData.action || shot.action || "";
+      const currentSubject = formData.subject || shot.subject || "主角";
+      const vmProp = formData.visual_metaphor?.prop_name || "承重信物";
+      const vmTheme = formData.visual_metaphor?.metaphor_theme || "命运绝境与信念抉择";
+
+      const microAction = `冷暖强反差侧光掠过，特写聚焦${vmProp}细微纹理；${currentSubject}手指发白死死扣住边缘，眼神在阴影中骤然收紧。`;
+      const enrichedAction = `${currentAction.replace(/。$/, "")}。${microAction}`;
+
+      const updatedMetaphor = {
+        prop_name: vmProp,
+        metaphor_theme: vmTheme,
+        action_detail: microAction,
+      };
+
+      // Enrich image_prompt if available
+      let enrichedPrompt = formData.image_prompt || shot.image_prompt || "";
+      if (enrichedPrompt && !enrichedPrompt.includes("chiaroscuro")) {
+        enrichedPrompt = `${enrichedPrompt.trim()}, cinematic chiaroscuro, tense rim lighting, intense dramatic micro-expression, extreme close-up tactile detail of ${vmProp}`;
+      }
+
+      handleChange("visual_metaphor", updatedMetaphor);
+      handleChange("action", enrichedAction);
+      if (enrichedPrompt) {
+        handleChange("image_prompt", enrichedPrompt);
+      }
+
+      await onUpdateShot(shot.id, {
+        action: enrichedAction,
+        visual_metaphor: updatedMetaphor,
+        continuity_data: {
+          ...(shot.continuity_data || {}),
+          visual_metaphor: updatedMetaphor,
+        },
+        image_prompt: enrichedPrompt || undefined,
+      });
+
+      notify.success("✨ 已成功注入好莱坞级视听隐喻与物理微动作！");
+    } catch (err: any) {
+      notify.error("注入微动作失败: " + err.message);
+    } finally {
+      setIsInjectingMetaphor(false);
     }
   };
 
@@ -649,6 +697,84 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                     onChange={(e) => handleChange("dialogue_emotion", e.target.value)}
                     placeholder="例如: 冷嘲讽刺 / 绝望悲鸣 / 压低声音"
                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Section: Visual Metaphor & Setpiece Micro-Action */}
+              <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                    <span>💍 好莱坞视听隐喻与物理微动作 (Visual Metaphor)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleInjectVisualMetaphor}
+                    disabled={isInjectingMetaphor}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition-all cursor-pointer disabled:opacity-50"
+                    title="根据好莱坞视听法则，为该镜头注入冷暖反差侧光与道具微动作"
+                  >
+                    {isInjectingMetaphor ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    <span>✨ 激发电影级微动作</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <label className="text-[10px] font-mono text-muted-foreground block mb-1">
+                      承重道具/信物 (Prop Anchor):
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.visual_metaphor?.prop_name || ""}
+                      onChange={(e) =>
+                        handleChange("visual_metaphor", {
+                          ...(formData.visual_metaphor || {}),
+                          prop_name: e.target.value,
+                        })
+                      }
+                      placeholder="如: 染血密函 / 裂纹怀表 / 刺客短刃"
+                      className="w-full bg-background border border-border/80 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono text-muted-foreground block mb-1">
+                      隐喻象征主题 (Thematic Core):
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.visual_metaphor?.metaphor_theme || ""}
+                      onChange={(e) =>
+                        handleChange("visual_metaphor", {
+                          ...(formData.visual_metaphor || {}),
+                          metaphor_theme: e.target.value,
+                        })
+                      }
+                      placeholder="如: 誓言崩塌 / 倒计时窒息 / 权力天平倾斜"
+                      className="w-full bg-background border border-border/80 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono text-muted-foreground block mb-1">
+                    物理微动作与光影质感 (Micro-Action Detail):
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.visual_metaphor?.action_detail || ""}
+                    onChange={(e) =>
+                      handleChange("visual_metaphor", {
+                        ...(formData.visual_metaphor || {}),
+                        action_detail: e.target.value,
+                      })
+                    }
+                    placeholder="如: 反光刺破暗影，指节微微发白扣紧刀柄，微动作定格在反转瞬间..."
+                    className="w-full bg-background border border-border/80 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500 font-sans"
                   />
                 </div>
               </div>
