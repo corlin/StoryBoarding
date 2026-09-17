@@ -1,13 +1,20 @@
 export interface HookDiagnosisResult {
   scores: {
-    hook: number; // 0-100 前 3 秒抓人度
-    escalation: number; // 0-100 中段矛盾反转压强
+    hook: number; // 0-100 前 3 秒抓人度与晚进早出
+    dialogue_subtext: number; // 0-100 麦基对白行动与潜台词深度 (剔除 on-the-nose)
+    value_turn: number; // 0-100 梅峰场景价值转折位移
     cliffhanger: number; // 0-100 集尾生死卡点悬念
     overall: number; // 综合评分
   };
+  value_turn: {
+    opening: string; // 开篇价值预期 (例如: [+] 稳操胜券)
+    ending: string; // 终局价值逆转 (例如: [-] 沦为弃子)
+    pivot: string; // 关键转折动因 (例如: 密函曝光当场对峙)
+  };
   critique: {
     hook: string;
-    escalation: string;
+    dialogue_subtext: string;
+    value_turn: string;
     cliffhanger: string;
   };
   rewritten_screenplay: string;
@@ -43,17 +50,20 @@ export async function diagnoseAndRewriteScreenplay(
   const { apiKey, apiBase = "https://openrouter.ai/api/v1", model = "anthropic/claude-3.5-sonnet", charactersContext = "" } = options;
 
   const prompt = `你是一位拥有千万级爆款短剧与院线电影监制经验的顶级影视剧作医生（Chief Script & Hook Doctor）。
-你的任务是对导演提交的这一集【文学剧本母本】进行最严苛的剧作诊断，运用经典编剧理论（麦基价值转折、晚进早出、对白即行动与四级悬念出幕）给出高水准的重构方案。
+你的任务是对导演提交的这一集【文学剧本母本】进行最严苛的剧作诊断，深度融入【麦基对白艺术 (sw-dialogue)】与【梅峰单场戏价值转折 (sw-scene-craft)】给出大师级重构方案。
 
-【三大影视剧作核心诊断准则 (SCREENWRITING DIAGNOSIS FRAMEWORK)】:
+【四大影视剧作核心诊断准则 (SCREENWRITING DIAGNOSIS FRAMEWORK)】:
 1. 黄金钩子与晚进早出 (Hook & Enter Late):
    - 绝不从日常问候、倒水看风景或解释性背景交代开始！
-   - 必须“晚进 (Enter Late)”，开局第 1 句话或动作必须是“不可逆冲突、背叛现场、致命危机或视觉奇观”，瞬间锁死观众目光，压低跳出率。
-2. 对白即行动与潜台词加压 (Dialogue as Action & Subtext Escalation):
-   - 严厉剔除“解释性对白与说明书台词”！台词是交锋的武器，每句对白都在攻击、试探、防御或转移焦点；
-   - 撕碎表层假矛盾，制造信息差（奥贝格戏剧性讽刺/悬疑），每一次交锋都要封死主角退路，权力位置剧烈倒置。
-3. 价值转折与四级生死卡点 (Value Charge Turn & Cliffhanger):
-   - 场景结束时主角处境必须发生根本性价值颠覆（从胜券在握到满盘皆输，或表面妥协实则暗度陈仓）；
+   - 必须“晚进 (Enter Late)”，开局第 1 句话或动作必须是“不可逆冲突、背叛现场、致命危机或视觉奇观”，瞬间锁死目光，压低跳出率。
+2. 麦基对白行动与潜台词净化 (Dialogue as Action & Subtext Purifier):
+   - 坚决剔除“写在鼻子上 (On-the-nose)”的直白内心表白与说明书台词！
+   - 对白即行动：每句台词都是武器（攻击、试探、卸防、反刺），一句台词只办一件事；
+   - 将解说作为子弹如武器般呈现；通过“斯奈德遮名测试”，确保每个角色用词独一无二。
+3. 梅峰场景价值转折 (Value Charge Turn):
+   - 场景开篇押上什么价值，结束时必须两极翻转（如 [+]掌控全局 ➔ 发现落入死局[-]，或表面认输实则反杀）；
+   - 动作优于干聊：善用具体的道具信物（三边对话出口）和肢体权力微动作，严禁站桩聊天。
+4. 四级生死出幕卡点 (Cliffhanger & Deadlock):
    - 集尾必须切在最高危、最震惊或最颠覆的瞬间（属于物理绝境、认知颠覆、伦理二选一或规则推翻之一），迫使观众必须立刻滑动到下一集。
 
 【角色背景资产】：
@@ -66,14 +76,21 @@ ${screenplayText}
 {
   "scores": {
     "hook": 85,
-    "escalation": 78,
+    "dialogue_subtext": 82,
+    "value_turn": 80,
     "cliffhanger": 92,
     "overall": 85
   },
+  "value_turn": {
+    "opening": "[+] 表面掌控局面，主角胜券在握",
+    "ending": "[-] 底牌瞬间被掀，沦为生死人质",
+    "pivot": "对手亮出一份染血的真实密函"
+  },
   "critique": {
-    "hook": "指出原剧本开局是否存在拖沓、日常寒暄或未做到晚进早出",
-    "escalation": "指出中段对白是否太水太平、是否存在潜台词与退路封死",
-    "cliffhanger": "指出原剧本收尾是否缺乏价值转折与生死卡点悬念"
+    "hook": "指出开局是否存在拖沓，是否做到晚进早出",
+    "dialogue_subtext": "指出台词是否直白(on-the-nose)、缺乏潜台词或千人一面",
+    "value_turn": "指出场景有无两极价值位移，是否站桩干聊缺乏微动作",
+    "cliffhanger": "指出收尾是否缺乏价值逆转与生死绝境卡点"
   },
   "sections": {
     "opening": {
@@ -83,7 +100,7 @@ ${screenplayText}
     },
     "middle": {
       "original": "原剧本中段段落",
-      "rewritten": "重构后的中段加压反转（对白即行动、潜台词涌动、退路被彻底封死）",
+      "rewritten": "重构后的中段加压反转（麦基对白行动、潜台词涌动、退路被彻底封死）",
       "why": "改动如何借助信息差与权力攻防制造反转与戏剧张力"
     },
     "cliffhanger": {
@@ -131,13 +148,20 @@ ${screenplayText}
     return {
       scores: {
         hook: Math.min(100, Math.max(20, Number(parsed.scores?.hook) || 75)),
-        escalation: Math.min(100, Math.max(20, Number(parsed.scores?.escalation) || 75)),
+        dialogue_subtext: Math.min(100, Math.max(20, Number(parsed.scores?.dialogue_subtext) || 80)),
+        value_turn: Math.min(100, Math.max(20, Number(parsed.scores?.value_turn) || 78)),
         cliffhanger: Math.min(100, Math.max(20, Number(parsed.scores?.cliffhanger) || 80)),
         overall: Math.min(100, Math.max(20, Number(parsed.scores?.overall) || 78)),
       },
+      value_turn: {
+        opening: parsed.value_turn?.opening || "[+] 局势尚在预期之中",
+        ending: parsed.value_turn?.ending || "[-] 致命危机全面爆发",
+        pivot: parsed.value_turn?.pivot || "关键信息差被当场点破",
+      },
       critique: {
         hook: parsed.critique?.hook || "原开场铺垫较长，需前置危机或戏剧动作。",
-        escalation: parsed.critique?.escalation || "中段矛盾较为缓和，需增加不可逆的代价阻碍。",
+        dialogue_subtext: parsed.critique?.dialogue_subtext || "台词偏直白说明，需注入潜台词冰山与言语攻防。",
+        value_turn: parsed.critique?.value_turn || "中段价值位移需更剧烈，多用道具微动作代替干聊。",
         cliffhanger: parsed.critique?.cliffhanger || "集尾停在交代动作，需在关键秘密戳穿或冲突爆发瞬间戛然而止。",
       },
       sections: {
@@ -169,13 +193,20 @@ ${screenplayText}
     return {
       scores: {
         hook: 68,
-        escalation: 72,
+        dialogue_subtext: 70,
+        value_turn: 72,
         cliffhanger: 65,
-        overall: 68,
+        overall: 69,
+      },
+      value_turn: {
+        opening: "[+] 表面维持和平相安无事",
+        ending: "[-] 关系彻底破裂退无可退",
+        pivot: "一桩不能说的秘密被当众亮出",
       },
       critique: {
         hook: "开局进入冲突稍显迟疑，前3秒建议直接将不可逆后果或尖锐对峙推到画框中央。",
-        escalation: "中段试错代价偏轻，需强化权力位置对调与信息差。",
+        dialogue_subtext: "对白略显直白，缺少'冰山下的未说之话'，需将解释性台词改为言辞武器。",
+        value_turn: "价值位移幅度可进一步拉大，多借用场景道具（信物、茶盏、文件）作为三边博弈出口。",
         cliffhanger: "集尾尚未形成生死一线的绝境卡点，可断在关键道具现身或致命选择前夕。",
       },
       sections: {
@@ -186,8 +217,8 @@ ${screenplayText}
         },
         middle: {
           original: "原剧本推进",
-          rewritten: `【矛盾彻底激化】主角退路被彻底切断，对方扔出不可辩驳的毁灭性铁证。`,
-          why: "升级博弈筹码，让观众替主角捏一把汗。",
+          rewritten: `【麦基潜台词交锋】主角退路被彻底切断，对方面带微笑递过一份致命密函，言辞平静却字字诛心。`,
+          why: "升级博弈筹码与道具承重，让观众替主角捏一把汗。",
         },
         cliffhanger: {
           original: ending || "原剧本结尾",

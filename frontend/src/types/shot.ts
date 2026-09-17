@@ -261,6 +261,11 @@ export interface SequenceModel {
   hook_summary?: string;
   cliffhanger_summary?: string;
   payoff_summary?: string;
+  value_turn?: {
+    opening: string;
+    ending: string;
+    pivot: string;
+  };
   target_duration?: number;
   beats_data?: BeatModel[];
   shots: ShotModel[];

@@ -27,7 +27,7 @@ interface HookDoctorModalProps {
   project: ProjectModel | null;
   sequence: SequenceModel | null;
   currentScreenplay: string;
-  onApplyRewrite: (newText: string) => Promise<void>;
+  onApplyRewrite: (newText: string, valueTurn?: { opening: string; ending: string; pivot: string }) => Promise<void>;
 }
 
 export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
@@ -93,7 +93,7 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
         newScreenplay = diagnosis.rewritten_screenplay;
       }
 
-      await onApplyRewrite(newScreenplay);
+      await onApplyRewrite(newScreenplay, diagnosis?.value_turn);
       notify.success(`已单独采纳「${sectionKey === "opening" ? "黄金开局" : sectionKey === "cliffhanger" ? "集尾卡点" : "中段加压"}」改写！`);
       onClose();
     } catch (err: any) {
@@ -107,7 +107,7 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
     if (!diagnosis?.rewritten_screenplay) return;
     try {
       setIsApplying(true);
-      await onApplyRewrite(diagnosis.rewritten_screenplay);
+      await onApplyRewrite(diagnosis.rewritten_screenplay, diagnosis?.value_turn);
       notify.success("⚡ 已全量采纳短剧重构剧本并同步差量分镜头！");
       onClose();
     } catch (err: any) {
@@ -117,7 +117,13 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
     }
   };
 
-  const scores = diagnosis?.scores || { hook: 0, escalation: 0, cliffhanger: 0, overall: 0 };
+  const scores = diagnosis?.scores || {
+    hook: 0,
+    dialogue_subtext: 0,
+    value_turn: 0,
+    cliffhanger: 0,
+    overall: 0,
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
@@ -156,12 +162,12 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
           </div>
         ) : diagnosis ? (
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-            {/* Top Scores Grid */}
-            <div className="grid grid-cols-4 gap-3">
-              <div className="p-3 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
+            {/* Top Scores Grid: 4-Dimension Hollywood Radar */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+              <div className="p-2.5 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-rose-400">⚡ 黄金钩子 · 晚进早出</span>
-                  <span className="font-mono text-sm font-bold text-rose-400">{scores.hook}分</span>
+                  <span className="text-rose-400">⚡ 黄金钩子</span>
+                  <span className="font-mono text-xs font-bold text-rose-400">{scores.hook}分</span>
                 </div>
                 <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
                   <div className="bg-rose-500 h-full rounded-full transition-all duration-500" style={{ width: `${scores.hook}%` }} />
@@ -169,21 +175,32 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
                 <p className="text-[10px] text-muted-foreground truncate">{diagnosis.critique?.hook}</p>
               </div>
 
-              <div className="p-3 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
+              <div className="p-2.5 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-amber-400">🔥 中段加压 · 潜台词</span>
-                  <span className="font-mono text-sm font-bold text-amber-400">{scores.escalation}分</span>
+                  <span className="text-amber-400">🎭 麦基对白潜台词</span>
+                  <span className="font-mono text-xs font-bold text-amber-400">{scores.dialogue_subtext || scores.escalation || 75}分</span>
                 </div>
                 <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${scores.escalation}%` }} />
+                  <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${scores.dialogue_subtext || scores.escalation || 75}%` }} />
                 </div>
-                <p className="text-[10px] text-muted-foreground truncate">{diagnosis.critique?.escalation}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{diagnosis.critique?.dialogue_subtext || diagnosis.critique?.escalation}</p>
               </div>
 
-              <div className="p-3 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
+              <div className="p-2.5 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-purple-400">🎣 集尾卡点 · 价值逆转</span>
-                  <span className="font-mono text-sm font-bold text-purple-400">{scores.cliffhanger}分</span>
+                  <span className="text-cyan-400">🔄 梅峰价值转折</span>
+                  <span className="font-mono text-xs font-bold text-cyan-400">{scores.value_turn || 78}分</span>
+                </div>
+                <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-cyan-500 h-full rounded-full transition-all duration-500" style={{ width: `${scores.value_turn || 78}%` }} />
+                </div>
+                <p className="text-[10px] text-muted-foreground truncate">{diagnosis.critique?.value_turn || "两极转折明确"}</p>
+              </div>
+
+              <div className="p-2.5 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="text-purple-400">⏳ 四级生死卡点</span>
+                  <span className="font-mono text-xs font-bold text-purple-400">{scores.cliffhanger}分</span>
                 </div>
                 <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
                   <div className="bg-purple-500 h-full rounded-full transition-all duration-500" style={{ width: `${scores.cliffhanger}%` }} />
@@ -191,17 +208,45 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
                 <p className="text-[10px] text-muted-foreground truncate">{diagnosis.critique?.cliffhanger}</p>
               </div>
 
-              <div className="p-3 bg-primary/10 border border-primary/30 rounded-xl space-y-1">
+              <div className="p-2.5 bg-primary/10 border border-primary/30 rounded-xl space-y-1 col-span-2 md:col-span-1">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-primary font-bold">🌟 综合剧作爆款指数</span>
-                  <span className="font-mono text-sm font-bold text-primary">{scores.overall}分</span>
+                  <span className="text-primary font-bold">🌟 综合指数</span>
+                  <span className="font-mono text-xs font-bold text-primary">{scores.overall}分</span>
                 </div>
                 <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
                   <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${scores.overall}%` }} />
                 </div>
-                <p className="text-[10px] text-primary/80">戏剧张力极高，可直接反推分镜</p>
+                <p className="text-[10px] text-primary/80 truncate">影视剧作级张力</p>
               </div>
             </div>
+
+            {/* Value Turn Arc Display */}
+            {diagnosis.value_turn && (
+              <div className="p-3 bg-secondary/25 border border-cyan-500/30 rounded-xl space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                    <span>🔄 梅峰场景价值检验 (Value Turn Arc)</span>
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                    单场戏动力学
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px]">
+                  <div className="p-2 rounded-lg bg-background/80 border border-border/70 space-y-0.5">
+                    <span className="text-[10px] font-mono text-emerald-400 font-semibold">开篇价值预期:</span>
+                    <p className="text-foreground font-medium">{diagnosis.value_turn.opening || "[+] 局势平稳"}</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-background/80 border border-border/70 space-y-0.5">
+                    <span className="text-[10px] font-mono text-amber-400 font-semibold">核心转折动因 (Pivot):</span>
+                    <p className="text-foreground font-medium">{diagnosis.value_turn.pivot || "信息差或关键道具引爆"}</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-background/80 border border-border/70 space-y-0.5">
+                    <span className="text-[10px] font-mono text-rose-400 font-semibold">终局价值逆转:</span>
+                    <p className="text-foreground font-medium">{diagnosis.value_turn.ending || "[-] 绝境危机卡点"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Sections Comparison (Diff & Recommendations) */}
             <div className="space-y-3">
