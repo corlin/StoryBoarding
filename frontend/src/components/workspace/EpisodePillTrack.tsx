@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useAuthStore } from "@/stores/authStore";
-import { ProjectModel } from "@/types/shot";
-import { Film, Users, Plus, Sparkles, Loader2, X, Rocket, Key } from "lucide-react";
+import { ProjectModel, SequenceModel } from "@/types/shot";
+import { Film, Users, Plus, Sparkles, Loader2, X, Rocket, Key, Swords } from "lucide-react";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 
@@ -21,6 +21,45 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
   const [targetDuration, setTargetDuration] = useState(60);
   const [cliffhangerHook, setCliffhangerHook] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Hover Popover State for A/B Story and Snyder Collision
+  const [hoveredSeqData, setHoveredSeqData] = useState<{
+    seq: SequenceModel;
+    rect: DOMRect;
+  } | null>(null);
+
+  const resolveABStory = (s: SequenceModel) => {
+    if (s.a_b_story) return s.a_b_story;
+    if (s.payoff_summary && s.payoff_summary.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(s.payoff_summary);
+        return parsed.a_b_story;
+      } catch (_) {}
+    }
+    return undefined;
+  };
+
+  const resolveSnyderCollision = (s: SequenceModel) => {
+    if (s.snyder_collision) return s.snyder_collision;
+    if (s.payoff_summary && s.payoff_summary.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(s.payoff_summary);
+        return parsed.snyder_collision;
+      } catch (_) {}
+    }
+    return undefined;
+  };
+
+  const resolveValueTurn = (s: SequenceModel) => {
+    if (s.value_turn) return s.value_turn;
+    if (s.payoff_summary && s.payoff_summary.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(s.payoff_summary);
+        return parsed.value_turn;
+      } catch (_) {}
+    }
+    return undefined;
+  };
 
   // Expansion Modal State (Scene-to-Series)
   const [isExpandModalOpen, setIsExpandModalOpen] = useState(false);
@@ -127,11 +166,20 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
             const isActive = idx === activeEpisodeIndex;
             const epNum = seq.episode_number || idx + 1;
             const shotCount = seq.shots?.length || 0;
+            const collision = resolveSnyderCollision(seq);
+            const abStory = resolveABStory(seq);
 
             return (
               <button
                 key={seq.id}
                 onClick={() => setActiveEpisodeIndex(idx)}
+                onMouseEnter={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setHoveredSeqData({ seq, rect });
+                }}
+                onMouseLeave={() => {
+                  setHoveredSeqData(null);
+                }}
                 className={`flex items-center gap-1.5 ${
                   compact ? "px-2 py-0.5 text-[11px]" : "px-3 py-1.5 text-xs"
                 } rounded-md font-medium transition-all shrink-0 border ${
@@ -149,6 +197,14 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
                 </span>
                 <span className="max-w-[100px] truncate">{seq.title || seq.name || `第 ${epNum} 集`}</span>
                 <span className="text-[9px] font-mono opacity-70">({shotCount}镜)</span>
+                {collision && (
+                  <span
+                    className="flex items-center text-[10px] text-amber-300 bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/30"
+                    title={`戏剧对撞: ${collision.character_a} >< ${collision.character_b}`}
+                  >
+                    ⚔️
+                  </span>
+                )}
                 {seq.cliffhanger_summary && (
                   <span title={`集尾卡点: ${seq.cliffhanger_summary}`} className="text-rose-400 text-[10px]">
                     🎣
@@ -440,6 +496,76 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
           </div>
         </div>
       )}
+      {/* Episode Hover Popover: A/B Dual Plot & Snyder Collision Radar */}
+      {hoveredSeqData && (() => {
+        const { seq, rect } = hoveredSeqData;
+        const epNum = seq.episode_number || 1;
+        const abStory = resolveABStory(seq);
+        const collision = resolveSnyderCollision(seq);
+        const vt = resolveValueTurn(seq);
+        const leftPos = Math.max(16, Math.min(rect.left, typeof window !== "undefined" ? window.innerWidth - 340 : 300));
+        const topPos = rect.bottom + 8;
+
+        return (
+          <div
+            className="fixed z-50 w-80 p-3.5 bg-[#16171a] border border-border/80 rounded-xl shadow-2xl space-y-2.5 animate-in fade-in zoom-in-95 duration-100 pointer-events-none"
+            style={{ top: `${topPos}px`, left: `${leftPos}px` }}
+          >
+            <div className="flex items-center justify-between border-b border-border/50 pb-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">
+                  EP {epNum}
+                </span>
+                <span className="text-xs font-bold text-foreground truncate max-w-[160px]">
+                  {seq.title || `第 ${epNum} 集`}
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-muted-foreground">{seq.shots?.length || 0} 镜头</span>
+            </div>
+
+            {/* A/B Dual Plot */}
+            {abStory && (
+              <div className="space-y-1.5 text-[11px] bg-secondary/30 p-2 rounded-lg border border-border/40">
+                <div className="flex items-start gap-1.5">
+                  <span className="text-blue-400 font-semibold shrink-0">🎯 A轨:</span>
+                  <span className="text-foreground/90 font-medium leading-tight">{abStory.a_plot}</span>
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="text-pink-400 font-semibold shrink-0">💔 B轨:</span>
+                  <span className="text-foreground/90 font-medium leading-tight">{abStory.b_plot}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Snyder Collision */}
+            {collision && (
+              <div className="text-[11px] bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 space-y-1">
+                <div className="flex items-center gap-1 text-amber-400 font-bold text-[10px]">
+                  <span>⚔️ 意志对撞:</span>
+                  <span>{collision.character_a} &gt;&lt; {collision.character_b}</span>
+                </div>
+                <p className="text-amber-200/90 leading-tight text-[10.5px]">{collision.dynamic}</p>
+              </div>
+            )}
+
+            {/* Value Turn */}
+            {vt && (
+              <div className="text-[10px] font-mono bg-cyan-500/10 p-1.5 rounded-lg border border-cyan-500/20 text-cyan-300 space-y-0.5">
+                <span className="font-bold">🔄 价值转折: </span>
+                <span>{vt.opening} ➔ {vt.pivot} ➔ {vt.ending}</span>
+              </div>
+            )}
+
+            {/* Cliffhanger */}
+            {seq.cliffhanger_summary && (
+              <div className="text-[10px] text-rose-300 bg-rose-500/10 p-1.5 rounded-lg border border-rose-500/20 flex items-start gap-1">
+                <span className="shrink-0 font-bold">🎣 卡点:</span>
+                <span className="leading-tight">{seq.cliffhanger_summary}</span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </>
   );
 }

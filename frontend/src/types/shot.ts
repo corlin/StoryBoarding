@@ -266,6 +266,15 @@ export interface SequenceModel {
     ending: string;
     pivot: string;
   };
+  a_b_story?: {
+    a_plot: string;
+    b_plot: string;
+  };
+  snyder_collision?: {
+    character_a: string;
+    character_b: string;
+    dynamic: string;
+  };
   target_duration?: number;
   beats_data?: BeatModel[];
   shots: ShotModel[];

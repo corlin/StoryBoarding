@@ -27,7 +27,12 @@ interface HookDoctorModalProps {
   project: ProjectModel | null;
   sequence: SequenceModel | null;
   currentScreenplay: string;
-  onApplyRewrite: (newText: string, valueTurn?: { opening: string; ending: string; pivot: string }) => Promise<void>;
+  onApplyRewrite: (
+    newText: string,
+    valueTurn?: { opening: string; ending: string; pivot: string },
+    abStory?: { a_plot: string; b_plot: string },
+    snyderCollision?: { character_a: string; character_b: string; dynamic: string }
+  ) => Promise<void>;
 }
 
 export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
@@ -93,7 +98,7 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
         newScreenplay = diagnosis.rewritten_screenplay;
       }
 
-      await onApplyRewrite(newScreenplay, diagnosis?.value_turn);
+      await onApplyRewrite(newScreenplay, diagnosis?.value_turn, diagnosis?.a_b_story, diagnosis?.snyder_collision);
       notify.success(`已单独采纳「${sectionKey === "opening" ? "黄金开局" : sectionKey === "cliffhanger" ? "集尾卡点" : "中段加压"}」改写！`);
       onClose();
     } catch (err: any) {
@@ -107,7 +112,7 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
     if (!diagnosis?.rewritten_screenplay) return;
     try {
       setIsApplying(true);
-      await onApplyRewrite(diagnosis.rewritten_screenplay, diagnosis?.value_turn);
+      await onApplyRewrite(diagnosis.rewritten_screenplay, diagnosis?.value_turn, diagnosis?.a_b_story, diagnosis?.snyder_collision);
       notify.success("⚡ 已全量采纳短剧重构剧本并同步差量分镜头！");
       onClose();
     } catch (err: any) {
@@ -243,6 +248,36 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
                   <div className="p-2 rounded-lg bg-background/80 border border-border/70 space-y-0.5">
                     <span className="text-[10px] font-mono text-rose-400 font-semibold">终局价值逆转:</span>
                     <p className="text-foreground font-medium">{diagnosis.value_turn.ending || "[-] 绝境危机卡点"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* A/B Dual Plot & Snyder Collision Display */}
+            {(diagnosis.a_b_story || diagnosis.snyder_collision) && (
+              <div className="p-3 bg-secondary/25 border border-amber-500/30 rounded-xl space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <span>⚔️ 霍克斯特双轨交织 & 斯奈德对撞机 (Dual Plot & Collision)</span>
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                    双线加压
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px]">
+                  <div className="p-2 rounded-lg bg-background/80 border border-border/70 space-y-0.5">
+                    <span className="text-[10px] font-mono text-blue-400 font-semibold">🎯 A轨 (外部任务推进):</span>
+                    <p className="text-foreground font-medium">{diagnosis.a_b_story?.a_plot || "外部生死目标"}</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-background/80 border border-border/70 space-y-0.5">
+                    <span className="text-[10px] font-mono text-pink-400 font-semibold">💔 B轨 (内部关系拉扯):</span>
+                    <p className="text-foreground font-medium">{diagnosis.a_b_story?.b_plot || "情感与信任防线"}</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-background/80 border border-border/70 space-y-0.5">
+                    <span className="text-[10px] font-mono text-amber-400 font-semibold">
+                      ⚔️ 意志对撞 ({diagnosis.snyder_collision?.character_a || "主角"} &gt;&lt; {diagnosis.snyder_collision?.character_b || "对手"}):
+                    </span>
+                    <p className="text-foreground font-medium">{diagnosis.snyder_collision?.dynamic || "双方意志攻防博弈"}</p>
                   </div>
                 </div>
               </div>

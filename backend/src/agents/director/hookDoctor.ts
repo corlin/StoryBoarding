@@ -11,6 +11,15 @@ export interface HookDiagnosisResult {
     ending: string; // 终局价值逆转 (例如: [-] 沦为弃子)
     pivot: string; // 关键转折动因 (例如: 密函曝光当场对峙)
   };
+  a_b_story?: {
+    a_plot: string; // 外部任务目标推进
+    b_plot: string; // 角色内部关系情感拉扯
+  };
+  snyder_collision?: {
+    character_a: string;
+    character_b: string;
+    dynamic: string; // 角色正面意志冲突对撞 (例如: 林风借机搜查 >< 赵总管封门试探)
+  };
   critique: {
     hook: string;
     dialogue_subtext: string;
@@ -50,7 +59,7 @@ export async function diagnoseAndRewriteScreenplay(
   const { apiKey, apiBase = "https://openrouter.ai/api/v1", model = "anthropic/claude-3.5-sonnet", charactersContext = "" } = options;
 
   const prompt = `你是一位拥有千万级爆款短剧与院线电影监制经验的顶级影视剧作医生（Chief Script & Hook Doctor）。
-你的任务是对导演提交的这一集【文学剧本母本】进行最严苛的剧作诊断，深度融入【麦基对白艺术 (sw-dialogue)】与【梅峰单场戏价值转折 (sw-scene-craft)】给出大师级重构方案。
+你的任务是对导演提交的这一集【文学剧本母本】进行最严苛的剧作诊断，深度融入【麦基对白艺术 (sw-dialogue)】、【梅峰单场戏价值转折 (sw-scene-craft)】与【霍克斯特 A/B 双轨 & 斯奈德戏剧对撞 (sw-story-structure & sw-character-conflict)】给出大师级重构方案。
 
 【四大影视剧作核心诊断准则 (SCREENWRITING DIAGNOSIS FRAMEWORK)】:
 1. 黄金钩子与晚进早出 (Hook & Enter Late):
@@ -65,6 +74,9 @@ export async function diagnoseAndRewriteScreenplay(
    - 动作优于干聊：善用具体的道具信物（三边对话出口）和肢体权力微动作，严禁站桩聊天。
 4. 四级生死出幕卡点 (Cliffhanger & Deadlock):
    - 集尾必须切在最高危、最震惊或最颠覆的瞬间（属于物理绝境、认知颠覆、伦理二选一或规则推翻之一），迫使观众必须立刻滑动到下一集。
+5. A/B 双轨交织与斯奈德对撞 (Dual-Plot & Collision):
+   - 准确提炼本集的 A 轨（外部任务主线）与 B 轨（人物内部关系与心防拉扯）；
+   - 提炼本集最激烈的双方意志对撞机 (character_a >< character_b)，注明攻守与胜负转移。
 
 【角色背景资产】：
 ${charactersContext || "默认主要角色"}
@@ -85,6 +97,15 @@ ${screenplayText}
     "opening": "[+] 表面掌控局面，主角胜券在握",
     "ending": "[-] 底牌瞬间被掀，沦为生死人质",
     "pivot": "对手亮出一份染血的真实密函"
+  },
+  "a_b_story": {
+    "a_plot": "夺取密信与封锁现场证据",
+    "b_plot": "与昔日盟友产生深层猜忌，防线彻底撕开"
+  },
+  "snyder_collision": {
+    "character_a": "主角",
+    "character_b": "对手",
+    "dynamic": "主角借搜查暗度陈仓 >< 对手笑里藏刀封死退路"
   },
   "critique": {
     "hook": "指出开局是否存在拖沓，是否做到晚进早出",
@@ -158,6 +179,15 @@ ${screenplayText}
         ending: parsed.value_turn?.ending || "[-] 致命危机全面爆发",
         pivot: parsed.value_turn?.pivot || "关键信息差被当场点破",
       },
+      a_b_story: parsed.a_b_story || {
+        a_plot: "关键行动目标推进",
+        b_plot: "人物内在关系与防线动摇",
+      },
+      snyder_collision: parsed.snyder_collision || {
+        character_a: "主角",
+        character_b: "对手",
+        dynamic: "主角试探进攻 >< 对手设伏反击",
+      },
       critique: {
         hook: parsed.critique?.hook || "原开场铺垫较长，需前置危机或戏剧动作。",
         dialogue_subtext: parsed.critique?.dialogue_subtext || "台词偏直白说明，需注入潜台词冰山与言语攻防。",
@@ -202,6 +232,15 @@ ${screenplayText}
         opening: "[+] 表面维持和平相安无事",
         ending: "[-] 关系彻底破裂退无可退",
         pivot: "一桩不能说的秘密被当众亮出",
+      },
+      a_b_story: {
+        a_plot: "突破外部封锁，获取核心线索",
+        b_plot: "试探对方底线，信任瓦解前夕",
+      },
+      snyder_collision: {
+        character_a: "主角",
+        character_b: "对手",
+        dynamic: "主角执意追查真相 >< 对手以利益相逼企图封口",
       },
       critique: {
         hook: "开局进入冲突稍显迟疑，前3秒建议直接将不可逆后果或尖锐对峙推到画框中央。",

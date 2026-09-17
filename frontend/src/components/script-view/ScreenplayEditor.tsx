@@ -388,23 +388,30 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
         project={project}
         sequence={sequence}
         currentScreenplay={screenplayText}
-        onApplyRewrite={async (newText: string, vt?: { opening: string; ending: string; pivot: string }) => {
+        onApplyRewrite={async (
+          newText: string,
+          vt?: { opening: string; ending: string; pivot: string },
+          abStory?: { a_plot: string; b_plot: string },
+          snyderCollision?: { character_a: string; character_b: string; dynamic: string }
+        ) => {
           setScreenplayText(newText);
           if (vt) {
             setValueTurn(vt);
-            if (project?.id && sequence?.id) {
-              try {
-                await api.updateSequenceScreenplay(project.id, sequence.id, {
-                  screenplay_text: newText,
-                  payoff_summary: `${vt.opening} ➔ ${vt.pivot} ➔ ${vt.ending}`,
-                });
-              } catch (e) {
-                console.warn("Auto save value turn warning:", e);
-              }
+          }
+          if (project?.id && sequence?.id) {
+            try {
+              await api.updateSequenceScreenplay(project.id, sequence.id, {
+                screenplay_text: newText,
+                value_turn: vt,
+                a_b_story: abStory,
+                snyder_collision: snyderCollision,
+              });
+            } catch (e) {
+              console.warn("Auto save value turn warning:", e);
             }
           }
           setIsHookModalOpen(false);
-          notify.success("✨ 已应用麦基潜台词与场景价值转折重构，点击“同步分镜”即可更新镜头！");
+          notify.success("✨ 已应用麦基潜台词、梅峰价值转折与斯奈德对撞重构，点击“同步分镜”即可更新镜头！");
         }}
       />
     </div>

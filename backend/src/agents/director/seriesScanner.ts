@@ -17,6 +17,15 @@ export interface ScannedEpisode {
   synopsis: string; // The core narrative arc of this episode
   cliffhanger_hook: string; // The specific unresolved tension/peril at the final frame
   featured_characters: string[];
+  a_b_story?: {
+    a_plot: string; // 外部任务剧情推进 (External Goal & Stakes)
+    b_plot: string; // 内部关系情感推拉 (Internal Theme & Relationship)
+  };
+  snyder_collision?: {
+    character_a: string;
+    character_b: string;
+    dynamic: string; // 双方意志冲撞与胜负态势 (如: "林风试探账本 >< 赵总管设局反噬")
+  };
 }
 
 export interface SeriesScanResult {
@@ -64,6 +73,14 @@ export function getSeriesScannerPrompt(targetEpisodes: number = 3): string {
      * Tier 3 [伦理绝杀]: 被迫在两个不可挽回的代价中二选一；
      * Tier 4 [规则毁灭]: 底层游戏规则或所处世界的真相彻底颠覆。
 
+5. 【霍克斯特 A/B 双轨故事交织与斯奈德戏剧对撞机 (Hochstet Dual Plot & Snyder Collision)】:
+   - 【A/B 双轨交织 (a_b_story)】:
+     * A 轨 (外部任务): 该集主角面临的具体行动目标、外部危机与生死代价 (如：潜入密室获取密信)；
+     * B 轨 (内部关系): 伴随行动产生的角色信任、心防瓦解、情感试探与信念动摇 (如：师徒之间的猜忌与不忍)；
+   - 【斯奈德戏剧对撞 (snyder_collision)】:
+     * 提炼该集最核心的一场正面意志碰撞 (character_a >< character_b)；
+     * dynamic 必须写明谁攻谁守、权力天平如何倾斜与胜负转移 (如："林风暗中套话 >< 赵总管笑里藏刀设局反噬")。
+
 【输出格式规范 (STRICT JSON ONLY)】:
 请输出且仅输出合法 JSON 格式，顶层结构如下：
 {
@@ -93,7 +110,16 @@ export function getSeriesScannerPrompt(targetEpisodes: number = 3): string {
       "target_duration": 60,
       "synopsis": "该集 100 字左右的核心剧情与叙事弧线 (以动作和权力位移为导向)",
       "cliffhanger_hook": "集尾绝境卡点描述 (注明属于何种悬念级，并描述定格瞬间)",
-      "featured_characters": ["林风", "冷月"]
+      "featured_characters": ["林风", "冷月"],
+      "a_b_story": {
+        "a_plot": "夺取密信与封锁现场证据",
+        "b_plot": "与冷月因旧怨初次针锋相对，试探彼此阵营底线"
+      },
+      "snyder_collision": {
+        "character_a": "林风",
+        "character_b": "冷月",
+        "dynamic": "林风逼问证据真相 >< 冷月拔剑封喉警告，双方寸步不让"
+      }
     }
   ]
 }
@@ -154,6 +180,15 @@ export function generateHeuristicSeriesPlan(rawText: string, targetEpisodes: num
           synopsis: `故事开篇。${clean.slice(0, 80)}……突如其来的不速之客撕破了平静。`,
           cliffhanger_hook: "神秘倒计时启动，主角身陷绝境包围，退路已被彻底封死！",
           featured_characters: ["主角", "对手"],
+          a_b_story: {
+            a_plot: "突遭神秘围剿，夺取生路通行密令",
+            b_plot: "与昔日对手重逢，试探彼此背负的沉重秘密",
+          },
+          snyder_collision: {
+            character_a: "主角",
+            character_b: "对手",
+            dynamic: "主角破门试探借机突围 >< 对手设下心理陷阱步步紧逼",
+          },
         };
       } else if (epNum === targetEpisodes) {
         return {
@@ -164,6 +199,15 @@ export function generateHeuristicSeriesPlan(rawText: string, targetEpisodes: num
           synopsis: "所有伏笔在此刻引爆，真相大白，主角与对手在风暴中心迎来终极一战。",
           cliffhanger_hook: "最后一击尘埃落定，镜头却在暗处扫到一个令人毛骨悚然的微缩徽章……",
           featured_characters: ["主角", "对手", "盟友"],
+          a_b_story: {
+            a_plot: "在倒计时归零前彻底斩断阴谋源头",
+            b_plot: "盟友倒戈抉择，主角放下心防完成信念觉醒",
+          },
+          snyder_collision: {
+            character_a: "主角",
+            character_b: "对手",
+            dynamic: "主角殊死一搏直攻弱点 >< 对手孤注一掷引爆全场，胜负在毫厘间翻转",
+          },
         };
       } else {
         return {
@@ -174,6 +218,15 @@ export function generateHeuristicSeriesPlan(rawText: string, targetEpisodes: num
           synopsis: "情报交锋与追逐升级，背叛与反间计层出不穷，双方底牌相继翻开。",
           cliffhanger_hook: "通讯器中突然传出最信任之人的告别声，随即信号被强行掐断！",
           featured_characters: ["主角", "盟友"],
+          a_b_story: {
+            a_plot: "截获关键加密线索并破解敌方路线",
+            b_plot: "与盟友因信息隐瞒产生信任裂痕",
+          },
+          snyder_collision: {
+            character_a: "主角",
+            character_b: "盟友",
+            dynamic: "主角当面质问隐瞒动机 >< 盟友有苦难言以退为进",
+          },
         };
       }
     }),
