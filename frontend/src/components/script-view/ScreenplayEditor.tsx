@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { SequenceModel, ProjectModel, ScreenplayRewritePayload } from "@/types/shot";
 import { api } from "@/lib/api";
+import { exportScreenplayToMarkdown } from "@/lib/screenplayMarkdownExporter";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
 import { HookDoctorModal } from "@/components/modals/HookDoctorModal";
@@ -154,6 +155,19 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
     }
   };
 
+  const handleExportMarkdown = () => {
+    if (!project || !sequence) return;
+    try {
+      exportScreenplayToMarkdown(project, [sequence], {
+        scope: "current",
+        currentSequenceId: sequence.id,
+      });
+      notify.success("✅ 当前集编剧手记与交接台本 (Markdown) 已下载！");
+    } catch (e: any) {
+      notify.error(`导出失败: ${e.message || "请稍后重试"}`);
+    }
+  };
+
   if (!sequence) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-muted-foreground p-6 text-center">
@@ -202,6 +216,15 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
           >
             {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
             <span>保存</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleExportMarkdown}
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-[11px] font-bold bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-all shadow-xs cursor-pointer"
+            title="导出当前集三段式编剧手记与交接通告台本 (Markdown)"
+          >
+            <FileText className="w-3 h-3 text-amber-400" />
+            <span className="hidden sm:inline">导出台本</span>
           </button>
           <button
             type="button"
