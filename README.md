@@ -144,7 +144,7 @@ npm run build
 欢迎短剧编剧、影视导演、AIGC 创作者以及开发者交流使用心得、探讨工作流定制或提出功能建议：
 
 <div align="center">
-  <img src="./docs/assets/wechat-author-qrcode.png" width="240" alt="作者微信二维码 · 永林" />
+  <img src="./docs/assets/wechat-author-qrcode.png" width="180" alt="作者微信二维码 · 永林" />
   <p><strong>微信扫码添加作者好友（永林）</strong></p>
   <p><em>添加好友请备注：<code>StoryBoarding</code> 或 <code>短剧</code>，将邀请您进入官方创作者与技术交流群</em></p>
 </div>

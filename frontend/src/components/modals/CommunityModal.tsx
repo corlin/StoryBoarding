@@ -59,18 +59,18 @@ export const CommunityModal: React.FC<CommunityModalProps> = ({ isOpen, onClose 
         </div>
 
         {/* QR Code Container */}
-        <div className="p-6 flex flex-col items-center justify-center bg-[#0d1016]">
+        <div className="p-5 flex flex-col items-center justify-center bg-[#0d1016]">
           {/* Card with high-contrast white background for reliable QR scanning */}
-          <div className="bg-white p-3 rounded-2xl shadow-xl border border-white/20 flex flex-col items-center">
+          <div className="bg-white p-2 rounded-2xl shadow-xl border border-white/20 flex flex-col items-center">
             <img
               src="/assets/wechat-author-qrcode.png"
               alt="作者微信二维码 · 永林"
-              className="w-56 h-auto max-h-72 object-contain rounded-lg select-none"
+              className="w-44 h-44 sm:w-48 sm:h-48 object-contain rounded-lg select-none"
             />
           </div>
 
           {/* Author Badge */}
-          <div className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-medium">
+          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-medium">
             <Users className="w-3.5 h-3.5" />
             <span>微信扫一扫添加作者（永林）</span>
           </div>

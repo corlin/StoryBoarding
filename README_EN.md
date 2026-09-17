@@ -142,7 +142,7 @@ A first deployment also requires D1 and R2 bindings plus Worker/Pages environmen
 We welcome short-drama creators, film directors, AIGC artists, and developers to share feedback, discuss workflows, or request features:
 
 <div align="center">
-  <img src="./docs/assets/wechat-author-qrcode.png" width="240" alt="Author WeChat QR Code · Yonglin" />
+  <img src="./docs/assets/wechat-author-qrcode.png" width="180" alt="Author WeChat QR Code · Yonglin" />
   <p><strong>Scan QR Code to add WeChat friend (Yonglin)</strong></p>
   <p><em>Note <code>StoryBoarding</code> when adding to be invited to the official creator & developer group.</em></p>
 </div>
