@@ -221,7 +221,7 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
             ) : (
               <>
                 <Zap className="w-3.5 h-3.5 text-rose-400" />
-                <span>短剧爆点重构</span>
+                <span>剧作与爆点重构</span>
               </>
             )}
           </button>

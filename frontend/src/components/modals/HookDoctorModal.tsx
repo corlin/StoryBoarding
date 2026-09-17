@@ -130,13 +130,13 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                短剧爆点重构与网感诊断台 (Chief Script Doctor)
+                短剧爆点与剧作重构台 (Chief Script Doctor)
                 <span className="text-[10px] font-mono bg-rose-500/15 text-rose-300 border border-rose-500/30 px-1.5 py-0.5 rounded">
-                  30s 黄金钩子 · 4 幕压强
+                  晚进早出 · 潜台词攻防 · 价值逆转
                 </span>
               </h2>
               <p className="text-xs text-muted-foreground">
-                AI 监制前置诊断：撕碎流水账伪矛盾，前置 3 秒危机，制造最高压集尾生死卡点
+                AI 编剧监制前置诊断：撕碎流水账与解释性台词，晚进危机切口，强化潜台词加压与集尾生死卡点
               </p>
             </div>
           </div>
@@ -149,9 +149,9 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
         {isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center py-16 text-center space-y-3">
             <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
-            <p className="text-sm font-semibold text-foreground">短剧编剧总监正在逐句推演爆点与卡点...</p>
+            <p className="text-sm font-semibold text-foreground">编剧监制正在运用经典剧作法则推演爆点与卡点...</p>
             <p className="text-xs text-muted-foreground max-w-md">
-              正在评估：前 3 秒跳出率压制、中段信息差与权力对调、集尾生死卡点悬念深度
+              正在评估：黄金钩子与晚进早出、对白即行动与潜台词压强、集尾价值转折与四级悬念深度
             </p>
           </div>
         ) : diagnosis ? (
@@ -160,7 +160,7 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
             <div className="grid grid-cols-4 gap-3">
               <div className="p-3 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-rose-400">⚡ 前 3s 黄金钩子</span>
+                  <span className="text-rose-400">⚡ 黄金钩子 · 晚进早出</span>
                   <span className="font-mono text-sm font-bold text-rose-400">{scores.hook}分</span>
                 </div>
                 <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
@@ -171,7 +171,7 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
 
               <div className="p-3 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-amber-400">🔥 中段反转压强</span>
+                  <span className="text-amber-400">🔥 中段加压 · 潜台词</span>
                   <span className="font-mono text-sm font-bold text-amber-400">{scores.escalation}分</span>
                 </div>
                 <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
@@ -182,7 +182,7 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
 
               <div className="p-3 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-purple-400">🎣 集尾生死卡点</span>
+                  <span className="text-purple-400">🎣 集尾卡点 · 价值逆转</span>
                   <span className="font-mono text-sm font-bold text-purple-400">{scores.cliffhanger}分</span>
                 </div>
                 <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
@@ -193,13 +193,13 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
 
               <div className="p-3 bg-primary/10 border border-primary/30 rounded-xl space-y-1">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-primary font-bold">🌟 综合爆款指数</span>
+                  <span className="text-primary font-bold">🌟 综合剧作爆款指数</span>
                   <span className="font-mono text-sm font-bold text-primary">{scores.overall}分</span>
                 </div>
                 <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
                   <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${scores.overall}%` }} />
                 </div>
-                <p className="text-[10px] text-primary/80">网感极高，可直接反推分镜</p>
+                <p className="text-[10px] text-primary/80">戏剧张力极高，可直接反推分镜</p>
               </div>
             </div>
 
