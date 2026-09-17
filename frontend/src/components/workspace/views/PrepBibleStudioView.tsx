@@ -8,6 +8,7 @@ import {
   PropModel,
   AdaptationTradeoffs,
   PayoffBeatItem,
+  SeriesEngineBible,
 } from "@/types/shot";
 import { api, normalizeAssetUrl } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
@@ -70,6 +71,8 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
     risk: [],
     payoff_beats: [],
   });
+  const [seriesEngine, setSeriesEngine] = useState<SeriesEngineBible | undefined>(undefined);
+  const [isExtractingEngine, setIsExtractingEngine] = useState(false);
   const [payoffBeats, setPayoffBeats] = useState<PayoffBeatItem[]>([]);
   const [stylePrompt, setStylePrompt] = useState(STYLE_PRESETS[0].prompt);
   const [selectedPresetId, setSelectedPresetId] = useState("graphite_previz");
@@ -92,6 +95,7 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
     });
     setDramaticCore(tf.dramatic_core || project.story || "");
     setPayoffBeats(tf.payoff_beats && tf.payoff_beats.length > 0 ? tf.payoff_beats : []);
+    setSeriesEngine(tf.series_engine);
 
     const styleConfig = typeof project.style_config === "string" ? JSON.parse(project.style_config) : project.style_config || {};
     if (styleConfig.director_style_prompt) {
@@ -106,6 +110,23 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
   const locations = project?.locations || [];
   const propsList = project?.props || [];
 
+  const handleExtractEngine = async () => {
+    if (!project) return;
+    setIsExtractingEngine(true);
+    try {
+      const res = await api.extractSeriesEngine(project.id);
+      if (res && res.series_engine) {
+        setSeriesEngine(res.series_engine);
+        notify.success("✨ 系列引擎（默契契约、对立纽带与潜台词地雷）已成功提炼！");
+        await onRefreshProject?.();
+      }
+    } catch (err: any) {
+      notify.error(`提炼失败: ${err.message || "网络异常"}`);
+    } finally {
+      setIsExtractingEngine(false);
+    }
+  };
+
   const handleSaveTradeoffs = async () => {
     if (!project) return;
     setIsSaving(true);
@@ -114,6 +135,7 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
         ...tradeoffs,
         dramatic_core: dramaticCore,
         payoff_beats: payoffBeats,
+        series_engine: seriesEngine,
       };
 
       const existingStyle = typeof project.style_config === "string" ? JSON.parse(project.style_config) : project.style_config || {};
@@ -243,6 +265,120 @@ export const PrepBibleStudioView: React.FC<PrepBibleStudioViewProps> = ({
                   placeholder="简述故事核心欲望、主角阻力与反转爆发点..."
                   className="w-full text-xs p-2.5 rounded-lg bg-secondary/40 border border-border/80 focus:outline-none focus:border-primary focus:bg-background transition-all resize-none leading-relaxed"
                 />
+              </div>
+
+              {/* Series Engine Bible: Tacit Contract, Unity of Opposites & Subtext Landmines */}
+              <div className="space-y-2.5 p-3.5 rounded-xl bg-card border border-border/70 hover:border-border transition-all">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                    <span>系列引擎与戏剧契约 (Series Engine Bible)</span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                      底牌驱动
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isExtractingEngine}
+                    onClick={handleExtractEngine}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50 cursor-pointer"
+                    title="重新提炼或补齐默契契约、对立纽带与潜台词地雷"
+                  >
+                    {isExtractingEngine ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Zap className="w-3 h-3" />
+                    )}
+                    <span>{seriesEngine ? "重新提炼契约" : "⚡ 提炼契约"}</span>
+                  </button>
+                </div>
+
+                {!seriesEngine ? (
+                  <div className="p-3 rounded-lg border border-dashed border-border/80 text-center space-y-1.5 bg-secondary/10">
+                    <p className="text-xs text-muted-foreground">
+                      尚未提炼系列契约，AI 分镜生成时将使用通用戏剧模型。
+                    </p>
+                    <button
+                      type="button"
+                      disabled={isExtractingEngine}
+                      onClick={handleExtractEngine}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 transition-all"
+                    >
+                      {isExtractingEngine ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                      <span>一键提炼系列引擎与对立位</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 text-xs">
+                    <div className="p-2.5 rounded-lg bg-secondary/30 border border-border/60 space-y-1">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-300">
+                        <span>🤝 默契契约底线 (Tacit Contract)</span>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={seriesEngine.tacit_contract || ""}
+                        onChange={(e) =>
+                          setSeriesEngine({ ...seriesEngine, tacit_contract: e.target.value })
+                        }
+                        placeholder="双方心照不宣但绝不可打破的共识底线..."
+                        className="w-full text-[11px] p-2 rounded bg-background border border-border/60 focus:outline-none focus:border-amber-400 resize-none leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="p-2.5 rounded-lg bg-secondary/30 border border-border/60 space-y-1">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-300">
+                        <span>🔗 对立统一纽带 (Unity of Opposites)</span>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={seriesEngine.unity_of_opposites || ""}
+                        onChange={(e) =>
+                          setSeriesEngine({ ...seriesEngine, unity_of_opposites: e.target.value })
+                        }
+                        placeholder="为何敌对但必须同舟共济、绝无法分道扬镳..."
+                        className="w-full text-[11px] p-2 rounded bg-background border border-border/60 focus:outline-none focus:border-purple-400 resize-none leading-relaxed"
+                      />
+                    </div>
+
+                    {((seriesEngine.subtext_landmines && seriesEngine.subtext_landmines.length > 0) ||
+                      (seriesEngine.bonding_items && seriesEngine.bonding_items.length > 0)) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                        {seriesEngine.subtext_landmines && seriesEngine.subtext_landmines.length > 0 && (
+                          <div className="p-2 rounded-lg bg-secondary/20 border border-border/50 space-y-1">
+                            <span className="text-[10px] font-semibold text-rose-300 flex items-center gap-1">
+                              💣 潜台词地雷 ({seriesEngine.subtext_landmines.length})
+                            </span>
+                            <ul className="space-y-0.5 text-[10px] text-muted-foreground list-disc list-inside">
+                              {seriesEngine.subtext_landmines.map((mine, mIdx) => (
+                                <li key={mIdx} className="line-clamp-1">
+                                  {mine}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {seriesEngine.bonding_items && seriesEngine.bonding_items.length > 0 && (
+                          <div className="p-2 rounded-lg bg-secondary/20 border border-border/50 space-y-1">
+                            <span className="text-[10px] font-semibold text-cyan-300 flex items-center gap-1">
+                              💎 承重信物 ({seriesEngine.bonding_items.length})
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {seriesEngine.bonding_items.map((item, iIdx) => (
+                                <span
+                                  key={iIdx}
+                                  className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
+                                >
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Payoff Beats Track */}

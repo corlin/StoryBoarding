@@ -125,6 +125,9 @@ export interface CharacterProfile {
     quote: string;
     annotation?: string;
   }>; // 小说原文支持佐证原句
+  // Truby Four-Corner Opposition 特鲁比四角对立定位
+  role_archetype?: "protagonist" | "main_opponent" | "fake_ally" | "moral_critic" | "supporting";
+  attacks_flaw?: string; // 该角色所刺痛/攻击的主角致命缺陷，或其自身的道德执念
   voice_traits?: {
     timbre?: string;
     pitch?: string;
@@ -194,9 +197,17 @@ export interface AdaptationTradeoffItem {
   source?: string;
 }
 
+export interface SeriesEngineBible {
+  tacit_contract?: string; // 双方心照不宣但绝不可打破的戏剧底线/默契契约
+  unity_of_opposites?: string; // 将对立双方死死绑定在同一困境中的物理/情感纽带
+  subtext_landmines?: string[]; // 全剧角色心知肚明但绝不能当面戳破的禁忌地雷
+  bonding_items?: string[]; // 承载核心悬念与情感变迁的核心信物
+}
+
 export interface AdaptationTradeoffs {
   dramatic_core?: string; // Director Studio 改编内核
   scale_desc?: string; // 规模与体裁
+  series_engine?: SeriesEngineBible; // 系列引擎与默契契约 (Series Engine Bible)
   keep?: AdaptationTradeoffItem[];
   cut?: AdaptationTradeoffItem[];
   merge?: AdaptationTradeoffItem[];

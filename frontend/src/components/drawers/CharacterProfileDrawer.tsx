@@ -22,6 +22,7 @@ import {
   Maximize2,
   ExternalLink,
   Smartphone,
+  Target,
 } from "lucide-react";
 import { CharacterModel, CharacterProfile } from "@/types/shot";
 import { notify } from "@/components/ui/ToastNotification";
@@ -77,6 +78,8 @@ export const CharacterProfileDrawer: React.FC<CharacterProfileDrawerProps> = ({
         tags: existing.tags ? [...existing.tags] : [],
         arc_static: existing.arc_static || character.personality || "",
         arc_dynamic: existing.arc_dynamic || "",
+        role_archetype: existing.role_archetype || (character.role === "antagonist" ? "main_opponent" : "protagonist"),
+        attacks_flaw: existing.attacks_flaw || "",
         relations: existing.relations ? JSON.parse(JSON.stringify(existing.relations)) : [],
         evidences: existing.evidences ? JSON.parse(JSON.stringify(existing.evidences)) : [],
         voice_traits: existing.voice_traits || {
@@ -697,6 +700,51 @@ ${genderStr === "female" ? "女性" : "男性"}，${ageStr}岁，身材匀称偏
             {/* TAB 2: Arc & Relations */}
             {activeTab === "arc" && (
               <div className="space-y-6 animate-in fade-in duration-150">
+                {/* Truby Four-Corner Opposition */}
+                <div className="p-3.5 bg-secondary/25 border border-border/80 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                      <Target className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>特鲁比四角对立定位 (Four-Corner Opposition)</span>
+                    </div>
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                      冲突支点
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono text-muted-foreground">对立角色位 (Archetype):</label>
+                      <select
+                        value={profile.role_archetype || "protagonist"}
+                        onChange={(e) =>
+                          setProfile({ ...profile, role_archetype: e.target.value as any })
+                        }
+                        className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground focus:outline-none focus:border-indigo-400"
+                      >
+                        <option value="protagonist">主角 (Protagonist · 核心欲望与缺陷)</option>
+                        <option value="main_opponent">主要对手 (Main Opponent · 致命刺痛)</option>
+                        <option value="fake_ally">假盟友 (Fake-Ally · 伪装站队暗中试探)</option>
+                        <option value="moral_critic">道义审判者 (Moral Critic · 伦理拷问)</option>
+                        <option value="supporting">次要支撑角色 (Supporting)</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-1">
+                      <label className="text-[10px] font-mono text-muted-foreground">
+                        攻击致命缺陷 / 执念对立面 (Attacks Flaw / Moral Argument):
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.attacks_flaw || ""}
+                        onChange={(e) => setProfile({ ...profile, attacks_flaw: e.target.value })}
+                        placeholder="说明该角色如何刺痛主角软肋，或自身的道德执念..."
+                        className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground focus:outline-none focus:border-indigo-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Dual-Track Arc */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">

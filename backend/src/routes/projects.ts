@@ -4,6 +4,7 @@ import { getDb, ensureSchema, Bindings } from "../db/client";
 import { projects, sequences, shots, users, characters, locations, props } from "../db/schema";
 import { runDirectorPipeline, formatDirectorImagePrompt, generateAdaptiveStoryShots } from "../agents/director/pipeline";
 import { scanLongformSeries } from "../agents/director/seriesScanner";
+import { extractSeriesEngine } from "../agents/director/seriesEngineDoctor";
 import { generateCinematicStoryboardImage, runConcurrentTasks, getProjectBaseSeed } from "./generation";
 import { diagnoseAndRewriteScreenplay } from "../agents/director/hookDoctor";
 import { getAuthUser, getUserSettings } from "../lib/auth";
@@ -19,7 +20,7 @@ router.get("/", async (c) => {
     const db = getDb(c.env.DB);
 
     const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
+    const authUser = await getAuthUser(authHeader, c.env.JWT_SECRET);
 
     let allProjects: any[] = [];
     if (authUser) {
@@ -81,7 +82,7 @@ router.get("/:id", async (c) => {
     const db = getDb(c.env.DB);
     const id = c.req.param("id");
 
-    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id, true);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id, c.env.JWT_SECRET, true);
     if (!access.ok) return c.json({ detail: access.detail }, access.status);
     const proj = access.project;
 
@@ -228,7 +229,7 @@ router.post("/", async (c) => {
     const narrativeCenter = body.narrative_center;
 
     const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
+    const authUser = await getAuthUser(authHeader, c.env.JWT_SECRET);
 
     if (!authUser) {
       return c.json({ detail: "请先登录或注册导演账号后再创建分镜工程" }, 401);
@@ -362,7 +363,7 @@ router.post("/analyze-series", async (c) => {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
     const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
+    const authUser = await getAuthUser(authHeader, c.env.JWT_SECRET);
     const settings = await getUserSettings(db, authUser?.userId);
 
     const body = await c.req.json().catch(() => ({}));
@@ -392,7 +393,7 @@ router.post("/create-series", async (c) => {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
     const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
+    const authUser = await getAuthUser(authHeader, c.env.JWT_SECRET);
 
     if (!authUser) {
       return c.json({ detail: "请先登录后再创建多集短剧工程" }, 401);
@@ -447,6 +448,9 @@ router.post("/create-series", async (c) => {
       story,
       targetDuration: totalTargetDuration,
       aspectRatio: body.aspect_ratio || "9:16",
+      adaptationTradeoffs: JSON.stringify({
+        series_engine: body.series_engine || null,
+      }),
     });
 
     // 2. Insert Characters
@@ -461,6 +465,10 @@ router.post("/create-series", async (c) => {
         visualAnchor: char.visual_anchor || "",
         avatarUrl: char.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(char.name || "hero")}`,
         personality: char.personality || "",
+        profileJson: JSON.stringify({
+          role_archetype: char.role_archetype || (char.role === "antagonist" ? "main_opponent" : "protagonist"),
+          attacks_flaw: char.attacks_flaw || "",
+        }),
       };
       await db.insert(characters).values(newChar);
       insertedCharacters.push(newChar);
@@ -603,7 +611,7 @@ router.put("/:id", async (c) => {
     const db = getDb(c.env.DB);
     const id = c.req.param("id");
 
-    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id, c.env.JWT_SECRET);
     if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const body = await c.req.json();
@@ -842,7 +850,7 @@ router.put("/:id/sequences/:seqId/screenplay", async (c) => {
     const seqId = c.req.param("seqId");
 
     const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
+    const authUser = await getAuthUser(authHeader, c.env.JWT_SECRET);
     if (!authUser) {
       return c.json({ detail: "请先登录导演账号" }, 401);
     }
@@ -897,7 +905,7 @@ router.post("/:id/sequences/:seqId/sync-screenplay", async (c) => {
     const seqId = c.req.param("seqId");
 
     const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
+    const authUser = await getAuthUser(authHeader, c.env.JWT_SECRET);
     if (!authUser) {
       return c.json({ detail: "请先登录导演账号" }, 401);
     }
@@ -1145,7 +1153,7 @@ router.post("/:id/sequences/:seqId/diagnose-hook", async (c) => {
     const seqId = c.req.param("seqId");
 
     const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
+    const authUser = await getAuthUser(authHeader, c.env.JWT_SECRET);
     if (!authUser) {
       return c.json({ detail: "请先登录导演账号" }, 401);
     }
@@ -1193,7 +1201,7 @@ router.post("/:id/episodes", async (c) => {
     const id = c.req.param("id");
 
     const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
+    const authUser = await getAuthUser(authHeader, c.env.JWT_SECRET);
     if (!authUser) {
       return c.json({ detail: "请先登录导演账号" }, 401);
     }
@@ -1353,7 +1361,7 @@ router.post("/:id/expand-to-series", async (c) => {
     const id = c.req.param("id");
 
     const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
+    const authUser = await getAuthUser(authHeader, c.env.JWT_SECRET);
     if (!authUser) {
       return c.json({ detail: "请先登录导演账号" }, 401);
     }
@@ -1553,6 +1561,105 @@ ${userPrompt ? `【创作者续订后续方向与意向】:\n${userPrompt}\n` : 
   }
 });
 
+// POST /api/projects/:id/series-engine/extract (Stage 1: Extract/Refresh Series Engine Bible & Truby Oppositions)
+router.post("/:id/series-engine/extract", async (c) => {
+  try {
+    await ensureSchema(c.env.DB);
+    const db = getDb(c.env.DB);
+    const id = c.req.param("id");
+
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id, c.env.JWT_SECRET);
+    if (!access.ok) return c.json({ detail: access.detail }, access.status);
+
+    const project = await db.select().from(projects).where(eq(projects.id, id)).get();
+    if (!project) {
+      return c.json({ detail: "未找到对应工程" }, 404);
+    }
+
+    const projectCharacters = await db.select().from(characters).where(eq(characters.projectId, id)).all();
+
+    const settings = await getUserSettings(db, access.authUser.userId);
+    const result = await extractSeriesEngine(
+      project.story || project.title || "",
+      projectCharacters.map((c) => ({
+        name: c.name,
+        role: c.role,
+        personality: c.personality,
+      })),
+      {
+        apiKey: settings.llmApiKey,
+        apiBase: settings.llmApiBase,
+        model: settings.llmModel,
+      }
+    );
+
+    // Merge into project's adaptationTradeoffs
+    let currentTradeoffs: any = {};
+    try {
+      currentTradeoffs = JSON.parse(project.adaptationTradeoffs || "{}");
+    } catch {
+      currentTradeoffs = {};
+    }
+
+    const updatedTradeoffs = {
+      ...currentTradeoffs,
+      series_engine: result.series_engine,
+    };
+
+    await db
+      .update(projects)
+      .set({
+        adaptationTradeoffs: JSON.stringify(updatedTradeoffs),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(projects.id, id));
+
+    // Update characters' profileJson with Truby alignments
+    const updatedCharsList: any[] = [];
+    for (const char of projectCharacters) {
+      const alignment = result.character_alignments.find((a) => a.name === char.name);
+      if (alignment) {
+        let currentProfile: any = {};
+        try {
+          currentProfile = JSON.parse(char.profileJson || "{}");
+        } catch {
+          currentProfile = {};
+        }
+
+        const nextProfile = {
+          ...currentProfile,
+          role_archetype: alignment.role_archetype,
+          attacks_flaw: alignment.attacks_flaw,
+        };
+
+        await db
+          .update(characters)
+          .set({
+            profileJson: JSON.stringify(nextProfile),
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(characters.id, char.id));
+
+        updatedCharsList.push({
+          ...char,
+          profileJson: JSON.stringify(nextProfile),
+        });
+      } else {
+        updatedCharsList.push(char);
+      }
+    }
+
+    return c.json({
+      success: true,
+      series_engine: result.series_engine,
+      characters: updatedCharsList,
+    });
+  } catch (err: any) {
+    console.error("[Extract Series Engine Error]:", err);
+    return c.json({ detail: `提炼系列引擎失败: ${err?.message || err}` }, 500);
+  }
+});
+
 // DELETE /api/projects/:id
 router.delete("/:id", async (c) => {
   try {
@@ -1564,7 +1671,7 @@ router.delete("/:id", async (c) => {
       return c.json({ detail: "官方演示项目不允许删除" }, 403);
     }
 
-    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id);
+    const access = await authorizeProjectOwner(db, c.req.header("Authorization"), id, c.env.JWT_SECRET);
     if (!access.ok) return c.json({ detail: access.detail }, access.status);
 
     const [deleted] = await db.delete(projects).where(eq(projects.id, id)).returning();

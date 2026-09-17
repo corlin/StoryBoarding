@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ProjectModel, ShotModel, BeatModel } from "@/types/shot";
+import { ProjectModel, ShotModel, BeatModel, SeriesEngineBible, CharacterModel } from "@/types/shot";
 
 export type ProjectListItem = ProjectModel;
 
@@ -240,6 +240,15 @@ export const api = {
     payload: { continuation_prompt?: string; episodes_to_add?: number }
   ): Promise<{ status: string; message: string; created_episodes: any[] }> {
     const { data } = await apiClient.post(`/projects/${projectId}/expand-to-series`, payload);
+    return data;
+  },
+
+  async extractSeriesEngine(projectId: string): Promise<{
+    success: boolean;
+    series_engine: SeriesEngineBible;
+    characters: CharacterModel[];
+  }> {
+    const { data } = await apiClient.post(`/projects/${projectId}/series-engine/extract`);
     return data;
   },
 
