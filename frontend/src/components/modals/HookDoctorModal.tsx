@@ -132,6 +132,7 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
     dialogue_subtext: 0,
     value_turn: 0,
     cliffhanger: 0,
+    chekhov_gun: 0,
     overall: 0,
   };
 
@@ -172,8 +173,8 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
           </div>
         ) : diagnosis ? (
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-            {/* Top Scores Grid: 4-Dimension Hollywood Radar */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+            {/* Top Scores Grid: 5-Dimension Hollywood Radar */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
               <div className="p-2.5 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
                 <div className="flex items-center justify-between text-xs font-semibold">
                   <span className="text-rose-400">⚡ 黄金钩子</span>
@@ -218,7 +219,18 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
                 <p className="text-[10px] text-muted-foreground truncate">{diagnosis.critique?.cliffhanger}</p>
               </div>
 
-              <div className="p-2.5 bg-primary/10 border border-primary/30 rounded-xl space-y-1 col-span-2 md:col-span-1">
+              <div className="p-2.5 bg-secondary/40 border border-border/80 rounded-xl space-y-1">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="text-emerald-400">🔫 契诃夫之枪</span>
+                  <span className="font-mono text-xs font-bold text-emerald-400">{scores.chekhov_gun || 80}分</span>
+                </div>
+                <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${scores.chekhov_gun || 80}%` }} />
+                </div>
+                <p className="text-[10px] text-muted-foreground truncate">{diagnosis.critique?.chekhov_gun || "道具信物伏笔闭环"}</p>
+              </div>
+
+              <div className="p-2.5 bg-primary/10 border border-primary/30 rounded-xl space-y-1 col-span-2 sm:col-span-1">
                 <div className="flex items-center justify-between text-xs font-semibold">
                   <span className="text-primary font-bold">🌟 综合指数</span>
                   <span className="font-mono text-xs font-bold text-primary">{scores.overall}分</span>
@@ -284,6 +296,64 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
                     </span>
                     <p className="text-foreground font-medium">{diagnosis.snyder_collision?.dynamic || "双方意志攻防博弈"}</p>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Chekhov's Gun Integrity Radar Display */}
+            {diagnosis.chekhov_guns && diagnosis.chekhov_guns.length > 0 && (
+              <div className="p-3 bg-secondary/25 border border-emerald-500/30 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                    <span>🔫 契诃夫之枪伏笔因果自检 (Chekhov's Gun Audit)</span>
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                    第一幕挂枪 · 第三幕射响
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+                  {diagnosis.chekhov_guns.map((gun: any, gIdx: number) => {
+                    const isFired = gun.status === "fired";
+                    const isHanging = gun.status === "hanging";
+                    return (
+                      <div
+                        key={gIdx}
+                        className={cn(
+                          "p-2 rounded-lg border space-y-1 bg-background/80",
+                          isFired
+                            ? "border-emerald-500/30 text-emerald-300"
+                            : isHanging
+                            ? "border-amber-500/30 text-amber-300"
+                            : "border-purple-500/30 text-purple-300"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold flex items-center gap-1 text-foreground">
+                            <span>💍</span>
+                            <span>{gun.name}</span>
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[9px] font-mono px-1.5 py-0.2 rounded font-bold border",
+                              isFired
+                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                : isHanging
+                                ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                                : "bg-purple-500/15 text-purple-300 border-purple-500/30"
+                            )}
+                          >
+                            {isFired ? "✅ 已击发 (Fired)" : isHanging ? "⚠️ 悬挂未响 (Hanging)" : "⚡ 突兀降神 (Sudden)"}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">{gun.dramatic_role}</p>
+                        {gun.fix_suggestion && (
+                          <p className="text-[10px] text-emerald-400/90 font-medium">
+                            💡 重构缝合: {gun.fix_suggestion}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

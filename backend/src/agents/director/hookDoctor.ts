@@ -1,9 +1,17 @@
+export interface ChekhovGunItem {
+  name: string; // 道具信物或伏笔名
+  status: "fired" | "hanging" | "sudden"; // fired: 已在枢轴/高潮击发; hanging: 空悬未响; sudden: 突兀机械降神
+  dramatic_role: string; // 在本场戏中扮演的戏剧功能
+  fix_suggestion?: string; // 修复与微动作缝合建议
+}
+
 export interface HookDiagnosisResult {
   scores: {
     hook: number; // 0-100 前 3 秒抓人度与晚进早出
     dialogue_subtext: number; // 0-100 麦基对白行动与潜台词深度 (剔除 on-the-nose)
     value_turn: number; // 0-100 梅峰场景价值转折位移
     cliffhanger: number; // 0-100 集尾生死卡点悬念
+    chekhov_gun: number; // 0-100 契诃夫之枪伏笔闭环与因果兑现度
     overall: number; // 综合评分
   };
   value_turn: {
@@ -20,11 +28,13 @@ export interface HookDiagnosisResult {
     character_b: string;
     dynamic: string; // 角色正面意志冲突对撞 (例如: 林风借机搜查 >< 赵总管封门试探)
   };
+  chekhov_guns?: ChekhovGunItem[]; // 契诃夫之枪因果自检清单
   critique: {
     hook: string;
     dialogue_subtext: string;
     value_turn: string;
     cliffhanger: string;
+    chekhov_gun?: string;
   };
   rewritten_screenplay: string;
   sections: {
@@ -53,15 +63,22 @@ export async function diagnoseAndRewriteScreenplay(
     apiBase?: string;
     model?: string;
     charactersContext?: string;
+    seriesEngineContext?: string;
     archetype?: string;
   }
 ): Promise<HookDiagnosisResult> {
-  const { apiKey, apiBase = "https://openrouter.ai/api/v1", model = "anthropic/claude-3.5-sonnet", charactersContext = "" } = options;
+  const {
+    apiKey,
+    apiBase = "https://openrouter.ai/api/v1",
+    model = "anthropic/claude-3.5-sonnet",
+    charactersContext = "",
+    seriesEngineContext = "",
+  } = options;
 
   const prompt = `你是一位拥有千万级爆款短剧与院线电影监制经验的顶级影视剧作医生（Chief Script & Hook Doctor）。
-你的任务是对导演提交的这一集【文学剧本母本】进行最严苛的剧作诊断，深度融入【麦基对白艺术 (sw-dialogue)】、【梅峰单场戏价值转折 (sw-scene-craft)】与【霍克斯特 A/B 双轨 & 斯奈德戏剧对撞 (sw-story-structure & sw-character-conflict)】给出大师级重构方案。
+你的任务是对导演提交的这一集【文学剧本母本】进行最严苛的剧作诊断，深度融入【麦基对白艺术 (sw-dialogue)】、【梅峰单场戏价值转折 (sw-scene-craft)】、【霍克斯特 A/B 双轨 & 斯奈德戏剧对撞 (sw-story-structure & sw-character-conflict)】与【契诃夫之枪因果自检 (chekhov-dramaturgy)】给出大师级重构方案。
 
-【四大影视剧作核心诊断准则 (SCREENWRITING DIAGNOSIS FRAMEWORK)】:
+【五大影视剧作核心诊断准则 (SCREENWRITING DIAGNOSIS FRAMEWORK)】:
 1. 黄金钩子与晚进早出 (Hook & Enter Late):
    - 绝不从日常问候、倒水看风景或解释性背景交代开始！
    - 必须“晚进 (Enter Late)”，开局第 1 句话或动作必须是“不可逆冲突、背叛现场、致命危机或视觉奇观”，瞬间锁死目光，压低跳出率。
@@ -77,9 +94,18 @@ export async function diagnoseAndRewriteScreenplay(
 5. A/B 双轨交织与斯奈德对撞 (Dual-Plot & Collision):
    - 准确提炼本集的 A 轨（外部任务主线）与 B 轨（人物内部关系与心防拉扯）；
    - 提炼本集最激烈的双方意志对撞机 (character_a >< character_b)，注明攻守与胜负转移。
+6. 契诃夫之枪伏笔闭环与主动缝合 (Chekhov's Gun Integrity & Active Seeding):
+   - 凡第一幕挂在墙上的枪，第三幕必须射响；严禁重要道具沦为摆设，严禁终局突兀机械降神！
+   - 对比项目【系列世界观圣经】中承重道具 (bonding_items) 与剧本关键转折；
+   - 若发现【空悬未响之枪 (hanging)】：在改写剧本时主动编织进梅峰价值转折枢轴或角色对白交锋武器，让道具真正发挥戏剧效能；
+   - 若发现【突兀机械降神之枪 (sudden)】：在改写剧本的前半段主动补上前置物理微动作铺垫；
+   - 评估 chekhov_gun 分数 (0-100)，并在 chekhov_guns 列表中列出（包含 name, status: "fired"|"hanging"|"sudden", dramatic_role, fix_suggestion）。
 
 【角色背景资产】：
 ${charactersContext || "默认主要角色"}
+
+【系列世界观圣经与承重信物资产】：
+${seriesEngineContext || "未单独配置系列信物"}
 
 【待诊断母本剧本】：
 ${screenplayText}
@@ -91,6 +117,7 @@ ${screenplayText}
     "dialogue_subtext": 82,
     "value_turn": 80,
     "cliffhanger": 92,
+    "chekhov_gun": 88,
     "overall": 85
   },
   "value_turn": {
@@ -107,11 +134,20 @@ ${screenplayText}
     "character_b": "对手",
     "dynamic": "主角借搜查暗度陈仓 >< 对手笑里藏刀封死退路"
   },
+  "chekhov_guns": [
+    {
+      "name": "染血怀表",
+      "status": "fired",
+      "dramatic_role": "在梅峰价值转折枢轴中作为决定性物证亮出，打破表面平衡",
+      "fix_suggestion": "已在第2幕作为谈判筹码射响"
+    }
+  ],
   "critique": {
     "hook": "指出开局是否存在拖沓，是否做到晚进早出",
     "dialogue_subtext": "指出台词是否直白(on-the-nose)、缺乏潜台词或千人一面",
     "value_turn": "指出场景有无两极价值位移，是否站桩干聊缺乏微动作",
-    "cliffhanger": "指出收尾是否缺乏价值逆转与生死绝境卡点"
+    "cliffhanger": "指出收尾是否缺乏价值逆转与生死绝境卡点",
+    "chekhov_gun": "指出道具信物是否闭环，有无未响之枪或突兀底牌"
   },
   "sections": {
     "opening": {
@@ -172,6 +208,7 @@ ${screenplayText}
         dialogue_subtext: Math.min(100, Math.max(20, Number(parsed.scores?.dialogue_subtext) || 80)),
         value_turn: Math.min(100, Math.max(20, Number(parsed.scores?.value_turn) || 78)),
         cliffhanger: Math.min(100, Math.max(20, Number(parsed.scores?.cliffhanger) || 80)),
+        chekhov_gun: Math.min(100, Math.max(20, Number(parsed.scores?.chekhov_gun) || 82)),
         overall: Math.min(100, Math.max(20, Number(parsed.scores?.overall) || 78)),
       },
       value_turn: {
@@ -188,11 +225,13 @@ ${screenplayText}
         character_b: "对手",
         dynamic: "主角试探进攻 >< 对手设伏反击",
       },
+      chekhov_guns: Array.isArray(parsed.chekhov_guns) ? parsed.chekhov_guns : [],
       critique: {
         hook: parsed.critique?.hook || "原开场铺垫较长，需前置危机或戏剧动作。",
         dialogue_subtext: parsed.critique?.dialogue_subtext || "台词偏直白说明，需注入潜台词冰山与言语攻防。",
         value_turn: parsed.critique?.value_turn || "中段价值位移需更剧烈，多用道具微动作代替干聊。",
         cliffhanger: parsed.critique?.cliffhanger || "集尾停在交代动作，需在关键秘密戳穿或冲突爆发瞬间戛然而止。",
+        chekhov_gun: parsed.critique?.chekhov_gun || "核心承重信物与伏笔因果闭环良好，建议进一步强化击发瞬间的微动作细节。",
       },
       sections: {
         opening: {
@@ -226,7 +265,8 @@ ${screenplayText}
         dialogue_subtext: 70,
         value_turn: 72,
         cliffhanger: 65,
-        overall: 69,
+        chekhov_gun: 75,
+        overall: 70,
       },
       value_turn: {
         opening: "[+] 表面维持和平相安无事",
@@ -242,11 +282,20 @@ ${screenplayText}
         character_b: "对手",
         dynamic: "主角执意追查真相 >< 对手以利益相逼企图封口",
       },
+      chekhov_guns: [
+        {
+          name: "核心承重信物/密函",
+          status: "fired",
+          dramatic_role: "在价值转折枢轴处被当众亮出，打破平静假象",
+          fix_suggestion: "建议在开局前置指尖微动作抚摸道具，增强因果咬合度",
+        },
+      ],
       critique: {
         hook: "开局进入冲突稍显迟疑，前3秒建议直接将不可逆后果或尖锐对峙推到画框中央。",
         dialogue_subtext: "对白略显直白，缺少'冰山下的未说之话'，需将解释性台词改为言辞武器。",
         value_turn: "价值位移幅度可进一步拉大，多借用场景道具（信物、茶盏、文件）作为三边博弈出口。",
         cliffhanger: "集尾尚未形成生死一线的绝境卡点，可断在关键道具现身或致命选择前夕。",
+        chekhov_gun: "检测到场景中出现核心信物，改写已主动将其缝合进价值转折枢轴之中。",
       },
       sections: {
         opening: {

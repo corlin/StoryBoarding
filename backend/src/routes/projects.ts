@@ -1260,6 +1260,23 @@ router.post("/:id/sequences/:seqId/diagnose-hook", async (c) => {
     const projectChars = await db.select().from(characters).where(eq(characters.projectId, id)).all();
     const charsContext = projectChars.map((ch) => `${ch.name} (${ch.role}): ${ch.visualAnchor}`).join("; ");
 
+    const proj = await db.select().from(projects).where(eq(projects.id, id)).get();
+    let seriesEngineContext = "";
+    if (proj?.adaptationTradeoffs) {
+      try {
+        const parsedTradeoffs = JSON.parse(proj.adaptationTradeoffs);
+        const engine = parsedTradeoffs?.series_engine;
+        if (engine) {
+          const parts: string[] = [];
+          if (engine.tacit_contract) parts.push(`默契契约: ${engine.tacit_contract}`);
+          if (engine.unity_of_opposites) parts.push(`绝境纽带: ${engine.unity_of_opposites}`);
+          if (engine.bonding_items?.length) parts.push(`核心承重道具信物总表: ${engine.bonding_items.join("、")}`);
+          if (engine.subtext_landmines?.length) parts.push(`潜台词地雷: ${engine.subtext_landmines.join("、")}`);
+          seriesEngineContext = parts.join(" | ");
+        }
+      } catch (_) {}
+    }
+
     const settings = await getUserSettings(db, authUser.userId);
     if (!settings.hasKey) {
       return c.json({ detail: "请先在设置中配置 OpenRouter API Key" }, 400);
@@ -1270,6 +1287,7 @@ router.post("/:id/sequences/:seqId/diagnose-hook", async (c) => {
       apiBase: settings.llmApiBase,
       model: settings.llmModel,
       charactersContext: charsContext,
+      seriesEngineContext,
     });
 
     return c.json({

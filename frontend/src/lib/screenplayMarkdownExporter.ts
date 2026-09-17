@@ -169,6 +169,10 @@ export function generateScreenplayMarkdownContent(
       lines.push(`- **🎁 戏剧收益收敛 (Payoff)**: ${cleanPayoff}`);
     }
 
+    if (seriesEngine?.bonding_items?.length) {
+      lines.push(`- **🔫 契诃夫之枪信物关联**: ${seriesEngine.bonding_items.join("、")}`);
+    }
+
     lines.push("");
   });
 
