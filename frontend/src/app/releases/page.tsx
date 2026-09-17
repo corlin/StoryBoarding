@@ -13,10 +13,13 @@ import {
   Zap,
   ChevronRight,
   ExternalLink,
+  MessageCircle,
 } from "lucide-react";
 import { RELEASE_NOTES } from "@/data/releaseNotes";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function ReleasesPage() {
+  const { openCommunityModal } = useAuthStore();
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-foreground selection:bg-primary/30 relative overflow-x-hidden flex flex-col">
       {/* Background Lighting & Grid */}
@@ -49,6 +52,15 @@ export default function ReleasesPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => openCommunityModal()}
+              className="text-xs text-emerald-400 hover:text-emerald-300 font-medium transition-colors flex items-center gap-1 px-3 py-1.5 rounded-xl hover:bg-emerald-500/10 border border-emerald-500/20 cursor-pointer"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>交流进群</span>
+            </button>
+
             <Link
               href="/dashboard"
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all shadow-xs"
@@ -178,6 +190,25 @@ export default function ReleasesPage() {
             </Link>
           </div>
         </div>
+        {/* Community & Feedback Banner */}
+        <div className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-emerald-950/30 via-[#121620] to-[#121620] border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="space-y-1 text-center sm:text-left">
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-emerald-400 text-xs font-semibold">
+              <MessageCircle className="w-4 h-4" />
+              <span>加入官方创作者交流群</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              扫码添加作者微信（永林），探讨剧本分镜、视听预演与成片工作流，获取第一手更新动态。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => openCommunityModal()}
+            className="shrink-0 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-black shadow-md transition-all cursor-pointer"
+          >
+            💬 扫码进群交流
+          </button>
+        </div>
       </main>
 
       {/* Footer */}
@@ -195,6 +226,13 @@ export default function ReleasesPage() {
             <Link href="/dashboard" className="hover:text-foreground transition-colors">
               分镜看板
             </Link>
+            <button
+              type="button"
+              onClick={() => openCommunityModal()}
+              className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors cursor-pointer"
+            >
+              交流进群
+            </button>
             <a
               href="https://github.com/corlin/StoryBoarding"
               target="_blank"

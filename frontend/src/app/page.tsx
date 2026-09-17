@@ -36,6 +36,7 @@ export default function HomePage() {
     openAuthModal,
     login,
     openSettingsModal,
+    openCommunityModal,
   } = useAuthStore();
 
   const [promptText, setPromptText] = useState("");
@@ -412,6 +413,12 @@ export default function HomePage() {
             <Link href="/releases" className="hover:text-foreground transition-colors">
               更新日志
             </Link>
+            <button
+              onClick={() => openCommunityModal()}
+              className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <span>💬 交流进群</span>
+            </button>
             <button
               onClick={() => openSettingsModal()}
               className="hover:text-foreground transition-colors cursor-pointer"

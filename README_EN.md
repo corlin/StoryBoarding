@@ -4,7 +4,7 @@ English | [简体中文](./README.md)
 
 StoryBoarding is a production workspace for short-drama writers, directors, and small content teams. It keeps story development, storyboard design, AI video and speech generation, review decisions, subtitles, and final delivery in one traceable project. Every shot, generation job, candidate take, adopted version, and delivery artifact has an explicit place in the workflow.
 
-**Live site: [storyboarding.caifu.social](https://storyboarding.caifu.social/)**
+**Live site: [storyboarding.caifu.social](https://storyboarding.caifu.social/)** · **[💬 Community & WeChat](#-community--discussion)**
 
 ![StoryBoarding system architecture](./docs/assets/architecture.png)
 
@@ -136,3 +136,13 @@ npm run build
 ```
 
 A first deployment also requires D1 and R2 bindings plus Worker/Pages environment variables and secrets. Never commit model API keys, JWT secrets, or Cloudflare credentials.
+
+## 💬 Community & Discussion
+
+We welcome short-drama creators, film directors, AIGC artists, and developers to share feedback, discuss workflows, or request features:
+
+<div align="center">
+  <img src="./docs/assets/wechat-author-qrcode.png" width="240" alt="Author WeChat QR Code · Yonglin" />
+  <p><strong>Scan QR Code to add WeChat friend (Yonglin)</strong></p>
+  <p><em>Note <code>StoryBoarding</code> when adding to be invited to the official creator & developer group.</em></p>
+</div>

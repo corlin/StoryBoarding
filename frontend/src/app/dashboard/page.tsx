@@ -54,8 +54,14 @@ import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, openAuthModal, openSettingsModal, login } =
-    useAuthStore();
+  const {
+    user,
+    isAuthenticated,
+    openAuthModal,
+    openSettingsModal,
+    openCommunityModal,
+    login,
+  } = useAuthStore();
 
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -300,7 +306,16 @@ export default function DashboardPage() {
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => openCommunityModal()}
+            className="text-xs text-emerald-400 hover:text-emerald-300 font-medium transition-colors flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/10 border border-emerald-500/20 cursor-pointer"
+            title="微信扫码加入创作者社群与联系作者"
+          >
+            <span>💬 交流进群</span>
+          </button>
+
           <Link
             href="/releases"
             className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-secondary/60"

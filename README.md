@@ -4,7 +4,7 @@
 
 StoryBoarding 面向短剧编剧、导演和小型内容团队，把故事开发、分镜设计、AI 视频与配音生产、审片采用、字幕和成片交付放在同一个工程里。平台强调可追踪的制作闭环：每个镜头、任务、候选素材、采用版本和交付文件都有明确归属，而不是只生成一批无法继续制作的图片或提示词。
 
-**在线体验：[storyboarding.caifu.social](https://storyboarding.caifu.social/)**
+**在线体验：[storyboarding.caifu.social](https://storyboarding.caifu.social/)** · **[💬 交流进群](#-交流讨论与进群)**
 
 ![StoryBoarding 系统架构图](./docs/assets/architecture.png)
 
@@ -138,3 +138,13 @@ npm run build
 ```
 
 首次部署还需要创建并绑定 D1 数据库、R2 Bucket，并配置 Worker/Pages 环境变量和密钥。不要把模型 API Key、JWT 密钥或 Cloudflare 凭据提交到仓库。
+
+## 💬 交流讨论与进群
+
+欢迎短剧编剧、影视导演、AIGC 创作者以及开发者交流使用心得、探讨工作流定制或提出功能建议：
+
+<div align="center">
+  <img src="./docs/assets/wechat-author-qrcode.png" width="240" alt="作者微信二维码 · 永林" />
+  <p><strong>微信扫码添加作者好友（永林）</strong></p>
+  <p><em>添加好友请备注：<code>StoryBoarding</code> 或 <code>短剧</code>，将邀请您进入官方创作者与技术交流群</em></p>
+</div>

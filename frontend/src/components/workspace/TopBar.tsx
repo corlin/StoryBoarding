@@ -24,6 +24,7 @@ import {
   MoreVertical,
   Trash2,
   ClipboardList,
+  MessageCircle,
 } from "lucide-react";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 import { useAuthStore } from "@/stores/authStore";
@@ -117,7 +118,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenDelete,
   onBatchRender,
 }) => {
-  const { user, isAuthenticated, openAuthModal, openSettingsModal } = useAuthStore();
+  const { user, isAuthenticated, openAuthModal, openSettingsModal, openCommunityModal } = useAuthStore();
   const {
     activeEpisodeIndex,
     setActiveEpisodeIndex,
@@ -397,6 +398,22 @@ export const TopBar: React.FC<TopBarProps> = ({
                 </div>
               </div>
 
+              <div className="h-px bg-border/60 my-1" />
+              <button
+                type="button"
+                onClick={() => {
+                  setIsHelpMenuOpen(false);
+                  openCommunityModal();
+                }}
+                className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition-colors text-left cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5">
+                  <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>交流进群 · 联系作者</span>
+                </span>
+                <span className="text-[10px] text-muted-foreground font-medium">永林</span>
+              </button>
+
               {onOpenDelete && (
                 <>
                   <div className="h-px bg-border/60 my-1" />
@@ -416,6 +433,15 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
           )}
         </div>
+
+        {/* Community & Author Contact Guardrail */}
+        <button
+          onClick={() => openCommunityModal()}
+          className="p-1.5 rounded-lg border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors cursor-pointer"
+          title="💬 交流进群 · 联系作者（永林）"
+        >
+          <MessageCircle className="w-4 h-4" />
+        </button>
 
         {/* System Settings Guardrail */}
         <button

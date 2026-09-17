@@ -30,11 +30,14 @@ interface AuthState {
   isAuthModalOpen: boolean;
   authModalTab: "login" | "register";
   isSettingsModalOpen: boolean;
+  isCommunityModalOpen: boolean;
 
   openAuthModal: (tab?: "login" | "register") => void;
   closeAuthModal: () => void;
   openSettingsModal: () => void;
   closeSettingsModal: () => void;
+  openCommunityModal: () => void;
+  closeCommunityModal: () => void;
   checkAuthAndKey: (actionName: string) => boolean;
 
   initAuth: () => Promise<void>;
@@ -52,11 +55,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthModalOpen: false,
   authModalTab: "login",
   isSettingsModalOpen: false,
+  isCommunityModalOpen: false,
 
   openAuthModal: (tab = "login") => set({ isAuthModalOpen: true, authModalTab: tab }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),
   openSettingsModal: () => set({ isSettingsModalOpen: true }),
   closeSettingsModal: () => set({ isSettingsModalOpen: false }),
+  openCommunityModal: () => set({ isCommunityModalOpen: true }),
+  closeCommunityModal: () => set({ isCommunityModalOpen: false }),
 
   checkAuthAndKey: (actionName: string): boolean => {
     const { user: currUser, isAuthenticated: currAuth, openAuthModal, openSettingsModal } = get();

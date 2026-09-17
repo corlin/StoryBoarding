@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { User, Settings, LogOut, ChevronDown, Sparkles, Mail, UserPlus, ArrowRight } from "lucide-react";
+import { User, Settings, LogOut, ChevronDown, Sparkles, Mail, UserPlus, ArrowRight, MessageCircle } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { notify } from "@/components/ui/ToastNotification";
 
@@ -10,7 +10,7 @@ interface UserMenuDropdownProps {
 }
 
 export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ align = "right" }) => {
-  const { user, openSettingsModal, openAuthModal, logout } = useAuthStore();
+  const { user, openSettingsModal, openAuthModal, openCommunityModal, logout } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -152,6 +152,23 @@ export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ align = "rig
                 <span className="block font-semibold">AI 模型与 API 设置</span>
                 <span className="text-[10px] text-muted-foreground block">
                   {isDemo ? "注册专属账号后配置专属 Key" : "配置专属 OpenRouter Key & 模型"}
+                </span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                openCommunityModal();
+              }}
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-secondary/80 transition-colors text-left cursor-pointer"
+            >
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="flex-1">
+                <span className="block font-semibold">交流进群 · 联系作者</span>
+                <span className="text-[10px] text-muted-foreground block">
+                  微信扫码进创作者社群与技术交流
                 </span>
               </div>
             </button>
