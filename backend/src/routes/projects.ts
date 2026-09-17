@@ -11,6 +11,59 @@ import { getAuthUser, getUserSettings } from "../lib/auth";
 import { authorizeProjectOwner, authorizeShotForUser } from "../lib/projectAccess";
 import { recommendedShotAudioWorkflow } from "../lib/videoProvider";
 
+export function unpackSequencePayoff(raw: string | null | undefined): {
+  payoff: string;
+  value_turn?: { opening: string; ending: string; pivot: string };
+  a_b_story?: { a_plot: string; b_plot: string };
+  snyder_collision?: { character_a: string; character_b: string; dynamic: string };
+} {
+  if (!raw) return { payoff: "" };
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      return {
+        payoff: parsed.payoff || "",
+        value_turn: parsed.value_turn,
+        a_b_story: parsed.a_b_story,
+        snyder_collision: parsed.snyder_collision,
+      };
+    } catch (_) {}
+  }
+  return { payoff: raw };
+}
+
+export function packSequencePayoff(
+  payoffText: string | undefined,
+  meta: {
+    value_turn?: any;
+    a_b_story?: any;
+    snyder_collision?: any;
+  } = {},
+  existingRaw?: string
+): string {
+  const existing = unpackSequencePayoff(existingRaw);
+  const nextPayoff = payoffText !== undefined
+    ? (typeof payoffText === "string" && payoffText.startsWith("{") ? existing.payoff : payoffText)
+    : existing.payoff;
+
+  const nextValTurn = meta.value_turn !== undefined ? meta.value_turn : existing.value_turn;
+  const nextAB = meta.a_b_story !== undefined ? meta.a_b_story : existing.a_b_story;
+  const nextCollision = meta.snyder_collision !== undefined ? meta.snyder_collision : existing.snyder_collision;
+
+  const hasMeta = nextValTurn !== undefined || nextAB !== undefined || nextCollision !== undefined;
+  if (!hasMeta) {
+    return nextPayoff || "";
+  }
+
+  return JSON.stringify({
+    payoff: nextPayoff || "",
+    value_turn: nextValTurn,
+    a_b_story: nextAB,
+    snyder_collision: nextCollision,
+  });
+}
+
 const router = new Hono<{ Bindings: Bindings }>();
 
 // GET /api/projects (Scoped by authenticated user)
@@ -96,21 +149,7 @@ router.get("/:id", async (c) => {
       seqs.map(async (seq) => {
         const shotList = await db.select().from(shots).where(eq(shots.sequenceId, seq.id)).orderBy(shots.order).all();
 
-        let parsedPayoff: any = null;
-        let payoffText = seq.payoffSummary || "";
-        let valueTurn = undefined;
-        let aBStory = undefined;
-        let snyderCollision = undefined;
-
-        if (payoffText.startsWith("{") && payoffText.endsWith("}")) {
-          try {
-            parsedPayoff = JSON.parse(payoffText);
-            payoffText = parsedPayoff.payoff || "";
-            valueTurn = parsedPayoff.value_turn;
-            aBStory = parsedPayoff.a_b_story;
-            snyderCollision = parsedPayoff.snyder_collision;
-          } catch (_) {}
-        }
+        const { payoff, value_turn, a_b_story, snyder_collision } = unpackSequencePayoff(seq.payoffSummary);
 
         return {
           id: seq.id,
@@ -120,10 +159,10 @@ router.get("/:id", async (c) => {
           episode_number: seq.episodeNumber ?? 1,
           hook_summary: seq.hookSummary || "",
           cliffhanger_summary: seq.cliffhangerSummary || "",
-          payoff_summary: payoffText,
-          value_turn: valueTurn,
-          a_b_story: aBStory,
-          snyder_collision: snyderCollision,
+          payoff_summary: payoff,
+          value_turn,
+          a_b_story,
+          snyder_collision,
           target_duration: seq.targetDuration ?? 60.0,
           screenplay_text: seq.screenplayText || "",
           beats_data: seq.beatsData ? JSON.parse(seq.beatsData) : [],
@@ -511,15 +550,11 @@ router.post("/create-series", async (c) => {
       const epDuration = Number(ep.target_duration) || 60;
       const epTitle = ep.title || `第 ${i + 1} 集`;
 
-      let initialPayoff = ep.payoff_summary || "";
-      if (ep.a_b_story || ep.snyder_collision || ep.value_turn) {
-        initialPayoff = JSON.stringify({
-          payoff: ep.payoff_summary || "",
-          a_b_story: ep.a_b_story,
-          snyder_collision: ep.snyder_collision,
-          value_turn: ep.value_turn,
-        });
-      }
+      const initialPayoff = packSequencePayoff(ep.payoff_summary, {
+        a_b_story: ep.a_b_story,
+        snyder_collision: ep.snyder_collision,
+        value_turn: ep.value_turn,
+      });
 
       await db.insert(sequences).values({
         id: seqId,
@@ -904,19 +939,11 @@ router.put("/:id/sequences/:seqId/screenplay", async (c) => {
     const beatsData = body.beats_data !== undefined ? (typeof body.beats_data === "string" ? body.beats_data : JSON.stringify(body.beats_data)) : undefined;
 
     if (valueTurn !== undefined || aBStory !== undefined || snyderCollision !== undefined) {
-      let existingParsed: any = {};
-      try {
-        if (typeof payoffSummary === "string" && payoffSummary.startsWith("{") && payoffSummary.endsWith("}")) {
-          existingParsed = JSON.parse(payoffSummary);
-        }
-      } catch (_) {}
-      const combined = {
-        payoff: typeof payoffSummary === "string" && !payoffSummary.startsWith("{") ? payoffSummary : (existingParsed.payoff || ""),
-        value_turn: valueTurn !== undefined ? valueTurn : existingParsed.value_turn,
-        a_b_story: aBStory !== undefined ? aBStory : existingParsed.a_b_story,
-        snyder_collision: snyderCollision !== undefined ? snyderCollision : existingParsed.snyder_collision,
-      };
-      payoffSummary = JSON.stringify(combined);
+      payoffSummary = packSequencePayoff(payoffSummary, {
+        value_turn: valueTurn,
+        a_b_story: aBStory,
+        snyder_collision: snyderCollision,
+      }, payoffSummary);
     }
 
     const seqUpdates: any = { updatedAt: new Date().toISOString() };
@@ -937,20 +964,7 @@ router.put("/:id/sequences/:seqId/screenplay", async (c) => {
       return c.json({ detail: "Sequence not found" }, 404);
     }
 
-    let parsedPayoff: any = null;
-    let payoffVal = updated.payoffSummary || "";
-    let returnValTurn = undefined;
-    let returnABStory = undefined;
-    let returnSnyderCollision = undefined;
-    if (payoffVal.startsWith("{") && payoffVal.endsWith("}")) {
-      try {
-        parsedPayoff = JSON.parse(payoffVal);
-        payoffVal = parsedPayoff.payoff || "";
-        returnValTurn = parsedPayoff.value_turn;
-        returnABStory = parsedPayoff.a_b_story;
-        returnSnyderCollision = parsedPayoff.snyder_collision;
-      } catch (_) {}
-    }
+    const { payoff: payoffVal, value_turn: returnValTurn, a_b_story: returnABStory, snyder_collision: returnSnyderCollision } = unpackSequencePayoff(updated.payoffSummary);
 
     return c.json({
       status: "success",

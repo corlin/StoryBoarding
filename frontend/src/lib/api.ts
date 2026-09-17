@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ProjectModel, ShotModel, BeatModel, SeriesEngineBible, CharacterModel } from "@/types/shot";
+import { ProjectModel, ShotModel, BeatModel, SeriesEngineBible, CharacterModel, ScreenplayRewritePayload } from "@/types/shot";
 
 export type ProjectListItem = ProjectModel;
 
@@ -365,17 +365,7 @@ export const api = {
   async updateSequenceScreenplay(
     projectId: string,
     seqId: string,
-    payload: {
-      screenplay_text?: string;
-      hook_summary?: string;
-      cliffhanger_summary?: string;
-      payoff_summary?: string;
-      value_turn?: { opening: string; ending: string; pivot: string };
-      a_b_story?: { a_plot: string; b_plot: string };
-      snyder_collision?: { character_a: string; character_b: string; dynamic: string };
-      target_duration?: number;
-      beats_data?: BeatModel[];
-    } | string
+    payload: ScreenplayRewritePayload | string
   ): Promise<{ status: string; sequence_id: string; [key: string]: any }> {
     const body = typeof payload === "string" ? { screenplay_text: payload } : payload;
     const { data } = await apiClient.put(`/projects/${projectId}/sequences/${seqId}/screenplay`, body);

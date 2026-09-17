@@ -15,7 +15,7 @@ import {
   Check,
   Key,
 } from "lucide-react";
-import { ProjectModel, SequenceModel } from "@/types/shot";
+import { ProjectModel, SequenceModel, ScreenplayRewritePayload } from "@/types/shot";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -27,12 +27,7 @@ interface HookDoctorModalProps {
   project: ProjectModel | null;
   sequence: SequenceModel | null;
   currentScreenplay: string;
-  onApplyRewrite: (
-    newText: string,
-    valueTurn?: { opening: string; ending: string; pivot: string },
-    abStory?: { a_plot: string; b_plot: string },
-    snyderCollision?: { character_a: string; character_b: string; dynamic: string }
-  ) => Promise<void>;
+  onApplyRewrite: (payload: ScreenplayRewritePayload) => Promise<void>;
 }
 
 export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
@@ -98,7 +93,12 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
         newScreenplay = diagnosis.rewritten_screenplay;
       }
 
-      await onApplyRewrite(newScreenplay, diagnosis?.value_turn, diagnosis?.a_b_story, diagnosis?.snyder_collision);
+      await onApplyRewrite({
+        screenplay_text: newScreenplay,
+        value_turn: diagnosis?.value_turn,
+        a_b_story: diagnosis?.a_b_story,
+        snyder_collision: diagnosis?.snyder_collision,
+      });
       notify.success(`已单独采纳「${sectionKey === "opening" ? "黄金开局" : sectionKey === "cliffhanger" ? "集尾卡点" : "中段加压"}」改写！`);
       onClose();
     } catch (err: any) {
@@ -112,7 +112,12 @@ export const HookDoctorModal: React.FC<HookDoctorModalProps> = ({
     if (!diagnosis?.rewritten_screenplay) return;
     try {
       setIsApplying(true);
-      await onApplyRewrite(diagnosis.rewritten_screenplay, diagnosis?.value_turn, diagnosis?.a_b_story, diagnosis?.snyder_collision);
+      await onApplyRewrite({
+        screenplay_text: diagnosis.rewritten_screenplay,
+        value_turn: diagnosis?.value_turn,
+        a_b_story: diagnosis?.a_b_story,
+        snyder_collision: diagnosis?.snyder_collision,
+      });
       notify.success("⚡ 已全量采纳短剧重构剧本并同步差量分镜头！");
       onClose();
     } catch (err: any) {

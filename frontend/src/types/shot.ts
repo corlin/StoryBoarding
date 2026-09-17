@@ -290,6 +290,18 @@ export interface SequenceModel {
   shots: ShotModel[];
 }
 
+export interface ScreenplayRewritePayload {
+  screenplay_text?: string;
+  hook_summary?: string;
+  cliffhanger_summary?: string;
+  payoff_summary?: string;
+  value_turn?: { opening: string; ending: string; pivot: string };
+  a_b_story?: { a_plot: string; b_plot: string };
+  snyder_collision?: { character_a: string; character_b: string; dynamic: string };
+  target_duration?: number;
+  beats_data?: BeatModel[];
+}
+
 export interface ProjectModel {
   id: string;
   user_id: string;

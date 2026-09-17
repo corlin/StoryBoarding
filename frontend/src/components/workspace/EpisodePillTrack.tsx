@@ -13,6 +13,20 @@ interface EpisodePillTrackProps {
   compact?: boolean;
 }
 
+function getSequenceDramaticMeta(s: SequenceModel) {
+  let parsed: any = null;
+  if (s.payoff_summary && s.payoff_summary.startsWith("{")) {
+    try {
+      parsed = JSON.parse(s.payoff_summary);
+    } catch (_) {}
+  }
+  return {
+    value_turn: s.value_turn || parsed?.value_turn,
+    a_b_story: s.a_b_story || parsed?.a_b_story,
+    snyder_collision: s.snyder_collision || parsed?.snyder_collision,
+  };
+}
+
 export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject, compact = false }: EpisodePillTrackProps) {
   const { currentProject, activeEpisodeIndex, setActiveEpisodeIndex } = useWorkspaceStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -27,39 +41,6 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
     seq: SequenceModel;
     rect: DOMRect;
   } | null>(null);
-
-  const resolveABStory = (s: SequenceModel) => {
-    if (s.a_b_story) return s.a_b_story;
-    if (s.payoff_summary && s.payoff_summary.startsWith("{")) {
-      try {
-        const parsed = JSON.parse(s.payoff_summary);
-        return parsed.a_b_story;
-      } catch (_) {}
-    }
-    return undefined;
-  };
-
-  const resolveSnyderCollision = (s: SequenceModel) => {
-    if (s.snyder_collision) return s.snyder_collision;
-    if (s.payoff_summary && s.payoff_summary.startsWith("{")) {
-      try {
-        const parsed = JSON.parse(s.payoff_summary);
-        return parsed.snyder_collision;
-      } catch (_) {}
-    }
-    return undefined;
-  };
-
-  const resolveValueTurn = (s: SequenceModel) => {
-    if (s.value_turn) return s.value_turn;
-    if (s.payoff_summary && s.payoff_summary.startsWith("{")) {
-      try {
-        const parsed = JSON.parse(s.payoff_summary);
-        return parsed.value_turn;
-      } catch (_) {}
-    }
-    return undefined;
-  };
 
   // Expansion Modal State (Scene-to-Series)
   const [isExpandModalOpen, setIsExpandModalOpen] = useState(false);
@@ -166,8 +147,7 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
             const isActive = idx === activeEpisodeIndex;
             const epNum = seq.episode_number || idx + 1;
             const shotCount = seq.shots?.length || 0;
-            const collision = resolveSnyderCollision(seq);
-            const abStory = resolveABStory(seq);
+            const { a_b_story: abStory, snyder_collision: collision } = getSequenceDramaticMeta(seq);
 
             return (
               <button
@@ -500,9 +480,7 @@ export function EpisodePillTrack({ project, onOpenCharacterHub, onRefreshProject
       {hoveredSeqData && (() => {
         const { seq, rect } = hoveredSeqData;
         const epNum = seq.episode_number || 1;
-        const abStory = resolveABStory(seq);
-        const collision = resolveSnyderCollision(seq);
-        const vt = resolveValueTurn(seq);
+        const { a_b_story: abStory, snyder_collision: collision, value_turn: vt } = getSequenceDramaticMeta(seq);
         const leftPos = Math.max(16, Math.min(rect.left, typeof window !== "undefined" ? window.innerWidth - 340 : 300));
         const topPos = rect.bottom + 8;
 

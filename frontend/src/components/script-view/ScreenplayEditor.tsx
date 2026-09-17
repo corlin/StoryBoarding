@@ -13,7 +13,7 @@ import {
   Zap,
   Key,
 } from "lucide-react";
-import { SequenceModel, ProjectModel } from "@/types/shot";
+import { SequenceModel, ProjectModel, ScreenplayRewritePayload } from "@/types/shot";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/ToastNotification";
 import { useAuthStore } from "@/stores/authStore";
@@ -388,24 +388,16 @@ export const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
         project={project}
         sequence={sequence}
         currentScreenplay={screenplayText}
-        onApplyRewrite={async (
-          newText: string,
-          vt?: { opening: string; ending: string; pivot: string },
-          abStory?: { a_plot: string; b_plot: string },
-          snyderCollision?: { character_a: string; character_b: string; dynamic: string }
-        ) => {
-          setScreenplayText(newText);
-          if (vt) {
-            setValueTurn(vt);
+        onApplyRewrite={async (payload: ScreenplayRewritePayload) => {
+          if (payload.screenplay_text !== undefined) {
+            setScreenplayText(payload.screenplay_text);
+          }
+          if (payload.value_turn) {
+            setValueTurn(payload.value_turn);
           }
           if (project?.id && sequence?.id) {
             try {
-              await api.updateSequenceScreenplay(project.id, sequence.id, {
-                screenplay_text: newText,
-                value_turn: vt,
-                a_b_story: abStory,
-                snyder_collision: snyderCollision,
-              });
+              await api.updateSequenceScreenplay(project.id, sequence.id, payload);
             } catch (e) {
               console.warn("Auto save value turn warning:", e);
             }
