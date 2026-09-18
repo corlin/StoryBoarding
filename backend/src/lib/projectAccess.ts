@@ -48,14 +48,25 @@ export async function authorizeProjectOwner(
   db: any,
   authorization: string | undefined,
   projectId: string,
+  jwtSecretOrAllowPublicRead?: string | boolean,
   allowPublicRead = false,
 ) {
+  let jwtSecret: string | undefined;
+  let isAllowPublicRead = allowPublicRead;
+
+  if (typeof jwtSecretOrAllowPublicRead === "boolean") {
+    isAllowPublicRead = jwtSecretOrAllowPublicRead;
+    jwtSecret = undefined;
+  } else {
+    jwtSecret = jwtSecretOrAllowPublicRead;
+  }
+
   const project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
   if (!project) return { ok: false as const, status: 404 as const, detail: "工程不存在" };
 
-  const authUser = await getAuthUser(authorization);
+  const authUser = await getAuthUser(authorization, jwtSecret);
 
-  if (allowPublicRead && isPublicSampleProject(project)) {
+  if (isAllowPublicRead && isPublicSampleProject(project)) {
     return {
       ok: true as const,
       authUser: authUser || {
@@ -76,8 +87,8 @@ export async function authorizeProjectOwner(
   return { ok: true as const, authUser, project };
 }
 
-export async function authorizeSequenceOwner(db: any, authorization: string | undefined, sequenceId: string) {
-  const authUser = await getAuthUser(authorization);
+export async function authorizeSequenceOwner(db: any, authorization: string | undefined, sequenceId: string, jwtSecret?: string) {
+  const authUser = await getAuthUser(authorization, jwtSecret || "");
   if (!authUser) return { ok: false as const, status: 401 as const, detail: "请先登录" };
 
   const sequence = await db.select().from(sequences).where(eq(sequences.id, sequenceId)).get();
@@ -87,8 +98,8 @@ export async function authorizeSequenceOwner(db: any, authorization: string | un
   return access.ok ? { ...access, sequence } : access;
 }
 
-export async function authorizeShotOwner(db: any, authorization: string | undefined, shotId: string) {
-  const authUser = await getAuthUser(authorization);
+export async function authorizeShotOwner(db: any, authorization: string | undefined, shotId: string, jwtSecret?: string) {
+  const authUser = await getAuthUser(authorization, jwtSecret || "");
   if (!authUser) return { ok: false as const, status: 401 as const, detail: "请先登录" };
 
   return authorizeShotForUser(db, authUser, shotId);

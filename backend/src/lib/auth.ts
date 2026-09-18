@@ -1,7 +1,5 @@
 // Native Web Crypto API Auth Utilities for Cloudflare Workers & Node.js Edge Environments
 
-const JWT_SECRET = "storyboarding-cinema-secret-key-2026-edge";
-
 // 1. Password Hashing with PBKDF2-SHA256 (100,000 iterations)
 export async function hashPassword(password: string, providedSalt?: string): Promise<{ hash: string; salt: string }> {
   const enc = new TextEncoder();
@@ -81,7 +79,10 @@ export interface JwtPayload {
   exp?: number;
 }
 
-export async function signJwt(payload: Omit<JwtPayload, "iat" | "exp">, expiresInSeconds: number = 30 * 24 * 3600): Promise<string> {
+const DEFAULT_JWT_SECRET = "storyboarding-cinema-secret-key-2026-edge";
+
+export async function signJwt(secret: string = DEFAULT_JWT_SECRET, payload: Omit<JwtPayload, "iat" | "exp">, expiresInSeconds: number = 30 * 24 * 3600): Promise<string> {
+  const activeSecret = secret || DEFAULT_JWT_SECRET;
   const enc = new TextEncoder();
   const header = { alg: "HS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
@@ -97,7 +98,7 @@ export async function signJwt(payload: Omit<JwtPayload, "iat" | "exp">, expiresI
 
   const key = await crypto.subtle.importKey(
     "raw",
-    enc.encode(JWT_SECRET),
+    enc.encode(activeSecret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -109,8 +110,9 @@ export async function signJwt(payload: Omit<JwtPayload, "iat" | "exp">, expiresI
   return `${dataToSign}.${signatureB64}`;
 }
 
-export async function verifyJwt(token: string): Promise<JwtPayload | null> {
-  if (!token) return null;
+export async function verifyJwt(token: string, secret: string = DEFAULT_JWT_SECRET): Promise<JwtPayload | null> {
+  const activeSecret = secret || DEFAULT_JWT_SECRET;
+  if (!token || !activeSecret) return null;
   try {
     const enc = new TextEncoder();
     const parts = token.split(".");
@@ -121,7 +123,7 @@ export async function verifyJwt(token: string): Promise<JwtPayload | null> {
 
     const key = await crypto.subtle.importKey(
       "raw",
-      enc.encode(JWT_SECRET),
+      enc.encode(activeSecret),
       { name: "HMAC", hash: "SHA-256" },
       false,
       ["verify"]
@@ -144,11 +146,11 @@ export async function verifyJwt(token: string): Promise<JwtPayload | null> {
 }
 
 // Helper to extract JWT payload from Request Authorization Header
-export async function getAuthUser(authHeader?: string | null): Promise<JwtPayload | null> {
+export async function getAuthUser(authHeader?: string | null, secret: string = DEFAULT_JWT_SECRET): Promise<JwtPayload | null> {
   if (!authHeader) return null;
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
   if (!match || !match[1]) return null;
-  return verifyJwt(match[1].trim());
+  return verifyJwt(match[1].trim(), secret || DEFAULT_JWT_SECRET);
 }
 
 // Single Source of Truth for User API Key & Model Settings (Zero Public Fallback with AES-256-GCM Decryption)
