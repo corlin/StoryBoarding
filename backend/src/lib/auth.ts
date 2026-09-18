@@ -86,12 +86,12 @@ export async function signJwt(
   expiresInSeconds?: number
 ): Promise<string>;
 export async function signJwt(
-  secret: string,
+  secret: string | undefined,
   payload: Omit<JwtPayload, "iat" | "exp">,
   expiresInSeconds?: number
 ): Promise<string>;
 export async function signJwt(
-  secretOrPayload: string | Omit<JwtPayload, "iat" | "exp">,
+  secretOrPayload: string | undefined | Omit<JwtPayload, "iat" | "exp">,
   payloadOrExpires?: Omit<JwtPayload, "iat" | "exp"> | number,
   expiresInSeconds: number = 30 * 24 * 3600
 ): Promise<string> {
@@ -99,8 +99,8 @@ export async function signJwt(
   let targetPayload: Omit<JwtPayload, "iat" | "exp">;
   let duration = expiresInSeconds;
 
-  if (typeof secretOrPayload === "string") {
-    activeSecret = secretOrPayload || DEFAULT_JWT_SECRET;
+  if (typeof secretOrPayload === "string" || secretOrPayload === undefined) {
+    activeSecret = (typeof secretOrPayload === "string" && secretOrPayload) ? secretOrPayload : DEFAULT_JWT_SECRET;
     targetPayload = payloadOrExpires as Omit<JwtPayload, "iat" | "exp">;
   } else {
     activeSecret = DEFAULT_JWT_SECRET;

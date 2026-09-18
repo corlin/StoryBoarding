@@ -60,7 +60,7 @@ router.post("/register", async (c) => {
       })
       .returning();
 
-    const token = await signJwt(c.env.JWT_SECRET, {
+    const token = await signJwt(c.env.JWT_SECRET || "", {
       userId: newUser.id,
       email: newUser.email,
       username: newUser.username,
@@ -114,7 +114,7 @@ router.post("/login", async (c) => {
       return c.json({ detail: "账号或密码错误，请重试" }, 401);
     }
 
-    const token = await signJwt(c.env.JWT_SECRET, {
+    const token = await signJwt(c.env.JWT_SECRET || "", {
       userId: user.id,
       email: user.email,
       username: user.username,
