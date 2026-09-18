@@ -60,7 +60,7 @@ router.post("/register", async (c) => {
       })
       .returning();
 
-    const token = await signJwt({
+    const token = await signJwt(c.env.JWT_SECRET, {
       userId: newUser.id,
       email: newUser.email,
       username: newUser.username,
@@ -114,7 +114,7 @@ router.post("/login", async (c) => {
       return c.json({ detail: "账号或密码错误，请重试" }, 401);
     }
 
-    const token = await signJwt({
+    const token = await signJwt(c.env.JWT_SECRET, {
       userId: user.id,
       email: user.email,
       username: user.username,
@@ -162,7 +162,7 @@ router.get("/me", async (c) => {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
     const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
+    const authUser = await getAuthUser(authHeader, c.env.JWT_SECRET);
 
     if (!authUser) {
       return c.json({ detail: "未登录或登录已过期" }, 401);
@@ -193,7 +193,7 @@ router.put("/profile", async (c) => {
     await ensureSchema(c.env.DB);
     const db = getDb(c.env.DB);
     const authHeader = c.req.header("Authorization");
-    const authUser = await getAuthUser(authHeader);
+    const authUser = await getAuthUser(authHeader, c.env.JWT_SECRET);
 
     if (!authUser) {
       return c.json({ detail: "未登录或登录已过期" }, 401);

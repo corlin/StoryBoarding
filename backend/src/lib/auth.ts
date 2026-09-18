@@ -81,15 +81,42 @@ export interface JwtPayload {
 
 const DEFAULT_JWT_SECRET = "storyboarding-cinema-secret-key-2026-edge";
 
-export async function signJwt(secret: string = DEFAULT_JWT_SECRET, payload: Omit<JwtPayload, "iat" | "exp">, expiresInSeconds: number = 30 * 24 * 3600): Promise<string> {
-  const activeSecret = secret || DEFAULT_JWT_SECRET;
+export async function signJwt(
+  payload: Omit<JwtPayload, "iat" | "exp">,
+  expiresInSeconds?: number
+): Promise<string>;
+export async function signJwt(
+  secret: string,
+  payload: Omit<JwtPayload, "iat" | "exp">,
+  expiresInSeconds?: number
+): Promise<string>;
+export async function signJwt(
+  secretOrPayload: string | Omit<JwtPayload, "iat" | "exp">,
+  payloadOrExpires?: Omit<JwtPayload, "iat" | "exp"> | number,
+  expiresInSeconds: number = 30 * 24 * 3600
+): Promise<string> {
+  let activeSecret = DEFAULT_JWT_SECRET;
+  let targetPayload: Omit<JwtPayload, "iat" | "exp">;
+  let duration = expiresInSeconds;
+
+  if (typeof secretOrPayload === "string") {
+    activeSecret = secretOrPayload || DEFAULT_JWT_SECRET;
+    targetPayload = payloadOrExpires as Omit<JwtPayload, "iat" | "exp">;
+  } else {
+    activeSecret = DEFAULT_JWT_SECRET;
+    targetPayload = secretOrPayload;
+    if (typeof payloadOrExpires === "number") {
+      duration = payloadOrExpires;
+    }
+  }
+
   const enc = new TextEncoder();
   const header = { alg: "HS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
   const fullPayload: JwtPayload = {
-    ...payload,
+    ...targetPayload,
     iat: now,
-    exp: now + expiresInSeconds,
+    exp: now + duration,
   };
 
   const headerB64 = base64UrlEncodeString(JSON.stringify(header));
