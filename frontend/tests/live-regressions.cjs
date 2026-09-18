@@ -652,6 +652,26 @@ test('screenplay markdown exporter and call sheet correctly annotate Ozu pillow 
             duration: 2.5,
             continuity_data: {},
           },
+          {
+            id: 'shot-3',
+            order: 3,
+            shot_size: 'medium_close_up',
+            camera_angle: 'low_angle',
+            camera_movement: { type: 'push_in' },
+            subject: 'Logan 与 Kendall 权势对峙',
+            action: 'Logan 稳坐高背椅，目光如鹰隼般刺穿 Kendall，Kendall 战兢低头受审',
+            dialogue: '你以为你是在跟我谈条件？',
+            beat_type: 'climax_payoff',
+            duration: 3.5,
+            power_dynamic: {
+              dominant_character: 'Logan',
+              submissive_character: 'Kendall',
+              staging_type: 'seated_vs_standing',
+              shift: 'dominant_maintained',
+              tension_summary: '父权对子嗣商业意志的彻底碾压',
+            },
+            continuity_data: {},
+          },
         ],
       },
     ],
@@ -664,9 +684,12 @@ test('screenplay markdown exporter and call sheet correctly annotate Ozu pillow 
   assert.match(mdDoc, /🏮 \*\*小津安二郎枕词式空镜头\*\*/);
   assert.match(mdDoc, /\[⏸️ 契诃夫戏剧停顿\]/);
   assert.match(mdDoc, /⏸️ \*\*契诃夫戏剧呼吸停顿拍\*\*/);
+  assert.match(mdDoc, /👑 \*\*Logan\*\* 压制 \*\*Kendall\*\*/);
+  assert.match(mdDoc, /【坐姿威仪vs战兢站立】/);
 
   const csvDoc = generateCallSheetCsvContent(mockProject, mockProject.sequences[0].shots);
   assert.match(csvDoc, /\[🏮空镜静物\]/);
   assert.match(csvDoc, /\[⏸️停顿特写\]/);
   assert.match(csvDoc, /小津静物\/景物空镜/);
+  assert.match(csvDoc, /👑坐姿威仪vs站立/);
 });

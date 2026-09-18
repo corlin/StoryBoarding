@@ -394,6 +394,36 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
             </>
           )}
 
+          {/* Succession Power Dynamics Staging Tag */}
+          {(() => {
+            const pd = shot.power_dynamic || shot.composition?.power_dynamic || (shot.continuity_data as any)?.power_dynamic;
+            if (!pd || (!pd.dominant_character && !pd.staging_type)) return null;
+
+            const STAGING_ABBR: Record<string, string> = {
+              looming_over: "高位俯视",
+              cornered: "死角逼近",
+              depth_isolation: "景深孤立",
+              seated_vs_standing: "坐姿威仪",
+              unbalanced_two_shot: "失衡对峙",
+            };
+
+            const icon = pd.shift === "power_flipped" ? "⚡" : "👑";
+            const tagText = STAGING_ABBR[pd.staging_type || ""] || "权力压制";
+
+            return (
+              <>
+                <span className="text-muted-foreground">·</span>
+                <span
+                  className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded"
+                  title={`《继承之战》权力站位: ${pd.dominant_character ? `${pd.dominant_character} 压制 ${pd.submissive_character || ""}` : "空间压制"} (${tagText})`}
+                >
+                  <span>{icon}</span>
+                  <span>{tagText}</span>
+                </span>
+              </>
+            );
+          })()}
+
           {/* Dirty Badge: Script modified, prompt auto-recompiled, ready to re-render */}
           {shot.is_dirty && !isActivelyDeveloping && (
             <button

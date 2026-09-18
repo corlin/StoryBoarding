@@ -178,6 +178,45 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
             </span>
           )}
 
+          {/* Succession Power Dynamics & Staging Dominance Badge */}
+          {(() => {
+            const pd = shot.power_dynamic || shot.composition?.power_dynamic || (shot.continuity_data as any)?.power_dynamic;
+            if (!pd || (!pd.dominant_character && !pd.staging_type)) return null;
+
+            const STAGING_LABELS: Record<string, string> = {
+              looming_over: "居高临下俯视",
+              cornered: "逼入死角",
+              depth_isolation: "前景侧脸后景虚焦",
+              seated_vs_standing: "坐姿威仪vs站立",
+              unbalanced_two_shot: "失衡双人对峙",
+            };
+
+            const SHIFT_ICONS: Record<string, string> = {
+              dominant_maintained: "👑",
+              power_flipped: "⚡",
+              stalemate: "⚔️",
+            };
+
+            const icon = (pd.shift && SHIFT_ICONS[pd.shift]) || "👑";
+            const label = STAGING_LABELS[pd.staging_type || ""] || "权力对峙";
+            const relation = pd.dominant_character && pd.submissive_character
+              ? `${pd.dominant_character} 压制 ${pd.submissive_character}`
+              : pd.dominant_character
+              ? `${pd.dominant_character} 居上位`
+              : "空间压制";
+
+            return (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30 shrink-0"
+                title={`《继承之战》权力站位调度:\n攻守关系: ${relation}\n视觉调度: ${label}${pd.tension_summary ? `\n心理博弈: ${pd.tension_summary}` : ""}`}
+              >
+                <span>{icon}</span>
+                <span className="font-semibold">{relation}</span>
+                <span className="opacity-75">· {label}</span>
+              </span>
+            );
+          })()}
+
           {isLocked && (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
               <Lock className="w-3 h-3" />

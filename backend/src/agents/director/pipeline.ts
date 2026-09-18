@@ -31,6 +31,13 @@ export interface ShotPlan {
     metaphor_theme?: string;
     action_detail?: string;
   };
+  power_dynamic?: {
+    dominant_character?: string;
+    submissive_character?: string;
+    staging_type?: "looming_over" | "cornered" | "depth_isolation" | "seated_vs_standing" | "unbalanced_two_shot";
+    shift?: "dominant_maintained" | "power_flipped" | "stalemate";
+    tension_summary?: string;
+  };
 }
 
 export interface DirectorGenerationResult {
@@ -240,7 +247,19 @@ ${pacingGuidance}
      * 'pillow_shot' (小津安二郎枕词式空镜头)：在高潮爆发 (climax_payoff) 之后或场景大转场之间，自适应生成 1 个承载情绪余韵的静物或景物空镜（如冒热气的残茶、地面的积水与残叶、斜照空廊的冷晖、窗外细雨），subject 为静物或景物，action 描写环境与光影呼吸，dialogue 必填 "无"，compute_tier 设为 "economy"，景别为 extreme_wide_shot 或 close_up。
      * 'dramatic_pause' (契诃夫戏剧呼吸停顿拍)：在重大底牌反转 (plot_twist) 或心理高压对峙极限处，截断角色对白，生成 1 个克制生理微反应特写（如屏住呼吸、指关节泛白、喉结滚动、眼神游移），dialogue 必填 "[长久的沉默。]" 或 "[停顿。]"，compute_tier 设为 "standard"。
 
-9. 【输出格式规范】：
+9. 【《继承之战》权力动态沙盘与视觉站位压制 (Power Dynamics & Staging Dominance)】:
+   - 坚决杜绝“角色面无表情、呆板并排站桩干聊”！
+   - 当镜头涉及两人或多人冲突博弈时（特别是 tension_build, plot_twist, climax_payoff 等高压节拍），根据特鲁比四角对立与斯奈德对撞机，推断此时谁处于权力上位压制方，谁处于下位防御方；
+   - 自动指派 5 大经典电影站位之一：
+     * "looming_over" (居高临下俯视威压)：压制方站立迫近俯视，下位方低位仰视，低机位仰拍/过肩俯拍对峙；
+     * "cornered" (逼入死角封死退路)：下位方被逼压至墙角、落地窗或桌角，退路封死，构图具幽闭窒息感；
+     * "depth_isolation" (景深前后景孤立)：压制方占据近景锐利侧脸，下位方处于后景深处虚焦或孤立；
+     * "seated_vs_standing" (坐位威仪 vs 站立受审)：上位者稳坐高位椅，下位者局促站立接受居高临下的审视；
+     * "unbalanced_two_shot" (失衡偏心对峙双人镜)：压制方占画面 2/3，下位方被挤压在画幅边缘；
+   - 必须将上述空间机位与压制体态自然编织进该镜头的英文 "image_prompt"（如 "Low angle two-shot, dominant Logan looming over seated Kendall, claustrophobic framing..."）与中文 "action" 中；
+   - 单人特写镜头与小津枕词空镜头无需输出此字段。
+
+10. 【输出格式规范】：
 请在 JSON 顶层输出：
 1. "theme": 故事核心主题短语 (中英文)
 2. "global_visual_anchor": 全片核心视觉基石 (纯英文描述, 包含主角/主体外观、场景美学与艺术风格)
@@ -266,6 +285,7 @@ ${pacingGuidance}
 - information_gap: 为什么观众必须看下一镜？(简练阐明此镜头结尾留存的信息缺口与悬念引线)
 - compute_tier: 算力调度建议 ('flagship' | 'standard' | 'economy'，高潮动作/人物特写为 flagship，普通对白为 standard，枕词空镜头/静物景物为 economy)
 - visual_metaphor: 视听隐喻与物理微动作 ({ "prop_name": "承重信物道具名", "metaphor_theme": "隐喻象征主题", "action_detail": "微动作与光影质感" })（加压、转折、高潮与卡点镜头必填）
+- power_dynamic: 权力攻守与空间站位 ({ "dominant_character": "上位压制方角色名", "submissive_character": "下位防御方角色名", "staging_type": "looming_over" | "cornered" | "depth_isolation" | "seated_vs_standing" | "unbalanced_two_shot", "shift": "dominant_maintained" | "power_flipped" | "stalemate", "tension_summary": "心理博弈简述" })（双人或多人冲突对抗镜头必填）
 - image_prompt: 纯净英文自然生图描述句 (Pure Visual Description in English, no labels)
 - video_prompt: 4段式 AI 视频提示词 ([Camera], [Action], [Dynamics], [Quality])
 - continuity_data: 镜头间剪辑流数据 ({ "screen_direction": "left_to_right" | "right_to_left", "motion_in": "入画动势", "motion_out": "出画动势", "transition_recommendation": "Match cut on action" | "Cross dissolve" | "Hard cut" })
@@ -1353,6 +1373,9 @@ export async function generateDirectorPipeline(
 
               const continuityData = typeof s.continuity_data === "object" ? s.continuity_data : {};
               continuityData.screen_direction = screenDirection;
+              if (s.power_dynamic) {
+                continuityData.power_dynamic = s.power_dynamic;
+              }
               if (!continuityData.motion_in) continuityData.motion_in = `Shot #${idx + 1} entry kinetic momentum from ${screenDirection}`;
               if (!continuityData.motion_out) continuityData.motion_out = `Shot #${idx + 1} exit kinetic momentum forward`;
               if (!continuityData.transition_recommendation) {
@@ -1391,6 +1414,7 @@ export async function generateDirectorPipeline(
                 compute_tier: computeTier,
                 act_progression: act_progression,
                 hook_phase: hook_phase,
+                power_dynamic: s.power_dynamic,
               };
             });
 

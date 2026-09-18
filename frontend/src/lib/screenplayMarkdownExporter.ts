@@ -244,6 +244,31 @@ export function generateScreenplayMarkdownContent(
         lines.push(`- **物理微动作**: ${metaphor.action_detail}`);
       }
 
+      // Succession Power Dynamics Staging
+      const pd = shot.power_dynamic || shot.composition?.power_dynamic || (shot.continuity_data as any)?.power_dynamic;
+      if (pd && (pd.dominant_character || pd.staging_type)) {
+        const STAGING_LABELS: Record<string, string> = {
+          looming_over: "居高临下俯视威压",
+          cornered: "逼入死角封死退路",
+          depth_isolation: "前景侧脸后景虚焦孤立",
+          seated_vs_standing: "坐姿威仪vs战兢站立",
+          unbalanced_two_shot: "失衡偏心双人对峙",
+        };
+        const SHIFT_LABELS: Record<string, string> = {
+          dominant_maintained: "优势持续巩固",
+          power_flipped: "局势反转反杀",
+          stalemate: "剑拔弩张僵持",
+        };
+        const shiftText = pd.shift ? ` [攻守位移: ${SHIFT_LABELS[pd.shift] || pd.shift}]` : "";
+        const relation = pd.dominant_character && pd.submissive_character
+          ? `👑 **${pd.dominant_character}** 压制 **${pd.submissive_character}**`
+          : pd.dominant_character
+          ? `👑 **${pd.dominant_character}** 居权力上位`
+          : "空间权力压制";
+        const stagingText = STAGING_LABELS[pd.staging_type || ""] || pd.staging_type || "经典对峙";
+        lines.push(`- **权力站位**: ${relation} · 【${stagingText}】${shiftText}`);
+      }
+
       if (shot.action) {
         lines.push(`- **画面动作**: ${shot.action.trim()}`);
       }

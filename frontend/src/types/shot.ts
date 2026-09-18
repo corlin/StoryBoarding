@@ -21,10 +21,31 @@ export interface CameraMovement {
   secondary?: string;
 }
 
+export type StagingType =
+  | 'looming_over'
+  | 'cornered'
+  | 'depth_isolation'
+  | 'seated_vs_standing'
+  | 'unbalanced_two_shot';
+
+export type PowerShift =
+  | 'dominant_maintained'
+  | 'power_flipped'
+  | 'stalemate';
+
+export interface PowerDynamicData {
+  dominant_character?: string;
+  submissive_character?: string;
+  staging_type?: StagingType;
+  shift?: PowerShift;
+  tension_summary?: string;
+}
+
 export interface CompositionData {
   subject_position?: string;
   focal_point?: string;
   depth_elements?: string[];
+  power_dynamic?: PowerDynamicData;
 }
 
 export interface AudioData {
@@ -105,6 +126,8 @@ export interface ShotModel {
     metaphor_theme?: string;
     action_detail?: string;
   };
+  // Succession Power Dynamics & Staging Dominance
+  power_dynamic?: PowerDynamicData;
   created_at: string;
   updated_at: string;
 }

@@ -78,7 +78,21 @@ export function generateCallSheetCsvContent(
           ? `${s.shot_size || "CU"} [⏸️停顿特写]`
           : s.shot_size || "MS",
       cameraAngle: s.camera_angle || "平视",
-      cameraMovement: s.camera_movement?.type || "固定",
+      cameraMovement: (() => {
+        const mov = s.camera_movement?.type || "固定";
+        const pd = s.power_dynamic || s.composition?.power_dynamic || (s.continuity_data as any)?.power_dynamic;
+        if (pd && pd.staging_type) {
+          const STAGING_NAMES: Record<string, string> = {
+            looming_over: "居高俯视威压",
+            cornered: "死角封死退路",
+            depth_isolation: "前景侧脸后景孤立",
+            seated_vs_standing: "坐姿威仪vs站立",
+            unbalanced_two_shot: "失衡双人对峙",
+          };
+          return `${mov} (👑${STAGING_NAMES[pd.staging_type] || pd.staging_type})`;
+        }
+        return mov;
+      })(),
       locationName: locName,
       lightingState: lighting,
       characters:

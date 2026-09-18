@@ -1097,6 +1097,89 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                 <option value="dramatic_pause">⏸️ 契诃夫戏剧呼吸停顿拍 (Dramatic Pause)</option>
               </select>
             </div>
+
+            {/* Succession Power Dynamics Staging Inspector */}
+            <div className="md:col-span-2 pt-3 border-t border-border/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
+                  <span>👑</span>
+                  <span>《继承之战》权力动态沙盘与站位压制 (Power Dynamics & Staging)</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground">空间站位与心理攻防</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-secondary/20 p-3 rounded-lg border border-border/40">
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+                    上位压制方 (Dominant)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.power_dynamic?.dominant_character || ""}
+                    onChange={(e) => {
+                      const pd = { ...(formData.power_dynamic || {}), dominant_character: e.target.value };
+                      handleChange("power_dynamic", pd);
+                    }}
+                    placeholder="如：董事长 / Logan"
+                    className="w-full bg-background border border-border rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+                    下位防御方 (Submissive)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.power_dynamic?.submissive_character || ""}
+                    onChange={(e) => {
+                      const pd = { ...(formData.power_dynamic || {}), submissive_character: e.target.value };
+                      handleChange("power_dynamic", pd);
+                    }}
+                    placeholder="如：继承人 / Kendall"
+                    className="w-full bg-background border border-border rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+                    视觉站位类型 (Staging Type)
+                  </label>
+                  <select
+                    value={formData.power_dynamic?.staging_type || "looming_over"}
+                    onChange={(e) => {
+                      const pd = { ...(formData.power_dynamic || {}), staging_type: e.target.value as any };
+                      handleChange("power_dynamic", pd);
+                    }}
+                    className="w-full bg-background border border-border rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
+                  >
+                    <option value="looming_over">居高临下俯视威压 (Looming Over)</option>
+                    <option value="cornered">逼入死角封死退路 (Cornered)</option>
+                    <option value="depth_isolation">前景侧脸后景虚焦 (Depth Isolation)</option>
+                    <option value="seated_vs_standing">坐姿威仪vs站立受审 (Seated vs Standing)</option>
+                    <option value="unbalanced_two_shot">失衡偏心对峙双人镜 (Unbalanced Two-Shot)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+                    权力位移方向 (Shift)
+                  </label>
+                  <select
+                    value={formData.power_dynamic?.shift || "dominant_maintained"}
+                    onChange={(e) => {
+                      const pd = { ...(formData.power_dynamic || {}), shift: e.target.value as any };
+                      handleChange("power_dynamic", pd);
+                    }}
+                    className="w-full bg-background border border-border rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary"
+                  >
+                    <option value="dominant_maintained">👑 优势持续巩固 (Maintained)</option>
+                    <option value="power_flipped">⚡ 局势反转反杀 (Flipped)</option>
+                    <option value="stalemate">⚔️ 剑拔弩张僵持 (Stalemate)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
