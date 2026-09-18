@@ -1061,6 +1061,42 @@ export const ShotDetailDrawer: React.FC<ShotDetailDrawerProps> = ({
                 className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
               />
             </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                戏剧节拍与视听呼吸 (Dramatic Beat & Rhythm)
+              </label>
+              <select
+                value={formData.beat_type || "tension_build"}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const updates: Partial<ShotModel> = { beat_type: val as any };
+                  if (val === "pillow_shot") {
+                    updates.compute_tier = "economy";
+                    updates.audio_strategy = "silent_broll";
+                    if (!formData.action || formData.action === "新动作描述...") {
+                      updates.action = "静物特写或静谧景物光影变迁，承接上一镜情绪余韵，空气静默留白";
+                    }
+                  } else if (val === "dramatic_pause") {
+                    if (!formData.dialogue || formData.dialogue === "无") {
+                      updates.dialogue = "[长久的沉默。]";
+                    }
+                  }
+                  setFormData((prev) => ({ ...prev, ...updates }));
+                  onUpdateShot(shot.id, updates);
+                }}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+              >
+                <option value="hook">🪝 黄金开局钩子 (Hook)</option>
+                <option value="inciting_incident">⚡ 激励事件 (Inciting Incident)</option>
+                <option value="tension_build">🔥 紧张蓄压 (Tension Build)</option>
+                <option value="plot_twist">🌪️ 核心反转 (Plot Twist)</option>
+                <option value="climax_payoff">💥 高潮兑现 (Climax Payoff)</option>
+                <option value="cliffhanger_hook">🧗 绝境卡点 (Cliffhanger)</option>
+                <option value="pillow_shot">🏮 小津安二郎枕词式空镜头 (Pillow Shot)</option>
+                <option value="dramatic_pause">⏸️ 契诃夫戏剧呼吸停顿拍 (Dramatic Pause)</option>
+              </select>
+            </div>
           </div>
         </div>
       )}

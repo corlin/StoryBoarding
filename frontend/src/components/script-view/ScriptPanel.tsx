@@ -18,7 +18,7 @@ interface ScriptPanelProps {
   onRefreshProject?: () => Promise<void>;
   onSelectShot: (shotId: string) => void;
   onUpdateShot: (shotId: string, updates: Partial<ShotModel>) => void;
-  onAddShot: (sequenceId: string) => void;
+  onAddShot: (sequenceId: string, initialOverrides?: Partial<ShotModel>) => void;
   onDeleteShot: (shotId: string) => void;
   onOpenDrawer?: (shotId: string) => void;
 }
@@ -100,14 +100,63 @@ export const ScriptPanel: React.FC<ScriptPanelProps> = ({
         {/* Right Action */}
         <div className="flex items-center gap-1.5">
           {viewMode === "shots" && (
-            <button
-              disabled={!sequenceId}
-              onClick={() => onAddShot(sequenceId)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>加镜头</span>
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                disabled={!sequenceId}
+                onClick={() => onAddShot(sequenceId)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
+                title="添加常规空白分镜"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>加镜头</span>
+              </button>
+              <button
+                disabled={!sequenceId}
+                onClick={() =>
+                  onAddShot(sequenceId, {
+                    beat_type: "pillow_shot",
+                    shot_size: "close_up",
+                    camera_angle: "eye_level",
+                    camera_movement: { type: "static" },
+                    subject: "静物/景物空镜头（小津枕词）",
+                    action: "静物特写或静谧景物光影变迁，承接上一镜情绪余韵，空气静默留白",
+                    dialogue: "无",
+                    narrative_function: "小津枕词·情绪留白与空间余韵",
+                    audio_strategy: "silent_broll",
+                    lip_sync_status: "not_applicable",
+                    compute_tier: "economy",
+                    emotional_voltage: 35,
+                    duration: 2.5,
+                  })
+                }
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold bg-teal-500/15 text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 disabled:opacity-50 transition-colors cursor-pointer"
+                title="添加小津安二郎枕词式空镜头（静物留白，economy算力）"
+              >
+                <span>🏮 枕词</span>
+              </button>
+              <button
+                disabled={!sequenceId}
+                onClick={() =>
+                  onAddShot(sequenceId, {
+                    beat_type: "dramatic_pause",
+                    shot_size: "close_up",
+                    camera_angle: "eye_level",
+                    camera_movement: { type: "push_in", speed: "slow" },
+                    subject: "角色呼吸停顿",
+                    action: "对白戛然而止，呼吸停顿，极度克制的微动作（眼神沉落、指关节紧扣、喉结微动），空气骤然凝固",
+                    dialogue: "[长久的沉默。]",
+                    narrative_function: "契诃夫呼吸·沉默对峙与心理微动作",
+                    compute_tier: "standard",
+                    emotional_voltage: 85,
+                    duration: 2.5,
+                  })
+                }
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 disabled:opacity-50 transition-colors cursor-pointer"
+                title="添加契诃夫戏剧呼吸停顿拍（对话截断，微表情生理反应）"
+              >
+                <span>⏸️ 停顿</span>
+              </button>
+            </div>
           )}
         </div>
       </div>

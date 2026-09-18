@@ -20,7 +20,7 @@ export interface ShotPlan {
   video_prompt: string;
   continuity_data?: Record<string, any>;
   // Narrative OS & 5min Drama Engine
-  beat_type?: string; // 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook'
+  beat_type?: string; // 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook' | 'pillow_shot' | 'dramatic_pause'
   emotional_voltage?: number; // 0 - 100
   information_gap?: string; // 为什么看下一镜的悬念引线
   compute_tier?: "flagship" | "standard" | "economy";
@@ -233,9 +233,14 @@ ${pacingGuidance}
    - 严禁输出 "Visual Anchor:", "Anticipation Pose:", "Action:", "Shot #", "Subject:" 等任何机械标签！
    - 必须写出主谓宾连贯、具有电影级光影层次、材质细节与空间纵深的纯英文描述句。
    - 结尾统一附加强负向约束：
-     "no poster frame, no decorative golden borders, no ornate card borders, no trading card frame, no franchise logo, no text watermark, full bleed widescreen film still, edge-to-edge diegetic scene, 16:9 widescreen"
+      "no poster frame, no decorative golden borders, no ornate card borders, no trading card frame, no franchise logo, no text watermark, full bleed widescreen film still, edge-to-edge diegetic scene, 16:9 widescreen"
 
-8. 【输出格式规范】：
+8. 【视听呼吸律规范（小津安二郎枕词空镜与契诃夫停顿拍）】:
+   - 全集视听节奏张弛有度，拒绝从头喊到尾。允许自适应融入 1~2 个视听呼吸节点（严格不超过 2 处）：
+     * 'pillow_shot' (小津安二郎枕词式空镜头)：在高潮爆发 (climax_payoff) 之后或场景大转场之间，自适应生成 1 个承载情绪余韵的静物或景物空镜（如冒热气的残茶、地面的积水与残叶、斜照空廊的冷晖、窗外细雨），subject 为静物或景物，action 描写环境与光影呼吸，dialogue 必填 "无"，compute_tier 设为 "economy"，景别为 extreme_wide_shot 或 close_up。
+     * 'dramatic_pause' (契诃夫戏剧呼吸停顿拍)：在重大底牌反转 (plot_twist) 或心理高压对峙极限处，截断角色对白，生成 1 个克制生理微反应特写（如屏住呼吸、指关节泛白、喉结滚动、眼神游移），dialogue 必填 "[长久的沉默。]" 或 "[停顿。]"，compute_tier 设为 "standard"。
+
+9. 【输出格式规范】：
 请在 JSON 顶层输出：
 1. "theme": 故事核心主题短语 (中英文)
 2. "global_visual_anchor": 全片核心视觉基石 (纯英文描述, 包含主角/主体外观、场景美学与艺术风格)
@@ -248,18 +253,18 @@ ${pacingGuidance}
 - shot_size: 景别 ('extreme_wide_shot' | 'wide_shot' | 'full_shot' | 'medium_shot' | 'medium_close_up' | 'close_up' | 'extreme_close_up')
 - camera_angle: 角度 ('eye_level' | 'low_angle' | 'high_angle' | 'dutch_angle' | 'birds_eye' | 'worms_eye')
 - camera_movement: 运镜 ({ "type": "push_in" | "tracking_right" | "arc_rotate" | "crane" | "tilt_up", "speed": "fast" | "medium" | "slow" })
-- subject: 镜头主体描述 (如 "孟姜女" 或 "古老长城与烽火台")
+- subject: 镜头主体描述 (如 "孟姜女" 或 "古老长城与烽火台" 或 "冷雨中的青苔石阶")
 - action: 具象生动的动作/画面台本描述 (中文，一次一个动作，严禁心理学说明书)
-- dialogue: 角色台词或画外音旁白 (中文，必填，富有戏剧张力，无人说话写"无")
-- narrative_function: 视听叙事功能 (如 "空间建立 / 悲痛哭诉 / 狂风怒吼 / 城墙坍塌 / 余韵定格")
+- dialogue: 角色台词或画外音旁白 (中文，必填，无人说话写"无"，停顿写"[长久的沉默。]")
+- narrative_function: 视听叙事功能 (如 "空间建立 / 悲痛哭诉 / 狂风怒吼 / 小津枕词·情绪留白 / 契诃夫呼吸·沉默对峙 / 城墙坍塌 / 余韵定格")
 - lighting: 光影基调 (如 "阴郁寒冬冷灰天光，侧逆光勾勒人物消瘦凄凉轮廓")
 - audio: { "sfx": "呼啸寒风声、沉重脚步踩雪声", "music": "凄楚幽咽的古琴与悲壮交响" }
-- beat_type: 戏剧节拍类型 ('hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook')
+- beat_type: 戏剧节拍类型 ('hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook' | 'pillow_shot' | 'dramatic_pause')
 - act_progression: 四幕推进阶段 ('启动·钩子与建置' | '升级·检验与逼迫' | '假高潮·行动与质变' | '兑现·核心反转与余味')
 - hook_phase: 开场钩子阶段 ('0-3s入画' | '3-10s加压' | '10-30s揭底牌' | '后段高潮')
-- emotional_voltage: 情绪势能电压 (0~100 的整数，首镜通常为 70+开篇悬念，中段蓄压 50~80，高潮 90+，末镜为 95+绝境卡点)
+- emotional_voltage: 情绪势能电压 (0~100 的整数，首镜通常为 70+开篇悬念，中段蓄压 50~80，高潮 90+，末镜为 95+绝境卡点，枕词空镜可降压至 30~45)
 - information_gap: 为什么观众必须看下一镜？(简练阐明此镜头结尾留存的信息缺口与悬念引线)
-- compute_tier: 算力调度建议 ('flagship' | 'standard' | 'economy'，高潮动作/人物特写为 flagship，普通对白为 standard，空镜头为 economy)
+- compute_tier: 算力调度建议 ('flagship' | 'standard' | 'economy'，高潮动作/人物特写为 flagship，普通对白为 standard，枕词空镜头/静物景物为 economy)
 - visual_metaphor: 视听隐喻与物理微动作 ({ "prop_name": "承重信物道具名", "metaphor_theme": "隐喻象征主题", "action_detail": "微动作与光影质感" })（加压、转折、高潮与卡点镜头必填）
 - image_prompt: 纯净英文自然生图描述句 (Pure Visual Description in English, no labels)
 - video_prompt: 4段式 AI 视频提示词 ([Camera], [Action], [Dynamics], [Quality])
@@ -1356,9 +1361,9 @@ export async function generateDirectorPipeline(
 
               const totalParsed = parsed.shots.length || 1;
               const beatType = s.beat_type || (idx === 0 ? "hook" : idx === totalParsed - 1 ? "cliffhanger_hook" : s.shot_size?.includes("close") ? "climax_payoff" : "tension_build");
-              const emotionalVoltage = Number(s.emotional_voltage) || (idx === 0 ? 78 : idx === totalParsed - 1 ? 96 : Math.min(92, Math.round(45 + (idx / totalParsed) * 45)));
-              const infoGap = (s.information_gap || "").trim() || (idx === totalParsed - 1 ? "绝境反转未解，强刺激驱动下一集" : "危机步步紧逼，行动后果悬念未决");
-              const computeTier = s.compute_tier || (beatType === "climax_payoff" || beatType === "cliffhanger_hook" ? "flagship" : "standard");
+              const emotionalVoltage = Number(s.emotional_voltage) || (beatType === "pillow_shot" ? 38 : idx === 0 ? 78 : idx === totalParsed - 1 ? 96 : Math.min(92, Math.round(45 + (idx / totalParsed) * 45)));
+              const infoGap = (s.information_gap || "").trim() || (idx === totalParsed - 1 ? "绝境反转未解，强刺激驱动下一集" : beatType === "pillow_shot" ? "静物沉淀余韵，暴风雨前的窒息回甘" : "危机步步紧逼，行动后果悬念未决");
+              const computeTier = s.compute_tier || (beatType === "pillow_shot" ? "economy" : beatType === "climax_payoff" || beatType === "cliffhanger_hook" ? "flagship" : "standard");
 
               const { act_progression, hook_phase } = getActProgressionAndHookPhase(idx, totalParsed, {
                 act_progression: s.act_progression,

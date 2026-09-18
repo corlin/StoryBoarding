@@ -90,8 +90,8 @@ export interface ShotModel {
   audio_strategy?: AudioStrategy;
   lip_sync_status?: LipSyncStatus;
   scene_index?: number;
-  // Narrative OS Phase 1: Dramatic Beat State Tree
-  beat_type?: 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook';
+  // Narrative OS: Dramatic Beat State Tree (含小津枕词空镜与契诃夫呼吸停顿)
+  beat_type?: 'hook' | 'inciting_incident' | 'tension_build' | 'plot_twist' | 'climax_payoff' | 'cliffhanger_hook' | 'pillow_shot' | 'dramatic_pause';
   emotional_voltage?: number; // 0.0 - 100.0 (Quantitative Tension/Payoff Voltage)
   information_gap?: string; // Why audience must watch the next shot (Dramatic Hook)
   compute_tier?: 'flagship' | 'standard' | 'economy';

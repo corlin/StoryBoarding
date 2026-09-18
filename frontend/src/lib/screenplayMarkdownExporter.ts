@@ -217,8 +217,21 @@ export function generateScreenplayMarkdownContent(
       // Visual Metaphor & Micro-action
       const metaphor = shot.continuity_data?.visual_metaphor;
 
-      lines.push(`#### 镜头 #${String(shotOrder).padStart(2, "0")} · ${shotSize} · ${cameraAngle} · ${cameraMovement} [${duration.toFixed(1)}秒]`);
+      const rhythmTag =
+        shot.beat_type === "pillow_shot"
+          ? " [🏮 小津枕词空镜]"
+          : shot.beat_type === "dramatic_pause"
+          ? " [⏸️ 契诃夫戏剧停顿]"
+          : "";
+
+      lines.push(`#### 镜头 #${String(shotOrder).padStart(2, "0")}${rhythmTag} · ${shotSize} · ${cameraAngle} · ${cameraMovement} [${duration.toFixed(1)}秒]`);
       
+      if (shot.beat_type === "pillow_shot") {
+        lines.push(`- **视听节拍**: 🏮 **小津安二郎枕词式空镜头**（静物留白 / 情绪沉淀 / 空间余韵）`);
+      } else if (shot.beat_type === "dramatic_pause") {
+        lines.push(`- **视听节拍**: ⏸️ **契诃夫戏剧呼吸停顿拍**（对白截断 / 克制生理微反应 / 心理窒息）`);
+      }
+
       if (participatingChars.length > 0) {
         lines.push(`- **出场人物**: ${participatingChars.join("、")}`);
       }

@@ -24,7 +24,7 @@ interface StoryboardPanelProps {
   onOpenTheater?: (shotId: string) => void;
   onOpenDrawer?: (shotId: string) => void;
   onOpenGenerateModal?: () => void;
-  onInsertShot?: (afterIndex: number) => void;
+  onInsertShot?: (afterIndex: number, initialOverrides?: Partial<ShotModel>) => void;
   onUpdateShot?: (shotId: string, updates: Partial<ShotModel>) => Promise<void> | void;
   isBatchRendering?: boolean;
   batchProgress?: { current: number; total: number };
@@ -539,7 +539,7 @@ export const StoryboardPanel: React.FC<StoryboardPanelProps> = ({
                   onToggleLock={onToggleLock}
                   onOpenDetail={() => onOpenDrawer && onOpenDrawer(shot.id)}
                   onOpenTheater={() => onOpenTheater && onOpenTheater(shot.id)}
-                  onInsertAfter={onInsertShot ? () => onInsertShot(idx) : undefined}
+                  onInsertAfter={onInsertShot ? (overrides) => onInsertShot(idx, overrides) : undefined}
                   onUpdateShot={onUpdateShot}
                 />
               </div>

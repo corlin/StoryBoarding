@@ -746,7 +746,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
                   }}
                   onSelectShot={selectShot}
                   onUpdateShot={saveShotRemote}
-                  onAddShot={() => activeSequence && addShot(activeSequence.id)}
+                  onAddShot={(_seqId, overrides) => activeSequence && addShot(activeSequence.id, overrides)}
                   onDeleteShot={deleteShot}
                   onOpenDrawer={handleOpenDrawer}
                 />
@@ -811,7 +811,7 @@ export function WorkspaceClient({ projectId }: WorkspaceClientProps) {
                 onRegenerateShotImage={handleRegenerateSingleShot}
                 onToggleLock={handleToggleLockShot}
                 onOpenGenerateModal={() => setIsOpenAIGenerateModal(true)}
-                onInsertShot={(afterIndex) => activeSequence && insertShot(activeSequence.id, afterIndex)}
+                onInsertShot={(afterIndex, overrides) => activeSequence && insertShot(activeSequence.id, afterIndex, overrides)}
                 onUpdateShot={saveShotRemote}
                 isBatchRendering={isBatchRendering}
                 batchProgress={batchProgress}

@@ -100,6 +100,9 @@ export async function diagnoseAndRewriteScreenplay(
    - 若发现【空悬未响之枪 (hanging)】：在改写剧本时主动编织进梅峰价值转折枢轴或角色对白交锋武器，让道具真正发挥戏剧效能；
    - 若发现【突兀机械降神之枪 (sudden)】：在改写剧本的前半段主动补上前置物理微动作铺垫；
    - 评估 chekhov_gun 分数 (0-100)，并在 chekhov_guns 列表中列出（包含 name, status: "fired"|"hanging"|"sudden", dramatic_role, fix_suggestion）。
+7. 视听呼吸律与小津枕词/契诃夫停顿自检 (Pacing Breathing & Dramatic Pause):
+   - 影视视听节奏贵在“张弛有度”，高潮爆发后必须有余韵沉淀（小津枕词式空镜静物），重大反转与终极心理交锋处必须有窒息静默（契诃夫戏剧呼吸停顿拍 "[长久的沉默。]"）；
+   - 坚决杜绝“全篇从头喊到尾、毫无视听呼吸”导致的疲劳；若全剧本无停顿，在 critique 结合价值转折指出建议，在 rewritten_screenplay 中主动在核心反转处注入克制的生理微动作与静默呼吸。
 
 【角色背景资产】：
 ${charactersContext || "默认主要角色"}

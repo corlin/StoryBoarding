@@ -21,8 +21,8 @@ interface WorkspaceState {
   fetchProject: (projectId: string) => Promise<void>;
   updateShotLocal: (shotId: string, updates: Partial<ShotModel>) => void;
   saveShotRemote: (shotId: string, updates: Partial<ShotModel>) => Promise<void>;
-  addShot: (sequenceId: string) => Promise<void>;
-  insertShot: (sequenceId: string, afterIndex: number) => Promise<void>;
+  addShot: (sequenceId: string, initialOverrides?: Partial<ShotModel>) => Promise<void>;
+  insertShot: (sequenceId: string, afterIndex: number, initialOverrides?: Partial<ShotModel>) => Promise<void>;
   deleteShot: (shotId: string) => Promise<void>;
   regenerateShotImage: (shotId: string) => Promise<void>;
 }
@@ -263,7 +263,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
   },
 
-  addShot: async (sequenceId) => {
+  addShot: async (sequenceId, initialOverrides) => {
     const { currentProject } = get();
     if (!currentProject) return;
 
@@ -290,6 +290,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         is_dirty: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        ...initialOverrides,
       };
 
       const updatedSequences = currentProject.sequences.map((s) =>
@@ -312,13 +313,22 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       camera_movement: { type: "static" },
       subject: "新角色",
       action: "输入镜头具体动作描述...",
+      ...initialOverrides,
     });
+
+    if (initialOverrides && Object.keys(initialOverrides).length > 0) {
+      try {
+        await api.updateShot(created.id, initialOverrides);
+      } catch (e) {
+        console.warn("Persist overrides after addShot fallback:", e);
+      }
+    }
 
     await get().fetchProject(currentProject.id);
     set({ selectedShotId: created.id });
   },
 
-  insertShot: async (sequenceId, afterIndex) => {
+  insertShot: async (sequenceId, afterIndex, initialOverrides) => {
     const { currentProject } = get();
     if (!currentProject) return;
 
@@ -348,6 +358,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         is_dirty: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        ...initialOverrides,
       };
 
       currentShots.splice(insertPosition, 0, newLocalShot);
@@ -374,7 +385,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       camera_movement: { type: "static" },
       subject: "新角色",
       action: "新插入镜头具体动作描述...",
+      ...initialOverrides,
     });
+
+    if (initialOverrides && Object.keys(initialOverrides).length > 0) {
+      try {
+        await api.updateShot(created.id, initialOverrides);
+      } catch (e) {
+        console.warn("Persist overrides after insertShot fallback:", e);
+      }
+    }
 
     currentShots.splice(insertPosition, 0, created);
     const shotIds = currentShots.map((s) => s.id);

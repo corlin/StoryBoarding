@@ -612,3 +612,61 @@ test('TTS test errors preserve JSON and plain-text provider details after one bo
   assert.equal(reads, 1);
   assert.equal(await readTtsErrorDetail({ status: 502, text: async () => 'gateway timeout' }), 'gateway timeout');
 });
+
+test('screenplay markdown exporter and call sheet correctly annotate Ozu pillow shot and Chekhov dramatic pause', () => {
+  const { generateScreenplayMarkdownContent } = require('../src/lib/screenplayMarkdownExporter.ts');
+  const { generateCallSheetCsvContent } = require('../src/lib/callSheetExporter.ts');
+
+  const mockProject = {
+    id: 'test-p-rhythm',
+    title: '静默回声',
+    sequences: [
+      {
+        id: 'seq-1',
+        title: '风暴余韵',
+        order: 1,
+        shots: [
+          {
+            id: 'shot-1',
+            order: 1,
+            shot_size: 'close_up',
+            camera_angle: 'eye_level',
+            camera_movement: { type: 'static' },
+            subject: '冷雨中的残茶',
+            action: '冒白汽的茶汤渐渐冷却，雨滴顺着屋檐坠落',
+            dialogue: '无',
+            beat_type: 'pillow_shot',
+            duration: 3.0,
+            continuity_data: {},
+          },
+          {
+            id: 'shot-2',
+            order: 2,
+            shot_size: 'close_up',
+            camera_angle: 'eye_level',
+            camera_movement: { type: 'push_in' },
+            subject: '主角喉结微动',
+            action: '对白戛然而止，屏住呼吸，眼神沉落',
+            dialogue: '[长久的沉默。]',
+            beat_type: 'dramatic_pause',
+            duration: 2.5,
+            continuity_data: {},
+          },
+        ],
+      },
+    ],
+    characters: [],
+    locations: [],
+  };
+
+  const mdDoc = generateScreenplayMarkdownContent(mockProject, mockProject.sequences);
+  assert.match(mdDoc, /\[🏮 小津枕词空镜\]/);
+  assert.match(mdDoc, /🏮 \*\*小津安二郎枕词式空镜头\*\*/);
+  assert.match(mdDoc, /\[⏸️ 契诃夫戏剧停顿\]/);
+  assert.match(mdDoc, /⏸️ \*\*契诃夫戏剧呼吸停顿拍\*\*/);
+
+  const csvDoc = generateCallSheetCsvContent(mockProject, mockProject.sequences[0].shots);
+  assert.match(csvDoc, /\[🏮空镜静物\]/);
+  assert.match(csvDoc, /\[⏸️停顿特写\]/);
+  assert.match(csvDoc, /小津静物\/景物空镜/);
+});

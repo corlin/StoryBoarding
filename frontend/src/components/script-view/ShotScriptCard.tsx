@@ -157,6 +157,27 @@ export const ShotScriptCard: React.FC<ShotScriptCardProps> = ({
             );
           })()}
 
+          {/* Ozu Pillow Shot & Chekhov Dramatic Pause Rhythm Badges */}
+          {shot.beat_type === "pillow_shot" && (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/25 shrink-0"
+              title="🏮 小津安二郎枕词式空镜头：静物留白，承接前幕情绪余韵，算力经济"
+            >
+              <span>🏮</span>
+              <span>小津枕词 (空镜)</span>
+            </span>
+          )}
+
+          {shot.beat_type === "dramatic_pause" && (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/25 shrink-0"
+              title="⏸️ 契诃夫戏剧呼吸停顿拍：对白戛然而止，聚焦微表情生理反应与心理窒息"
+            >
+              <span>⏸️</span>
+              <span>契诃夫呼吸 (停顿)</span>
+            </span>
+          )}
+
           {isLocked && (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
               <Lock className="w-3 h-3" />

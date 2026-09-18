@@ -18,7 +18,7 @@ interface StoryboardCellProps {
   onToggleLock?: (shotId: string, locked: boolean) => void;
   onOpenDetail?: () => void;
   onOpenTheater?: () => void;
-  onInsertAfter?: () => void;
+  onInsertAfter?: (overrides?: Partial<ShotModel>) => void;
   onUpdateShot?: (shotId: string, updates: Partial<ShotModel>) => Promise<void> | void;
 }
 
@@ -370,6 +370,30 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
             </>
           )}
 
+          {shot.beat_type === "pillow_shot" && (
+            <>
+              <span className="text-muted-foreground">·</span>
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-300 bg-teal-500/20 border border-teal-500/40 px-1.5 py-0.5 rounded"
+                title="🏮 小津安二郎枕词式空镜头（静物留白，释放视听余韵，算力经济）"
+              >
+                <span>🏮 枕词</span>
+              </span>
+            </>
+          )}
+
+          {shot.beat_type === "dramatic_pause" && (
+            <>
+              <span className="text-muted-foreground">·</span>
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-300 bg-indigo-500/20 border border-indigo-500/40 px-1.5 py-0.5 rounded"
+                title="⏸️ 契诃夫戏剧呼吸停顿拍（对白截断，克制生理微反应与窒息静默）"
+              >
+                <span>⏸️ 停顿</span>
+              </span>
+            </>
+          )}
+
           {/* Dirty Badge: Script modified, prompt auto-recompiled, ready to re-render */}
           {shot.is_dirty && !isActivelyDeveloping && (
             <button
@@ -567,21 +591,71 @@ export const StoryboardCell: React.FC<StoryboardCellProps> = ({
         </div>
       </div>
 
-      {/* Hover Quick Insert Button (Pro Feature: insert next shot seamlessly) */}
+      {/* Hover Quick Insert Tri-Capsule (Pro Feature: insert standard shot, Ozu pillow shot, or Chekhov pause) */}
       {onInsertAfter && (
-        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 pointer-events-auto">
+        <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 pointer-events-auto flex items-center gap-1 bg-background/95 backdrop-blur-md p-0.5 rounded-full border border-border/80 shadow-lg scale-90 hover:scale-100">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onInsertAfter();
-              notify.info(`🎬 已在镜 ${index + 1} 后成功插入新分镜！`);
+              notify.info(`🎬 已在镜 ${index + 1} 后成功插入常规新分镜！`);
             }}
-            className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow-md hover:scale-105 active:scale-95 transition-transform border border-primary-foreground/20 cursor-pointer"
-            title={`在镜 ${index + 1} 与镜 ${index + 2} 之间快捷插入空白新镜头`}
+            className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow-xs hover:bg-primary/90 transition-transform active:scale-95 cursor-pointer"
+            title={`在镜 ${index + 1} 与镜 ${index + 2} 之间插入常规空白镜头`}
           >
             <Plus className="w-3 h-3" />
             <span>插镜</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInsertAfter({
+                beat_type: "pillow_shot",
+                shot_size: "close_up",
+                camera_angle: "eye_level",
+                camera_movement: { type: "static" },
+                subject: "静物/景物空镜头（小津枕词）",
+                action: "静物特写或静谧景物光影变迁，承接上一镜情绪余韵，空气静默留白",
+                dialogue: "无",
+                narrative_function: "小津枕词·情绪留白与空间余韵",
+                audio_strategy: "silent_broll",
+                lip_sync_status: "not_applicable",
+                compute_tier: "economy",
+                emotional_voltage: 35,
+                duration: 2.5,
+              });
+              notify.info(`🏮 已在镜 ${index + 1} 后插入【小津枕词空镜头】！`);
+            }}
+            className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-teal-600/90 hover:bg-teal-500 text-white text-[10px] font-bold shadow-xs transition-transform active:scale-95 cursor-pointer"
+            title="一键插入小津安二郎枕词式空镜头（静物留白，economy算力，释放情绪后劲）"
+          >
+            <span>🏮 枕词</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInsertAfter({
+                beat_type: "dramatic_pause",
+                shot_size: "close_up",
+                camera_angle: "eye_level",
+                camera_movement: { type: "push_in", speed: "slow" },
+                subject: "角色呼吸停顿",
+                action: "对白戛然而止，呼吸停顿，极度克制的微动作（眼神沉落、指关节紧扣、喉结微动），空气骤然凝固",
+                dialogue: "[长久的沉默。]",
+                narrative_function: "契诃夫呼吸·沉默对峙与心理微动作",
+                compute_tier: "standard",
+                emotional_voltage: 85,
+                duration: 2.5,
+              });
+              notify.info(`⏸️ 已在镜 ${index + 1} 后插入【契诃夫戏剧呼吸停顿拍】！`);
+            }}
+            className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-indigo-600/90 hover:bg-indigo-500 text-white text-[10px] font-bold shadow-xs transition-transform active:scale-95 cursor-pointer"
+            title="一键插入契诃夫戏剧呼吸停顿拍（对话截断，微表情生理反应）"
+          >
+            <span>⏸️ 停顿</span>
           </button>
         </div>
       )}

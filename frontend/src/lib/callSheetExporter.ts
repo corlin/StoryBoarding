@@ -71,14 +71,25 @@ export function generateCallSheetCsvContent(
     rows.push({
       batchNumber: loc ? `批次 ${String(currentBatch).padStart(2, "0")}` : "待排期（场景未绑定）",
       order: s.order || idx + 1,
-      shotSize: s.shot_size || "MS",
+      shotSize:
+        s.beat_type === "pillow_shot"
+          ? `${s.shot_size || "CU"} [🏮空镜静物]`
+          : s.beat_type === "dramatic_pause"
+          ? `${s.shot_size || "CU"} [⏸️停顿特写]`
+          : s.shot_size || "MS",
       cameraAngle: s.camera_angle || "平视",
       cameraMovement: s.camera_movement?.type || "固定",
       locationName: locName,
       lightingState: lighting,
-      characters: charNames.join(" / ") || "待确认出场人物",
+      characters:
+        s.beat_type === "pillow_shot"
+          ? "无（小津静物/景物空镜）"
+          : charNames.join(" / ") || "待确认出场人物",
       action: s.action || "",
-      dialogue: s.dialogue || "",
+      dialogue:
+        s.beat_type === "dramatic_pause" && (!s.dialogue || s.dialogue === "无")
+          ? "[长久的沉默。]"
+          : s.dialogue || "",
       duration: Number(s.duration) || 2.5,
       hasArtwork: s.is_dirty ? "待更新 · 内容未审" : s.storyboard_image_url?.trim() ? "有图片引用 · 内容未审" : "无图片引用",
     });
